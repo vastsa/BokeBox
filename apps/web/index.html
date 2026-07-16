@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="light" data-theme-pref="system">
+<html lang="zh-CN" data-theme="system">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#f6f8fc" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -18,12 +18,11 @@
           var key = 'pb-theme';
           var pref = localStorage.getItem(key);
           if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          // 关键：写入 preference，system 由 CSS prefers-color-scheme 原生跟随
+          document.documentElement.setAttribute('data-theme', pref);
           var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
           var resolved = pref === 'dark' || (pref === 'system' && dark) ? 'dark' : 'light';
-          // 视觉层只写 light/dark，CSS html[data-theme="dark"] 才能稳定生效
-          document.documentElement.setAttribute('data-theme', resolved);
-          document.documentElement.setAttribute('data-theme-pref', pref);
-          document.documentElement.style.colorScheme = resolved;
+          document.documentElement.style.colorScheme = pref === 'system' ? resolved : pref;
           var color = resolved === 'dark' ? '#0a0d12' : '#f6f8fc';
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute('content', color);
