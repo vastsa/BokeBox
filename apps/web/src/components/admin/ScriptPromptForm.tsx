@@ -15,6 +15,7 @@ const BASIC_KEYS: Array<keyof ScriptPromptOptions> = [
 const ADVANCED_KEYS: Array<keyof ScriptPromptOptions> = [
   'openingStyle',
   'closingStyle',
+  'maxChars',
   'extraInstructions',
 ];
 
@@ -74,7 +75,11 @@ export function ScriptPromptForm({
             ) : (
               <input
                 className="nl-input"
-                type="text"
+                type={field.inputType || 'text'}
+                inputMode={field.inputType === 'number' ? 'numeric' : undefined}
+                min={field.inputType === 'number' ? 300 : undefined}
+                max={field.inputType === 'number' ? 8000 : undefined}
+                step={field.inputType === 'number' ? 50 : undefined}
                 disabled={disabled}
                 placeholder={field.placeholder}
                 value={value[field.key] || ''}

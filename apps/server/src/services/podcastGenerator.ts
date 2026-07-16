@@ -4,8 +4,11 @@ import type { PodcastContent, ScriptPromptOptions } from '../types/job.js';
 import { aiFetch, getChatModel, hasApiKey } from '../utils/aiConfig.js';
 import {
   buildScriptPromptSection,
+  countSpokenChars,
   hasScriptPrompt,
+  resolveScriptMaxChars,
 } from './scriptPrompt.js';
+import { maybeGeneratePodcastCover } from './coverGenerator.js';
 
 const GRADIENTS = [
   'from-[#7eb0ff] via-[#4f8ef7] to-[#3b7aef]',
@@ -124,6 +127,8 @@ async function llmPodcast(
   sourceTitle: string,
   scriptPrompt?: ScriptPromptOptions,
 ): Promise<PodcastContent> {
+  const maxChars = resolveScriptMaxChars(scriptPrompt);
+  const targetMin = Math.max(300, Math.round(maxChars * 0.75));
   const system = [
     '你是资深中文播客制作人与内容主编，同时精通 MiMo-TTS 音频标签控制。',
     '请把视频转写稿重构成一集可直接送入 TTS 合成的口播稿。',
@@ -134,7 +139,8 @@ async function llmPodcast(
     '   script, showNotes, estimatedMinutes(number)。',
     '3. title 像播客节目名；summary 80-140 字；tags 3-6 个。',
     '4. script 必须是适合直接口播的口语化中文，包含开场、分段展开、收尾，',
-    '   控制在约 800-1600 字（便于 TTS），避免“如图所示/点击下方”等视觉依赖表述。',
+    `   正文字数（去除音频标签后）严格控制在 ${targetMin}-${maxChars} 字，绝对不得超过 ${maxChars} 字；`,
+    '   超限属于失败输出。避免“如图所示/点击下方”等视觉依赖表述。',
     '5. script 必须使用 MiMo TTS「音频标签控制」，规则如下（非常重要）：',
     '   - 不支持风格指令（不要写旁白式“请用某某语气朗读”的说明句）。',
     '   - 在全文最开头用半角括号写入 1-2 个整体风格标签，例如：',
@@ -208,8 +214,29 @@ async function llmPodcast(
     ? parsed.tags.map((t) => String(t).trim()).filter(Boolean).slice(0, 8)
     : [];
 
-  const script = String(parsed.script || '').trim();
+  let script = String(parsed.script || '').trim();
   if (!script) throw new Error('播客脚本 script 为空');
+
+  // 超字数时重写一次（仍超则保留，但会按实测字数修正时长估算）
+  let spokenCount = countSpokenChars(script);
+  if (spokenCount > maxChars) {
+    const rewritten = await rewriteScriptToLimit({
+      script,
+      maxChars,
+      sourceTitle,
+      title,
+    });
+    if (rewritten) {
+      script = rewritten;
+      spokenCount = countSpokenChars(script);
+    }
+  }
+
+  const estimatedFromChars = Math.max(1, Math.round(spokenCount / 220));
+  const estimatedMinutes =
+    Number(parsed.estimatedMinutes) > 0
+      ? Math.min(Number(parsed.estimatedMinutes), Math.max(estimatedFromChars, 1))
+      : estimatedFromChars;
 
   return {
     title,
@@ -223,10 +250,69 @@ async function llmPodcast(
     showNotes:
       String(parsed.showNotes || '').trim() ||
       `# ${title}\n\n${parsed.summary || ''}`,
-    estimatedMinutes:
-      Number(parsed.estimatedMinutes) > 0 ? Number(parsed.estimatedMinutes) : 10,
+    estimatedMinutes,
     coverGradient: pickGradient(title),
   };
+}
+
+/** 超字数时请求压缩改写，失败则返回 null */
+async function rewriteScriptToLimit(input: {
+  script: string;
+  maxChars: number;
+  sourceTitle: string;
+  title: string;
+}): Promise<string | null> {
+  const current = countSpokenChars(input.script);
+  const res = await aiFetch('/chat/completions', {
+    method: 'POST',
+    body: JSON.stringify({
+      model: getChatModel(),
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: [
+            '你是播客口播编辑。任务：把给定 script 压缩到字数上限内。',
+            '硬性要求：',
+            `1. 去除音频标签后的正文字数必须 ≤ ${input.maxChars} 字（当前约 ${current} 字）。`,
+            '2. 保留开场、核心观点、收尾；删除重复与次要展开。',
+            '3. 保留并合理精简 MiMo TTS 音频标签（开头风格标签 + 若干细粒度标签）。',
+            '4. 不要编造新事实。',
+            '5. 输出严格 JSON：{"script":"..."}，不要 markdown。',
+          ].join('\n'),
+        },
+        {
+          role: 'user',
+          content: [
+            `节目标题：${input.title}`,
+            `来源：${input.sourceTitle}`,
+            `字数上限：${input.maxChars}`,
+            '',
+            '原 script：',
+            input.script,
+          ].join('\n'),
+        },
+      ],
+    }),
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  let content = data.choices?.[0]?.message?.content;
+  if (!content) return null;
+  content = content.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+  try {
+    const parsed = JSON.parse(content) as { script?: string };
+    const next = String(parsed.script || '').trim();
+    if (!next) return null;
+    // 只有确实变短才采用
+    if (countSpokenChars(next) >= current) return null;
+    return next;
+  } catch {
+    return null;
+  }
 }
 
 export async function generatePodcast(
@@ -237,9 +323,12 @@ export async function generatePodcast(
 ): Promise<{ podcast: PodcastContent; demo: boolean }> {
   const paths = jobPaths(jobId);
   const demo = !hasApiKey();
-  const podcast = demo
+  let podcast = demo
     ? demoPodcast(transcript, sourceTitle, scriptPrompt)
     : await llmPodcast(transcript, sourceTitle, scriptPrompt);
+
+  // 配置了图片模型时，用 AI 生成播客封面（失败则回落渐变）
+  podcast = await maybeGeneratePodcastCover(jobId, podcast);
 
   await writeText(paths.script, podcast.script);
   await writeText(paths.showNotes, podcast.showNotes);

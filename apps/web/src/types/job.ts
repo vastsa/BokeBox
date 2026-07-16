@@ -67,6 +67,8 @@ export interface PodcastContent {
   scriptTiming?: ScriptLineTiming[];
   estimatedMinutes: number;
   coverGradient?: string;
+  /** 是否已生成 AI 封面图 */
+  hasCoverImage?: boolean;
 }
 
 /** 口播稿提示词干预：角色 / 主播身份 / 风格等 */
@@ -87,6 +89,11 @@ export interface ScriptPromptOptions {
   openingStyle?: string;
   /** 收尾偏好，如「行动建议 + 下期预告」 */
   closingStyle?: string;
+  /**
+   * 口播稿字数上限（去除音频标签后的正文字数）
+   * 例："1500"；未设置时使用系统默认 1600
+   */
+  maxChars?: string;
   /** 额外自由提示词（高级干预） */
   extraInstructions?: string;
 }

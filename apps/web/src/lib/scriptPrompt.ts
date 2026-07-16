@@ -5,6 +5,7 @@ export const SCRIPT_PROMPT_FIELDS: Array<{
   label: string;
   placeholder: string;
   multiline?: boolean;
+  inputType?: 'text' | 'number';
 }> = [
   {
     key: 'hostName',
@@ -47,9 +48,15 @@ export const SCRIPT_PROMPT_FIELDS: Array<{
     placeholder: '如：行动建议 + 下期预告',
   },
   {
+    key: 'maxChars',
+    label: '字数上限',
+    placeholder: '默认 1600，约 8-10 分钟',
+    inputType: 'number',
+  },
+  {
     key: 'extraInstructions',
     label: '额外要求',
-    placeholder: '高级干预：如少用黑话、控制在 10 分钟内…',
+    placeholder: '高级干预：如少用黑话、补充禁忌…',
     multiline: true,
   },
 ];
@@ -64,8 +71,14 @@ export function normalizeScriptPrompt(
   if (!raw || typeof raw !== 'object') return {};
   const next: ScriptPromptOptions = {};
   for (const { key } of SCRIPT_PROMPT_FIELDS) {
-    const v = String(raw[key] || '').trim();
-    if (v) next[key] = v;
+    let v = String(raw[key] || '').trim();
+    if (!v) continue;
+    if (key === 'maxChars') {
+      const n = Number(v.replace(/[^\d]/g, ''));
+      if (!Number.isFinite(n)) continue;
+      v = String(Math.min(8000, Math.max(300, Math.round(n))));
+    }
+    next[key] = v;
   }
   return next;
 }
@@ -87,6 +100,7 @@ export function summarizeScriptPrompt(
   if (p.showName) parts.push(`《${p.showName}》`);
   if (p.tone) parts.push(p.tone);
   if (p.speakingStyle) parts.push(p.speakingStyle);
+  if (p.maxChars) parts.push(`≤${p.maxChars}字`);
   if (!parts.length && p.extraInstructions) {
     parts.push(p.extraInstructions.slice(0, 24));
   }

@@ -12,8 +12,52 @@ const FIELDS: Array<{
   { key: 'tone', label: '语气调性' },
   { key: 'openingStyle', label: '开场偏好' },
   { key: 'closingStyle', label: '收尾偏好' },
+  { key: 'maxChars', label: '字数上限' },
   { key: 'extraInstructions', label: '额外要求' },
 ];
+
+/** 系统默认口播字数上限（去除音频标签后） */
+export const DEFAULT_SCRIPT_MAX_CHARS = 1600;
+export const MIN_SCRIPT_MAX_CHARS = 300;
+export const MAX_SCRIPT_MAX_CHARS = 8000;
+
+/** 解析字数上限；非法/空则回落默认 */
+export function resolveScriptMaxChars(
+  prompt?: ScriptPromptOptions | null,
+): number {
+  const raw = String(prompt?.maxChars || '').trim();
+  if (!raw) return DEFAULT_SCRIPT_MAX_CHARS;
+  const n = Number(raw.replace(/[^\d]/g, ''));
+  if (!Number.isFinite(n)) return DEFAULT_SCRIPT_MAX_CHARS;
+  const rounded = Math.round(n);
+  if (rounded < MIN_SCRIPT_MAX_CHARS) return MIN_SCRIPT_MAX_CHARS;
+  if (rounded > MAX_SCRIPT_MAX_CHARS) return MAX_SCRIPT_MAX_CHARS;
+  return rounded;
+}
+
+const AUDIO_TAG_RE = /[\(（\[]\s*[^\)）\]]{1,48}\s*[\)）\]]/g;
+
+/** 去除音频标签后统计正文字数（中文按字、英文按词近似） */
+export function countSpokenChars(script: string): number {
+  const plain = String(script || '')
+    .replace(AUDIO_TAG_RE, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plain) return 0;
+  // 中日韩统一表意文字按字计
+  const cjk = plain.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g);
+  let count = cjk?.length || 0;
+  // 剩余拉丁/数字按「去掉空白后的字符」计，避免英文过短
+  const residual = plain
+    .replace(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g, ' ')
+    .replace(/[^\w.-]+/g, ' ')
+    .trim();
+  if (residual) {
+    count += residual.replace(/\s+/g, '').length;
+  }
+  return count;
+}
+
 
 function clean(value: unknown): string | undefined {
   if (value == null) return undefined;
@@ -28,8 +72,22 @@ export function normalizeScriptPrompt(
   if (!raw || typeof raw !== 'object') return undefined;
   const next: ScriptPromptOptions = {};
   for (const { key } of FIELDS) {
-    const v = clean((raw as ScriptPromptOptions)[key]);
-    if (v) next[key] = v;
+    let v = clean((raw as ScriptPromptOptions)[key]);
+    if (!v) continue;
+    if (key === 'maxChars') {
+      const n = Number(v.replace(/[^\d]/g, ''));
+      if (!Number.isFinite(n)) continue;
+      const rounded = Math.round(n);
+      if (rounded < MIN_SCRIPT_MAX_CHARS || rounded > MAX_SCRIPT_MAX_CHARS) {
+        // 超出合理范围则夹取
+        v = String(
+          Math.min(MAX_SCRIPT_MAX_CHARS, Math.max(MIN_SCRIPT_MAX_CHARS, rounded)),
+        );
+      } else {
+        v = String(rounded);
+      }
+    }
+    next[key] = v;
   }
   return Object.keys(next).length ? next : undefined;
 }
@@ -58,13 +116,21 @@ export function buildScriptPromptSection(
     if (value) lines.push(`- ${label}：${value}`);
   }
 
+  const maxChars = resolveScriptMaxChars(p);
   lines.push(
     '请严格按以上人设撰写 script / hostIntro：',
     '1. 开场与收尾要体现主播身份与节目辨识度（若有节目名请自然点出）。',
     '2. 措辞、节奏、称呼符合指定说话风格与语气调性。',
     '3. 内容面向目标听众，避免不匹配的黑话或腔调。',
-    '4. 额外要求必须遵守，但不能编造转写稿中不存在的事实。',
-    '5. 仍然必须遵守 MiMo TTS 音频标签控制规则。',
+    '4. 口播稿 script 正文字数（去除音频标签后）严格不超过 ' +
+      String(maxChars) +
+      ' 字，目标约 ' +
+      String(Math.round(maxChars * 0.75)) +
+      '-' +
+      String(maxChars) +
+      ' 字，宁短勿超。',
+    '5. 额外要求必须遵守，但不能编造转写稿中不存在的事实。',
+    '6. 仍然必须遵守 MiMo TTS 音频标签控制规则。',
   );
 
   return lines.join('\n');
@@ -83,6 +149,7 @@ export function summarizeScriptPrompt(
   if (p.showName) parts.push(`《${p.showName}》`);
   if (p.tone) parts.push(p.tone);
   if (p.speakingStyle) parts.push(p.speakingStyle);
+  if (p.maxChars) parts.push(`≤${p.maxChars}字`);
   if (!parts.length && p.extraInstructions) {
     parts.push(p.extraInstructions.slice(0, 24));
   }
