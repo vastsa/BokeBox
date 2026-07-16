@@ -57,7 +57,7 @@ async function main() {
   }
 
   await app.listen({ port: PORT, host: HOST });
-  app.log.info(`Person Boke listening on http://${HOST}:${PORT}`);
+  app.log.info(`BokeBox listening on http://${HOST}:${PORT}`);
   app.log.info(`SQLite: ${SQLITE_DB}`);
   app.log.info(
     hasApiKey()

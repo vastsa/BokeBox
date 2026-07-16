@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Person Boke · 一键启动
+# BokeBox · 一键启动
 # 用法:
 #   ./start.sh            本地开发（前后端热更新）
 #   ./start.sh prod       本地生产模式（构建后仅启服务端）
@@ -118,7 +118,7 @@ start_prod() {
   ok "访问: http://localhost:${PORT:-8787}"
   ok "管理: http://localhost:${PORT:-8787}/#/admin"
   echo
-  exec pnpm --filter @person-boke/server start
+  exec pnpm --filter @bokebox/server start
 }
 
 docker_up() {
@@ -141,10 +141,10 @@ docker_up() {
   log "Docker Compose 构建并启动 …"
   "${COMPOSE[@]}" up -d --build
   echo
-  ok "容器已启动: person-boke"
+  ok "容器已启动: bokebox"
   ok "访问: http://localhost:${PORT:-8787}"
   ok "管理: http://localhost:${PORT:-8787}/#/admin"
-  ok "日志: ${COMPOSE[*]} logs -f person-boke"
+  ok "日志: ${COMPOSE[*]} logs -f bokebox"
   ok "停止: ./start.sh docker:down"
 }
 
@@ -187,14 +187,14 @@ docker_prod() {
     exit 1
   fi
 
-  export GHCR_IMAGE="${GHCR_IMAGE:-ghcr.io/vastsa/person-boke}"
+  export GHCR_IMAGE="${GHCR_IMAGE:-ghcr.io/xzulab/bokebox}"
   export IMAGE_TAG="${IMAGE_TAG:-latest}"
   log "拉取生产镜像 ${GHCR_IMAGE}:${IMAGE_TAG} …"
   "${COMPOSE[@]}" -f docker-compose.prod.yml pull
   log "启动生产容器 …"
   "${COMPOSE[@]}" -f docker-compose.prod.yml up -d
   echo
-  ok "容器已启动: person-boke（GHCR 镜像）"
+  ok "容器已启动: bokebox（GHCR 镜像）"
   ok "访问: http://localhost:${PORT:-8787}"
   ok "日志: ${COMPOSE[*]} -f docker-compose.prod.yml logs -f"
   ok "停止: ./start.sh docker:down"
@@ -203,7 +203,7 @@ docker_prod() {
 
 usage() {
   cat <<USAGE
-Person Boke · 一键启动
+BokeBox · 一键启动
 
 用法:
   ./start.sh              本地开发（热更新）

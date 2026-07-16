@@ -1,10 +1,10 @@
 services:
-  person-boke:
+  bokebox:
     build:
       context: .
       dockerfile: Dockerfile
-    image: person-boke:latest
-    container_name: person-boke
+    image: bokebox:latest
+    container_name: bokebox
     ports:
       - "${PORT:-8787}:8787"
     env_file:

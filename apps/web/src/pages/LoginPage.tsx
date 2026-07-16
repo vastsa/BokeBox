@@ -64,7 +64,7 @@ export function LoginPage() {
             <IconHeadphones size={16} />
           </span>
           <div>
-            <div className="auth-brand-title">Person Boke</div>
+            <div className="auth-brand-title">BokeBox</div>
             <div className="auth-brand-sub">登录你的私人播客</div>
           </div>
         </div>

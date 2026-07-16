@@ -181,7 +181,7 @@ export function SetupPage() {
             <IconHeadphones size={16} />
           </span>
           <div>
-            <div className="auth-brand-title">Person Boke</div>
+            <div className="auth-brand-title">BokeBox</div>
             <div className="auth-brand-sub">首次使用 · 系统初始化</div>
           </div>
         </div>

@@ -19,7 +19,7 @@ main push / 手动 deploy
 
 ```
 ghcr.io/<owner>/<repo>
-# 例: ghcr.io/vastsa/person-boke
+# 例: ghcr.io/xzulab/bokebox
 ```
 
 常用 tag：
@@ -44,8 +44,8 @@ ghcr.io/<owner>/<repo>
 
 ```bash
 # 与 CI 相同的 Dockerfile 构建
-docker build -t person-boke:local .
-docker run --rm -p 8787:8787 --env-file .env person-boke:local
+docker build -t bokebox:local .
+docker run --rm -p 8787:8787 --env-file .env bokebox:local
 
 # 或 compose 本地 build
 ./start.sh docker
@@ -56,7 +56,7 @@ docker run --rm -p 8787:8787 --env-file .env person-boke:local
 1. 服务器准备目录与配置：
 
 ```bash
-mkdir -p ~/person-boke && cd ~/person-boke
+mkdir -p ~/bokebox && cd ~/bokebox
 # 放入 docker-compose.prod.yml 与 .env
 # 确保存储目录
 mkdir -p storage/jobs
@@ -73,7 +73,7 @@ PAT 权限：`read:packages`（推送 CI 已用 `GITHUB_TOKEN`）。
 3. 启动：
 
 ```bash
-export GHCR_IMAGE=ghcr.io/vastsa/person-boke
+export GHCR_IMAGE=ghcr.io/xzulab/bokebox
 export IMAGE_TAG=latest
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
@@ -89,7 +89,7 @@ docker compose -f docker-compose.prod.yml up -d
 | `DEPLOY_USER` | ✅ | SSH 用户 |
 | `DEPLOY_SSH_KEY` | ✅ | 私钥全文 |
 | `DEPLOY_PORT` | | SSH 端口，默认 22 |
-| `DEPLOY_PATH` | | 部署目录，默认 `~/person-boke` |
+| `DEPLOY_PATH` | | 部署目录，默认 `~/bokebox` |
 | `GHCR_PULL_TOKEN` | 私有包时 | 服务器 pull 用 PAT |
 | `GHCR_PULL_USER` | | 默认仓库 owner |
 
@@ -110,7 +110,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-将生成 `ghcr.io/.../person-boke:1.0.0` 与 `1.0`。
+将生成 `ghcr.io/.../bokebox:1.0.0` 与 `1.0`。
 
 ## 权限说明
 

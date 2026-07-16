@@ -1,4 +1,4 @@
-# Person Boke · 生产镜像
+# BokeBox · 生产镜像
 # 构建产物：服务端 dist + 前端 dist，由 Fastify 同端口托管
 
 FROM node:22-bookworm-slim AS base
@@ -17,8 +17,8 @@ RUN pnpm install --frozen-lockfile
 # ---------- 构建 ----------
 FROM deps AS build
 COPY apps ./apps
-RUN pnpm --filter @person-boke/web build \
- && pnpm --filter @person-boke/server build
+RUN pnpm --filter @bokebox/web build \
+ && pnpm --filter @bokebox/server build
 
 # ---------- 运行 ----------
 FROM base AS runner
@@ -31,7 +31,7 @@ ENV NODE_ENV=production \
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json ./apps/server/
 COPY apps/web/package.json ./apps/web/
-RUN pnpm install --frozen-lockfile --prod --filter @person-boke/server...
+RUN pnpm install --frozen-lockfile --prod --filter @bokebox/server...
 
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/web/dist ./apps/web/dist

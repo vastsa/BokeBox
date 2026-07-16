@@ -41,7 +41,7 @@ export function AppShell({
             </span>
             <span className="text-left">
               <span className="block text-[14.5px] font-semibold leading-none tracking-[-0.02em] text-[var(--text)]">
-                Person Boke
+                BokeBox
               </span>
               <span className="mt-0.5 hidden text-[10.5px] text-[var(--text-3)] sm:block">
                 私人视频转播客

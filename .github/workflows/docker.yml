@@ -1,4 +1,4 @@
-# Person Boke · Docker CI/CD
+# BokeBox · Docker CI/CD
 # - PR / 手动：构建并验证镜像（不推送）
 # - push main / tag v*：构建并推送到 GHCR
 # - 可选：配置 DEPLOY_* secrets 后自动 SSH 部署
@@ -153,13 +153,13 @@ jobs:
           set -euo pipefail
           IMAGE="$(echo '${{ steps.meta.outputs.tags }}' | head -n1)"
           echo "Smoke testing: $IMAGE"
-          docker run -d --name person-boke-smoke \
+          docker run -d --name bokebox-smoke \
             -e HOST=0.0.0.0 \
             -e PORT=8787 \
             -e OPENAI_API_KEY=demo \
             -p 8787:8787 \
             "$IMAGE"
-          cleanup() { docker rm -f person-boke-smoke >/dev/null 2>&1 || true; }
+          cleanup() { docker rm -f bokebox-smoke >/dev/null 2>&1 || true; }
           trap cleanup EXIT
           for i in $(seq 1 30); do
             if curl -fsS "http://127.0.0.1:8787/api/health" >/tmp/health.json; then
@@ -170,7 +170,7 @@ jobs:
             sleep 2
           done
           echo "Health check failed"
-          docker logs person-boke-smoke || true
+          docker logs bokebox-smoke || true
           exit 1
 
       - name: Summary
@@ -240,7 +240,7 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            DEPLOY_PATH="${DEPLOY_PATH_INPUT:-$HOME/person-boke}"
+            DEPLOY_PATH="${DEPLOY_PATH_INPUT:-$HOME/bokebox}"
             IMAGE="${IMAGE_BASE}:latest"
             echo "▶ 部署目录: $DEPLOY_PATH"
             echo "▶ 镜像: $IMAGE"

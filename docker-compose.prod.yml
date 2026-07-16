@@ -4,15 +4,15 @@
 #   docker compose -f docker-compose.prod.yml pull
 #   docker compose -f docker-compose.prod.yml up -d
 #
-# 镜像默认: ghcr.io/<owner>/person-boke
+# 镜像默认: ghcr.io/<owner>/bokebox
 # 可通过环境变量覆盖:
-#   GHCR_IMAGE=ghcr.io/vastsa/person-boke
+#   GHCR_IMAGE=ghcr.io/xzulab/bokebox
 #   IMAGE_TAG=latest
 
 services:
-  person-boke:
-    image: ${GHCR_IMAGE:-ghcr.io/vastsa/person-boke}:${IMAGE_TAG:-latest}
-    container_name: person-boke
+  bokebox:
+    image: ${GHCR_IMAGE:-ghcr.io/xzulab/bokebox}:${IMAGE_TAG:-latest}
+    container_name: bokebox
     ports:
       - "${PORT:-8787}:8787"
     env_file:
