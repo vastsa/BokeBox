@@ -115,9 +115,9 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 制作、听播、任务资产，都在同一个私有空间里完成。
 
-| 桌面端 | 移动端 |
+| 首页 | 播放页 |
 | :---: | :---: |
-| <img src="storage/screenshots/job-v2-desktop-top.png" width="480" alt="BokeBox 桌面端任务详情" /> | <img src="storage/screenshots/job-mobile-top.png" width="240" alt="BokeBox 移动端任务详情" /> |
+| <img src="docs/lis.png" width="480" alt="BokeBox 桌面" /> | <img src="docs/home.png" width="240" alt="BokeBox 播放" /> |
 
 你将拥有：
 
