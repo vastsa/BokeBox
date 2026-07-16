@@ -21,18 +21,20 @@ export function toPublic(job: Job): JobPublic {
   };
 }
 
-/** 把磁盘上的 script-timing.json 合并进 podcast（不改库） */
+/** 把磁盘上的 script-timing.json 合并进 podcast（磁盘优先，不改库） */
 export async function withScriptTiming(job: Job): Promise<Job> {
-  if (job.podcast?.scriptTiming?.length) return job;
+  if (!job.podcast) return job;
   const timing = await readScriptTiming(job.id);
-  if (!timing?.lines?.length || !job.podcast) return job;
-  return {
-    ...job,
-    podcast: {
-      ...job.podcast,
-      scriptTiming: timing.lines,
-    },
-  };
+  if (timing?.lines?.length) {
+    return {
+      ...job,
+      podcast: {
+        ...job.podcast,
+        scriptTiming: timing.lines,
+      },
+    };
+  }
+  return job;
 }
 
 export async function listJobs(): Promise<Job[]> {

@@ -12,6 +12,7 @@ import {
 } from '../utils/aiConfig.js';
 import {
   buildScriptTiming,
+  detectSilenceIntervals,
   writeScriptTiming,
 } from './scriptTiming.js';
 
@@ -213,42 +214,48 @@ export async function synthesizePodcastAudio(options: {
   const merged = mergeWavBuffers(buffers);
   const totalDuration =
     chunkDurationsSec.reduce((a, b) => a + b, 0) || wavDurationSec(merged);
-  const timing = buildScriptTiming({
+
+  const isWav = merged.slice(0, 4).toString() === 'RIFF';
+  let audioPath = mp3Fallback;
+  if (isWav) {
+    await fs.writeFile(outPath, merged);
+    try {
+      await convertToMp3(outPath, mp3Fallback);
+      await removeIfExists(outPath);
+      audioPath = mp3Fallback;
+    } catch {
+      audioPath = outPath;
+    }
+  } else {
+    await fs.writeFile(mp3Fallback, merged);
+    audioPath = mp3Fallback;
+  }
+
+  // 先按分块实测建轴，再对最终音频做静音吸附精修
+  let timing = buildScriptTiming({
     script: options.script,
     durationSec: totalDuration,
     chunks,
     chunkDurationsSec,
   });
+  try {
+    const silences = await detectSilenceIntervals(audioPath);
+    if (silences.length) {
+      timing = buildScriptTiming({
+        script: options.script,
+        durationSec: totalDuration,
+        chunks,
+        chunkDurationsSec,
+        silences,
+      });
+    }
+  } catch {
+    // 静音分析失败时保留分块实测
+  }
   await writeScriptTiming(options.jobId, timing);
 
-  const isWav = merged.slice(0, 4).toString() === 'RIFF';
-  if (isWav) {
-    await fs.writeFile(outPath, merged);
-    // 转成 mp3，浏览器 seek/快进更稳定
-    try {
-      await convertToMp3(outPath, mp3Fallback);
-      await removeIfExists(outPath);
-      return {
-        audioPath: mp3Fallback,
-        demo: false,
-        mode,
-        voice,
-        scriptTiming: timing.lines,
-      };
-    } catch {
-      return {
-        audioPath: outPath,
-        demo: false,
-        mode,
-        voice,
-        scriptTiming: timing.lines,
-      };
-    }
-  }
-
-  await fs.writeFile(mp3Fallback, merged);
   return {
-    audioPath: mp3Fallback,
+    audioPath,
     demo: false,
     mode,
     voice,
