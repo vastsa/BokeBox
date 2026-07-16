@@ -40,7 +40,21 @@ import {
   SPEECH_STYLE_TAG_PRESETS,
   TTS_MODE_META,
 } from '../services/ttsSynthesizer.js';
-import type { Job, PipelineFromStep, TtsMode, TtsOptions } from '../types/job.js';
+import type {
+  Job,
+  PipelineFromStep,
+  ScriptPromptOptions,
+  TtsMode,
+  TtsOptions,
+} from '../types/job.js';
+import {
+  getGlobalScriptPrompt,
+  setGlobalScriptPrompt,
+} from '../services/settingsStore.js';
+import {
+  normalizeScriptPrompt,
+  summarizeScriptPrompt,
+} from '../services/scriptPrompt.js';
 import { deleteListenRecord } from '../services/listenStore.js';
 import {
   getAsrModel,
@@ -145,6 +159,52 @@ function normalizeTts(tts?: Partial<TtsOptions> | null): TtsOptions {
   };
 }
 
+
+/** 解析 multipart / JSON 中的口播提示词干预 */
+function parseScriptPromptField(raw: unknown): ScriptPromptOptions | undefined {
+  if (raw == null || raw === '') return undefined;
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    return normalizeScriptPrompt(raw as Partial<ScriptPromptOptions>);
+  }
+  try {
+    const parsed = JSON.parse(String(raw)) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return normalizeScriptPrompt(parsed as Partial<ScriptPromptOptions>);
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
+/**
+ * 解析任务级口播提示词：
+ * - mode=global（默认）：快照当前全局设置
+ * - mode=custom：使用请求体自定义；空则表示无干预
+ */
+function resolveScriptPromptForJob(
+  fields: Record<string, unknown>,
+  explicit?: ScriptPromptOptions | Partial<ScriptPromptOptions> | null,
+): ScriptPromptOptions | undefined {
+  const modeRaw = String(
+    fields.scriptPromptMode || fields.promptMode || 'global',
+  )
+    .trim()
+    .toLowerCase();
+  const mode = modeRaw === 'custom' ? 'custom' : 'global';
+
+  if (mode === 'custom') {
+    const custom =
+      explicit != null
+        ? normalizeScriptPrompt(explicit)
+        : parseScriptPromptField(fields.scriptPrompt);
+    return custom;
+  }
+
+  // 全局：任务创建时快照，保证重跑稳定
+  return normalizeScriptPrompt(getGlobalScriptPrompt());
+}
+
 function mediaTypeOf(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
   if (ext === '.wav') return 'audio/wav';
@@ -223,6 +283,27 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     audioTagExamples: AUDIO_TAG_EXAMPLES,
     time: new Date().toISOString(),
   }));
+
+
+  // ── 全局口播提示词设置 ──
+  app.get('/settings/script-prompt', async () => {
+    const scriptPrompt = getGlobalScriptPrompt();
+    return {
+      scriptPrompt,
+      summary: summarizeScriptPrompt(scriptPrompt),
+    };
+  });
+
+  app.put<{ Body: { scriptPrompt?: ScriptPromptOptions | null } }>(
+    '/settings/script-prompt',
+    async (req) => {
+      const scriptPrompt = setGlobalScriptPrompt(req.body?.scriptPrompt);
+      return {
+        scriptPrompt,
+        summary: summarizeScriptPrompt(scriptPrompt),
+      };
+    },
+  );
 
   app.get('/jobs', async () => {
     const jobs = await listJobs();
@@ -360,6 +441,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         : String(fields.published) !== 'false' && fields.published !== false;
 
     const tts = parseTtsFromBody(fields);
+    const scriptPrompt = resolveScriptPromptForJob(fields);
     const safeName = filePart.filename.replace(/[^\w.\u4e00-\u9fa5-]+/g, '_');
     const ext = path.extname(filePart.filename || '').toLowerCase();
     const sourceKind =
@@ -406,6 +488,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       sourceKind,
       transcript,
       tts,
+      scriptPrompt,
       published,
       createdAt: now,
       updatedAt: now,
@@ -427,6 +510,8 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       tts?: TtsOptions;
       published?: boolean;
       title?: string;
+      scriptPrompt?: ScriptPromptOptions;
+      scriptPromptMode?: 'global' | 'custom';
     };
   }>('/jobs/from-url', async (req, reply) => {
     const url = String(req.body?.url || '').trim();
@@ -438,6 +523,13 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const tts = normalizeTts(req.body?.tts);
+    const scriptPrompt = resolveScriptPromptForJob(
+      {
+        scriptPromptMode: req.body?.scriptPromptMode,
+        scriptPrompt: req.body?.scriptPrompt,
+      },
+      req.body?.scriptPrompt,
+    );
     const published =
       req.body?.published === undefined ? true : Boolean(req.body.published);
     const id = nanoid(12);
@@ -466,6 +558,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       sourceUrl: url,
       sourceKind: 'video', // 下载后会被覆盖
       tts,
+      scriptPrompt,
       published,
       createdAt: now,
       updatedAt: now,
@@ -482,6 +575,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       published?: boolean;
       title?: string;
       tts?: TtsOptions;
+      scriptPrompt?: ScriptPromptOptions | null;
     };
   }>('/jobs/:id', async (req, reply) => {
     const job = await getJob(req.params.id);
@@ -490,13 +584,20 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     if (typeof req.body?.published === 'boolean') patch.published = req.body.published;
     if (req.body?.title) patch.title = req.body.title;
     if (req.body?.tts) patch.tts = normalizeTts({ ...job.tts, ...req.body.tts });
+    if (req.body && 'scriptPrompt' in req.body) {
+      patch.scriptPrompt = normalizeScriptPrompt(req.body.scriptPrompt) || undefined;
+    }
     const updated = await updateJob(job.id, patch);
     return { job: updated ? toPublic(updated) : null };
   });
 
   app.post<{
     Params: { id: string };
-    Body: { tts?: TtsOptions; fromStep?: PipelineFromStep };
+    Body: {
+      tts?: TtsOptions;
+      fromStep?: PipelineFromStep;
+      scriptPrompt?: ScriptPromptOptions | null;
+    };
   }>('/jobs/:id/retry', async (req, reply) => {
     const job = await getJob(req.params.id);
     if (!job) return reply.code(404).send({ error: '任务不存在' });
@@ -518,8 +619,20 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     const tts = req.body?.tts
       ? normalizeTts({ ...job.tts, ...req.body.tts })
       : normalizeTts(job.tts);
+    const scriptPrompt =
+      req.body && 'scriptPrompt' in req.body
+        ? normalizeScriptPrompt(req.body.scriptPrompt) || undefined
+        : job.scriptPrompt;
 
-    await updateJob(job.id, buildRetryPatch(job, fromStep, tts));
+    await updateJob(
+      job.id,
+      buildRetryPatch(
+        job,
+        fromStep,
+        tts,
+        req.body && 'scriptPrompt' in req.body ? scriptPrompt : undefined,
+      ),
+    );
     void runPipeline(job.id, { fromStep });
     const latest = await getJob(job.id);
     return { job: latest ? toPublic(latest) : null };

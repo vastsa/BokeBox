@@ -1,7 +1,11 @@
 import { writeText } from '../utils/fs.js';
 import { jobPaths } from '../utils/paths.js';
-import type { PodcastContent } from '../types/job.js';
+import type { PodcastContent, ScriptPromptOptions } from '../types/job.js';
 import { aiFetch, getChatModel, hasApiKey } from '../utils/aiConfig.js';
+import {
+  buildScriptPromptSection,
+  hasScriptPrompt,
+} from './scriptPrompt.js';
 
 const GRADIENTS = [
   'from-[#7eb0ff] via-[#4f8ef7] to-[#3b7aef]',
@@ -31,7 +35,23 @@ function pickGradient(seed: string): string {
  * - 正文细粒度：`（深呼吸）` `（轻笑）` `（沉默片刻）` `（语速加快）` …
  * - 不支持 user 侧自然语言「风格指令」，只能靠文本内标签
  */
-function demoPodcast(transcript: string, sourceTitle: string): PodcastContent {
+function buildDemoHostIntro(scriptPrompt?: ScriptPromptOptions): string {
+  if (!hasScriptPrompt(scriptPrompt)) {
+    return '主持人将原视频内容重构成一档通勤向精华播客。';
+  }
+  const name = scriptPrompt?.hostName || '主持人';
+  const identity = scriptPrompt?.hostIdentity
+    ? `（${scriptPrompt.hostIdentity}）`
+    : '';
+  const show = scriptPrompt?.showName ? `《${scriptPrompt.showName}》` : '本期节目';
+  return `${name}${identity} 以${show}视角，将原视频内容重构成一档通勤向精华播客。`;
+}
+
+function demoPodcast(
+  transcript: string,
+  sourceTitle: string,
+  scriptPrompt?: ScriptPromptOptions,
+): PodcastContent {
   const base = sourceTitle.replace(/\.[^.]+$/, '') || '视频精华';
   const title = `【播客】${base}：从视频到可收听的内容`;
   const summary =
@@ -90,7 +110,7 @@ function demoPodcast(transcript: string, sourceTitle: string): PodcastContent {
     title,
     summary,
     tags,
-    hostIntro: '主持人将原视频内容重构成一档通勤向精华播客。',
+    hostIntro: buildDemoHostIntro(scriptPrompt),
     outline,
     script,
     showNotes,
@@ -102,6 +122,7 @@ function demoPodcast(transcript: string, sourceTitle: string): PodcastContent {
 async function llmPodcast(
   transcript: string,
   sourceTitle: string,
+  scriptPrompt?: ScriptPromptOptions,
 ): Promise<PodcastContent> {
   const system = [
     '你是资深中文播客制作人与内容主编，同时精通 MiMo-TTS 音频标签控制。',
@@ -132,7 +153,10 @@ async function llmPodcast(
     '   - 正确示例：(磁性 沉稳)大家好，欢迎收听。 （深呼吸）先说结论…… （轻笑）我们下期见。',
     '6. showNotes 使用 Markdown，含大纲、要点；showNotes 不要写音频标签。',
     '7. 不要编造转写稿中不存在的事实；可归纳润色。',
-  ].join('\n');
+    buildScriptPromptSection(scriptPrompt),
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   const user = [`视频文件名：${sourceTitle}`, '', '转写稿：', transcript].join('\n');
 
@@ -209,12 +233,13 @@ export async function generatePodcast(
   transcript: string,
   sourceTitle: string,
   jobId: string,
+  scriptPrompt?: ScriptPromptOptions,
 ): Promise<{ podcast: PodcastContent; demo: boolean }> {
   const paths = jobPaths(jobId);
   const demo = !hasApiKey();
   const podcast = demo
-    ? demoPodcast(transcript, sourceTitle)
-    : await llmPodcast(transcript, sourceTitle);
+    ? demoPodcast(transcript, sourceTitle, scriptPrompt)
+    : await llmPodcast(transcript, sourceTitle, scriptPrompt);
 
   await writeText(paths.script, podcast.script);
   await writeText(paths.showNotes, podcast.showNotes);

@@ -10,6 +10,7 @@ import type {
   Job,
   ListenRecord,
   PodcastContent,
+  ScriptPromptOptions,
   TtsOptions,
 } from '../types/job.js';
 
@@ -34,6 +35,9 @@ export function initDatabase(): DatabaseSync {
     }
     if (!names.has('source_url')) {
       db!.exec(`ALTER TABLE jobs ADD COLUMN source_url TEXT`);
+    }
+    if (!names.has('script_prompt_json')) {
+      db!.exec(`ALTER TABLE jobs ADD COLUMN script_prompt_json TEXT`);
     }
   };
 
@@ -74,6 +78,12 @@ export function initDatabase(): DatabaseSync {
 
     CREATE INDEX IF NOT EXISTS idx_listen_last
       ON listen_records(last_listened_at DESC);
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY NOT NULL,
+      value TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL
+    );
   `);
 
   ensureJobColumns();
@@ -187,6 +197,7 @@ export type JobRow = {
   updated_at: string;
   source_kind: string | null;
   source_url: string | null;
+  script_prompt_json: string | null;
 };
 
 export function normalizeJob(job: Job): Job {
@@ -203,11 +214,22 @@ export function normalizeJob(job: Job): Job {
           ? 'text'
           : 'video';
 
+  let scriptPrompt: ScriptPromptOptions | undefined;
+  if (job.scriptPrompt && typeof job.scriptPrompt === 'object') {
+    const cleaned: ScriptPromptOptions = {};
+    for (const [k, v] of Object.entries(job.scriptPrompt)) {
+      const t = typeof v === 'string' ? v.trim() : '';
+      if (t) (cleaned as Record<string, string>)[k] = t;
+    }
+    if (Object.keys(cleaned).length) scriptPrompt = cleaned;
+  }
+
   return {
     ...job,
     published: job.published ?? true,
     sourceKind,
     sourceUrl: job.sourceUrl?.trim() || undefined,
+    scriptPrompt,
     tts: {
       mode,
       // 自然口播默认补齐预置音色
@@ -240,12 +262,16 @@ export function jobToRow(job: Job): JobRow {
     updated_at: job.updatedAt,
     source_kind: job.sourceKind || 'video',
     source_url: job.sourceUrl || null,
+    script_prompt_json: job.scriptPrompt
+      ? JSON.stringify(job.scriptPrompt)
+      : null,
   };
 }
 
 export function rowToJob(row: JobRow): Job {
   let podcast: PodcastContent | undefined;
   let tts: TtsOptions | undefined;
+  let scriptPrompt: ScriptPromptOptions | undefined;
 
   if (row.podcast_json) {
     try {
@@ -259,6 +285,13 @@ export function rowToJob(row: JobRow): Job {
       tts = JSON.parse(row.tts_json) as TtsOptions;
     } catch {
       tts = undefined;
+    }
+  }
+  if (row.script_prompt_json) {
+    try {
+      scriptPrompt = JSON.parse(row.script_prompt_json) as ScriptPromptOptions;
+    } catch {
+      scriptPrompt = undefined;
     }
   }
 
@@ -277,6 +310,7 @@ export function rowToJob(row: JobRow): Job {
     transcript: row.transcript || undefined,
     podcast,
     tts,
+    scriptPrompt,
     published: Boolean(row.published),
     error: row.error || undefined,
     createdAt: row.created_at,

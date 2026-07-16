@@ -1,7 +1,16 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createJob, createJobFromUrl } from '../../api/client';
 import { formatSize } from '../../lib/format';
-import type { Job, TtsOptions } from '../../types/job';
+import {
+  emptyScriptPrompt,
+  summarizeScriptPrompt,
+} from '../../lib/scriptPrompt';
+import type {
+  Job,
+  ScriptPromptMode,
+  ScriptPromptOptions,
+  TtsOptions,
+} from '../../types/job';
 import { ProgressBar } from '../ProgressBar';
 import {
   IconCheck,
@@ -10,6 +19,10 @@ import {
   IconUpload,
   IconVideo,
 } from '../icons';
+import {
+  loadGlobalScriptPrompt,
+  ScriptPromptPicker,
+} from './ScriptPromptPicker';
 import { TtsModePicker } from './TtsModePicker';
 import { TtsSummary } from './TtsSummary';
 
@@ -50,6 +63,28 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const [fileSize, setFileSize] = useState<number | null>(null);
   const [tts, setTts] = useState<TtsOptions>(DEFAULT_TTS);
   const [published, setPublished] = useState(true);
+  const [scriptPromptMode, setScriptPromptMode] =
+    useState<ScriptPromptMode>('global');
+  const [scriptPrompt, setScriptPrompt] =
+    useState<ScriptPromptOptions>(emptyScriptPrompt());
+  const [globalScriptPrompt, setGlobalScriptPrompt] =
+    useState<ScriptPromptOptions>(emptyScriptPrompt());
+  const [scriptPromptReady, setScriptPromptReady] = useState(false);
+
+  const scriptPromptModeRef = useRef<ScriptPromptMode>('global');
+  const scriptPromptRef = useRef<ScriptPromptOptions>(emptyScriptPrompt());
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadGlobalScriptPrompt().then((g) => {
+      if (cancelled) return;
+      setGlobalScriptPrompt(g);
+      setScriptPromptReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const updateTts = useCallback((next: TtsOptions) => {
     ttsRef.current = next;
@@ -61,11 +96,23 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
     setPublished(next);
   }, []);
 
+  const updateScriptPromptMode = useCallback((next: ScriptPromptMode) => {
+    scriptPromptModeRef.current = next;
+    setScriptPromptMode(next);
+  }, []);
+
+  const updateScriptPrompt = useCallback((next: ScriptPromptOptions) => {
+    scriptPromptRef.current = next;
+    setScriptPrompt(next);
+  }, []);
+
   const handleFile = useCallback(
     async (file: File | undefined | null) => {
       if (!file) return;
       const currentTts = ttsRef.current;
       const currentPublished = publishedRef.current;
+      const currentPromptMode = scriptPromptModeRef.current;
+      const currentPrompt = scriptPromptRef.current;
 
       setError(null);
       setFileName(file.name);
@@ -76,6 +123,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
         const job = await createJob(file, {
           tts: currentTts,
           published: currentPublished,
+          scriptPromptMode: currentPromptMode,
+          scriptPrompt:
+            currentPromptMode === 'custom' ? currentPrompt : undefined,
           onProgress: setProgress,
         });
         onCreated(job);
@@ -103,6 +153,8 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
 
     const currentTts = ttsRef.current;
     const currentPublished = publishedRef.current;
+    const currentPromptMode = scriptPromptModeRef.current;
+    const currentPrompt = scriptPromptRef.current;
 
     setError(null);
     setFileName(url);
@@ -113,6 +165,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
       const job = await createJobFromUrl(url, {
         tts: currentTts,
         published: currentPublished,
+        scriptPromptMode: currentPromptMode,
+        scriptPrompt:
+          currentPromptMode === 'custom' ? currentPrompt : undefined,
       });
       setProgress(100);
       onCreated(job);
@@ -130,6 +185,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const ttsSummary = `${MODE_LABEL[tts.mode] || tts.mode}${
     tts.mode !== 'voicedesign' && tts.voice ? ` · ${tts.voice}` : ''
   }`;
+  const promptSummary = summarizeScriptPrompt(
+    scriptPromptMode === 'global' ? globalScriptPrompt : scriptPrompt,
+  );
 
   return (
     <div className="upload-studio">
@@ -139,7 +197,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
           <div className="upload-settings-head">
             <div>
               <div className="upload-settings-kicker">配置</div>
-              <h3 className="upload-settings-title">发布与音色</h3>
+              <h3 className="upload-settings-title">发布 · 人设 · 音色</h3>
             </div>
             <div className="upload-settings-icon">
               <IconSpark size={16} />
@@ -193,6 +251,33 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               </div>
             )}
           </div>
+
+          <div className="section-rule" />
+
+          <div className="upload-script-prompt-block">
+            <div className="upload-tts-head">
+              <div className="left">
+                <IconSpark size={14} />
+                <span>口播人设</span>
+              </div>
+              <span className="current">
+                {uploading
+                  ? '已锁定'
+                  : scriptPromptMode === 'global'
+                    ? `全局 · ${promptSummary}`
+                    : `单独 · ${promptSummary}`}
+              </span>
+            </div>
+            <ScriptPromptPicker
+              mode={scriptPromptMode}
+              value={scriptPrompt}
+              globalValue={globalScriptPrompt}
+              disabled={uploading || !scriptPromptReady}
+              onModeChange={updateScriptPromptMode}
+              onChange={updateScriptPrompt}
+              onGlobalChange={setGlobalScriptPrompt}
+            />
+          </div>
         </div>
       </aside>
 
@@ -200,7 +285,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
       <div className="upload-tips-card" aria-label="小提示">
         <div className="upload-tips-title">小提示</div>
         <ul className="upload-tips-row">
-          <li>提交后会立即入队处理，请先确认音色与发布策略</li>
+          <li>提交前可配置口播人设（全局默认或本次单独），再确认音色与发布策略</li>
           <li>本地与 URL 均支持视频 / 音频 / 文本，自动识别并分流</li>
           <li>文本会跳过转写，直接生成口播稿并 TTS</li>
           <li>URL 请使用可直接访问的资源链接（非需登录页）</li>
@@ -380,6 +465,8 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                   {fileSize != null ? formatSize(fileSize) : sourceMode === 'url' ? 'URL 导入' : '—'}
                   <span className="dot">·</span>
                   {ttsSummary}
+                  <span className="dot">·</span>
+                  {promptSummary}
                   <span className="dot">·</span>
                   {published ? '完成后发布' : '暂不发布'}
                 </div>

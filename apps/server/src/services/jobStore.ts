@@ -53,12 +53,12 @@ export async function createJob(job: Job): Promise<Job> {
         id, title, original_filename, mime_type, size, status, progress,
         message, video_path, audio_path, podcast_audio_path, transcript,
         podcast_json, tts_json, published, error, created_at, updated_at,
-        source_kind, source_url
+        source_kind, source_url, script_prompt_json
       ) VALUES (
         @id, @title, @original_filename, @mime_type, @size, @status, @progress,
         @message, @video_path, @audio_path, @podcast_audio_path, @transcript,
         @podcast_json, @tts_json, @published, @error, @created_at, @updated_at,
-        @source_kind, @source_url
+        @source_kind, @source_url, @script_prompt_json
       )`,
     )
     .run(jobToRow(next));
@@ -100,7 +100,8 @@ export async function updateJob(
         created_at = @created_at,
         updated_at = @updated_at,
         source_kind = @source_kind,
-        source_url = @source_url
+        source_url = @source_url,
+        script_prompt_json = @script_prompt_json
       WHERE id = @id`,
     )
     .run(jobToRow(next));

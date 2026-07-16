@@ -1,4 +1,13 @@
-import type { HealthInfo, Job, LibraryItem, ListenRecord, PipelineFromStep, TtsOptions } from '../types/job';
+import type {
+  HealthInfo,
+  Job,
+  LibraryItem,
+  ListenRecord,
+  PipelineFromStep,
+  ScriptPromptMode,
+  ScriptPromptOptions,
+  TtsOptions,
+} from '../types/job';
 
 const BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -30,6 +39,8 @@ export async function createJob(
   options: {
     tts?: TtsOptions;
     published?: boolean;
+    scriptPrompt?: ScriptPromptOptions;
+    scriptPromptMode?: ScriptPromptMode;
     onProgress?: (pct: number) => void;
   } = {},
 ): Promise<Job> {
@@ -65,6 +76,11 @@ export async function createJob(
       form.append('styleTags', JSON.stringify(tts.styleTags));
     }
     if (options.published === false) form.append('published', 'false');
+    const scriptPromptMode = options.scriptPromptMode || 'global';
+    form.append('scriptPromptMode', scriptPromptMode);
+    if (options.scriptPrompt) {
+      form.append('scriptPrompt', JSON.stringify(options.scriptPrompt));
+    }
     form.append('file', file);
     xhr.send(form);
   });
@@ -76,6 +92,8 @@ export async function createJobFromUrl(
     tts?: TtsOptions;
     published?: boolean;
     title?: string;
+    scriptPrompt?: ScriptPromptOptions;
+    scriptPromptMode?: ScriptPromptMode;
   } = {},
 ): Promise<Job> {
   const data = await request<{ job: Job }>('/jobs/from-url', {
@@ -86,6 +104,8 @@ export async function createJobFromUrl(
       tts: options.tts,
       published: options.published,
       title: options.title,
+      scriptPrompt: options.scriptPrompt,
+      scriptPromptMode: options.scriptPromptMode || 'global',
     }),
   });
   return data.job;
@@ -128,7 +148,12 @@ export async function generateFlashcards(id: string): Promise<Job> {
 
 export async function updateJob(
   id: string,
-  patch: { published?: boolean; title?: string; tts?: TtsOptions },
+  patch: {
+    published?: boolean;
+    title?: string;
+    tts?: TtsOptions;
+    scriptPrompt?: ScriptPromptOptions | null;
+  },
 ): Promise<Job> {
   const data = await request<{ job: Job }>(`/jobs/${id}`, {
     method: 'PATCH',
@@ -167,6 +192,28 @@ export async function reportProgress(
     body: JSON.stringify(body),
   });
   return data.listen;
+}
+
+
+export async function fetchScriptPromptSettings(): Promise<{
+  scriptPrompt: ScriptPromptOptions;
+  summary: string;
+}> {
+  return request('/settings/script-prompt');
+}
+
+export async function saveScriptPromptSettings(
+  scriptPrompt?: ScriptPromptOptions | null,
+): Promise<ScriptPromptOptions> {
+  const data = await request<{
+    scriptPrompt: ScriptPromptOptions;
+    summary: string;
+  }>('/settings/script-prompt', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scriptPrompt: scriptPrompt || {} }),
+  });
+  return data.scriptPrompt || {};
 }
 
 export function podcastAudioUrl(id: string, download = false): string {

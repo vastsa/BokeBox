@@ -90,6 +90,7 @@ export function buildRetryPatch(
   job: Job,
   fromStep: PipelineFromStep,
   tts: Job['tts'],
+  scriptPrompt?: Job['scriptPrompt'],
 ): Partial<Job> {
   const start = stepIndex(fromStep);
   const kind = kindOf(job);
@@ -100,6 +101,9 @@ export function buildRetryPatch(
     error: undefined,
     tts,
   };
+  if (scriptPrompt !== undefined) {
+    patch.scriptPrompt = scriptPrompt || undefined;
+  }
 
   // 从提取开始：清空全部中间产物
   // 文本源的正文在源文件里，不清 transcript 也可；为一致起见文本保留 transcript
@@ -365,6 +369,7 @@ export async function runPipeline(
         transcript,
         latest.originalFilename || latest.title,
         jobId,
+        latest.scriptPrompt,
       );
       podcast = generated;
       await setProgress(

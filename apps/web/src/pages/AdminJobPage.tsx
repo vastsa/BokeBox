@@ -11,6 +11,7 @@ import {
   videoUrl,
 } from '../api/client';
 import { FlashcardsView } from '../components/FlashcardsView';
+import { ScriptPromptSummary } from '../components/admin/ScriptPromptSummary';
 import { TtsSummary } from '../components/admin/TtsSummary';
 import { MiniPlayer } from '../components/listen/MiniPlayer';
 import { ScriptFollow } from '../components/listen/ScriptFollow';
@@ -712,6 +713,14 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                 <span className="nl-chip">只读</span>
               </div>
               <TtsSummary value={job.tts} />
+            </section>
+
+            <section className="jd-panel">
+              <div className="jd-side-head">
+                <h2 className="jd-side-title">口播人设</h2>
+                <span className="nl-chip">只读</span>
+              </div>
+              <ScriptPromptSummary value={job.scriptPrompt} />
             </section>
 
             <section className="jd-panel">

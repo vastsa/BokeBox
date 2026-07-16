@@ -71,6 +71,28 @@ export interface PodcastContent {
   coverGradient?: string;
 }
 
+/** 口播稿提示词干预：角色 / 主播身份 / 风格等 */
+export interface ScriptPromptOptions {
+  /** 主播称呼，如「小白」 */
+  hostName?: string;
+  /** 主播身份角色，如「资深科技产品经理」 */
+  hostIdentity?: string;
+  /** 节目/品牌名，如「深一度」 */
+  showName?: string;
+  /** 说话风格，如「口语化、亲和、略带幽默」 */
+  speakingStyle?: string;
+  /** 目标听众，如「互联网从业者 / 创业者」 */
+  audience?: string;
+  /** 语气调性，如「沉稳专业」「轻松吐槽」 */
+  tone?: string;
+  /** 开场偏好，如「先抛结论再展开」 */
+  openingStyle?: string;
+  /** 收尾偏好，如「行动建议 + 下期预告」 */
+  closingStyle?: string;
+  /** 额外自由提示词（高级干预） */
+  extraInstructions?: string;
+}
+
 export interface TtsOptions {
   mode: TtsMode;
   /**
@@ -110,6 +132,8 @@ export interface Job {
   transcript?: string;
   podcast?: PodcastContent;
   tts?: TtsOptions;
+  /** 口播稿提示词干预（任务级快照） */
+  scriptPrompt?: ScriptPromptOptions;
   /** 是否在前台听播库展示 */
   published: boolean;
   /** 素材类型：视频 / 音频 / 文本 */

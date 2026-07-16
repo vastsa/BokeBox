@@ -37,7 +37,7 @@ export function AdminUploadPage({ route }: { route: Route }) {
               <div className="page-kicker">Upload Studio</div>
               <h1 className="page-title mt-1">上传内容，一键成播客</h1>
               <p className="page-subtitle">
-                先配置音色与发布策略，再上传本地文件或粘贴 URL（视频/音频/文本自动识别并分流）。系统会完成转写、脚本重构与口播合成。
+                先配置口播人设、音色与发布策略，再上传本地文件或粘贴 URL（视频/音频/文本自动识别并分流）。系统会完成转写、脚本重构与口播合成。
               </p>
             </div>
 
