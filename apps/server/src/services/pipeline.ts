@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import { extractAudio, generateSilentMp3 } from './audioExtractor.js';
 import { transcribeAudio } from './transcriber.js';
 import { generatePodcast } from './podcastGenerator.js';
+import { maybeGeneratePodcastCover } from './coverGenerator.js';
+import { hasImageModel } from '../utils/aiConfig.js';
 import { generateFlashcards } from './flashcardGenerator.js';
 import { synthesizePodcastAudio } from './ttsSynthesizer.js';
 import { importUrlContent } from './urlImporter.js';
@@ -16,6 +18,7 @@ export const PIPELINE_FROM_STEPS: PipelineFromStep[] = [
   'extract',
   'transcribe',
   'script',
+  'cover',
   'flashcards',
   'synthesize',
 ];
@@ -76,7 +79,10 @@ export async function resolveDefaultFromStep(job: Job): Promise<PipelineFromStep
     (kind === 'text' && Boolean(await loadTextContent(job)));
   const hasScript = Boolean(job.podcast?.script?.trim());
   const hasCards = Boolean(job.podcast?.flashcards?.length);
+  const hasCover = Boolean(job.podcast?.hasCoverImage);
 
+  // 有脚本但未生成封面，且配置了图片模型：补封面
+  if (hasScript && !hasCover && hasImageModel()) return 'cover';
   // 有脚本但无闪卡：优先补闪卡
   if (hasScript && hasTranscript && !hasCards) return 'flashcards';
   if (hasScript && (hasAudio || kind === 'text')) return 'synthesize';
@@ -123,15 +129,23 @@ export function buildRetryPatch(
     return patch;
   }
 
-  // 从脚本开始：保留音频 + 转写，重做脚本/笔记/闪卡/合成
+  // 从脚本开始：保留音频 + 转写，重做脚本/封面/笔记/闪卡/合成
   if (start <= 2) {
     patch.podcast = undefined;
     patch.podcastAudioPath = undefined;
     return patch;
   }
 
-  // 从知识闪卡开始：保留脚本/笔记，仅清闪卡；不强制重合成
-  if (start <= 3) {
+  // 仅重做封面：保留脚本/闪卡/音频，标记封面待生成
+  if (fromStep === 'cover' || start === 3) {
+    if (job.podcast) {
+      patch.podcast = { ...job.podcast, hasCoverImage: false };
+    }
+    return patch;
+  }
+
+  // 从知识闪卡开始：保留脚本/笔记/封面，仅清闪卡；不强制重合成
+  if (start <= 4) {
     if (job.podcast) {
       const { flashcards: _drop, ...rest } = job.podcast;
       patch.podcast = { ...rest, flashcards: undefined };
@@ -152,6 +166,8 @@ function retryQueueMessage(fromStep: PipelineFromStep): string {
       return '重新入队：复用已有音频，从转写开始…';
     case 'script':
       return '重新入队：复用转写，从脚本生成开始…';
+    case 'cover':
+      return '重新入队：复用脚本，仅重新生成封面…';
     case 'flashcards':
       return '重新入队：复用脚本，仅重新生成知识闪卡…';
     case 'synthesize':
@@ -199,7 +215,7 @@ export async function assertPipelinePrereqs(
  * 异步处理流水线：
  * - URL 未落盘 → 先下载识别
  * - text → 跳过抽音频/转写
- * - video/audio → 抽音频 → 转写 → 脚本 → 知识闪卡 → TTS
+ * - video/audio → 抽音频 → 转写 → 脚本 → 封面 → 知识闪卡 → TTS
  * fromStep 指定起点，可跳过已完成的前置步骤。
  */
 export async function runPipeline(
@@ -382,7 +398,7 @@ export async function runPipeline(
           title: podcast.title,
         },
       );
-    } else if (fromStep !== 'flashcards') {
+    } else if (fromStep !== 'flashcards' && fromStep !== 'cover') {
       await setProgress(
         jobId,
         'generating_podcast',
@@ -395,9 +411,81 @@ export async function runPipeline(
       );
     }
 
-    // ── 3.5 知识闪卡（独立 AI；可单独作为重跑起点） ──
-    // start: extract/transcribe/script/flashcards → 生成；synthesize → 跳过
-    if (start <= 3) {
+    // ── 3.5 封面（独立步骤；配置了图片模型才生成） ──
+    // start: extract/transcribe/script/cover → 尝试生成
+    // flashcards/synthesize → 复用已有封面
+    // fromStep=cover → 仅生成封面后结束
+    if (fromStep === 'cover' || start <= 3) {
+      if (!podcast) {
+        podcast = (await getJob(jobId))?.podcast;
+      }
+      if (!podcast?.title && !podcast?.script?.trim()) {
+        throw new Error('缺少播客脚本，无法生成封面');
+      }
+
+      if (hasImageModel()) {
+        await setProgress(
+          jobId,
+          'generating_cover',
+          fromStep === 'cover' ? 40 : 73,
+          '正在生成播客封面…',
+          { podcast, title: podcast?.title || job.title },
+        );
+        podcast = await maybeGeneratePodcastCover(jobId, podcast!);
+        await setProgress(
+          jobId,
+          'generating_cover',
+          fromStep === 'cover' ? 90 : 76,
+          podcast.hasCoverImage
+            ? '播客封面已生成'
+            : '封面未生成，将使用渐变封面',
+          { podcast, title: podcast.title },
+        );
+      } else if (fromStep === 'cover') {
+        await setProgress(
+          jobId,
+          'generating_cover',
+          90,
+          '未配置图片模型，跳过 AI 封面',
+          {
+            podcast: podcast
+              ? { ...podcast, hasCoverImage: false }
+              : podcast,
+            title: podcast?.title || job.title,
+          },
+        );
+        podcast = podcast
+          ? { ...podcast, hasCoverImage: false }
+          : podcast;
+      } else {
+        // 未配置图片模型：保持/标记无 AI 封面
+        if (podcast && podcast.hasCoverImage == null) {
+          podcast = { ...podcast, hasCoverImage: false };
+        }
+      }
+
+      // 仅封面：生成完即结束
+      if (fromStep === 'cover') {
+        await setProgress(
+          jobId,
+          'done',
+          100,
+          podcast?.hasCoverImage
+            ? '播客封面已更新'
+            : '封面处理完成（未生成 AI 图）',
+          {
+            podcast,
+            title: podcast?.title || job.title,
+            published: job.published ?? true,
+          },
+        );
+        return;
+      }
+    }
+
+    // ── 4. 知识闪卡（独立 AI；可单独作为重跑起点） ──
+    // start: extract/transcribe/script/cover/flashcards → 生成；synthesize → 跳过
+    if (start <= 4) {
       if (!transcript.trim()) {
         transcript = (await getJob(jobId))?.transcript || '';
       }
@@ -408,7 +496,7 @@ export async function runPipeline(
         throw new Error('缺少播客脚本，无法生成知识闪卡');
       }
 
-      await setProgress(jobId, 'generating_podcast', 74, '正在生成知识闪卡…');
+      await setProgress(jobId, 'generating_podcast', 80, '正在生成知识闪卡…');
       const latestCards = (await getJob(jobId)) || job;
       try {
         const { flashcards, demo: demoCards } = await generateFlashcards({
@@ -421,7 +509,7 @@ export async function runPipeline(
         await setProgress(
           jobId,
           'generating_podcast',
-          78,
+          84,
           demoCards
             ? '知识闪卡已生成（演示模式）'
             : `知识闪卡已生成（${flashcards.length} 张）`,
@@ -437,7 +525,7 @@ export async function runPipeline(
         await setProgress(
           jobId,
           'generating_podcast',
-          78,
+          84,
           `脚本已就绪（闪卡跳过：${msg.slice(0, 80)}）`,
           { podcast, title: podcast.title },
         );
@@ -464,7 +552,7 @@ export async function runPipeline(
       await setProgress(
         jobId,
         'generating_podcast',
-        78,
+        84,
         '已跳过知识闪卡（复用已有内容）',
         {
           podcast,
@@ -477,7 +565,7 @@ export async function runPipeline(
       throw new Error('缺少播客脚本，无法合成音频');
     }
 
-    // ── 4. 合成 ──
+    // ── 5. 合成 ──
     job = (await getJob(jobId)) || job;
     // 文本任务可能没有有效 listenPath：再尝试生成静音占位
     if (!(await pathExists(listenPath))) {

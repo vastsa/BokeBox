@@ -50,6 +50,7 @@ const PIPELINE: Array<{ key: string; label: string; match: JobStatus[] }> = [
   { key: 'extracting_audio', label: '提音频', match: ['extracting_audio'] },
   { key: 'transcribing', label: '转写', match: ['transcribing'] },
   { key: 'generating_podcast', label: '脚本', match: ['generating_podcast'] },
+  { key: 'generating_cover', label: '封面', match: ['generating_cover'] },
   { key: 'synthesizing_audio', label: '合成', match: ['synthesizing_audio'] },
   { key: 'done', label: '完成', match: ['done'] },
 ];
@@ -59,6 +60,7 @@ const ACTIVE_STATUSES: JobStatus[] = [
   'extracting_audio',
   'transcribing',
   'generating_podcast',
+  'generating_cover',
   'synthesizing_audio',
 ];
 
@@ -84,8 +86,14 @@ const RERUN_STEPS: Array<{
   {
     key: 'script',
     label: '生成脚本',
-    desc: '复用音频 + 转写，重做脚本 / 笔记 / 闪卡 / 合成',
+    desc: '复用音频 + 转写，重做脚本 / 封面 / 笔记 / 闪卡 / 合成',
     requires: ['audio', 'transcript'],
+  },
+  {
+    key: 'cover',
+    label: '生成封面',
+    desc: '复用脚本，仅重新生成 AI 封面（需配置图片模型）',
+    requires: ['script'],
   },
   {
     key: 'flashcards',
@@ -106,6 +114,9 @@ function pickDefaultFromStep(job: Job): PipelineFromStep {
   const hasTranscript = Boolean(job.hasTranscript || job.transcript?.trim());
   const hasScript = Boolean(job.podcast?.script?.trim());
   const hasCards = Boolean(job.podcast?.flashcards?.length);
+  const hasCover = Boolean(job.podcast?.hasCoverImage);
+  // 有脚本无封面时优先补封面
+  if (hasScript && !hasCover) return 'cover';
   // 有脚本无闪卡时，默认补闪卡更省时
   if (hasScript && hasTranscript && !hasCards) return 'flashcards';
   if (hasScript && hasAudio) return 'synthesize';
@@ -784,7 +795,9 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                   {fromStep === 'extract' && '将重新提取音频并完整重跑后续步骤'}
                   {fromStep === 'transcribe' && '保留源音频，从转写开始重跑'}
                   {fromStep === 'script' &&
-                    '保留音频与转写，重新生成脚本、笔记、闪卡并合成'}
+                    '保留音频与转写，重新生成脚本、封面、笔记、闪卡并合成'}
+                  {fromStep === 'cover' &&
+                    '保留脚本，仅重新生成 AI 封面（未配置图片模型则跳过）'}
                   {fromStep === 'flashcards' &&
                     '保留脚本与笔记，仅重新生成知识闪卡（不重跑 TTS）'}
                   {fromStep === 'synthesize' && '保留脚本，仅按当前 TTS 配置重合成'}

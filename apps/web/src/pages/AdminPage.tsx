@@ -33,6 +33,7 @@ const ACTIVE: JobStatus[] = [
   'extracting_audio',
   'transcribing',
   'generating_podcast',
+  'generating_cover',
   'synthesizing_audio',
 ];
 

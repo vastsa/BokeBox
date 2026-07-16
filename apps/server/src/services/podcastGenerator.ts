@@ -8,7 +8,6 @@ import {
   hasScriptPrompt,
   resolveScriptMaxChars,
 } from './scriptPrompt.js';
-import { maybeGeneratePodcastCover } from './coverGenerator.js';
 
 const GRADIENTS = [
   'from-[#7eb0ff] via-[#4f8ef7] to-[#3b7aef]',
@@ -323,12 +322,9 @@ export async function generatePodcast(
 ): Promise<{ podcast: PodcastContent; demo: boolean }> {
   const paths = jobPaths(jobId);
   const demo = !hasApiKey();
-  let podcast = demo
+  const podcast = demo
     ? demoPodcast(transcript, sourceTitle, scriptPrompt)
     : await llmPodcast(transcript, sourceTitle, scriptPrompt);
-
-  // 配置了图片模型时，用 AI 生成播客封面（失败则回落渐变）
-  podcast = await maybeGeneratePodcastCover(jobId, podcast);
 
   await writeText(paths.script, podcast.script);
   await writeText(paths.showNotes, podcast.showNotes);

@@ -3,6 +3,7 @@ export type JobStatus =
   | 'extracting_audio'
   | 'transcribing'
   | 'generating_podcast'
+  | 'generating_cover'
   | 'synthesizing_audio'
   | 'done'
   | 'failed';
@@ -12,6 +13,7 @@ export type PipelineFromStep =
   | 'extract'
   | 'transcribe'
   | 'script'
+  | 'cover'
   | 'flashcards'
   | 'synthesize';
 
