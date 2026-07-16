@@ -601,6 +601,10 @@ html {
   color-scheme: light;
   -webkit-tap-highlight-color: transparent;
   text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  /* 防止子元素横向撑出视口（不设 overflow-x，避免打断 sticky） */
+  width: 100%;
+  max-width: 100%;
 }
 html[data-theme="dark"] {
   color-scheme: dark;
@@ -616,6 +620,8 @@ html[data-theme="system"] {
 body {
   margin: 0;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
   font-family: var(--font-sans);
   color: var(--text);
   background: var(--bg);
@@ -645,6 +651,8 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 }
 .page-container {
   width: min(var(--container-max), calc(100% - 2 * var(--page-x)));
+  max-width: 100%;
+  min-width: 0;
   margin-inline: auto;
 }
 .page-head {
@@ -7627,6 +7635,9 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
   color: var(--text-2);
 }
 .auth-field input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: var(--control-6xl);
   border-radius: var(--radius-md);
   border: var(--bw-1) solid var(--separator);
@@ -7635,6 +7646,7 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
   font-size: var(--fs-lg);
   color: var(--text);
   outline: none;
+  box-sizing: border-box;
 }
 .auth-field input:focus {
   border-color: color-mix(in srgb, var(--brand) 45%, var(--separator));
@@ -7741,6 +7753,9 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
    ========================= */
 .settings-page {
   /* 间距由 .app-page 统一控制 */
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* settings-hero 已并入 app-page-head */
@@ -7750,6 +7765,9 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
   display: grid;
   gap: var(--space-5);
   align-items: start;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 @media (min-width: 900px) {
   .settings-shell {
@@ -7762,6 +7780,9 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
   position: sticky;
   top: calc(var(--safe-top, 0px) + 68px);
   z-index: var(--z-dropdown);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 .settings-nav-label {
   display: none;
@@ -7778,7 +7799,12 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
 .settings-nav-track {
   display: flex;
   gap: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   border-bottom: var(--space-px) solid var(--separator);
   scrollbar-width: none;
 }
@@ -7864,6 +7890,8 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
 
 .settings-main {
   min-width: 0;
+  max-width: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-3_5);
@@ -7886,8 +7914,14 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
   color: var(--text-3);
 }
 
-.settings-tab-panels { min-height: var(--size-200); }
+.settings-tab-panels {
+  min-height: var(--size-200);
+  min-width: 0;
+  max-width: 100%;
+}
 .settings-tab-panel {
+  min-width: 0;
+  max-width: 100%;
   animation: settings-tab-in 0.14s ease;
 }
 @keyframes settings-tab-in {
@@ -7917,6 +7951,9 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
   padding: 0;
   box-shadow: none;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 @media (min-width: 640px) {
   .settings-card { padding: 0; }
@@ -8071,9 +8108,11 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
   border-top: var(--space-px) solid var(--separator);
   background: color-mix(in srgb, var(--surface-2) 65%, var(--surface));
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2_5);
+  min-width: 0;
 }
 .settings-card-actions-right {
   display: inline-flex;
@@ -8250,10 +8289,66 @@ html[data-theme="system"] .settings-page .tts-tag.is-locked {
 .settings-page .auth-field input,
 .settings-page .script-prompt-field .nl-input,
 .settings-page .script-prompt-field .nl-textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   border-radius: var(--radius-sm);
   min-height: var(--control-4xl);
   font-size: var(--fs-md);
   font-weight: 450;
+  box-sizing: border-box;
+}
+
+/* 手机端：防止输入框过小字号触发缩放残留，并压缩边距 */
+@media (max-width: 899px) {
+  .settings-page .auth-field input,
+  .settings-page .script-prompt-field .nl-input,
+  .settings-page .script-prompt-field .nl-textarea,
+  .settings-page .cover-prompt-textarea,
+  .settings-page input,
+  .settings-page textarea,
+  .settings-page select {
+    font-size: 16px;
+  }
+
+  .settings-shell {
+    gap: var(--space-3_5);
+  }
+
+  .settings-block {
+    padding: var(--space-3);
+  }
+
+  .settings-block + .settings-block {
+    padding-top: var(--space-3);
+  }
+
+  .settings-meta-list {
+    padding: var(--space-3);
+  }
+
+  .settings-meta-row {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .settings-card-actions {
+    padding: var(--space-2_5) var(--space-3);
+  }
+
+  .settings-panel-intro h2 {
+    font-size: var(--fs-xl);
+  }
+
+  .settings-panel-intro p {
+    font-size: var(--fs-base-plus);
+  }
+
+  .settings-nav-item {
+    padding: 0 var(--space-3);
+    min-height: var(--control-4xl);
+    font-size: var(--fs-base-plus);
+  }
 }
 .settings-page .script-prompt-field-label {
   font-size: var(--fs-base);
