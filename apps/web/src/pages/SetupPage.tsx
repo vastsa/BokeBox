@@ -4,11 +4,14 @@ import {
   fetchSetupStatus,
   type SetupStatus,
 } from '../api/client';
-import { IconCheck, IconHeadphones, IconSpark } from '../components/icons';
+import { TtsModePicker } from '../components/admin/TtsModePicker';
+import { DEFAULT_GLOBAL_TTS, summarizeTts } from '../components/admin/GlobalTtsSettings';
+import { IconCheck, IconHeadphones, IconMic, IconSpark } from '../components/icons';
 import { setAuthSession } from '../lib/auth';
 import { navigate } from '../lib/router';
+import type { TtsOptions } from '../types/job';
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 
 const DEFAULTS = {
   baseUrl: 'https://api.oj.ink/v1',
@@ -37,7 +40,10 @@ export function SetupPage() {
   const [voiceDesignModel, setVoiceDesignModel] = useState(
     DEFAULTS.voiceDesignModel,
   );
-  const [defaultVoice, setDefaultVoice] = useState(DEFAULTS.defaultVoice);
+  const [tts, setTts] = useState<TtsOptions>({
+    ...DEFAULT_GLOBAL_TTS,
+    voice: DEFAULTS.defaultVoice,
+  });
 
   useEffect(() => {
     void (async () => {
@@ -54,7 +60,12 @@ export function SetupPage() {
           setAsrModel(s.asrModel || DEFAULTS.asrModel);
           setTtsModel(s.ttsModel || DEFAULTS.ttsModel);
           setVoiceDesignModel(s.voiceDesignModel || DEFAULTS.voiceDesignModel);
-          setDefaultVoice(s.defaultVoice || DEFAULTS.defaultVoice);
+          const voice = s.defaultVoice || DEFAULTS.defaultVoice;
+          setTts((prev) => ({
+            ...prev,
+            mode: 'default',
+            voice,
+          }));
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -67,8 +78,11 @@ export function SetupPage() {
   const stepHint = useMemo(() => {
     if (step === 1) return '创建登录账号，保护你的私人播客库';
     if (step === 2) return '配置模型服务，用于转写、写稿与合成';
-    return '确认模型参数，完成后即可开始使用';
+    if (step === 3) return '确认模型参数，可按需调整';
+    return '设置全局默认音色，制作时会默认使用';
   }, [step]);
+
+  const ttsSummary = useMemo(() => summarizeTts(tts), [tts]);
 
   const goNext = () => {
     setError(null);
@@ -98,13 +112,30 @@ export function SetupPage() {
         return;
       }
       setStep(3);
+      return;
     }
+    if (step === 3) {
+      if (!chatModel.trim() || !asrModel.trim() || !ttsModel.trim()) {
+        setError('请完整填写模型名称');
+        return;
+      }
+      setStep(4);
+    }
+  };
+
+  const goBack = () => {
+    setError(null);
+    setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
   };
 
   const submit = async () => {
     setError(null);
     setSubmitting(true);
     try {
+      const defaultVoice =
+        tts.mode === 'default'
+          ? String(tts.voice || DEFAULTS.defaultVoice)
+          : DEFAULTS.defaultVoice;
       const res = await completeSetup({
         username: username.trim(),
         password,
@@ -115,7 +146,8 @@ export function SetupPage() {
         asrModel: asrModel.trim(),
         ttsModel: ttsModel.trim(),
         voiceDesignModel: voiceDesignModel.trim(),
-        defaultVoice: defaultVoice.trim(),
+        defaultVoice,
+        tts,
       });
       setAuthSession(res.token, res.username);
       window.location.hash = '/home';
@@ -154,7 +186,7 @@ export function SetupPage() {
         <p className="auth-desc">{stepHint}</p>
 
         <div className="setup-steps" aria-label="初始化步骤">
-          {[1, 2, 3].map((n) => (
+          {[1, 2, 3, 4].map((n) => (
             <div
               key={n}
               className={[
@@ -165,9 +197,17 @@ export function SetupPage() {
                 .filter(Boolean)
                 .join(' ')}
             >
-              <i>{step > n ? <IconCheck size={12} /> : n}</i>
-              <span>
-                {n === 1 ? '账号' : n === 2 ? 'API' : '模型'}
+              <span className="setup-step-dot">
+                {step > n ? <IconCheck size={12} /> : n}
+              </span>
+              <span className="setup-step-label">
+                {n === 1
+                  ? '账号'
+                  : n === 2
+                    ? '服务'
+                    : n === 3
+                      ? '模型'
+                      : '音色'}
               </span>
             </div>
           ))}
@@ -181,7 +221,7 @@ export function SetupPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
-                placeholder="例如 admin"
+                placeholder="admin"
               />
             </label>
             <label className="auth-field">
@@ -266,14 +306,22 @@ export function SetupPage() {
                 />
               </label>
             </div>
-            <label className="auth-field">
-              <span>默认音色</span>
-              <input
-                value={defaultVoice}
-                onChange={(e) => setDefaultVoice(e.target.value)}
-                placeholder="冰糖"
-              />
-            </label>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="auth-form setup-tts-form">
+            <div className="setup-tts-head">
+              <IconMic size={15} />
+              <div>
+                <div className="setup-tts-title">全局默认音色</div>
+                <div className="setup-tts-desc">
+                  当前：<strong>{ttsSummary}</strong>
+                  。制作时默认使用，也可在设置中修改。
+                </div>
+              </div>
+            </div>
+            <TtsModePicker value={tts} onChange={setTts} />
           </div>
         )}
 
@@ -284,10 +332,7 @@ export function SetupPage() {
             <button
               type="button"
               className="nl-btn nl-btn-secondary"
-              onClick={() => {
-                setError(null);
-                setStep((s) => (s === 3 ? 2 : 1));
-              }}
+              onClick={goBack}
               disabled={submitting}
             >
               上一步
@@ -295,7 +340,7 @@ export function SetupPage() {
           ) : (
             <span />
           )}
-          {step < 3 ? (
+          {step < 4 ? (
             <button
               type="button"
               className="nl-btn nl-btn-primary"

@@ -106,6 +106,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       ttsModel?: string;
       voiceDesignModel?: string;
       defaultVoice?: string;
+      tts?: import('../types/job.js').TtsOptions | null;
     };
   }>('/setup', async (req, reply) => {
     try {
@@ -126,6 +127,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         ttsModel: body.ttsModel,
         voiceDesignModel: body.voiceDesignModel,
         defaultVoice: body.defaultVoice,
+        tts: body.tts,
       });
       setSessionCookie(reply, result.session.token, result.session.expiresAt);
       return {

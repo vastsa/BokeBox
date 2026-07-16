@@ -9,10 +9,12 @@ import {
   revokeSession,
   setAiConfig,
   setAuthAccount,
+  setGlobalTtsOptions,
   type AiConfig,
   type AuthAccount,
   type SessionRecord,
 } from './settingsStore.js';
+import type { TtsOptions } from '../types/job.js';
 
 const SCRYPT_KEYLEN = 64;
 
@@ -45,6 +47,8 @@ export type SetupInput = {
   ttsModel?: string;
   voiceDesignModel?: string;
   defaultVoice?: string;
+  /** 全局音色（初始化时写入，制作默认使用） */
+  tts?: Partial<TtsOptions> | null;
 };
 
 export function validateUsername(username: string): string | null {
@@ -93,6 +97,14 @@ export function completeSetup(input: SetupInput): {
   };
   setAuthAccount(account);
 
+  // 全局音色优先；兼容旧字段 defaultVoice
+  const globalTts = setGlobalTtsOptions(
+    input.tts || {
+      mode: 'default',
+      voice: input.defaultVoice || undefined,
+    },
+  );
+
   const aiPatch: Partial<AiConfig> = {
     apiKey,
     baseUrl: input.baseUrl,
@@ -100,7 +112,10 @@ export function completeSetup(input: SetupInput): {
     asrModel: input.asrModel,
     ttsModel: input.ttsModel,
     voiceDesignModel: input.voiceDesignModel,
-    defaultVoice: input.defaultVoice,
+    defaultVoice:
+      globalTts.mode === 'default'
+        ? globalTts.voice || input.defaultVoice
+        : input.defaultVoice || globalTts.voice,
   };
   setAiConfig(aiPatch);
   markSetupCompleted();

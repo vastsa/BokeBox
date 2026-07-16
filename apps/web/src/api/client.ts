@@ -354,6 +354,7 @@ export async function completeSetup(body: {
   ttsModel?: string;
   voiceDesignModel?: string;
   defaultVoice?: string;
+  tts?: TtsOptions | null;
 }): Promise<{ ok: boolean; username: string; token: string; expiresAt: string }> {
   return request('/setup', {
     method: 'POST',

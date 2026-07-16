@@ -6922,23 +6922,25 @@ button.pb-cover {
 }
 .setup-steps {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
   margin-bottom: 16px;
 }
 .setup-step {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-height: 36px;
-  padding: 0 10px;
+  min-width: 0;
+  padding: 0 8px;
   border-radius: 999px;
   border: 1px solid var(--separator);
   color: var(--text-3);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 650;
 }
-.setup-step i {
+.setup-step i,
+.setup-step-dot {
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -6947,6 +6949,13 @@ button.pb-cover {
   background: var(--surface-2);
   font-style: normal;
   font-size: 11px;
+  flex-shrink: 0;
+}
+.setup-step-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .setup-step.is-active {
   border-color: color-mix(in srgb, var(--brand) 35%, var(--separator));
@@ -6956,9 +6965,14 @@ button.pb-cover {
 .setup-step.is-done {
   color: var(--text-2);
 }
-.setup-step.is-done i {
+.setup-step.is-done i,
+.setup-step.is-done .setup-step-dot {
   background: var(--brand);
   color: #fff;
+}
+@media (max-width: 420px) {
+  .setup-step-label { display: none; }
+  .setup-step { justify-content: center; padding-inline: 0; }
 }
 
 .settings-stack {
@@ -7343,4 +7357,34 @@ button.pb-cover {
   max-width: none;
   width: 100%;
   margin-inline: 0;
+}
+
+
+/* Setup · 全局音色步骤 */
+.setup-tts-form {
+  gap: 14px;
+}
+.setup-tts-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--separator);
+  background: var(--surface-2);
+}
+.setup-tts-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.setup-tts-desc {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+.setup-tts-desc strong {
+  color: var(--text-2);
+  font-weight: 650;
 }
