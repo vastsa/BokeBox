@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchHistory, fetchLibrary } from '../api/client';
-import { IconLibrary, IconPlay, IconSpark } from '../components/icons';
+import {
+  IconHeadphones,
+  IconLibrary,
+  IconPause,
+  IconPlay,
+  IconSpark,
+  IconUpload,
+} from '../components/icons';
 import { CoverArt } from '../components/ui/CoverArt';
 import { EmptyState } from '../components/ui/EmptyState';
-import {
-  coverGradientFor,
-  formatDuration,
-  formatTime,
-  listenProgressPct,
-} from '../lib/format';
+import { formatDuration, listenProgressPct } from '../lib/format';
 import { navigate, type Route } from '../lib/router';
 import type { LibraryItem } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
@@ -17,12 +19,32 @@ import { trackFromJob } from '../player/trackFromJob';
 import { bestResumeSec, mergeListenRecord } from '../player/listenProgress';
 
 function greetingByHour(h = new Date().getHours()): string {
-  if (h < 6) return '夜深了';
-  if (h < 11) return '早上好';
-  if (h < 14) return '中午好';
-  if (h < 18) return '下午好';
-  if (h < 22) return '晚上好';
-  return '夜深了';
+  if (h < 6) return '夜深了，适合安静听一段';
+  if (h < 11) return '早上好，开始今天的收听';
+  if (h < 14) return '中午好，放松听一会儿';
+  if (h < 18) return '下午好，继续你的播客';
+  if (h < 22) return '晚上好，沉浸式收听';
+  return '夜深了，适合安静听一段';
+}
+
+function itemTitle(item: LibraryItem): string {
+  return item.job.podcast?.title || item.job.title;
+}
+
+function itemMinutes(item: LibraryItem): string {
+  const mins = item.job.podcast?.estimatedMinutes;
+  if (mins && mins > 0) return `${mins} 分钟`;
+  if (item.listen?.durationSec) return formatDuration(item.listen.durationSec);
+  return '播客';
+}
+
+function itemMeta(item: LibraryItem): string {
+  const parts = [itemMinutes(item)];
+  const pct = listenProgressPct(item.listen?.progressSec, item.listen?.durationSec);
+  if (item.listen?.completed) parts.push('已听完');
+  else if (pct > 0) parts.push(`${Math.round(pct)}%`);
+  if (item.listen?.playCount) parts.push(`${item.listen.playCount} 次`);
+  return parts.join(' · ');
 }
 
 export function ListenHomePage({ route }: { route: Route }) {
@@ -48,6 +70,7 @@ export function ListenHomePage({ route }: { route: Route }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // 未听完：按最近听过排序（history 已是最近序）
   const continueItems = useMemo(
     () =>
       history.filter(
@@ -56,31 +79,28 @@ export function ListenHomePage({ route }: { route: Route }) {
     [history],
   );
 
-  const recentItems = useMemo(() => {
-    const seen = new Set<string>();
-    const rows: LibraryItem[] = [];
-    for (const it of history) {
-      if (seen.has(it.job.id)) continue;
-      seen.add(it.job.id);
-      rows.push(it);
-      if (rows.length >= 12) break;
-    }
-    if (rows.length < 8) {
-      for (const it of library) {
-        if (seen.has(it.job.id)) continue;
-        seen.add(it.job.id);
-        rows.push(it);
-        if (rows.length >= 12) break;
-      }
-    }
-    return rows;
-  }, [history, library]);
+  // 主推荐：优先未听完，否则最新一集
+  const featured = continueItems[0] || library[0] || null;
+  const featuredId = featured?.job.id;
+  const featuredIsContinue = Boolean(
+    featured && continueItems[0] && continueItems[0].job.id === featured.job.id,
+  );
 
-  const featured = continueItems[0] || recentItems[0] || library[0];
+  // 继续收听轨：去掉主推荐，避免重复
+  const continueRail = useMemo(
+    () => continueItems.filter((i) => i.job.id !== featuredId).slice(0, 12),
+    [continueItems, featuredId],
+  );
+
   const greeting = useMemo(() => greetingByHour(), []);
 
   const playItem = (item: LibraryItem, opts?: { openPlayer?: boolean }) => {
     const listen = mergeListenRecord(item.job.id, item.listen);
+    // 同一曲目 → 播放/暂停切换
+    if (player.track?.id === item.job.id && !opts?.openPlayer) {
+      player.toggle();
+      return;
+    }
     player.playTrack(trackFromJob(item.job), {
       autoplay: true,
       resume: true,
@@ -97,28 +117,47 @@ export function ListenHomePage({ route }: { route: Route }) {
 
   return (
     <AppShell route={route}>
-      <div className="listen-page nl-enter">
-        {/* 顶栏：问候 + 快捷入口 */}
-        <header className="listen-top page-container">
-          <div className="listen-top-main">
-            <div className="listen-greet">{greeting}</div>
-            <h1 className="listen-title">私人播客</h1>
+      <div className="lh-page nl-enter">
+        <header className="lh-header page-container">
+          <div className="lh-brand">
+            <span className="brand-mark" aria-hidden>
+              <IconHeadphones size={16} />
+            </span>
+            <div className="lh-brand-text">
+              <h1 className="lh-title">私人播客</h1>
+              <p className="lh-greet">
+                {loading
+                  ? '加载中…'
+                  : library.length
+                    ? `${greeting} · ${library.length} 集`
+                    : greeting}
+              </p>
+            </div>
           </div>
-          <button
-            type="button"
-            className="listen-top-action"
-            onClick={() => navigate({ name: 'admin' })}
-            aria-label="管理"
-          >
-            <IconSpark size={15} />
-            <span>管理</span>
-          </button>
+          <div className="lh-header-actions">
+            <button
+              type="button"
+              className="lh-icon-btn"
+              onClick={() => navigate({ name: 'admin-upload' })}
+              aria-label="上传"
+              title="上传"
+            >
+              <IconUpload size={16} />
+            </button>
+            <button
+              type="button"
+              className="lh-icon-btn"
+              onClick={() => navigate({ name: 'admin' })}
+              aria-label="管理"
+              title="管理"
+            >
+              <IconSpark size={16} />
+            </button>
+          </div>
         </header>
 
-        <div className="page-container listen-body">
-          {error && (
-            <div className="listen-error">{error}</div>
-          )}
+        <div className="page-container lh-body">
+          {error && <div className="lh-error">{error}</div>}
 
           {loading ? (
             <ListenSkeleton />
@@ -132,12 +171,11 @@ export function ListenHomePage({ route }: { route: Route }) {
             />
           ) : (
             <>
-              {/* 主推 Banner · 网易云每日推荐感 */}
               {featured && (
-                <section className="listen-section">
-                  <NcBanner
+                <section className="lh-section">
+                  <FeaturedHero
                     item={featured}
-                    isContinue={Boolean(continueItems[0])}
+                    isContinue={featuredIsContinue}
                     playing={isPlayingId === featured.job.id && isPlaying}
                     onPlay={() => playItem(featured)}
                     onOpen={() => playItem(featured, { openPlayer: true })}
@@ -145,64 +183,15 @@ export function ListenHomePage({ route }: { route: Route }) {
                 </section>
               )}
 
-              {/* 快捷入口 */}
-              <section className="listen-section">
-                <div className="nc-chips">
-                  <button
-                    type="button"
-                    className="nc-chip is-primary"
-                    onClick={() => {
-                      if (featured) playItem(featured);
-                      else navigate({ name: 'admin-upload' });
-                    }}
-                  >
-                    <IconPlay size={12} />
-                    {continueItems[0] ? '继续播放' : '开始播放'}
-                  </button>
-                  <button
-                    type="button"
-                    className="nc-chip"
-                    onClick={() => {
-                      const el = document.getElementById('listen-all');
-                      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                  >
-                    全部 {library.length}
-                  </button>
-                  <button
-                    type="button"
-                    className="nc-chip"
-                    onClick={() => {
-                      const el = document.getElementById('listen-recent');
-                      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                  >
-                    最近 {history.length}
-                  </button>
-                  <button
-                    type="button"
-                    className="nc-chip"
-                    onClick={() => navigate({ name: 'admin-upload' })}
-                  >
-                    上传
-                  </button>
-                </div>
-              </section>
-
-              {/* 最近播放 · 横向封面轨 */}
-              {recentItems.length > 0 && (
-                <section className="listen-section" id="listen-recent">
-                  <NcSectionTitle
-                    title="最近播放"
-                    more={
-                      history.length > 0
-                        ? `${history.length} 条记录`
-                        : undefined
-                    }
+              {continueRail.length > 0 && (
+                <section className="lh-section">
+                  <SectionHead
+                    title="继续收听"
+                    more={`${continueItems.length} 集未听完`}
                   />
-                  <div className="nc-h-scroll">
-                    {recentItems.map((item, idx) => (
-                      <RecentCover
+                  <div className="lh-rail" role="list">
+                    {continueRail.map((item, idx) => (
+                      <ContinueCard
                         key={item.job.id}
                         item={item}
                         index={idx}
@@ -215,13 +204,17 @@ export function ListenHomePage({ route }: { route: Route }) {
                 </section>
               )}
 
-              {/* 继续收听 · 未完成 */}
-              {continueItems.length > 0 && (
-                <section className="listen-section">
-                  <NcSectionTitle title="继续收听" more={`${continueItems.length} 集未听完`} />
-                  <div className="nc-continue-list">
-                    {continueItems.slice(0, 6).map((item, idx) => (
-                      <ContinueRow
+              <section className="lh-section" id="listen-all">
+                <SectionHead
+                  title="全部播客"
+                  more={library.length ? `${library.length} 集` : undefined}
+                />
+                {!library.length ? (
+                  <p className="lh-empty-tip">后台发布后会出现在这里</p>
+                ) : (
+                  <div className="lh-ep-list" role="list">
+                    {library.map((item, idx) => (
+                      <EpisodeRow
                         key={item.job.id}
                         item={item}
                         index={idx}
@@ -229,55 +222,11 @@ export function ListenHomePage({ route }: { route: Route }) {
                         playing={isPlayingId === item.job.id && isPlaying}
                         onPlay={() => playItem(item)}
                         onOpen={() => playItem(item, { openPlayer: true })}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* 推荐 / 全部 · 封面网格 */}
-              <section className="listen-section" id="listen-all">
-                <NcSectionTitle
-                  title="推荐播客"
-                  more={library.length ? `${library.length} 集` : undefined}
-                />
-                {!library.length ? (
-                  <p className="listen-empty-tip">后台发布后会出现在这里</p>
-                ) : (
-                  <div className="nc-cover-grid">
-                    {library.map((item, idx) => (
-                      <AlbumCard
-                        key={item.job.id}
-                        item={item}
-                        index={idx}
-                        active={isPlayingId === item.job.id}
-                        playing={isPlayingId === item.job.id && isPlaying}
-                        onPlay={() => playItem(item)}
                       />
                     ))}
                   </div>
                 )}
               </section>
-
-              {/* 播放历史 · 歌曲列表感 */}
-              {history.length > 0 && (
-                <section className="listen-section">
-                  <NcSectionTitle title="播放历史" more="按最近听过排序" />
-                  <div className="nc-song-list">
-                    {history.map((item, idx) => (
-                      <SongRow
-                        key={`${item.job.id}-${idx}`}
-                        item={item}
-                        index={idx}
-                        active={isPlayingId === item.job.id}
-                        playing={isPlayingId === item.job.id && isPlaying}
-                        onPlay={() => playItem(item)}
-                        onOpen={() => playItem(item, { openPlayer: true })}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
             </>
           )}
         </div>
@@ -286,16 +235,16 @@ export function ListenHomePage({ route }: { route: Route }) {
   );
 }
 
-function NcSectionTitle({ title, more }: { title: string; more?: string }) {
+function SectionHead({ title, more }: { title: string; more?: string }) {
   return (
-    <div className="nc-sec-head">
-      <h2 className="nc-sec-title">{title}</h2>
-      {more && <span className="nc-sec-more">{more}</span>}
+    <div className="lh-sec-head">
+      <h2 className="lh-sec-title">{title}</h2>
+      {more && <span className="lh-sec-more">{more}</span>}
     </div>
   );
 }
 
-function NcBanner({
+function FeaturedHero({
   item,
   isContinue,
   playing,
@@ -309,17 +258,25 @@ function NcBanner({
   onOpen: () => void;
 }) {
   const pct = listenProgressPct(item.listen?.progressSec, item.listen?.durationSec);
-  const grad = coverGradientFor(item.job.id, item.job.podcast?.coverGradient);
-  const title = item.job.podcast?.title || item.job.title;
-  const summary = item.job.podcast?.summary;
+  const title = itemTitle(item);
+  const summary = item.job.podcast?.summary?.trim();
 
   return (
-    <div className="nc-banner">
-      <div className={`nc-banner-bg bg-gradient-to-br ${grad}`} aria-hidden />
-      <div className="nc-banner-inner">
+    <article className="lh-hero">
+      <CoverArt
+        seed={item.job.id}
+        preferred={item.job.podcast?.coverGradient}
+        title={title}
+        monogram={false}
+        className="lh-hero-bg"
+        aria-hidden
+      />
+      <div className="lh-hero-veil" aria-hidden />
+
+      <div className="lh-hero-inner">
         <button
           type="button"
-          className="nc-banner-cover-btn"
+          className="lh-hero-cover-btn"
           onClick={onOpen}
           aria-label="打开播放页"
         >
@@ -327,43 +284,42 @@ function NcBanner({
             seed={item.job.id}
             preferred={item.job.podcast?.coverGradient}
             title={title}
-            className="nc-banner-cover"
+            className="lh-hero-cover"
           />
-          <span className="nc-banner-vinyl" aria-hidden />
         </button>
 
-        <div className="nc-banner-meta">
-          <div className="nc-banner-badge">
-            {isContinue ? '继续播放' : '今日推荐'}
+        <div className="lh-hero-meta">
+          <div className="lh-hero-badge">
+            {isContinue ? '继续收听' : '精选推荐'}
             {isContinue && pct > 0 ? ` · ${Math.round(pct)}%` : ''}
           </div>
-          <button type="button" className="nc-banner-title" onClick={onOpen}>
+
+          <button type="button" className="lh-hero-title" onClick={onOpen}>
             {title}
           </button>
-          {summary && <p className="nc-banner-desc">{summary}</p>}
-          <div className="nc-banner-foot">
-            <span className="nc-banner-mins">
-              {item.job.podcast?.estimatedMinutes
-                ? `${item.job.podcast.estimatedMinutes} 分钟`
-                : '播客'}
-            </span>
-            <button type="button" className="nc-banner-play" onClick={onPlay}>
-              <IconPlay size={14} />
-              {playing ? '播放中' : isContinue ? '接着听' : '立即播放'}
+
+          {summary && <p className="lh-hero-desc">{summary}</p>}
+
+          <div className="lh-hero-foot">
+            <span className="lh-hero-mins">{itemMinutes(item)}</span>
+            <button type="button" className="lh-hero-play" onClick={onPlay}>
+              {playing ? <IconPause size={14} /> : <IconPlay size={14} />}
+              <span>{playing ? '播放中' : isContinue ? '接着听' : '立即播放'}</span>
             </button>
           </div>
+
           {pct > 0 && !item.listen?.completed && (
-            <div className="nc-banner-progress">
+            <div className="lh-hero-progress" aria-hidden>
               <i style={{ width: `${pct}%` }} />
             </div>
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-function RecentCover({
+function ContinueCard({
   item,
   index,
   active,
@@ -376,155 +332,50 @@ function RecentCover({
   playing: boolean;
   onPlay: () => void;
 }) {
-  const title = item.job.podcast?.title || item.job.title;
+  const title = itemTitle(item);
   const pct = listenProgressPct(item.listen?.progressSec, item.listen?.durationSec);
 
   return (
     <button
       type="button"
-      className={['nc-recent', active ? 'is-active' : ''].join(' ')}
-      style={{ ['--stagger' as string]: `${index * 30}ms` }}
+      role="listitem"
+      className={['lh-cont', active ? 'is-active' : ''].join(' ')}
+      style={{ ['--stagger' as string]: `${index * 28}ms` }}
       onClick={onPlay}
     >
       <CoverArt
         seed={item.job.id}
         preferred={item.job.podcast?.coverGradient}
         title={title}
-        className="nc-recent-art"
+        className="lh-cont-cover"
       >
-        <span className="nc-recent-play">
-          <IconPlay size={14} />
-        </span>
-        {playing && <span className="nc-eq" aria-hidden><i /><i /><i /></span>}
-        {pct > 0 && !item.listen?.completed && (
-          <span className="nc-recent-bar">
-            <i style={{ width: `${pct}%` }} />
+        {playing && (
+          <span className="lh-eq is-dark" aria-hidden>
+            <i />
+            <i />
+            <i />
           </span>
         )}
       </CoverArt>
-      <div className="nc-recent-title">{title}</div>
-    </button>
-  );
-}
-
-function ContinueRow({
-  item,
-  index,
-  active,
-  playing,
-  onPlay,
-  onOpen,
-}: {
-  item: LibraryItem;
-  index: number;
-  active: boolean;
-  playing: boolean;
-  onPlay: () => void;
-  onOpen: () => void;
-}) {
-  const pct = listenProgressPct(item.listen?.progressSec, item.listen?.durationSec);
-  const title = item.job.podcast?.title || item.job.title;
-  const left = Math.max(
-    0,
-    (item.listen?.durationSec || 0) - (item.listen?.progressSec || 0),
-  );
-
-  return (
-    <div
-      className={['nc-continue-row', active ? 'is-active' : ''].join(' ')}
-      style={{ ['--stagger' as string]: `${index * 28}ms` }}
-    >
-      <button type="button" className="nc-continue-main" onClick={onPlay}>
-        <CoverArt
-          seed={item.job.id}
-          preferred={item.job.podcast?.coverGradient}
-          title={title}
-          className="nc-continue-cover"
-        >
-          {playing ? (
-            <span className="nc-eq is-dark" aria-hidden><i /><i /><i /></span>
-          ) : (
-            <IconPlay size={12} />
-          )}
-        </CoverArt>
-        <div className="min-w-0 flex-1">
-          <div className="nc-continue-title">{title}</div>
-          <div className="nc-continue-sub">
-            已听 {Math.round(pct)}%
-            {left > 0 ? ` · 剩余 ${formatDuration(left)}` : ''}
-          </div>
-          <div className="nc-continue-progress">
-            <i style={{ width: `${pct}%` }} />
-          </div>
+      <div className="lh-cont-body">
+        <div className="lh-cont-title">{title}</div>
+        <div className="lh-cont-sub">
+          {pct > 0 ? `已听 ${Math.round(pct)}%` : itemMinutes(item)}
         </div>
-      </button>
-      <button type="button" className="nc-row-more" onClick={onOpen} aria-label="打开详情">
-        详情
-      </button>
-    </div>
-  );
-}
-
-function AlbumCard({
-  item,
-  index,
-  active,
-  playing,
-  onPlay,
-}: {
-  item: LibraryItem;
-  index: number;
-  active: boolean;
-  playing: boolean;
-  onPlay: () => void;
-}) {
-  const pct = listenProgressPct(item.listen?.progressSec, item.listen?.durationSec);
-  const title = item.job.podcast?.title || item.job.title;
-
-  return (
-    <button
-      type="button"
-      className={['nc-album', active ? 'is-active' : ''].join(' ')}
-      style={{ ['--stagger' as string]: `${index * 28}ms` }}
-      onClick={onPlay}
-    >
-      <CoverArt
-        seed={item.job.id}
-        preferred={item.job.podcast?.coverGradient}
-        title={title}
-        className="nc-album-art"
-      >
-        <span className="nc-album-play">
-          {playing ? (
-            <span className="nc-eq" aria-hidden><i /><i /><i /></span>
-          ) : (
-            <IconPlay size={13} />
-          )}
-        </span>
         {pct > 0 && (
-          <span className="nc-album-bar">
+          <div className="lh-cont-bar" aria-hidden>
             <i style={{ width: `${pct}%` }} />
-          </span>
+          </div>
         )}
-      </CoverArt>
-      <div className="nc-album-title">{title}</div>
-      <div className="nc-album-sub">
-        {item.job.podcast?.estimatedMinutes
-          ? `${item.job.podcast.estimatedMinutes} 分钟`
-          : '播客'}
-        {item.listen?.completed
-          ? ' · 已听完'
-          : pct > 0
-            ? ` · ${Math.round(pct)}%`
-            : item.listen?.playCount
-              ? ` · ${item.listen.playCount} 次`
-              : ''}
       </div>
+      <span className="lh-cont-play" aria-hidden>
+        {playing ? <IconPause size={13} /> : <IconPlay size={13} />}
+      </span>
     </button>
   );
 }
 
-function SongRow({
+function EpisodeRow({
   item,
   index,
   active,
@@ -539,65 +390,83 @@ function SongRow({
   onPlay: () => void;
   onOpen: () => void;
 }) {
+  const title = itemTitle(item);
   const pct = listenProgressPct(item.listen?.progressSec, item.listen?.durationSec);
-  const title = item.job.podcast?.title || item.job.title;
+  const summary = item.job.podcast?.summary?.trim();
 
   return (
     <div
-      className={['nc-song', active ? 'is-active' : ''].join(' ')}
+      role="listitem"
+      className={['lh-ep', active ? 'is-active' : ''].join(' ')}
       style={{ ['--stagger' as string]: `${index * 24}ms` }}
     >
-      <button type="button" className="nc-song-main" onClick={onPlay}>
-        <span className="nc-song-idx">
-          {playing ? (
-            <span className="nc-eq is-brand" aria-hidden><i /><i /><i /></span>
-          ) : (
-            String(index + 1).padStart(2, '0')
-          )}
-        </span>
+      <button
+        type="button"
+        className="lh-ep-main"
+        onClick={onPlay}
+        aria-label={`播放 ${title}`}
+      >
         <CoverArt
           seed={item.job.id}
           preferred={item.job.podcast?.coverGradient}
           title={title}
-          className="nc-song-cover"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="nc-song-title">{title}</div>
-          <div className="nc-song-sub">
-            {formatTime(item.listen?.lastListenedAt)}
-            {item.listen?.completed
-              ? ' · 已听完'
-              : pct > 0
-                ? ` · ${Math.round(pct)}%`
-                : ''}
-            {item.listen?.playCount ? ` · ${item.listen.playCount} 次` : ''}
-          </div>
+          className="lh-ep-cover"
+        >
+          {playing && (
+            <span className="lh-eq is-dark" aria-hidden>
+              <i />
+              <i />
+              <i />
+            </span>
+          )}
+        </CoverArt>
+
+        <div className="lh-ep-body">
+          <div className="lh-ep-title">{title}</div>
+          {summary && <div className="lh-ep-desc">{summary}</div>}
+          <div className="lh-ep-meta">{itemMeta(item)}</div>
+          {pct > 0 && !item.listen?.completed && (
+            <div className="lh-ep-bar" aria-hidden>
+              <i style={{ width: `${pct}%` }} />
+            </div>
+          )}
         </div>
       </button>
-      <button type="button" className="nc-row-more" onClick={onOpen} aria-label="打开播放页">
-        打开
-      </button>
+
+      <div className="lh-ep-actions">
+        <button
+          type="button"
+          className="lh-ep-play"
+          onClick={onPlay}
+          aria-label={playing ? '暂停' : '播放'}
+        >
+          {playing ? <IconPause size={14} /> : <IconPlay size={14} />}
+        </button>
+        <button
+          type="button"
+          className="lh-ep-open"
+          onClick={onOpen}
+          aria-label="打开播放页"
+        >
+          详情
+        </button>
+      </div>
     </div>
   );
 }
 
 function ListenSkeleton() {
   return (
-    <div className="listen-skeleton">
-      <div className="nl-shimmer nc-banner-skel" />
-      <div className="nc-chips">
+    <div className="lh-skeleton">
+      <div className="nl-shimmer lh-skel-hero" />
+      <div className="lh-skel-rail">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="nl-shimmer lh-skel-cont" />
+        ))}
+      </div>
+      <div className="lh-skel-list">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="nl-shimmer nc-chip-skel" />
-        ))}
-      </div>
-      <div className="nc-h-scroll">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="nl-shimmer nc-recent-skel" />
-        ))}
-      </div>
-      <div className="nc-cover-grid">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="nl-shimmer nc-album-skel" />
+          <div key={i} className="nl-shimmer lh-skel-ep" />
         ))}
       </div>
     </div>
