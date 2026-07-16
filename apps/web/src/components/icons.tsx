@@ -244,3 +244,33 @@ export function IconLibrary(p: IconProps) {
     </svg>
   );
 }
+
+/** 睡眠定时 */
+export function IconMoon(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <path d="M20 14.2A7.4 7.4 0 0 1 9.8 4a7.6 7.6 0 1 0 10.2 10.2z" />
+    </svg>
+  );
+}
+
+/** 上一集 */
+export function IconTrackPrev(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <path d="M5.2 6.2v11.6" />
+      <path d="M18.8 6.6 9.6 12l9.2 5.4V6.6z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** 下一集 */
+export function IconTrackNext(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <path d="M18.8 6.2v11.6" />
+      <path d="M5.2 6.6 14.4 12 5.2 17.4V6.6z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+

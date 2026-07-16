@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { fetchListenItem, podcastAudioUrl } from '../api/client';
+import { fetchLibrary, fetchListenItem, podcastAudioUrl } from '../api/client';
 import { trackFromJob } from '../player/trackFromJob';
 import { mergeListenRecord } from '../player/listenProgress';
 import { ScriptFollow } from '../components/listen/ScriptFollow';
@@ -8,10 +8,13 @@ import { FlashcardsView } from '../components/FlashcardsView';
 import {
   IconBack,
   IconDownload,
+  IconMoon,
   IconPause,
   IconPlay,
   IconSkipBack,
   IconSkipForward,
+  IconTrackNext,
+  IconTrackPrev,
 } from '../components/icons';
 import { CoverArt } from '../components/ui/CoverArt';
 import { coverGradientFor, formatDuration } from '../lib/format';
@@ -23,6 +26,31 @@ type Panel = 'lyrics' | 'notes' | 'flashcards' | 'outline';
 
 const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
+type SleepPresetKey = 'off' | 'eoe' | 5 | 10 | 15 | 30 | 45 | 60;
+/** 睡眠定时：关闭 / 倒计时分钟 / 播完本集 */
+type SleepState =
+  | { kind: 'off' }
+  | { kind: 'timer'; minutes: number; endsAt: number }
+  | { kind: 'eoe' };
+
+const SLEEP_PRESETS = [
+  { key: 'off', label: '关闭' },
+  { key: 'eoe', label: '播完本集' },
+  { key: 5, label: '5 分钟' },
+  { key: 10, label: '10 分钟' },
+  { key: 15, label: '15 分钟' },
+  { key: 30, label: '30 分钟' },
+  { key: 45, label: '45 分钟' },
+  { key: 60, label: '60 分钟' },
+] as const;
+
+function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 export function ListenPlayerPage({ id, route: _route }: { id: string; route: Route }) {
   const player = usePlayer();
   const [item, setItem] = useState<LibraryItem | null>(null);
@@ -32,6 +60,11 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   const [scrubValue, setScrubValue] = useState(0);
   const scrubbingRef = useRef(false);
   const [showRemain, setShowRemain] = useState(false);
+  const [queue, setQueue] = useState<LibraryItem[]>([]);
+  const [sleep, setSleep] = useState<SleepState>({ kind: 'off' });
+  const [sleepLeftMs, setSleepLeftMs] = useState(0);
+  const [sleepOpen, setSleepOpen] = useState(false);
+  const sleepMenuRef = useRef<HTMLDivElement>(null);
   const boundId = useRef<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +84,13 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [id]);
+
+  // 曲库：用于上一集 / 下一集（与首页同一顺序：新→旧）
+  useEffect(() => {
+    void fetchLibrary()
+      .then((items) => setQueue(Array.isArray(items) ? items : []))
+      .catch(() => setQueue([]));
+  }, []);
 
   useEffect(() => {
     if (!item) return;
@@ -85,6 +125,14 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   );
   const remain = Math.max(0, (active.duration || 0) - displayCurrent);
 
+  const queueIndex = useMemo(
+    () => queue.findIndex((x) => x.job.id === id),
+    [queue, id],
+  );
+  const prevItem = queueIndex > 0 ? queue[queueIndex - 1] : null;
+  const nextItem =
+    queueIndex >= 0 && queueIndex < queue.length - 1 ? queue[queueIndex + 1] : null;
+
   const ensureAndPlay = useCallback(() => {
     if (!item) return;
     const job = item.job;
@@ -95,13 +143,88 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
     player.toggle();
   }, [item, player]);
 
+  const goEpisode = useCallback(
+    (target: LibraryItem | null) => {
+      if (!target) return;
+      setSleepOpen(false);
+      // 切集时保留睡眠定时（若是倒计时则继续；播完本集仍有效）
+      player.playTrack(trackFromJob(target.job), {
+        autoplay: true,
+        resume: true,
+        serverProgress: mergeListenRecord(target.job.id, target.listen),
+      });
+      navigate({ name: 'player', id: target.job.id });
+    },
+    [player],
+  );
+
   const cycleRate = useCallback(() => {
     const idx = RATES.findIndex((r) => Math.abs(r - active.rate) < 0.001);
     const next = RATES[(idx + 1) % RATES.length];
     player.setRate(next);
   }, [active.rate, player]);
 
-  // 键盘：空格播放、方向键 seek、[ ] 调速
+  const applySleep = useCallback((preset: SleepPresetKey) => {
+    if (preset === 'off') {
+      setSleep({ kind: 'off' });
+      setSleepLeftMs(0);
+    } else if (preset === 'eoe') {
+      setSleep({ kind: 'eoe' });
+      setSleepLeftMs(0);
+    } else {
+      const mins = Number(preset);
+      setSleep({ kind: 'timer', minutes: mins, endsAt: Date.now() + mins * 60_000 });
+    }
+    setSleepOpen(false);
+  }, []);
+
+  // 睡眠倒计时 tick
+  useEffect(() => {
+    if (sleep.kind !== 'timer') {
+      setSleepLeftMs(0);
+      return;
+    }
+    const tick = () => {
+      const left = sleep.endsAt - Date.now();
+      setSleepLeftMs(Math.max(0, left));
+      if (left <= 0) {
+        player.pause();
+        setSleep({ kind: 'off' });
+        setSleepLeftMs(0);
+      }
+    };
+    tick();
+    const t = window.setInterval(tick, 500);
+    return () => window.clearInterval(t);
+  }, [sleep, player]);
+
+  // 播完本集：到结尾自动关闭定时（音频 ended 后 playing=false）
+  useEffect(() => {
+    if (sleep.kind !== 'eoe') return;
+    if (active.duration <= 0) return;
+    const atEnd = active.current >= active.duration - 0.35 && active.current > 1;
+    if (atEnd && !active.playing) {
+      setSleep({ kind: 'off' });
+    }
+  }, [sleep.kind, active.playing, active.current, active.duration]);
+
+  // 点击外部关闭睡眠菜单
+  useEffect(() => {
+    if (!sleepOpen) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const el = sleepMenuRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) setSleepOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+    };
+  }, [sleepOpen]);
+
+  // 键盘
   useEffect(() => {
     if (!item) return;
     const onKey = (e: KeyboardEvent) => {
@@ -109,7 +232,6 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) {
         return;
       }
-      // 闪卡页已占用方向键 / 空格时：仅在非闪卡面板响应空格与左右
       if (panel === 'flashcards') {
         if (e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') return;
       }
@@ -136,11 +258,17 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
       } else if (e.key === 'Home') {
         e.preventDefault();
         player.seekTo(0);
+      } else if ((e.key === ',' || e.key === '<') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        goEpisode(prevItem);
+      } else if ((e.key === '.' || e.key === '>') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        goEpisode(nextItem);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [active.rate, ensureAndPlay, item, panel, player]);
+  }, [active.rate, ensureAndPlay, goEpisode, item, nextItem, panel, player, prevItem]);
 
   if (error) {
     return (
@@ -185,6 +313,13 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
       : '私人播客');
   const hasScript = Boolean(job.podcast?.script);
   const focusContent = panel === 'flashcards' || panel === 'notes' || panel === 'outline';
+  const sleepActive = sleep.kind !== 'off';
+  const sleepLabel =
+    sleep.kind === 'timer'
+      ? formatCountdown(sleepLeftMs)
+      : sleep.kind === 'eoe'
+        ? '本集'
+        : '';
 
   const tabs = (
     [
@@ -195,12 +330,19 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
     ] as Array<readonly [Panel, string]>
   );
 
-  const disc = (
+  const disc = (variant: 'hero' | 'stage') => (
     <button
       type="button"
-      className={['qq-disc', active.playing ? 'is-spinning' : ''].join(' ')}
+      className={[
+        'qq-disc',
+        variant === 'hero' ? 'is-hero-disc' : 'is-stage-disc',
+        active.playing ? 'is-spinning' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       onClick={ensureAndPlay}
       aria-label={active.playing ? '暂停' : '播放'}
+      tabIndex={variant === 'hero' ? 0 : -1}
     >
       <CoverArt
         seed={job.id}
@@ -211,7 +353,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
       >
         <div className="qq-disc-ring" />
         <div className="qq-disc-label">
-          {active.playing ? <IconPause size={26} /> : <IconPlay size={26} />}
+          {active.playing ? <IconPause size={variant === 'hero' ? 18 : 26} /> : <IconPlay size={variant === 'hero' ? 18 : 26} />}
         </div>
       </CoverArt>
       <div className="qq-disc-glow" aria-hidden />
@@ -231,13 +373,16 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         panel === 'lyrics' ? 'is-lyrics' : '',
         panel === 'notes' ? 'is-notes' : '',
         panel === 'outline' ? 'is-outline' : '',
+        sleepActive ? 'is-sleeping' : '',
       ]
         .filter(Boolean)
         .join(' ')}
     >
       <div className="qq-ambient" aria-hidden>
         <div className={['qq-ambient-blob', `bg-gradient-to-br ${g}`].join(' ')} />
-        <div className={['qq-ambient-blob', 'qq-ambient-blob-2', `bg-gradient-to-br ${g}`].join(' ')} />
+        <div
+          className={['qq-ambient-blob', 'qq-ambient-blob-2', `bg-gradient-to-br ${g}`].join(' ')}
+        />
         <div className="qq-ambient-veil" />
       </div>
 
@@ -295,9 +440,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
                 </div>
               )}
             </div>
-            <div className="qq-hero-disc" aria-hidden={false}>
-              {disc}
-            </div>
+            <div className="qq-hero-disc">{disc('hero')}</div>
           </div>
 
           <div className="qq-stage-body" role="tabpanel">
@@ -358,9 +501,8 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
           </div>
         </div>
 
-        <div className="qq-stage-right">
-          {/* 桌面大碟：复用同一套 disc 节点会破坏单例，这里再渲染一份仅桌面可见 */}
-          <div className="qq-stage-right-inner">{disc}</div>
+        <div className="qq-stage-right" aria-hidden>
+          <div className="qq-stage-right-inner">{disc('stage')}</div>
         </div>
       </div>
 
@@ -436,12 +578,22 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
           <div className="qq-controls">
             <button
               type="button"
+              className="qq-ctrl is-ep"
+              onClick={() => goEpisode(prevItem)}
+              disabled={!prevItem}
+              aria-label="上一集"
+              title={prevItem ? `上一集：${prevItem.job.podcast?.title || prevItem.job.title}` : '没有上一集'}
+            >
+              <IconTrackPrev size={18} />
+            </button>
+            <button
+              type="button"
               className="qq-ctrl has-badge"
               onClick={() => player.seekBy(-15)}
               aria-label="后退15秒"
               title="-15s"
             >
-              <IconSkipBack size={18} />
+              <IconSkipBack size={17} />
               <em>15</em>
             </button>
             <button
@@ -459,8 +611,18 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               aria-label="前进15秒"
               title="+15s"
             >
-              <IconSkipForward size={18} />
+              <IconSkipForward size={17} />
               <em>15</em>
+            </button>
+            <button
+              type="button"
+              className="qq-ctrl is-ep"
+              onClick={() => goEpisode(nextItem)}
+              disabled={!nextItem}
+              aria-label="下一集"
+              title={nextItem ? `下一集：${nextItem.job.podcast?.title || nextItem.job.title}` : '没有下一集'}
+            >
+              <IconTrackNext size={18} />
             </button>
           </div>
         </div>
@@ -489,6 +651,52 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
           >
             {active.rate % 1 === 0 ? `${active.rate}.0` : active.rate}x
           </button>
+
+          <div className="qq-sleep" ref={sleepMenuRef}>
+            <button
+              type="button"
+              className={['qq-sleep-btn', sleepActive ? 'is-active' : ''].join(' ')}
+              onClick={() => setSleepOpen((v) => !v)}
+              aria-expanded={sleepOpen}
+              aria-haspopup="menu"
+              title="睡眠定时"
+              aria-label={
+                sleepActive
+                  ? `睡眠定时 ${sleepLabel}，点击修改`
+                  : '睡眠定时'
+              }
+            >
+              <IconMoon size={15} />
+              {sleepActive && <span className="qq-sleep-label">{sleepLabel}</span>}
+            </button>
+            {sleepOpen && (
+              <div className="qq-sleep-menu" role="menu" aria-label="睡眠定时选项">
+                <div className="qq-sleep-menu-title">睡眠定时</div>
+                {SLEEP_PRESETS.map((p) => {
+                  const isActive =
+                    (p.key === 'off' && sleep.kind === 'off') ||
+                    (p.key === 'eoe' && sleep.kind === 'eoe') ||
+                    (typeof p.key === 'number' &&
+                      sleep.kind === 'timer' &&
+                      sleep.minutes === p.key);
+                  return (
+                    <button
+                      key={String(p.key)}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={isActive}
+                      className={['qq-sleep-item', isActive ? 'is-active' : '']
+                        .filter(Boolean)
+                        .join(' ')}
+                      onClick={() => applySleep(p.key)}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </footer>
     </div>
