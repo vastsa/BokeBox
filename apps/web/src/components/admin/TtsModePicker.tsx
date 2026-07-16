@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import type { PresetVoiceId, TtsMode, TtsOptions } from '../../types/job';
 
 const MODES: Array<{ id: TtsMode; title: string; desc: string }> = [
-  { id: 'default', title: '自然口播', desc: '预置音色 · 音频标签' },
-  { id: 'voicedesign', title: '自定义音色', desc: 'Voice Design' },
+  { id: 'default', title: '自然口播', desc: '预置音色' },
+  { id: 'voicedesign', title: '自定义音色', desc: '自然语言描述' },
 ];
 
 /** mimo-v2.5-tts 预置精品音色（与官方文档一致） */
@@ -75,6 +76,7 @@ export function TtsModePicker({
   value: TtsOptions;
   onChange: (next: TtsOptions) => void;
 }) {
+  const [showTips, setShowTips] = useState(false);
   const currentVoice = (value.voice || DEFAULT_PRESET_VOICE) as string;
   const showPreset = value.mode === 'default';
   const styleTags = value.styleTags || [];
@@ -111,10 +113,7 @@ export function TtsModePicker({
       {showPreset && (
         <div>
           <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
-            预置精品音色
-            <span className="ml-1 font-normal text-[var(--text-3)]">
-              mimo-v2.5-tts · audio.voice
-            </span>
+            预置音色
           </div>
           <div className="tts-voice-grid">
             {PRESET_VOICES.map((v) => {
@@ -142,10 +141,8 @@ export function TtsModePicker({
       {value.mode === 'default' && (
         <div className="tts-sing-panel">
           <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
-            开头风格标签
-            <span className="ml-1 font-normal text-[var(--text-3)]">
-              音频标签控制 · 写入 assistant 开头
-            </span>
+            开头风格
+            <span className="ml-1 font-normal text-[var(--text-3)]">可选</span>
           </div>
 
           <div className="tts-tag-grid">
@@ -166,44 +163,49 @@ export function TtsModePicker({
             })}
           </div>
 
-          <div className="tts-sing-preview">
-            预览：
-            <code>
-              {styleTags.length ? `(${styleTags.join(' ')})` : '(可选风格标签)'}
-              大家好，欢迎收听…
-            </code>
-          </div>
+          {styleTags.length > 0 && (
+            <div className="tts-sing-preview">
+              预览：
+              <code>({styleTags.join(' ')}) 大家好，欢迎收听…</code>
+            </div>
+          )}
 
-          <div className="tts-sing-tip">
-            <div className="tip-title">音频标签控制要点</div>
-            <ul>
-              <li>
-                整体风格写在文本最开头：
-                <code>(磁性)</code> <code>(沉稳 温柔)</code>
-              </li>
-              <li>
-                不支持 user 侧「风格指令」，只靠文本内标签控制语气
-              </li>
-              <li>
-                口播稿生成时会自动插入细粒度标签，例如：
-                {AUDIO_TAG_HINTS.map((t) => (
-                  <code key={t} className="mx-0.5">
-                    （{t}）
-                  </code>
-                ))}
-              </li>
-              <li>
-                示例：
-                <code>(磁性)夜已经深了…（深呼吸）先说结论…（轻笑）我们下期见。</code>
-              </li>
-            </ul>
-          </div>
+          <button
+            type="button"
+            className="tts-tips-toggle"
+            onClick={() => setShowTips((v) => !v)}
+            aria-expanded={showTips}
+          >
+            {showTips ? '收起说明' : '标签用法说明'}
+          </button>
+
+          {showTips && (
+            <div className="tts-sing-tip">
+              <ul>
+                <li>
+                  整体风格写在文本最开头：
+                  <code>(磁性)</code> <code>(沉稳 温柔)</code>
+                </li>
+                <li>不支持 user 侧「风格指令」，只靠文本内标签控制语气</li>
+                <li>
+                  口播稿生成时会自动插入细粒度标签，例如：
+                  {AUDIO_TAG_HINTS.map((t) => (
+                    <code key={t} className="mx-0.5">
+                      （{t}）
+                    </code>
+                  ))}
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
       {value.mode === 'voicedesign' && (
         <label className="block">
-          <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">音色描述</div>
+          <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
+            音色描述
+          </div>
           <textarea
             value={value.voiceDesign || ''}
             onChange={(e) => onChange({ ...value, voiceDesign: e.target.value })}

@@ -47,6 +47,7 @@ const MODE_LABEL: Record<string, string> = {
 };
 
 type SourceMode = 'file' | 'url';
+type OptionPanel = 'none' | 'tts' | 'prompt';
 
 export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +71,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const [globalScriptPrompt, setGlobalScriptPrompt] =
     useState<ScriptPromptOptions>(emptyScriptPrompt());
   const [scriptPromptReady, setScriptPromptReady] = useState(false);
+  const [openPanel, setOpenPanel] = useState<OptionPanel>('none');
 
   const scriptPromptModeRef = useRef<ScriptPromptMode>('global');
   const scriptPromptRef = useRef<ScriptPromptOptions>(emptyScriptPrompt());
@@ -119,6 +121,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
       setFileSize(file.size);
       setUploading(true);
       setProgress(0);
+      setOpenPanel('none');
       try {
         const job = await createJob(file, {
           tts: currentTts,
@@ -161,6 +164,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
     setFileSize(null);
     setUploading(true);
     setProgress(12);
+    setOpenPanel('none');
     try {
       const job = await createJobFromUrl(url, {
         tts: currentTts,
@@ -182,116 +186,23 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
     if (!uploading) inputRef.current?.click();
   };
 
+  const togglePanel = (panel: Exclude<OptionPanel, 'none'>) => {
+    if (uploading) return;
+    setOpenPanel((prev) => (prev === panel ? 'none' : panel));
+  };
+
   const ttsSummary = `${MODE_LABEL[tts.mode] || tts.mode}${
     tts.mode !== 'voicedesign' && tts.voice ? ` · ${tts.voice}` : ''
   }`;
   const promptSummary = summarizeScriptPrompt(
     scriptPromptMode === 'global' ? globalScriptPrompt : scriptPrompt,
   );
+  const promptModeLabel =
+    scriptPromptMode === 'global' ? '全局' : '本次';
 
   return (
     <div className="upload-studio">
-      {/* 1. 先配置 */}
-      <aside className="upload-studio-side" aria-label="发布与音色配置">
-        <div className="upload-settings-card">
-          <div className="upload-settings-head">
-            <div>
-              <div className="upload-settings-kicker">配置</div>
-              <h3 className="upload-settings-title">发布 · 人设 · 音色</h3>
-            </div>
-            <div className="upload-settings-icon">
-              <IconSpark size={16} />
-            </div>
-          </div>
-
-          <label className={['upload-switch-row', uploading ? 'is-locked' : ''].join(' ')}>
-            <div className="upload-switch-copy">
-              <div className="title">完成后自动发布</div>
-              <div className="desc">
-                {uploading
-                  ? published
-                    ? '任务完成后可直接收听'
-                    : '任务完成后暂不进入播客库'
-                  : '开启后，任务完成后会出现在首页播客库'}
-              </div>
-            </div>
-            <span className={['upload-switch', published ? 'is-on' : ''].join(' ')}>
-              <i />
-              <input
-                type="checkbox"
-                className="upload-switch-input"
-                checked={published}
-                disabled={uploading}
-                onChange={(e) => updatePublished(e.target.checked)}
-                aria-label="完成后自动发布"
-              />
-            </span>
-          </label>
-
-          <div className="section-rule" />
-
-          <div className="upload-tts-block">
-            <div className="upload-tts-head">
-              <div className="left">
-                <IconMic size={14} />
-                <span>TTS 模式</span>
-              </div>
-              <span className="current">
-                {uploading ? '已锁定' : ttsSummary}
-              </span>
-            </div>
-            {uploading ? (
-              <TtsSummary value={tts} />
-            ) : (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                <TtsModePicker value={tts} onChange={updateTts} />
-              </div>
-            )}
-          </div>
-
-          <div className="section-rule" />
-
-          <div className="upload-script-prompt-block">
-            <div className="upload-tts-head">
-              <div className="left">
-                <IconSpark size={14} />
-                <span>口播人设</span>
-              </div>
-              <span className="current">
-                {uploading
-                  ? '已锁定'
-                  : scriptPromptMode === 'global'
-                    ? `全局 · ${promptSummary}`
-                    : `单独 · ${promptSummary}`}
-              </span>
-            </div>
-            <ScriptPromptPicker
-              mode={scriptPromptMode}
-              value={scriptPrompt}
-              globalValue={globalScriptPrompt}
-              disabled={uploading || !scriptPromptReady}
-              onModeChange={updateScriptPromptMode}
-              onChange={updateScriptPrompt}
-            />
-          </div>
-        </div>
-      </aside>
-
-      {/* 2. 提示 */}
-      <div className="upload-tips-card" aria-label="小提示">
-        <div className="upload-tips-title">小提示</div>
-        <ul className="upload-tips-row">
-          <li>提交前可配置口播人设（全局默认或本次单独），再确认音色与发布策略</li>
-          <li>本地与 URL 均支持视频 / 音频 / 文本，自动识别并分流</li>
-          <li>文本会跳过转写，直接生成口播稿并 TTS</li>
-          <li>URL 请使用可直接访问的资源链接（非需登录页）</li>
-        </ul>
-      </div>
-
-      {/* 3. 素材入口：本地 / URL */}
+      {/* 1. 主操作：导入内容 */}
       <div className="upload-studio-main">
         <div className="upload-source-tabs" role="tablist" aria-label="导入方式">
           <button
@@ -355,26 +266,12 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             <div className="upload-dropzone-glow" aria-hidden />
             <div className="upload-dropzone-inner">
               <div className="upload-dropzone-icon">
-                <IconUpload size={26} />
+                <IconUpload size={24} />
               </div>
 
               <div className="upload-dropzone-copy">
-                <h2>
-                  {uploading ? '正在上传…' : '配置完成后，拖拽文件到此处'}
-                </h2>
-                <p>上传即开始处理 · 支持视频 / 音频 / 文本</p>
-              </div>
-
-              <div className="upload-dropzone-badges">
-                <span className="upload-badge">最大 500MB</span>
-                <span className="upload-badge">视频 / 音频 / 文本</span>
-                <span className="upload-badge">自动识别分流</span>
-                <span className="upload-badge">
-                  {published ? '完成后入库' : '暂不入库'}
-                </span>
-                {tts.mode !== 'voicedesign' && tts.voice ? (
-                  <span className="upload-badge">{tts.voice}</span>
-                ) : null}
+                <h2>{uploading ? '正在上传…' : '拖拽文件到这里'}</h2>
+                <p>支持视频 / 音频 / 文本 · 最大 500MB</p>
               </div>
 
               {!uploading && (
@@ -387,7 +284,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                   }}
                 >
                   <IconUpload size={15} />
-                  选择文件并开始
+                  选择文件
                 </button>
               )}
             </div>
@@ -403,22 +300,12 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
           </div>
         ) : (
           <div className={['upload-url-panel', uploading ? 'is-uploading' : ''].join(' ')}>
-            <div className="upload-url-head">
-              <div className="upload-dropzone-icon is-sm">
-                <IconVideo size={20} />
-              </div>
-              <div>
-                <h2>从 URL 导入内容</h2>
-                <p>自动识别视频 · 音频 · 文本，并进入对应处理流程</p>
-              </div>
-            </div>
-
             <label className="upload-url-field">
               <span className="label">内容链接</span>
               <input
                 type="url"
                 className="nl-input"
-                placeholder="https://example.com/article.html 或 media.mp3 / video.mp4"
+                placeholder="https://… 视频 / 音频 / 文本链接"
                 value={sourceUrl}
                 disabled={uploading}
                 onChange={(e) => setSourceUrl(e.target.value)}
@@ -431,14 +318,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               />
             </label>
 
-            <div className="upload-dropzone-badges">
-              <span className="upload-badge">视频 → 抽音频 → 转写</span>
-              <span className="upload-badge">音频 → 转写</span>
-              <span className="upload-badge">文本 → 跳过转写</span>
-              <span className="upload-badge">
-                {published ? '完成后入库' : '暂不入库'}
-              </span>
-            </div>
+            <p className="upload-url-hint">
+              自动识别类型并分流处理。请使用可直接访问的公开链接。
+            </p>
 
             <button
               type="button"
@@ -447,7 +329,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               onClick={() => void handleUrl()}
             >
               <IconUpload size={15} />
-              {uploading ? '正在提交…' : '识别并开始处理'}
+              {uploading ? '正在提交…' : '开始处理'}
             </button>
           </div>
         )}
@@ -461,13 +343,15 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               <div className="upload-file-meta">
                 <div className="upload-file-name">{fileName}</div>
                 <div className="upload-file-sub">
-                  {fileSize != null ? formatSize(fileSize) : sourceMode === 'url' ? 'URL 导入' : '—'}
+                  {fileSize != null
+                    ? formatSize(fileSize)
+                    : sourceMode === 'url'
+                      ? 'URL 导入'
+                      : '—'}
                   <span className="dot">·</span>
                   {ttsSummary}
                   <span className="dot">·</span>
-                  {promptSummary}
-                  <span className="dot">·</span>
-                  {published ? '完成后入库' : '暂不发布'}
+                  {published ? '完成后发布' : '暂不发布'}
                 </div>
               </div>
               <div className="upload-file-status">
@@ -486,7 +370,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               {uploading
                 ? sourceMode === 'url'
                   ? '任务已创建，服务端将下载并识别内容类型…'
-                  : '上传完成后将自动跳转到任务详情，查看转写与合成进度。'
+                  : '上传完成后自动跳转任务详情。'
                 : '任务已创建，正在跳转…'}
             </div>
           </div>
@@ -511,6 +395,125 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
           </div>
         )}
       </div>
+
+      {/* 2. 精简选项：默认折叠，按需展开 */}
+      <aside className="upload-options" aria-label="制作选项">
+        <div className="upload-options-card">
+          <label
+            className={[
+              'upload-switch-row upload-switch-row-compact',
+              uploading ? 'is-locked' : '',
+            ].join(' ')}
+          >
+            <div className="upload-switch-copy">
+              <div className="title">完成后自动发布</div>
+            </div>
+            <span className={['upload-switch', published ? 'is-on' : ''].join(' ')}>
+              <i />
+              <input
+                type="checkbox"
+                className="upload-switch-input"
+                checked={published}
+                disabled={uploading}
+                onChange={(e) => updatePublished(e.target.checked)}
+                aria-label="完成后自动发布"
+              />
+            </span>
+          </label>
+
+          <div className="upload-option-chips" role="group" aria-label="高级选项">
+            <button
+              type="button"
+              className={[
+                'upload-option-chip',
+                openPanel === 'tts' ? 'is-open' : '',
+              ].join(' ')}
+              disabled={uploading}
+              aria-expanded={openPanel === 'tts'}
+              onClick={() => togglePanel('tts')}
+            >
+              <IconMic size={13} />
+              <span className="chip-label">音色</span>
+              <span className="chip-value" title={ttsSummary}>
+                {ttsSummary}
+              </span>
+              <span className="chip-caret" aria-hidden>
+                {openPanel === 'tts' ? '收起' : '调整'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={[
+                'upload-option-chip',
+                openPanel === 'prompt' ? 'is-open' : '',
+              ].join(' ')}
+              disabled={uploading || !scriptPromptReady}
+              aria-expanded={openPanel === 'prompt'}
+              onClick={() => togglePanel('prompt')}
+            >
+              <IconSpark size={13} />
+              <span className="chip-label">人设</span>
+              <span className="chip-value" title={`${promptModeLabel} · ${promptSummary}`}>
+                {promptModeLabel} · {promptSummary}
+              </span>
+              <span className="chip-caret" aria-hidden>
+                {openPanel === 'prompt' ? '收起' : '调整'}
+              </span>
+            </button>
+          </div>
+
+          {openPanel === 'tts' && (
+            <div className="upload-option-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="upload-option-panel-head">
+                <div className="left">
+                  <IconMic size={14} />
+                  <span>TTS 音色</span>
+                </div>
+                <button
+                  type="button"
+                  className="upload-option-close"
+                  onClick={() => setOpenPanel('none')}
+                >
+                  完成
+                </button>
+              </div>
+              {uploading ? (
+                <TtsSummary value={tts} />
+              ) : (
+                <TtsModePicker value={tts} onChange={updateTts} />
+              )}
+            </div>
+          )}
+
+          {openPanel === 'prompt' && (
+            <div className="upload-option-panel">
+              <div className="upload-option-panel-head">
+                <div className="left">
+                  <IconSpark size={14} />
+                  <span>口播人设</span>
+                </div>
+                <button
+                  type="button"
+                  className="upload-option-close"
+                  onClick={() => setOpenPanel('none')}
+                >
+                  完成
+                </button>
+              </div>
+              <ScriptPromptPicker
+                mode={scriptPromptMode}
+                value={scriptPrompt}
+                globalValue={globalScriptPrompt}
+                disabled={uploading || !scriptPromptReady}
+                compact
+                onModeChange={updateScriptPromptMode}
+                onChange={updateScriptPrompt}
+              />
+            </div>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

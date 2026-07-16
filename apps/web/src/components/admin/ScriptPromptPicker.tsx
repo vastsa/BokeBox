@@ -17,6 +17,7 @@ export function ScriptPromptPicker({
   value,
   globalValue,
   disabled = false,
+  compact = false,
   onModeChange,
   onChange,
 }: {
@@ -24,6 +25,8 @@ export function ScriptPromptPicker({
   value: ScriptPromptOptions;
   globalValue: ScriptPromptOptions;
   disabled?: boolean;
+  /** 创建页精简模式：全局只显示摘要，不铺开字段 */
+  compact?: boolean;
   onModeChange: (mode: ScriptPromptMode) => void;
   onChange: (next: ScriptPromptOptions) => void;
   /** @deprecated 全局编辑已迁至设置页，保留以兼容旧调用 */
@@ -41,6 +44,8 @@ export function ScriptPromptPicker({
     },
     [onChange, value],
   );
+
+  const globalFilled = SCRIPT_PROMPT_FIELDS.filter((f) => globalValue[f.key]);
 
   return (
     <div className={['script-prompt-picker', disabled ? 'is-disabled' : ''].join(' ')}>
@@ -63,35 +68,51 @@ export function ScriptPromptPicker({
           disabled={disabled}
           onClick={() => onModeChange('custom')}
         >
-          本次单独设置
+          本次单独
         </button>
-      </div>
-
-      <div className="script-prompt-summary-row">
-        <span className="script-prompt-summary-label">
-          {mode === 'global' ? '全局人设' : '本次人设'}
-        </span>
-        <span className="script-prompt-summary-value" title={summary}>
-          {summary}
-        </span>
       </div>
 
       {mode === 'global' && (
         <div className="script-prompt-global-box">
-          {hasScriptPrompt(globalValue) ? (
+          <div className="script-prompt-summary-row">
+            <span className="script-prompt-summary-label">当前</span>
+            <span className="script-prompt-summary-value" title={summary}>
+              {summary}
+            </span>
+          </div>
+
+          {!compact && hasScriptPrompt(globalValue) && (
             <dl className="script-prompt-preview">
-              {SCRIPT_PROMPT_FIELDS.filter((f) => globalValue[f.key]).map((f) => (
+              {globalFilled.map((f) => (
                 <div key={f.key} className="script-prompt-preview-row">
                   <dt>{f.label}</dt>
                   <dd>{globalValue[f.key]}</dd>
                 </div>
               ))}
             </dl>
-          ) : (
-            <div className="script-prompt-empty">
-              尚未配置全局人设，生成时使用系统默认提示词。
+          )}
+
+          {compact && hasScriptPrompt(globalValue) && globalFilled.length > 0 && (
+            <div className="script-prompt-compact-tags">
+              {globalFilled.slice(0, 4).map((f) => (
+                <span key={f.key} className="script-prompt-compact-tag">
+                  {f.label}
+                </span>
+              ))}
+              {globalFilled.length > 4 && (
+                <span className="script-prompt-compact-tag is-more">
+                  +{globalFilled.length - 4}
+                </span>
+              )}
             </div>
           )}
+
+          {!hasScriptPrompt(globalValue) && (
+            <div className="script-prompt-empty">
+              尚未配置全局人设，将使用系统默认。
+            </div>
+          )}
+
           <div className="script-prompt-global-actions">
             <button
               type="button"
@@ -100,7 +121,7 @@ export function ScriptPromptPicker({
               onClick={() => navigate({ name: 'settings' })}
             >
               <IconSpark size={14} />
-              去设置中编辑
+              去设置编辑
             </button>
           </div>
         </div>
@@ -109,7 +130,7 @@ export function ScriptPromptPicker({
       {mode === 'custom' && (
         <div className="script-prompt-custom-box">
           <div className="script-prompt-hint">
-            仅对本任务生效，不会改动全局默认。留空字段表示不干预。
+            仅对本任务生效。留空字段表示不干预。
           </div>
           <ScriptPromptForm
             value={value}
@@ -123,7 +144,7 @@ export function ScriptPromptPicker({
               disabled={disabled || !hasScriptPrompt(value)}
               onClick={() => onChange(emptyScriptPrompt())}
             >
-              清空本次设置
+              清空
             </button>
             <button
               type="button"
