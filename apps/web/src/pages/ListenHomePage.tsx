@@ -4,6 +4,7 @@ import {
   fetchHistory,
   fetchJobs,
   fetchLibrary,
+  coverImageUrl,
 } from '../api/client';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
@@ -14,6 +15,7 @@ import {
 } from '../components/icons';
 import { CoverArt } from '../components/ui/CoverArt';
 import { EmptyState } from '../components/ui/EmptyState';
+import { PageHeader } from '../components/ui/PageHeader';
 import {
   formatDuration,
   hashSeed,
@@ -220,10 +222,19 @@ export function ListenHomePage({ route }: { route: Route }) {
   const isPlayingId = player.track?.id;
   const isPlaying = player.playing;
 
+  const libraryCount = library.length;
+  const headSub = loading
+    ? '加载中…'
+    : libraryCount
+      ? `${libraryCount} 条可听内容`
+      : '上传视频或链接后会出现在这里';
+
   return (
     <AppShell route={route}>
       <div className="lh-page nl-enter">
-        <div className="page-container lh-body">
+        <div className="page-container app-page lh-body">
+          <PageHeader title="我的播客" subtitle={headSub} />
+
           {error && <div className="lh-error">{error}</div>}
 
           {!loading && pipelineJobs.length > 0 && (
@@ -243,6 +254,7 @@ export function ListenHomePage({ route }: { route: Route }) {
                     <CoverArt
                       seed={job.id}
                       preferred={job.podcast?.coverGradient}
+                      imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt) : undefined}
                       title={job.podcast?.title || job.title}
                       className="lh-pipeline-cover"
                     />
@@ -420,6 +432,7 @@ function CoverCard({
         <CoverArt
           seed={item.job.id}
           preferred={item.job.podcast?.coverGradient}
+          imageUrl={item.job.podcast?.hasCoverImage ? coverImageUrl(item.job.id, item.job.updatedAt) : undefined}
           title={title}
           monogram={false}
           className="lh-card-cover"

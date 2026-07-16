@@ -10,6 +10,7 @@ import {
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
 import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
 import { IconRefresh } from '../components/icons';
+import { PageHeader } from '../components/ui/PageHeader';
 import { clearAuthSession } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 import { AppShell } from '../layouts/AppShell';
@@ -59,6 +60,7 @@ export function SettingsPage({ route }: { route: Route }) {
   const [asrModel, setAsrModel] = useState('');
   const [ttsModel, setTtsModel] = useState('');
   const [voiceDesignModel, setVoiceDesignModel] = useState('');
+  const [imageModel, setImageModel] = useState('');
   const [defaultVoice, setDefaultVoice] = useState('');
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -82,6 +84,7 @@ export function SettingsPage({ route }: { route: Route }) {
       setAsrModel(aiCfg.asrModel);
       setTtsModel(aiCfg.ttsModel);
       setVoiceDesignModel(aiCfg.voiceDesignModel);
+      setImageModel(aiCfg.imageModel || '');
       setDefaultVoice(aiCfg.defaultVoice);
       setApiKey('');
     } catch (e) {
@@ -112,9 +115,11 @@ export function SettingsPage({ route }: { route: Route }) {
         asrModel: asrModel.trim(),
         ttsModel: ttsModel.trim(),
         voiceDesignModel: voiceDesignModel.trim(),
+        imageModel: imageModel.trim(),
         defaultVoice: defaultVoice.trim(),
       });
       setAi(next);
+      setImageModel(next.imageModel || '');
       setApiKey('');
       setMsg('AI 配置已保存');
     } catch (e) {
@@ -152,28 +157,26 @@ export function SettingsPage({ route }: { route: Route }) {
 
   return (
     <AppShell route={route}>
-      <div className="admin-container nl-enter settings-page">
-        <header className="settings-hero">
-          <div className="settings-hero-copy">
-            <div className="page-kicker">Administration</div>
-            <h1 className="page-title">系统设置</h1>
-            <p className="page-subtitle">
-              管理全局默认配置与管理员账户
-              {username ? ` · ${username}` : ''}
-            </p>
-          </div>
-          <div className="settings-hero-actions">
+      <div className="page-container app-page nl-enter settings-page">
+        <PageHeader
+          title="系统设置"
+          subtitle={
+            username
+              ? `管理全局默认配置与管理员账户 · ${username}`
+              : '管理全局默认配置与管理员账户'
+          }
+          actions={
             <button
               type="button"
-              className="nl-btn nl-btn-ghost studio-icon-btn"
+              className="app-page-icon-btn"
               onClick={() => void load()}
               aria-label="刷新"
               title="刷新"
             >
               <IconRefresh size={15} />
             </button>
-          </div>
-        </header>
+          }
+        />
 
         <div className="settings-shell">
           <nav className="settings-nav" aria-label="设置分类">
@@ -318,7 +321,20 @@ export function SettingsPage({ route }: { route: Route }) {
                               spellCheck={false}
                             />
                           </label>
+                          <label className="auth-field">
+                            <span>图片模型</span>
+                            <input
+                              value={imageModel}
+                              onChange={(e) => setImageModel(e.target.value)}
+                              placeholder="留空则不生成 AI 封面"
+                              spellCheck={false}
+                            />
+                          </label>
                         </div>
+                        <p className="settings-field-tip">
+                          填写图片模型后，生成播客时会调用兼容 OpenAI 的
+                          <code>/images/generations</code> 生成封面；留空则使用渐变封面。
+                        </p>
                         <label className="auth-field settings-field-span">
                           <span>默认音色 ID</span>
                           <input
