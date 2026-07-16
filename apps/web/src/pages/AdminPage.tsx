@@ -4,6 +4,7 @@ import {
   fetchJobs,
   retryJob,
   updateJob,
+  coverImageUrl,
 } from '../api/client';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
@@ -294,6 +295,7 @@ function JobRow({
           <CoverArt
             seed={job.id}
             preferred={job.podcast?.coverGradient}
+            imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt) : undefined}
             title={title}
             className="studio-job-cover"
           >

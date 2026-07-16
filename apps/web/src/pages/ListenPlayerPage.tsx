@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { fetchLibrary, fetchListenItem, podcastAudioUrl } from '../api/client';
+import {
+  fetchLibrary,
+  fetchListenItem,
+  podcastAudioUrl,
+  coverImageUrl,
+} from '../api/client';
 import { trackFromJob } from '../player/trackFromJob';
 import { mergeListenRecord } from '../player/listenProgress';
 import { ScriptFollow } from '../components/listen/ScriptFollow';
@@ -346,6 +351,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
       <CoverArt
         seed={job.id}
         preferred={job.podcast?.coverGradient}
+        imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt) : undefined}
         title={title}
         className="qq-disc-face is-round"
         monogram
@@ -506,6 +512,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
           <CoverArt
             seed={job.id}
             preferred={job.podcast?.coverGradient}
+            imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt) : undefined}
             title={title}
             className="qq-dock-cover"
           />

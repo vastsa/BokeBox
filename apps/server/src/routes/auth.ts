@@ -105,6 +105,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       asrModel?: string;
       ttsModel?: string;
       voiceDesignModel?: string;
+      imageModel?: string;
       defaultVoice?: string;
       tts?: import('../types/job.js').TtsOptions | null;
     };
@@ -126,6 +127,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         asrModel: body.asrModel,
         ttsModel: body.ttsModel,
         voiceDesignModel: body.voiceDesignModel,
+        imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,
         tts: body.tts,
       });
@@ -228,6 +230,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         asrModel: body.asrModel,
         ttsModel: body.ttsModel,
         voiceDesignModel: body.voiceDesignModel,
+        imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,
       });
       return { ai: toPublicAiConfig(next) };

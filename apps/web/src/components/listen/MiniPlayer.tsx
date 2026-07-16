@@ -22,6 +22,7 @@ export function MiniPlayer({
   title,
   downloadUrl,
   coverClassName,
+  coverImageUrl,
   summary,
   onStateChange,
   seekRequest,
@@ -33,6 +34,7 @@ export function MiniPlayer({
   title?: string;
   downloadUrl?: string;
   coverClassName?: string;
+  coverImageUrl?: string;
   summary?: string;
   onStateChange?: (s: MiniPlayerState) => void;
   /** 外部跳转请求（秒） */
@@ -55,10 +57,11 @@ export function MiniPlayer({
       title: title || '播客音频',
       src,
       coverClassName,
+      coverImageUrl,
       downloadUrl,
       summary,
     }),
-    [trackId, title, src, coverClassName, downloadUrl, summary],
+    [trackId, title, src, coverClassName, coverImageUrl, downloadUrl, summary],
   );
 
   // 同步状态给父组件（脚本跟读等）
@@ -146,6 +149,7 @@ export function MiniPlayer({
           <CoverArt
             seed={trackId}
             preferred={coverClassName}
+            imageUrl={coverImageUrl}
             title={title}
             className="mini-player-cover"
           >

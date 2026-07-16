@@ -18,6 +18,7 @@ export type LastTrackSnapshot = {
   title: string;
   src: string;
   coverClassName?: string;
+  coverImageUrl?: string;
   downloadUrl?: string;
   summary?: string;
   progressSec: number;

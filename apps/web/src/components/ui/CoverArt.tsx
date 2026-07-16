@@ -1,8 +1,4 @@
-import type {
-  ButtonHTMLAttributes,
-  HTMLAttributes,
-  ReactNode,
-} from 'react';
+import { useEffect, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import {
   coverGradientFor,
   coverLabelFrom,
@@ -17,6 +13,8 @@ type CoverBase = {
   preferred?: string;
   /** 用于封面标题排版的标题文案 */
   title?: string;
+  /** AI 生成封面图 URL；有则优先展示真实图片 */
+  imageUrl?: string | null;
   className?: string;
   /** 是否显示标题文案（默认 true：按标题设计显示） */
   monogram?: boolean;
@@ -44,14 +42,14 @@ export type CoverArtProps = CoverDivProps | CoverButtonProps | CoverSpanProps;
 
 /**
  * 全局占位封面：渐变 + 纹理变体 + 标题排版
- * 默认按完整标题设计显示，而不是单字 monogram
- * 可直接挂载既有尺寸 class（如 nc-album-art / global-player-cover）
+ * 若传入 imageUrl，优先展示 AI 生成封面图，失败时回落渐变
  */
 export function CoverArt(props: CoverArtProps) {
   const {
     seed,
     preferred,
     title,
+    imageUrl,
     className = '',
     monogram = true,
     pattern = true,
@@ -60,30 +58,48 @@ export function CoverArt(props: CoverArtProps) {
     ...rest
   } = props;
 
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => {
+    setImgFailed(false);
+  }, [imageUrl]);
+  const showImage = Boolean(imageUrl) && !imgFailed;
+
   const grad = coverGradientFor(seed, preferred);
   // 仅用 title 做封面文案；缺失时给通用占位，避免把 job.id 画上去
   const label = coverLabelFrom(title);
   const tone = coverLabelTone(label);
   const motif = motifIndexFor(seed || title || 'default');
-  const classes = ['pb-cover', `bg-gradient-to-br ${grad}`, className]
+  const classes = [
+    'pb-cover',
+    showImage ? 'has-image' : `bg-gradient-to-br ${grad}`,
+    className,
+  ]
     .filter(Boolean)
     .join(' ');
 
   const layers = (
     <>
-      {pattern && (
+      {showImage && (
+        <img
+          className="pb-cover-image"
+          src={imageUrl || undefined}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => setImgFailed(true)}
+        />
+      )}
+      {!showImage && pattern && (
         <>
           <span className="pb-cover-mesh" aria-hidden />
           <span className={`pb-cover-motif motif-${motif}`} aria-hidden />
           <span className="pb-cover-noise" aria-hidden />
         </>
       )}
-      {monogram && (
+      {!showImage && monogram && (
         <span
-          className={[
-            'pb-cover-mono',
-            children ? 'is-bg' : '',
-          ]
+          className={['pb-cover-mono', children ? 'is-bg' : '']
             .filter(Boolean)
             .join(' ')}
           data-tone={tone}
@@ -103,6 +119,7 @@ export function CoverArt(props: CoverArtProps) {
         type="button"
         className={classes}
         data-motif={motif}
+        data-has-image={showImage ? '1' : undefined}
         {...(rest as ButtonHTMLAttributes<HTMLButtonElement>)}
       >
         {layers}
@@ -115,6 +132,7 @@ export function CoverArt(props: CoverArtProps) {
       <span
         className={classes}
         data-motif={motif}
+        data-has-image={showImage ? '1' : undefined}
         {...(rest as HTMLAttributes<HTMLSpanElement>)}
       >
         {layers}
@@ -126,6 +144,7 @@ export function CoverArt(props: CoverArtProps) {
     <div
       className={classes}
       data-motif={motif}
+      data-has-image={showImage ? '1' : undefined}
       {...(rest as HTMLAttributes<HTMLDivElement>)}
     >
       {layers}

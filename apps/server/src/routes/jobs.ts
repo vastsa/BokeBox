@@ -64,10 +64,12 @@ import {
   getBaseUrl,
   getChatModel,
   getDefaultTtsVoice,
+  getImageModel,
   getTtsModel,
   getVoiceDesignModel,
   hasApiKey,
 } from '../utils/aiConfig.js';
+import { findCoverFile } from '../services/coverGenerator.js';
 
 /** 本地上传：视频 / 音频 / 文本（与 URL 导入一致） */
 const ALLOWED_EXT = ALLOWED_MEDIA_EXT;
@@ -228,6 +230,9 @@ function mediaTypeOf(filePath: string): string {
   if (ext === '.m4a') return 'audio/mp4';
   if (ext === '.mp4') return 'video/mp4';
   if (ext === '.webm') return 'video/webm';
+  if (ext === '.png') return 'image/png';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.webp') return 'image/webp';
   return 'application/octet-stream';
 }
 
@@ -291,6 +296,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       asr: getAsrModel(),
       tts: getTtsModel(),
       voiceDesign: getVoiceDesignModel(),
+      image: getImageModel() || undefined,
     },
     ttsModes: TTS_MODE_META,
     presetVoices: PRESET_VOICES,
@@ -396,6 +402,27 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         reply,
         job.videoPath,
         job.originalFilename || `${job.id}${path.extname(job.videoPath)}`,
+        req.query.download === '1',
+      );
+    },
+  );
+
+  /** AI 生成的播客封面图 */
+  app.get<{ Params: { id: string }; Querystring: { download?: string } }>(
+    '/jobs/:id/cover',
+    async (req, reply) => {
+      const job = await getJob(req.params.id);
+      if (!job) return reply.code(404).send({ error: '任务不存在' });
+      const coverPath = await findCoverFile(job.id);
+      if (!coverPath) {
+        return reply.code(404).send({ error: '封面不存在' });
+      }
+      const filename = `${(job.podcast?.title || job.title || job.id).replace(/[\\/:*?"<>|]/g, '_')}-cover${path.extname(coverPath)}`;
+      return sendMedia(
+        req,
+        reply,
+        coverPath,
+        filename,
         req.query.download === '1',
       );
     },

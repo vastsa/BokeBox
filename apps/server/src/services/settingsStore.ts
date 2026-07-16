@@ -24,6 +24,8 @@ export type AiConfig = {
   asrModel: string;
   ttsModel: string;
   voiceDesignModel: string;
+  /** 图片生成模型；空字符串表示不生成 AI 封面 */
+  imageModel: string;
   defaultVoice: string;
 };
 
@@ -36,6 +38,8 @@ export type PublicAiConfig = {
   asrModel: string;
   ttsModel: string;
   voiceDesignModel: string;
+  /** 图片生成模型；空表示关闭 AI 封面 */
+  imageModel: string;
   defaultVoice: string;
 };
 
@@ -53,6 +57,7 @@ const DEFAULT_AI: AiConfig = {
   asrModel: 'mimo-v2.5-asr',
   ttsModel: 'mimo-v2.5-tts',
   voiceDesignModel: 'mimo-v2.5-tts-voicedesign',
+  imageModel: '',
   defaultVoice: '冰糖',
 };
 
@@ -135,6 +140,11 @@ export function getAiConfig(): AiConfig {
       stored?.voiceDesignModel?.trim() ||
       process.env.OPENAI_TTS_VOICEDESIGN_MODEL ||
       DEFAULT_AI.voiceDesignModel,
+    // 图片模型允许显式空字符串关闭；仅在字段缺失时回落 env/默认
+    imageModel:
+      stored && Object.prototype.hasOwnProperty.call(stored, 'imageModel')
+        ? String(stored.imageModel || '').trim()
+        : (process.env.OPENAI_IMAGE_MODEL || DEFAULT_AI.imageModel).trim(),
     defaultVoice:
       stored?.defaultVoice?.trim() ||
       process.env.OPENAI_TTS_DEFAULT_VOICE ||
@@ -175,6 +185,11 @@ export function setAiConfig(patch: Partial<AiConfig>): AiConfig {
       patch.voiceDesignModel !== undefined
         ? String(patch.voiceDesignModel).trim() || current.voiceDesignModel
         : current.voiceDesignModel,
+    // 允许保存空字符串，用于关闭 AI 封面生成
+    imageModel:
+      patch.imageModel !== undefined
+        ? String(patch.imageModel).trim()
+        : current.imageModel,
     defaultVoice:
       patch.defaultVoice !== undefined
         ? String(patch.defaultVoice).trim() || current.defaultVoice
@@ -205,6 +220,7 @@ export function toPublicAiConfig(cfg?: AiConfig): PublicAiConfig {
     asrModel: c.asrModel,
     ttsModel: c.ttsModel,
     voiceDesignModel: c.voiceDesignModel,
+    imageModel: c.imageModel || '',
     defaultVoice: c.defaultVoice,
   };
 }
@@ -222,6 +238,7 @@ export function getDefaultAiConfigForSetup(): PublicAiConfig & {
       asrModel: c.asrModel || DEFAULT_AI.asrModel,
       ttsModel: c.ttsModel || DEFAULT_AI.ttsModel,
       voiceDesignModel: c.voiceDesignModel || DEFAULT_AI.voiceDesignModel,
+      imageModel: c.imageModel || DEFAULT_AI.imageModel,
       defaultVoice: c.defaultVoice || DEFAULT_AI.defaultVoice,
     },
   };

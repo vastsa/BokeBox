@@ -46,6 +46,7 @@ export type SetupInput = {
   asrModel?: string;
   ttsModel?: string;
   voiceDesignModel?: string;
+  imageModel?: string;
   defaultVoice?: string;
   /** 全局音色（初始化时写入，制作默认使用） */
   tts?: Partial<TtsOptions> | null;
@@ -112,6 +113,7 @@ export function completeSetup(input: SetupInput): {
     asrModel: input.asrModel,
     ttsModel: input.ttsModel,
     voiceDesignModel: input.voiceDesignModel,
+    imageModel: input.imageModel,
     defaultVoice:
       globalTts.mode === 'default'
         ? globalTts.voice || input.defaultVoice

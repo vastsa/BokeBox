@@ -146,6 +146,8 @@ pnpm dev
 
 配置见根目录 `.env`（`OPENAI_BASE_URL` / `OPENAI_API_KEY` / 模型名）。
 
+可选：设置页或 `OPENAI_IMAGE_MODEL` 配置图片模型后，生成播客脚本时会自动调用 `/images/generations` 生成封面。
+
 ### Docker Compose
 
 ```bash

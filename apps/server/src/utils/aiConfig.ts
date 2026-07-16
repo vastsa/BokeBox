@@ -29,6 +29,16 @@ export function getVoiceDesignModel(): string {
   return getAiConfig().voiceDesignModel;
 }
 
+/** 图片生成模型；空表示未配置 */
+export function getImageModel(): string {
+  return (getAiConfig().imageModel || '').trim();
+}
+
+/** 是否启用 AI 封面（配置了图片模型） */
+export function hasImageModel(): boolean {
+  return Boolean(getImageModel());
+}
+
 /** 自然口播默认预置音色 */
 export function getDefaultTtsVoice(): string {
   return getAiConfig().defaultVoice;

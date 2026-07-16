@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Masonry } from 'react-plock';
 import {
+  coverImageUrl,
   fetchHistory,
   fetchJobs,
   fetchLibrary,
@@ -253,6 +254,11 @@ export function ListenHomePage({ route }: { route: Route }) {
                     <CoverArt
                       seed={job.id}
                       preferred={job.podcast?.coverGradient}
+                      imageUrl={
+                        job.podcast?.hasCoverImage
+                          ? coverImageUrl(job.id, job.updatedAt)
+                          : undefined
+                      }
                       title={job.podcast?.title || job.title}
                       className="lh-pipeline-cover"
                     />
@@ -430,6 +436,11 @@ function CoverCard({
         <CoverArt
           seed={item.job.id}
           preferred={item.job.podcast?.coverGradient}
+          imageUrl={
+            item.job.podcast?.hasCoverImage
+              ? coverImageUrl(item.job.id, item.job.updatedAt)
+              : undefined
+          }
           title={title}
           monogram={false}
           className="lh-card-cover"

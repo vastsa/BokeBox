@@ -19,6 +19,7 @@ const DEFAULTS = {
   asrModel: 'mimo-v2.5-asr',
   ttsModel: 'mimo-v2.5-tts',
   voiceDesignModel: 'mimo-v2.5-tts-voicedesign',
+  imageModel: '',
   defaultVoice: '冰糖',
 };
 
@@ -40,6 +41,7 @@ export function SetupPage() {
   const [voiceDesignModel, setVoiceDesignModel] = useState(
     DEFAULTS.voiceDesignModel,
   );
+  const [imageModel, setImageModel] = useState(DEFAULTS.imageModel);
   const [tts, setTts] = useState<TtsOptions>({
     ...DEFAULT_GLOBAL_TTS,
     voice: DEFAULTS.defaultVoice,
@@ -60,6 +62,7 @@ export function SetupPage() {
           setAsrModel(s.asrModel || DEFAULTS.asrModel);
           setTtsModel(s.ttsModel || DEFAULTS.ttsModel);
           setVoiceDesignModel(s.voiceDesignModel || DEFAULTS.voiceDesignModel);
+          setImageModel(s.imageModel || DEFAULTS.imageModel);
           const voice = s.defaultVoice || DEFAULTS.defaultVoice;
           setTts((prev) => ({
             ...prev,
@@ -146,6 +149,7 @@ export function SetupPage() {
         asrModel: asrModel.trim(),
         ttsModel: ttsModel.trim(),
         voiceDesignModel: voiceDesignModel.trim(),
+        imageModel: imageModel.trim(),
         defaultVoice,
         tts,
       });
@@ -305,6 +309,18 @@ export function SetupPage() {
                   onChange={(e) => setVoiceDesignModel(e.target.value)}
                 />
               </label>
+              <label className="auth-field">
+                <span>图片模型（可选）</span>
+                <input
+                  value={imageModel}
+                  onChange={(e) => setImageModel(e.target.value)}
+                  placeholder="留空则不生成 AI 封面"
+                />
+              </label>
+            </div>
+            <div className="auth-tip">
+              <IconSpark size={14} />
+              <span>图片模型用于生成播客封面，兼容 OpenAI 图片接口，可稍后在设置中补充。</span>
             </div>
           </div>
         )}

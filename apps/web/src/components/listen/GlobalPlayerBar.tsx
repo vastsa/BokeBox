@@ -46,6 +46,7 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
           as="button"
           seed={track.id}
           preferred={track.coverClassName}
+          imageUrl={track.coverImageUrl}
           title={track.title}
           className="global-player-cover"
           onClick={() => navigate({ name: 'player', id: track.id })}

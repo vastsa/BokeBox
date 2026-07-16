@@ -40,6 +40,7 @@ export const LEGACY_BLOGS_DIR = path.join(STORAGE_DIR, 'blogs');
  *   flashcards.json   知识闪卡
  *   script-timing.json 口播行时间轴
  *   podcast.mp3|.wav  合成播客
+ *   cover.png|jpg     AI 生成封面（可选）
  */
 export interface JobPaths {
   dir: string;
@@ -53,6 +54,8 @@ export interface JobPaths {
   scriptTiming: string;
   podcastMp3: string;
   podcastWav: string;
+  /** 默认封面路径（png）；实际文件可能是 jpg/webp */
+  cover: string;
 }
 
 export function jobDir(jobId: string): string {
@@ -76,5 +79,6 @@ export function jobPaths(jobId: string): JobPaths {
     scriptTiming: path.join(dir, 'script-timing.json'),
     podcastMp3: path.join(dir, 'podcast.mp3'),
     podcastWav: path.join(dir, 'podcast.wav'),
+    cover: path.join(dir, 'cover.png'),
   };
 }

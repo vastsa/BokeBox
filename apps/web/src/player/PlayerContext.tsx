@@ -21,6 +21,8 @@ export type PlayerTrack = {
   title: string;
   src: string;
   coverClassName?: string;
+  /** AI 封面图 URL */
+  coverImageUrl?: string;
   downloadUrl?: string;
   summary?: string;
 };
@@ -109,6 +111,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       title: last.title || '播客音频',
       src: last.src,
       coverClassName: last.coverClassName,
+      coverImageUrl: last.coverImageUrl,
       downloadUrl: last.downloadUrl,
       summary: last.summary,
     };
@@ -152,6 +155,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         title: t.title,
         src: t.src,
         coverClassName: t.coverClassName,
+        coverImageUrl: t.coverImageUrl,
         downloadUrl: t.downloadUrl,
         summary: t.summary,
         progressSec: local.progressSec,
@@ -307,6 +311,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           title: next.title,
           src: next.src,
           coverClassName: next.coverClassName,
+          coverImageUrl: next.coverImageUrl,
           downloadUrl: next.downloadUrl,
           summary: next.summary,
           progressSec: seek || 0,

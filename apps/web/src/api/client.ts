@@ -302,6 +302,13 @@ export function videoUrl(id: string): string {
   return appendQuery(`${BASE}/jobs/${id}/video`, {});
 }
 
+/** AI 播客封面图（hasCoverImage 时可用） */
+export function coverImageUrl(id: string, cacheKey?: string): string {
+  return appendQuery(`${BASE}/jobs/${id}/cover`, {
+    v: cacheKey,
+  });
+}
+
 
 // ── 系统初始化 / 登录 / 设置 ──
 
@@ -316,6 +323,7 @@ export type SetupStatus = {
     asrModel: string;
     ttsModel: string;
     voiceDesignModel: string;
+    imageModel: string;
     defaultVoice: string;
     suggested: {
       baseUrl: string;
@@ -323,6 +331,7 @@ export type SetupStatus = {
       asrModel: string;
       ttsModel: string;
       voiceDesignModel: string;
+      imageModel: string;
       defaultVoice: string;
     };
   };
@@ -336,6 +345,7 @@ export type PublicAiConfig = {
   asrModel: string;
   ttsModel: string;
   voiceDesignModel: string;
+  imageModel: string;
   defaultVoice: string;
 };
 
@@ -353,6 +363,7 @@ export async function completeSetup(body: {
   asrModel?: string;
   ttsModel?: string;
   voiceDesignModel?: string;
+  imageModel?: string;
   defaultVoice?: string;
   tts?: TtsOptions | null;
 }): Promise<{ ok: boolean; username: string; token: string; expiresAt: string }> {
@@ -410,6 +421,7 @@ export async function saveAiSettings(body: {
   asrModel?: string;
   ttsModel?: string;
   voiceDesignModel?: string;
+  imageModel?: string;
   defaultVoice?: string;
 }): Promise<PublicAiConfig> {
   const data = await request<{ ai: PublicAiConfig }>('/settings/ai', {
