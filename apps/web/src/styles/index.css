@@ -4079,31 +4079,146 @@ body:has(.global-player) {
   font-weight: 600;
 }
 
-/* ---- Cover grid ---- */
-.lh-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+/* ---- Filters ---- */
+.lh-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 2px;
 }
 
-@media (min-width: 640px) {
-  .lh-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
+.lh-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-width: 0;
+  flex: 1;
+  padding: 1px;
+}
+
+.lh-filters::-webkit-scrollbar { display: none; }
+
+.lh-filter {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 650;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+.lh-filter em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+.lh-filter:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.lh-filter:active { transform: scale(0.97); }
+
+.lh-filter.is-active {
+  color: #fff;
+  border-color: transparent;
+  background: var(--brand-grad);
+  box-shadow: var(--shadow-fab);
+}
+
+.lh-filter.is-active em {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.lh-toolbar-meta {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.lh-empty-filter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 16px;
+  border-radius: 18px;
+  border: 1px dashed var(--separator-strong);
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.lh-empty-filter-btn {
+  border: 0;
+  border-radius: 999px;
+  min-height: 32px;
+  padding: 0 14px;
+  background: var(--brand-soft);
+  color: var(--brand-2);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lh-empty-filter-btn:hover {
+  filter: brightness(1.03);
+}
+
+/* ---- Waterfall masonry ---- */
+.lh-masonry {
+  column-count: 2;
+  column-gap: 14px;
+}
+
+@media (min-width: 720px) {
+  .lh-masonry {
+    column-count: 3;
+    column-gap: 16px;
   }
 }
 
-@media (min-width: 960px) {
-  .lh-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 20px;
+@media (min-width: 1100px) {
+  .lh-masonry {
+    column-count: 4;
+    column-gap: 18px;
   }
 }
 
 .lh-card {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
   min-width: 0;
+  margin: 0 0 14px;
   animation: enter-scale 0.4s var(--ease) both;
   animation-delay: var(--stagger, 0ms);
+}
+
+@media (min-width: 720px) {
+  .lh-card { margin-bottom: 16px; }
 }
 
 .lh-card-face {
@@ -4119,6 +4234,16 @@ body:has(.global-player) {
     transform var(--dur-fast) var(--ease),
     box-shadow var(--dur-fast) var(--ease);
 }
+
+/* 瀑布流高度变体 */
+.lh-card-face.is-s { aspect-ratio: 1 / 1; }
+.lh-card-face.is-m { aspect-ratio: 3 / 4; }
+.lh-card-face.is-t { aspect-ratio: 2 / 3; }
+
+.lh-card.is-s .lh-card-desc { -webkit-line-clamp: 2; }
+.lh-card.is-m .lh-card-desc { -webkit-line-clamp: 3; }
+.lh-card.is-t .lh-card-desc { -webkit-line-clamp: 5; }
+
 
 .lh-card-face::after {
   content: '';
@@ -4301,9 +4426,15 @@ body:has(.global-player) {
 }
 
 .lh-skel-card {
+  break-inside: avoid;
+  margin: 0 0 14px;
   aspect-ratio: 3 / 4;
   border-radius: 20px;
 }
+.lh-skel-card.is-s { aspect-ratio: 1 / 1; }
+.lh-skel-card.is-m { aspect-ratio: 3 / 4; }
+.lh-skel-card.is-t { aspect-ratio: 2 / 3; }
+
 
 @media (max-width: 380px) {
   .lh-card-overlay {
@@ -4329,6 +4460,9 @@ body:has(.global-player) {
 @media (prefers-color-scheme: dark) {
   .lh-icon-btn {
     background: color-mix(in srgb, var(--surface) 80%, transparent);
+  }
+  .lh-filter {
+    background: color-mix(in srgb, var(--surface) 96%, #000);
   }
   .lh-card-face {
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
@@ -5924,6 +6058,60 @@ button.pb-cover {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 14px;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid var(--separator);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+.settings-tab {
+  flex: 1 1 0;
+  min-width: 96px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-3);
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.settings-tab:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-2) 80%, transparent);
+}
+.settings-tab.is-active {
+  color: var(--brand-2);
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+.settings-tab-panels {
+  min-height: 240px;
+}
+.settings-tab-panel {
+  animation: settings-tab-in 0.18s ease;
+}
+@keyframes settings-tab-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 560px) {
+  .settings-tabs {
+    gap: 4px;
+  }
+  .settings-tab {
+    min-width: 0;
+    font-size: 12.5px;
+    padding: 0 8px;
+  }
 }
 .settings-card-wide {
   width: 100%;

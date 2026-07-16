@@ -1,31 +1,46 @@
-import { useEffect, useMemo, useState } from 'react';
-import { fetchHistory, fetchLibrary } from '../api/client';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  IconHeadphones,
+  fetchHistory,
+  fetchJobs,
+  fetchLibrary,
+} from '../api/client';
+import { ProgressBar } from '../components/ProgressBar';
+import { StatusBadge } from '../components/StatusBadge';
+import {
   IconLibrary,
   IconPause,
   IconPlay,
-  IconSpark,
-  IconUpload,
 } from '../components/icons';
 import { CoverArt } from '../components/ui/CoverArt';
 import { EmptyState } from '../components/ui/EmptyState';
-import { formatDuration, listenProgressPct } from '../lib/format';
+import {
+  formatDuration,
+  hashSeed,
+  listenProgressPct,
+} from '../lib/format';
 import { navigate, type Route } from '../lib/router';
-import type { LibraryItem } from '../types/job';
+import type { Job, JobStatus, LibraryItem } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
 import { usePlayer } from '../player/PlayerContext';
 import { trackFromJob } from '../player/trackFromJob';
 import { bestResumeSec, mergeListenRecord } from '../player/listenProgress';
 
-function greetingByHour(h = new Date().getHours()): string {
-  if (h < 6) return '夜深了';
-  if (h < 11) return '早上好';
-  if (h < 14) return '中午好';
-  if (h < 18) return '下午好';
-  if (h < 22) return '晚上好';
-  return '夜深了';
-}
+const ACTIVE: JobStatus[] = [
+  'queued',
+  'extracting_audio',
+  'transcribing',
+  'generating_podcast',
+  'synthesizing_audio',
+];
+
+type FilterKey = 'all' | 'unplayed' | 'progress' | 'done';
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'unplayed', label: '未听' },
+  { key: 'progress', label: '在听' },
+  { key: 'done', label: '听完' },
+];
 
 function itemTitle(item: LibraryItem): string {
   return item.job.podcast?.title || item.job.title;
@@ -46,33 +61,100 @@ function itemMinutes(item: LibraryItem): string {
   return '播客';
 }
 
+function itemPct(item: LibraryItem): number {
+  return listenProgressPct(item.listen?.progressSec, item.listen?.durationSec);
+}
+
+function matchFilter(item: LibraryItem, filter: FilterKey): boolean {
+  const pct = itemPct(item);
+  const completed = Boolean(item.listen?.completed);
+  if (filter === 'all') return true;
+  if (filter === 'done') return completed;
+  if (filter === 'progress') return !completed && pct > 0;
+  // unplayed
+  return !completed && pct <= 0;
+}
+
+/** 瀑布流高度变体：短 / 中 / 高 */
+function cardSize(seed: string): 's' | 'm' | 't' {
+  const n = hashSeed(seed) % 3;
+  return n === 0 ? 's' : n === 1 ? 'm' : 't';
+}
+
 export function ListenHomePage({ route }: { route: Route }) {
   const player = usePlayer();
   const [library, setLibrary] = useState<LibraryItem[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterKey>('all');
 
-  useEffect(() => {
-    Promise.all([fetchLibrary(), fetchHistory()])
-      .then(([lib, his]) => {
-        const progressMap = new Map(
-          his.map((it) => [it.job.id, mergeListenRecord(it.job.id, it.listen)]),
-        );
-        setLibrary(
-          lib.map((it) => ({
-            ...it,
-            listen:
-              progressMap.get(it.job.id) ||
-              mergeListenRecord(it.job.id, it.listen),
-          })),
-        );
-        setError(null);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-      .finally(() => setLoading(false));
+  const refresh = useCallback(async () => {
+    try {
+      const [lib, his, allJobs] = await Promise.all([
+        fetchLibrary(),
+        fetchHistory(),
+        fetchJobs(),
+      ]);
+      const progressMap = new Map(
+        his.map((it) => [it.job.id, mergeListenRecord(it.job.id, it.listen)]),
+      );
+      setLibrary(
+        lib.map((it) => ({
+          ...it,
+          listen:
+            progressMap.get(it.job.id) ||
+            mergeListenRecord(it.job.id, it.listen),
+        })),
+      );
+      setJobs(allJobs);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const greeting = useMemo(() => greetingByHour(), []);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  // 有进行中任务时轮询
+  useEffect(() => {
+    const active = jobs.some((j) => ACTIVE.includes(j.status));
+    if (!active) return;
+    const t = window.setInterval(() => void refresh(), 2000);
+    return () => window.clearInterval(t);
+  }, [jobs, refresh]);
+
+  const pipelineJobs = useMemo(
+    () =>
+      jobs.filter(
+        (j) => ACTIVE.includes(j.status) || j.status === 'failed',
+      ),
+    [jobs],
+  );
+
+  const filterCounts = useMemo(() => {
+    const counts: Record<FilterKey, number> = {
+      all: library.length,
+      unplayed: 0,
+      progress: 0,
+      done: 0,
+    };
+    for (const item of library) {
+      if (matchFilter(item, 'done')) counts.done += 1;
+      else if (matchFilter(item, 'progress')) counts.progress += 1;
+      else counts.unplayed += 1;
+    }
+    return counts;
+  }, [library]);
+
+  const filtered = useMemo(
+    () => library.filter((item) => matchFilter(item, filter)),
+    [library, filter],
+  );
 
   const playItem = (item: LibraryItem, opts?: { openPlayer?: boolean }) => {
     if (opts?.openPlayer) {
@@ -109,75 +191,130 @@ export function ListenHomePage({ route }: { route: Route }) {
   return (
     <AppShell route={route}>
       <div className="lh-page nl-enter">
-        <header className="lh-header page-container">
-          <div className="lh-brand">
-            <span className="brand-mark" aria-hidden>
-              <IconHeadphones size={16} />
-            </span>
-            <div className="lh-brand-text">
-              <h1 className="lh-title">私人播客</h1>
-              <p className="lh-greet">
-                {loading
-                  ? '加载中…'
-                  : library.length
-                    ? `${greeting} · ${library.length} 集`
-                    : greeting}
-              </p>
-            </div>
-          </div>
-          <div className="lh-header-actions">
-            <button
-              type="button"
-              className="lh-icon-btn"
-              onClick={() => navigate({ name: 'admin-upload' })}
-              aria-label="上传"
-              title="上传"
-            >
-              <IconUpload size={16} />
-            </button>
-            <button
-              type="button"
-              className="lh-icon-btn"
-              onClick={() => navigate({ name: 'admin' })}
-              aria-label="管理"
-              title="管理"
-            >
-              <IconSpark size={16} />
-            </button>
-          </div>
-        </header>
-
         <div className="page-container lh-body">
           {error && <div className="lh-error">{error}</div>}
 
+          {!loading && pipelineJobs.length > 0 && (
+            <section className="lh-pipeline">
+              <div className="lh-section-head">
+                <h2 className="lh-section-title">制作中</h2>
+                <span className="lh-section-meta">{pipelineJobs.length}</span>
+              </div>
+              <div className="lh-pipeline-list">
+                {pipelineJobs.map((job) => (
+                  <button
+                    key={job.id}
+                    type="button"
+                    className="lh-pipeline-item"
+                    onClick={() => navigate({ name: 'job', id: job.id })}
+                  >
+                    <CoverArt
+                      seed={job.id}
+                      preferred={job.podcast?.coverGradient}
+                      title={job.podcast?.title || job.title}
+                      className="lh-pipeline-cover"
+                    />
+                    <div className="lh-pipeline-body">
+                      <div className="lh-pipeline-title">
+                        {job.podcast?.title || job.title}
+                      </div>
+                      <div className="lh-pipeline-sub">
+                        <StatusBadge status={job.status} />
+                        <span>{job.message || '处理中'}</span>
+                      </div>
+                      {ACTIVE.includes(job.status) && (
+                        <ProgressBar value={job.progress || 0} />
+                      )}
+                      {job.status === 'failed' && job.error && (
+                        <div className="lh-pipeline-error">{job.error}</div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           {loading ? (
-            <div className="lh-grid">
+            <div className="lh-masonry">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="nl-shimmer lh-skel-card" />
+                <div
+                  key={i}
+                  className={[
+                    'nl-shimmer',
+                    'lh-skel-card',
+                    `is-${(['s', 'm', 't'] as const)[i % 3]}`,
+                  ].join(' ')}
+                />
               ))}
             </div>
           ) : !library.length ? (
             <EmptyState
               icon={<IconLibrary size={22} />}
               title="还没有可听内容"
-              description="上传视频生成播客后，会像卡片一样出现在这里"
-              actionLabel="去上传"
-              onAction={() => navigate({ name: 'admin-upload' })}
+              description="上传视频或链接，生成播客后会出现在这里"
+              actionLabel="开始制作"
+              onAction={() => navigate({ name: 'create' })}
             />
           ) : (
-            <div className="lh-grid" role="list">
-              {library.map((item, idx) => (
-                <CoverCard
-                  key={item.job.id}
-                  item={item}
-                  index={idx}
-                  active={isPlayingId === item.job.id}
-                  playing={isPlayingId === item.job.id && isPlaying}
-                  onPlay={() => playItem(item)}
-                  onOpen={() => playItem(item, { openPlayer: true })}
-                />
-              ))}
-            </div>
+            <>
+              <div className="lh-toolbar">
+                <div className="lh-filters" role="tablist" aria-label="筛选">
+                  {FILTERS.map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={filter === f.key}
+                      className={[
+                        'lh-filter',
+                        filter === f.key ? 'is-active' : '',
+                      ].join(' ')}
+                      onClick={() => setFilter(f.key)}
+                    >
+                      <span>{f.label}</span>
+                      <em>{filterCounts[f.key]}</em>
+                    </button>
+                  ))}
+                </div>
+                <div className="lh-toolbar-meta">
+                  {filtered.length === library.length
+                    ? `${library.length} 集`
+                    : `${filtered.length} / ${library.length}`}
+                </div>
+              </div>
+
+              {!filtered.length ? (
+                <div className="lh-empty-filter">
+                  当前筛选下没有内容
+                  <button
+                    type="button"
+                    className="lh-empty-filter-btn"
+                    onClick={() => setFilter('all')}
+                  >
+                    查看全部
+                  </button>
+                </div>
+              ) : (
+                <div className="lh-masonry" role="list">
+                  {filtered.map((item, idx) => (
+                    <CoverCard
+                      key={item.job.id}
+                      item={item}
+                      index={idx}
+                      size={cardSize(item.job.id)}
+                      active={isPlayingId === item.job.id}
+                      playing={isPlayingId === item.job.id && isPlaying}
+                      onPlay={() => playItem(item)}
+                      onOpen={() => playItem(item, { openPlayer: true })}
+                      onManage={() =>
+                        navigate({ name: 'job', id: item.job.id })
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -188,21 +325,25 @@ export function ListenHomePage({ route }: { route: Route }) {
 function CoverCard({
   item,
   index,
+  size,
   active,
   playing,
   onPlay,
   onOpen,
+  onManage,
 }: {
   item: LibraryItem;
   index: number;
+  size: 's' | 'm' | 't';
   active: boolean;
   playing: boolean;
   onPlay: () => void;
   onOpen: () => void;
+  onManage: () => void;
 }) {
   const title = itemTitle(item);
   const summary = itemSummary(item);
-  const pct = listenProgressPct(item.listen?.progressSec, item.listen?.durationSec);
+  const pct = itemPct(item);
   const mins = itemMinutes(item);
   const badge = item.listen?.completed
     ? '已听完'
@@ -213,10 +354,10 @@ function CoverCard({
   return (
     <article
       role="listitem"
-      className={['lh-card', active ? 'is-active' : ''].join(' ')}
-      style={{ ['--stagger' as string]: `${index * 30}ms` }}
+      className={['lh-card', active ? 'is-active' : '', `is-${size}`].join(' ')}
+      style={{ ['--stagger' as string]: `${index * 28}ms` }}
     >
-      <div className="lh-card-face">
+      <div className={['lh-card-face', `is-${size}`].join(' ')}>
         <CoverArt
           seed={item.job.id}
           preferred={item.job.podcast?.coverGradient}
@@ -226,7 +367,6 @@ function CoverCard({
           aria-hidden
         />
 
-        {/* 上：标题 / 中：留白 / 下：简介 */}
         <button
           type="button"
           className="lh-card-overlay"
@@ -247,6 +387,16 @@ function CoverCard({
           aria-label={playing ? '暂停' : `播放 ${title}`}
         >
           {playing ? <IconPause size={16} /> : <IconPlay size={16} />}
+        </button>
+
+        <button
+          type="button"
+          className="lh-card-manage"
+          onClick={onManage}
+          aria-label={`管理 ${title}`}
+          title="管理"
+        >
+          ···
         </button>
 
         {pct > 0 && !item.listen?.completed && (
