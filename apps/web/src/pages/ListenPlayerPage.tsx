@@ -572,6 +572,19 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
           <div className="qq-controls">
             <button
               type="button"
+              className="qq-ctrl is-rate"
+              onClick={cycleRate}
+              aria-label={`倍速 ${active.rate}x，点击切换`}
+              title="切换倍速"
+            >
+              <span className="qq-rate-text">
+                {active.rate % 1 === 0 ? `${active.rate}` : active.rate}
+                <small>x</small>
+              </span>
+            </button>
+
+            <button
+              type="button"
               className="qq-ctrl is-ep"
               onClick={() => goEpisode(prevItem)}
               disabled={!prevItem}
@@ -618,78 +631,52 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
             >
               <IconTrackNext size={18} />
             </button>
-          </div>
-        </div>
 
-        <div className="qq-dock-right">
-          <div className="qq-rate-group qq-rate-desktop" role="group" aria-label="倍速">
-            {RATES.map((r) => (
+            <div className="qq-sleep" ref={sleepMenuRef}>
               <button
-                key={r}
                 type="button"
-                className={['qq-rate', Math.abs(active.rate - r) < 0.001 ? 'is-active' : ''].join(
-                  ' ',
-                )}
-                onClick={() => player.setRate(r)}
+                className={['qq-ctrl', 'is-sleep', sleepActive ? 'is-active' : ''].join(' ')}
+                onClick={() => setSleepOpen((v) => !v)}
+                aria-expanded={sleepOpen}
+                aria-haspopup="menu"
+                title="睡眠定时"
+                aria-label={
+                  sleepActive
+                    ? `睡眠定时 ${sleepLabel}，点击修改`
+                    : '睡眠定时'
+                }
               >
-                {r % 1 === 0 ? `${r}.0` : r}x
+                <IconMoon size={16} />
+                {sleepActive && <span className="qq-sleep-label">{sleepLabel}</span>}
               </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="qq-rate-cycle"
-            onClick={cycleRate}
-            aria-label={`倍速 ${active.rate}x，点击切换`}
-            title="切换倍速"
-          >
-            {active.rate % 1 === 0 ? `${active.rate}.0` : active.rate}x
-          </button>
-
-          <div className="qq-sleep" ref={sleepMenuRef}>
-            <button
-              type="button"
-              className={['qq-sleep-btn', sleepActive ? 'is-active' : ''].join(' ')}
-              onClick={() => setSleepOpen((v) => !v)}
-              aria-expanded={sleepOpen}
-              aria-haspopup="menu"
-              title="睡眠定时"
-              aria-label={
-                sleepActive
-                  ? `睡眠定时 ${sleepLabel}，点击修改`
-                  : '睡眠定时'
-              }
-            >
-              <IconMoon size={15} />
-              {sleepActive && <span className="qq-sleep-label">{sleepLabel}</span>}
-            </button>
-            {sleepOpen && (
-              <div className="qq-sleep-menu" role="menu" aria-label="睡眠定时选项">
-                <div className="qq-sleep-menu-title">睡眠定时</div>
-                {SLEEP_PRESETS.map((p) => {
-                  const isActive =
-                    (p.key === 'off' && sleep.kind === 'off') ||
-                    (p.key === 'eoe' && sleep.kind === 'eoe') ||
-                    (typeof p.key === 'number' &&
-                      sleep.kind === 'timer' &&
-                      sleep.minutes === p.key);
-                  return (
-                    <button
-                      key={String(p.key)}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={isActive}
-                      className={['qq-sleep-item', isActive ? 'is-active' : '']
-                        .filter(Boolean)
-                        .join(' ')}
-                      onClick={() => applySleep(p.key)}
-                    >
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+              {sleepOpen && (
+                <div className="qq-sleep-menu" role="menu" aria-label="睡眠定时选项">
+                  <div className="qq-sleep-menu-title">睡眠定时</div>
+                  {SLEEP_PRESETS.map((opt) => {
+                    const isActive =
+                      (opt.key === 'off' && sleep.kind === 'off') ||
+                      (opt.key === 'eoe' && sleep.kind === 'eoe') ||
+                      (typeof opt.key === 'number' &&
+                        sleep.kind === 'timer' &&
+                        sleep.minutes === opt.key);
+                    return (
+                      <button
+                        key={String(opt.key)}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isActive}
+                        className={['qq-sleep-item', isActive ? 'is-active' : '']
+                          .filter(Boolean)
+                          .join(' ')}
+                        onClick={() => applySleep(opt.key)}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </footer>

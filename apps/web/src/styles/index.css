@@ -5142,8 +5142,8 @@ body:has(.global-player) {
 .qq-dock {
   position: relative;
   z-index: 3;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 6px;
   padding: 10px 14px calc(12px + var(--safe-bottom));
   background:
@@ -5156,11 +5156,19 @@ body:has(.global-player) {
 }
 @media (min-width: 900px) {
   .qq-dock {
-    grid-template-columns: minmax(180px, 1fr) minmax(340px, 1.45fr) minmax(200px, 1fr);
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) minmax(0, 560px) minmax(200px, 1fr);
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     padding: 12px 28px calc(14px + var(--safe-bottom));
   }
+  /* 右侧占位，保证控制条视觉居中 */
+  .qq-dock::after {
+    content: '';
+    grid-column: 3;
+  }
+  .qq-dock-left { grid-column: 1; }
+  .qq-dock-center { grid-column: 2; width: 100%; }
 }
 
 .qq-dock-left {
@@ -5317,7 +5325,9 @@ body:has(.global-player) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 .qq-ctrl {
   position: relative;
@@ -5361,6 +5371,64 @@ body:has(.global-player) {
   color: currentColor;
   opacity: 0.85;
   letter-spacing: -0.02em;
+}
+
+/* 倍速 / 睡眠：与播放键同一排 */
+.qq-ctrl.is-rate {
+  width: auto;
+  min-width: 44px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--separator) 80%, transparent);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  color: var(--brand-2);
+  font-variant-numeric: tabular-nums;
+}
+.qq-ctrl.is-rate:hover {
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--separator));
+  background: color-mix(in srgb, var(--brand-soft) 55%, var(--surface));
+}
+.qq-rate-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.qq-rate-text small {
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.85;
+}
+.qq-ctrl.is-sleep {
+  width: auto;
+  min-width: 44px;
+  gap: 4px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--separator) 80%, transparent);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  color: var(--text-2);
+}
+.qq-ctrl.is-sleep:hover {
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--separator));
+  color: var(--text);
+}
+.qq-ctrl.is-sleep.is-active {
+  color: var(--brand-2);
+  border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+  background: color-mix(in srgb, var(--brand-soft) 75%, var(--surface));
+}
+.qq-ctrl.is-sleep .qq-sleep-label {
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.qq-sleep {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .qq-dock-right {
@@ -5484,8 +5552,8 @@ body:has(.global-player) {
 .qq-sleep-menu {
   position: absolute;
   right: 0;
-  bottom: calc(100% + 8px);
-  width: min(200px, 70vw);
+  bottom: calc(100% + 10px);
+  width: min(200px, 72vw);
   padding: 8px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--separator) 85%, transparent);
@@ -5567,17 +5635,22 @@ body:has(.global-player) {
 
 /* 手机 dock 细节 */
 @media (max-width: 899px) {
-  .qq-controls { gap: 10px; }
-  .qq-ctrl { width: 42px; height: 42px; }
+  .qq-controls { gap: 6px; }
+  .qq-ctrl { width: 40px; height: 40px; }
   .qq-ctrl.is-main {
-    width: 58px;
-    height: 58px;
+    width: 54px;
+    height: 54px;
   }
+  .qq-ctrl.is-rate,
+  .qq-ctrl.is-sleep {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 7px;
+  }
+  .qq-rate-text { font-size: 12px; }
+  .qq-ctrl.is-sleep .qq-sleep-label { font-size: 10px; }
   .qq-progress-row {
     grid-template-columns: 40px minmax(0, 1fr) 44px;
-  }
-  .qq-dock-right {
-    justify-content: center;
   }
   .qq-top-tab {
     padding: 0 11px;
@@ -5589,7 +5662,19 @@ body:has(.global-player) {
 @media (max-width: 380px) {
   .qq-hero-disc { width: 64px; }
   .qq-song-title { font-size: 16.5px; }
-  .qq-controls { gap: 12px; }
+  .qq-controls { gap: 4px; }
+  .qq-ctrl { width: 36px; height: 36px; }
+  .qq-ctrl.is-main { width: 48px; height: 48px; }
+  .qq-ctrl.is-rate,
+  .qq-ctrl.is-sleep {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 5px;
+  }
+  /* 极窄屏：睡眠开启时只显示图标 */
+  .qq-ctrl.is-sleep .qq-sleep-label {
+    display: none;
+  }
 }
 
 /* 桌面增强 */
