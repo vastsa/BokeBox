@@ -1,0 +1,21 @@
+{
+  "name": "person-boke",
+  "version": "1.0.0",
+  "private": true,
+  "description": "视频上传 → 音频提取 → 语音转写 → AI 总结生成播客",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:server": "pnpm --filter @person-boke/server dev",
+    "dev:web": "pnpm --filter @person-boke/web dev",
+    "build": "pnpm -r build",
+    "start": "pnpm --filter @person-boke/server start",
+    "start:app": "./start.sh",
+    "start:prod": "./start.sh prod",
+    "docker:up": "./start.sh docker",
+    "docker:down": "./start.sh docker:down"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

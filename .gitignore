@@ -1,0 +1,32 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+# 任务媒体（按 job 聚合）
+storage/jobs/*
+!storage/jobs/.gitkeep
+storage/samples/*
+!storage/samples/.gitkeep
+# 兼容旧布局残留（迁移后应为空）
+storage/uploads/
+storage/audio/
+storage/transcripts/
+storage/podcasts/
+storage/blogs/
+storage/jobs.json
+storage/listen.json
+storage/app.db
+storage/app.db-*
+storage/*.json.migrated
+*.log
+.vite
+coverage
+
+# 本地调试截图
+storage/screenshots/
+
+*.tsbuildinfo

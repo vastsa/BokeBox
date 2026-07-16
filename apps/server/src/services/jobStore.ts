@@ -1,0 +1,124 @@
+import {
+  getDb,
+  jobToRow,
+  normalizeJob,
+  rowToJob,
+  type JobRow,
+} from '../db/sqlite.js';
+import type { Job, JobPublic } from '../types/job.js';
+
+export function toPublic(job: Job): JobPublic {
+  const { videoPath, audioPath, podcastAudioPath, ...rest } = job;
+  const kind = job.sourceKind || 'video';
+  return {
+    ...rest,
+    // 仅真实视频素材算 hasVideo；文本/纯音频不暴露视频播放
+    hasVideo: Boolean(videoPath) && kind === 'video',
+    hasSourceAudio: Boolean(audioPath) || kind === 'audio',
+    hasPodcastAudio: Boolean(podcastAudioPath),
+    hasTranscript: Boolean(job.transcript?.trim()),
+  };
+}
+
+export async function listJobs(): Promise<Job[]> {
+  const rows = getDb()
+    .prepare('SELECT * FROM jobs ORDER BY created_at DESC')
+    .all() as JobRow[];
+  return rows.map(rowToJob);
+}
+
+export async function listPublishedJobs(): Promise<Job[]> {
+  const rows = getDb()
+    .prepare(
+      `SELECT * FROM jobs
+       WHERE published = 1 AND status = 'done' AND podcast_json IS NOT NULL
+       ORDER BY created_at DESC`,
+    )
+    .all() as JobRow[];
+  return rows.map(rowToJob).filter((j) => Boolean(j.podcast));
+}
+
+export async function getJob(id: string): Promise<Job | undefined> {
+  const row = getDb()
+    .prepare('SELECT * FROM jobs WHERE id = ?')
+    .get(id) as JobRow | undefined;
+  return row ? rowToJob(row) : undefined;
+}
+
+export async function createJob(job: Job): Promise<Job> {
+  const next = normalizeJob(job);
+  getDb()
+    .prepare(
+      `INSERT INTO jobs (
+        id, title, original_filename, mime_type, size, status, progress,
+        message, video_path, audio_path, podcast_audio_path, transcript,
+        podcast_json, tts_json, published, error, created_at, updated_at,
+        source_kind, source_url
+      ) VALUES (
+        @id, @title, @original_filename, @mime_type, @size, @status, @progress,
+        @message, @video_path, @audio_path, @podcast_audio_path, @transcript,
+        @podcast_json, @tts_json, @published, @error, @created_at, @updated_at,
+        @source_kind, @source_url
+      )`,
+    )
+    .run(jobToRow(next));
+  return next;
+}
+
+export async function updateJob(
+  id: string,
+  patch: Partial<Job>,
+): Promise<Job | undefined> {
+  const prev = await getJob(id);
+  if (!prev) return undefined;
+
+  const next = normalizeJob({
+    ...prev,
+    ...patch,
+    id: prev.id,
+    updatedAt: new Date().toISOString(),
+  });
+
+  getDb()
+    .prepare(
+      `UPDATE jobs SET
+        title = @title,
+        original_filename = @original_filename,
+        mime_type = @mime_type,
+        size = @size,
+        status = @status,
+        progress = @progress,
+        message = @message,
+        video_path = @video_path,
+        audio_path = @audio_path,
+        podcast_audio_path = @podcast_audio_path,
+        transcript = @transcript,
+        podcast_json = @podcast_json,
+        tts_json = @tts_json,
+        published = @published,
+        error = @error,
+        created_at = @created_at,
+        updated_at = @updated_at,
+        source_kind = @source_kind,
+        source_url = @source_url
+      WHERE id = @id`,
+    )
+    .run(jobToRow(next));
+
+  return next;
+}
+
+export async function deleteJob(id: string): Promise<Job | undefined> {
+  const prev = await getJob(id);
+  if (!prev) return undefined;
+  getDb().exec('BEGIN');
+  try {
+    getDb().prepare('DELETE FROM listen_records WHERE job_id = ?').run(id);
+    getDb().prepare('DELETE FROM jobs WHERE id = ?').run(id);
+    getDb().exec('COMMIT');
+  } catch (e) {
+    getDb().exec('ROLLBACK');
+    throw e;
+  }
+  return prev;
+}
