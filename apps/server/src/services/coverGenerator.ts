@@ -13,8 +13,8 @@ import {
 /** 候选封面文件名（按优先级） */
 const COVER_CANDIDATES = ['cover.png', 'cover.jpg', 'cover.jpeg', 'cover.webp'] as const;
 
-/** 封面画幅：16:9 / 3:4 / 1:1 随机，制造列表视觉变化 */
-export type CoverAspect = '16:9' | '3:4' | '1:1';
+/** 封面画幅：9:16 / 3:4 / 1:1 随机，制造列表视觉变化 */
+export type CoverAspect = '9:16' | '3:4' | '1:1';
 
 export type CoverFrame = {
   aspect: CoverAspect;
@@ -29,7 +29,7 @@ export type CoverFrame = {
 /**
  * 画幅与尺寸映射
  * - 1:1 → 1024x1024（方图，列表/播放器友好）
- * - 16:9 → 1792x1024（横版，接近 DALL·E 宽图）
+ * - 9:16 → 1024x1792（竖屏短视频感，接近 DALL·E 高图）
  * - 3:4 → 1024x1365（竖版海报感；部分网关不认时会回退）
  */
 export const COVER_FRAMES: CoverFrame[] = [
@@ -41,11 +41,11 @@ export const COVER_FRAMES: CoverFrame[] = [
       'Square album-tile layout: strong center subject, balanced negative space on all sides, works as a podcast app cover.',
   },
   {
-    aspect: '16:9',
-    size: '1792x1024',
-    label: '横版 16:9',
+    aspect: '9:16',
+    size: '1024x1792',
+    label: '竖屏 9:16',
     compositionHint:
-      'Wide cinematic 16:9 frame: horizontal storytelling, subject slightly off-center with atmospheric side space, banner-ready but still strong as a crop.',
+      'Tall mobile 9:16 frame: full-height vertical storytelling, subject in upper-middle third, story-ready portrait canvas without text.',
   },
   {
     aspect: '3:4',
@@ -59,7 +59,7 @@ export const COVER_FRAMES: CoverFrame[] = [
 /** 尺寸不被网关接受时的回退链（同画幅优先，最后 1:1） */
 const SIZE_FALLBACKS: Record<CoverAspect, string[]> = {
   '1:1': ['1024x1024'],
-  '16:9': ['1792x1024', '1280x720', '1024x1024'],
+  '9:16': ['1024x1792', '1080x1920', '768x1344', '1024x1536', '1024x1024'],
   '3:4': ['1024x1365', '1024x1536', '768x1024', '1024x1792', '1024x1024'],
 };
 
@@ -138,7 +138,7 @@ function visualMotifs(podcast: PodcastContent): string {
 
 /**
  * 播客封面提示词：
- * - 画幅在 16:9 / 3:4 / 1:1 间随机
+ * - 画幅在 9:16 / 3:4 / 1:1 间随机
  * - 单焦点、缩略图可读
  * - 禁止文字与真人肖像
  */
@@ -278,7 +278,7 @@ async function requestCoverImage(input: {
 
 /**
  * 调用 OpenAI 兼容图片接口生成封面。
- * 画幅在 16:9 / 3:4 / 1:1 中随机；尺寸不被接受时按画幅回退。
+ * 画幅在 9:16 / 3:4 / 1:1 中随机；尺寸不被接受时按画幅回退。
  */
 export async function generatePodcastCover(
   jobId: string,
