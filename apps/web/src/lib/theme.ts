@@ -10,17 +10,9 @@ type ThemeListener = (state: {
   resolved: ResolvedTheme;
 }) => void;
 
-type MediaQueryListLegacy = MediaQueryList & {
-  addListener?: (cb: (event: MediaQueryListEvent) => void) => void;
-  removeListener?: (cb: (event: MediaQueryListEvent) => void) => void;
-};
-
-const listeners = new Set<ThemeListener>();
-
 let media: MediaQueryList | null = null;
-let unbindMedia: (() => void) | null = null;
-let unbindLifecycle: (() => void) | null = null;
-let applying = false;
+let mediaHandler: ((event: MediaQueryListEvent) => void) | null = null;
+const listeners = new Set<ThemeListener>();
 
 function isThemePreference(value: string | null): value is ThemePreference {
   return value === 'system' || value === 'light' || value === 'dark';
@@ -71,84 +63,70 @@ function notify(preference: ThemePreference, resolved: ResolvedTheme) {
   listeners.forEach((listener) => listener({ preference, resolved }));
 }
 
-function bindMediaChange(target: MediaQueryList, handler: (event: MediaQueryListEvent) => void) {
+function bindMediaChange(handler: (event: MediaQueryListEvent) => void, target: MediaQueryList) {
   if (typeof target.addEventListener === 'function') {
     target.addEventListener('change', handler);
     return () => target.removeEventListener('change', handler);
   }
-
   // Safari < 14
-  const legacy = target as MediaQueryListLegacy;
+  const legacy = target as MediaQueryList & {
+    addListener?: (cb: (event: MediaQueryListEvent) => void) => void;
+    removeListener?: (cb: (event: MediaQueryListEvent) => void) => void;
+  };
   legacy.addListener?.(handler);
   return () => legacy.removeListener?.(handler);
 }
 
-function syncFromSystem() {
-  if (getThemePreference() !== 'system') return;
-  applyTheme('system');
-}
+let unbindMedia: (() => void) | null = null;
 
 function ensureSystemListener(preference: ThemePreference) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
 
   if (unbindMedia) {
     unbindMedia();
     unbindMedia = null;
   }
-  if (unbindLifecycle) {
-    unbindLifecycle();
-    unbindLifecycle = null;
+  mediaHandler = null;
+
+  if (preference !== 'system') return;
+
+  if (!media) {
+    media = window.matchMedia('(prefers-color-scheme: dark)');
   }
 
-  if (preference !== 'system' || typeof window.matchMedia !== 'function') return;
-
-  media = window.matchMedia('(prefers-color-scheme: dark)');
-  unbindMedia = bindMediaChange(media, () => {
-    syncFromSystem();
-  });
-
-  // 部分环境从后台回到前台后 media change 可能丢失，补一次同步
-  const onVisibility = () => {
-    if (document.visibilityState === 'visible') syncFromSystem();
+  mediaHandler = () => {
+    // CSS 已通过 media 自动切换；这里同步 meta / color-scheme / 订阅者
+    const resolved = getSystemTheme();
+    document.documentElement.style.colorScheme = resolved;
+    updateThemeColorMeta(resolved);
+    notify('system', resolved);
   };
-  const onFocus = () => syncFromSystem();
-  window.addEventListener('focus', onFocus);
-  document.addEventListener('visibilitychange', onVisibility);
-  unbindLifecycle = () => {
-    window.removeEventListener('focus', onFocus);
-    document.removeEventListener('visibilitychange', onVisibility);
-  };
+  unbindMedia = bindMediaChange(mediaHandler, media);
 }
 
 /**
  * 应用主题偏好。
- * - 视觉层始终写入 data-theme = light | dark（CSS 只认这两态）
- * - preference 单独存 data-theme-pref，供调试与设置页
- * - system 模式监听系统变更后重新 resolve 并写入
+ * - light/dark：写入固定 data-theme
+ * - system：写入 data-theme="system"，由 CSS prefers-color-scheme 真正跟随系统
  */
 export function applyTheme(preference: ThemePreference = getThemePreference()): ResolvedTheme {
-  if (applying) {
-    // 避免 media/focus 重入时重复通知；仍返回当前解析结果
-    return resolveTheme(preference);
-  }
+  const resolved = resolveTheme(preference);
+  const root = document.documentElement;
 
-  applying = true;
-  try {
-    const resolved = resolveTheme(preference);
-    const root = document.documentElement;
+  // 关键：保留 system，让 CSS media 自动跟随；手动模式才写死 light/dark
+  root.setAttribute('data-theme', preference);
+  root.style.colorScheme = preference === 'system' ? 'light dark' : resolved;
 
-    // 关键：视觉主题只写 light/dark，保证 html[data-theme="dark"] 规则稳定生效
-    root.setAttribute('data-theme', resolved);
-    root.setAttribute('data-theme-pref', preference);
+  // system 模式下浏览器会按 media 解析 color-scheme；同步 meta 用 resolved
+  if (preference === 'system') {
+    // 明确同步当前系统解析结果到 color-scheme，便于表单控件配色
     root.style.colorScheme = resolved;
-
-    updateThemeColorMeta(resolved);
-    ensureSystemListener(preference);
-    notify(preference, resolved);
-    return resolved;
-  } finally {
-    applying = false;
   }
+
+  updateThemeColorMeta(resolved);
+  ensureSystemListener(preference);
+  notify(preference, resolved);
+  return resolved;
 }
 
 export function setThemePreference(preference: ThemePreference): ResolvedTheme {
@@ -162,6 +140,7 @@ export function setThemePreference(preference: ThemePreference): ResolvedTheme {
 
 export function subscribeTheme(listener: ThemeListener): () => void {
   listeners.add(listener);
+  // 立即推送一次当前状态
   listener({
     preference: getThemePreference(),
     resolved: resolveTheme(),
@@ -171,7 +150,7 @@ export function subscribeTheme(listener: ThemeListener): () => void {
   };
 }
 
-/** 启动时初始化主题；system 模式会监听系统外观变化 */
+/** 启动时初始化主题；system 模式依赖 CSS 媒体查询自动跟随 */
 export function initTheme(): ResolvedTheme {
   return applyTheme(getThemePreference());
 }
