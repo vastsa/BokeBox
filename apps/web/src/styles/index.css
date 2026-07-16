@@ -4157,6 +4157,103 @@ body:has(.global-player) {
   font-variant-numeric: tabular-nums;
 }
 
+.lh-search {
+  position: relative;
+  flex: 0 1 220px;
+  min-width: 140px;
+  max-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+.lh-search:focus-within {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--separator));
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 3px var(--brand-soft);
+}
+
+.lh-search-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-3);
+  transform: translateY(-0.5px);
+}
+
+.lh-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0;
+  height: 32px;
+}
+
+.lh-search-input::placeholder {
+  color: var(--text-3);
+  font-weight: 550;
+}
+
+.lh-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.lh-search-clear {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.lh-search-clear:hover {
+  background: color-mix(in srgb, var(--brand-soft) 70%, var(--surface-3));
+  color: var(--brand-2);
+}
+
+@media (max-width: 640px) {
+  .lh-toolbar {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+  .lh-filters {
+    order: 2;
+    width: 100%;
+    flex: 1 1 100%;
+  }
+  .lh-search {
+    order: 1;
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+  }
+}
+
 .lh-empty-filter {
   display: flex;
   flex-direction: column;
@@ -4462,6 +4559,9 @@ body:has(.global-player) {
     background: color-mix(in srgb, var(--surface) 80%, transparent);
   }
   .lh-filter {
+    background: color-mix(in srgb, var(--surface) 96%, #000);
+  }
+  .lh-search {
     background: color-mix(in srgb, var(--surface) 96%, #000);
   }
   .lh-card-face {
@@ -5151,6 +5251,37 @@ body:has(.global-player) {
   .qq-controls { gap: 22px; }
 }
 
+/* 闪卡模式：手机端压缩碟片与标题区，把垂直空间留给卡片 */
+@media (max-width: 899px) {
+  .qq-player.is-flashcards .qq-stage-right {
+    height: 88px;
+  }
+  .qq-player.is-flashcards .qq-disc {
+    width: 84px;
+    margin-right: 10%;
+  }
+  .qq-player.is-flashcards .qq-song-head {
+    margin-top: -72px;
+    padding-right: 28%;
+    margin-bottom: 6px;
+  }
+  .qq-player.is-flashcards .qq-song-title {
+    font-size: clamp(16px, 4.2vw, 18px);
+  }
+  .qq-player.is-flashcards .qq-song-artist {
+    display: none;
+  }
+  .qq-player.is-flashcards .qq-stage-left {
+    padding-bottom: 0;
+  }
+}
+
+@media (min-width: 900px) {
+  .qq-player.is-flashcards .qq-song-head {
+    margin-bottom: 8px;
+  }
+}
+
 /* ===== Knowledge Flashcards (fc-*) ===== */
 .jd-flashcards {
   display: flex;
@@ -5178,7 +5309,15 @@ body:has(.global-player) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  outline: none;
 }
+.fc-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--text-3);
+}
+
 .fc-toolbar {
   display: flex;
   flex-direction: column;
@@ -5195,6 +5334,7 @@ body:has(.global-player) {
   font-weight: 750;
   color: var(--text);
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .fc-progress strong span {
   color: var(--text-3);
@@ -5206,37 +5346,89 @@ body:has(.global-player) {
   font-weight: 650;
   color: var(--text-3);
 }
+.fc-mastered-pct {
+  color: var(--success);
+}
+
+/* 双层进度：浏览进度 + 掌握进度 */
+.fc-track {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  overflow: hidden;
+}
+.fc-track-total,
+.fc-track-known {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: inherit;
+  transition: width .28s cubic-bezier(.2,.8,.2,1);
+}
+.fc-track-total {
+  background: color-mix(in srgb, var(--brand) 55%, transparent);
+}
+.fc-track-known {
+  background: var(--success);
+  opacity: 0.9;
+}
+
 .fc-dots {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 5px;
 }
-.fc-dots i {
-  width: 7px;
-  height: 7px;
+.fc-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
   background: var(--surface-3, var(--surface-2));
-  transition: background .15s ease, transform .15s ease;
+  cursor: pointer;
+  transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
-.fc-dots i.is-active {
+.fc-dot.is-active {
   background: var(--brand);
-  transform: scale(1.25);
+  transform: scale(1.28);
   box-shadow: 0 0 0 3px var(--brand-soft);
 }
-.fc-dots i.is-known {
+.fc-dot.is-known {
   background: var(--success);
 }
+.fc-dot.is-active.is-known {
+  box-shadow: 0 0 0 3px var(--success-soft);
+}
+.fc-dots-more {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1;
+  padding: 0 1px;
+}
+
+.fc-stage {
+  position: relative;
+  transition: transform .18s ease;
+}
+.fc-stage.is-swipe-left { transform: translateX(-6px); }
+.fc-stage.is-swipe-right { transform: translateX(6px); }
 
 .fc-card {
   position: relative;
   width: 100%;
-  min-height: 220px;
+  min-height: 240px;
+  height: clamp(240px, 42vh, 380px);
   border: 0;
   padding: 0;
   background: transparent;
-  perspective: 1200px;
+  perspective: 1400px;
   cursor: pointer;
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
 }
 .fc-face {
   position: absolute;
@@ -5244,17 +5436,22 @@ body:has(.global-player) {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 18px 18px 16px;
-  border-radius: 18px;
-  border: 1px solid var(--separator);
+  padding: 18px 18px 14px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--separator) 90%, transparent);
   background:
     radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 48%),
-    var(--surface);
-  box-shadow: var(--shadow-sm);
+    color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 55%, transparent) inset,
+    var(--shadow-sm);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  transition: transform .45s cubic-bezier(.2,.8,.2,1);
+  transition: transform .45s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease, border-color .2s ease;
   transform-style: preserve-3d;
+  overflow: hidden;
 }
 .fc-front {
   transform: rotateY(0deg);
@@ -5263,13 +5460,32 @@ body:has(.global-player) {
   transform: rotateY(180deg);
   background:
     radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--success) 16%, transparent), transparent 46%),
-    var(--surface);
+    color-mix(in srgb, var(--surface) 92%, transparent);
 }
 .fc-card.is-flipped .fc-front {
   transform: rotateY(-180deg);
 }
 .fc-card.is-flipped .fc-back {
   transform: rotateY(0deg);
+}
+.fc-card.is-known .fc-face {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--separator));
+}
+.fc-card:hover .fc-face {
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 55%, transparent) inset,
+    0 10px 28px color-mix(in srgb, var(--brand) 10%, transparent);
+}
+.fc-card:active .fc-face {
+  filter: brightness(0.99);
+}
+
+.fc-face-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
 }
 .fc-kicker {
   display: inline-flex;
@@ -5288,11 +5504,34 @@ body:has(.global-player) {
   background: var(--success-soft);
   color: var(--success);
 }
+.fc-known-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.fc-face-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
 .fc-face p {
   margin: 0;
-  flex: 1;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: clamp(1rem, 2.2vw, 1.18rem);
+  font-weight: 720;
   line-height: 1.55;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -5300,7 +5539,7 @@ body:has(.global-player) {
   word-break: break-word;
 }
 .fc-back p {
-  font-size: 0.98rem;
+  font-size: clamp(0.95rem, 1.8vw, 1.05rem);
   font-weight: 600;
   color: var(--text-2);
   line-height: 1.7;
@@ -5314,6 +5553,7 @@ body:has(.global-player) {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: auto;
 }
 .fc-tags span {
   display: inline-flex;
@@ -5322,28 +5562,75 @@ body:has(.global-player) {
   padding: 0 8px;
   border-radius: 999px;
   border: 1px solid var(--separator);
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--surface-2) 80%, transparent);
   font-size: 11px;
   font-weight: 650;
   color: var(--text-2);
 }
 .fc-tip {
-  margin-top: auto;
+  margin-top: 2px;
+  flex-shrink: 0;
   font-style: normal;
   font-size: 11.5px;
   font-weight: 650;
   color: var(--text-3);
 }
+.fc-tip-mobile { display: none; }
+.fc-tip-desktop { display: inline; }
+
+/* 操作区 */
 .fc-actions {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
+  grid-template-columns: 1fr 1.25fr 1fr;
   gap: 8px;
 }
-.fc-actions .nl-btn {
-  min-height: 36px;
+.fc-act {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  font-size: 12.5px;
+  gap: 6px;
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast, .12s) var(--ease, ease),
+    background .15s ease,
+    border-color .15s ease,
+    color .15s ease,
+    box-shadow .15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
+.fc-act:active { transform: scale(0.98); }
+.fc-act-nav {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text-2);
+  border-color: color-mix(in srgb, var(--separator) 90%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.fc-act-nav:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--separator));
+  background: color-mix(in srgb, var(--brand-soft) 40%, var(--surface));
+}
+.fc-act-known {
+  background: var(--brand-grad, var(--brand));
+  color: var(--text-inv, #fff);
+  box-shadow: var(--shadow-fab, 0 8px 20px color-mix(in srgb, var(--brand) 28%, transparent));
+}
+.fc-act-known:hover { filter: brightness(1.03); }
+.fc-act-known.is-on {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 28%, transparent);
+  box-shadow: none;
+}
+
+/* 列表（管理页完整模式） */
 .fc-list {
   margin: 2px 0 0;
   padding: 0;
@@ -5351,6 +5638,7 @@ body:has(.global-player) {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: 0;
 }
 .fc-list-item {
   width: 100%;
@@ -5389,33 +5677,189 @@ body:has(.global-player) {
   font-size: 11px;
   font-weight: 750;
 }
+.fc-list-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
 .fc-list-front {
   font-size: 13px;
   font-weight: 650;
   line-height: 1.45;
   color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fc-list-known {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--success);
 }
 
+/* 听播页 compact */
+.fc-root.is-compact {
+  height: 100%;
+  gap: 10px;
+}
+.fc-root.is-compact .fc-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
 .fc-root.is-compact .fc-card {
-  min-height: 200px;
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+  flex: 1;
 }
 .fc-root.is-compact .fc-face {
-  padding: 16px;
+  padding: 16px 16px 12px;
+  border-radius: 18px;
 }
 .fc-root.is-compact .fc-face p {
-  font-size: 1rem;
+  font-size: clamp(0.98rem, 3.6vw, 1.08rem);
+}
+.fc-root.is-compact .fc-act {
+  min-height: 44px;
+  font-size: 12.5px;
+}
+.fc-root.is-compact .fc-act-nav span {
+  display: none;
+}
+.fc-root.is-compact .fc-actions {
+  grid-template-columns: 48px 1fr 48px;
+  gap: 8px;
+}
+.fc-root.is-compact .fc-act-nav {
+  width: 48px;
+  padding: 0;
 }
 
+/* 听播容器：可滚动 + 填满高度 */
 .qq-flashcards {
-  padding: 4px 2px 8px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 2px 6px;
+}
+.qq-flashcards .fc-root {
+  flex: 1;
+  min-height: 0;
+}
+.qq-flashcards .fc-empty {
+  margin: auto;
 }
 
-@media (max-width: 640px) {
-  .fc-actions {
-    grid-template-columns: 1fr 1fr;
+/* 管理页完整模式：宽屏左右分栏 */
+@media (min-width: 900px) {
+  .fc-root.is-full {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+    grid-template-rows: auto auto auto;
+    gap: 12px 16px;
+    align-items: start;
   }
-  .fc-actions .nl-btn:nth-child(2) {
+  .fc-root.is-full .fc-toolbar {
     grid-column: 1 / -1;
+  }
+  .fc-root.is-full .fc-stage {
+    grid-column: 1;
+  }
+  .fc-root.is-full .fc-actions {
+    grid-column: 1;
+  }
+  .fc-root.is-full .fc-list {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    max-height: min(62vh, 560px);
+    overflow-y: auto;
+    padding-right: 2px;
+    scrollbar-width: thin;
+  }
+  .fc-root.is-full .fc-card {
+    height: clamp(280px, 38vh, 420px);
+  }
+}
+
+/* 手机端 */
+@media (max-width: 640px) {
+  .fc-tip-desktop { display: none; }
+  .fc-tip-mobile { display: inline; }
+
+  .fc-card {
+    min-height: 220px;
+    height: clamp(220px, 46vh, 360px);
+  }
+  .fc-face {
+    padding: 16px 14px 12px;
+    border-radius: 16px;
+  }
+  .fc-face p {
+    font-size: 1.02rem;
+  }
+  .fc-back p {
+    font-size: 0.96rem;
+  }
+  .fc-actions {
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 8px;
+  }
+  .fc-act {
+    min-height: 44px;
+    font-size: 12.5px;
+    border-radius: 12px;
+  }
+  .fc-act-nav span {
+    display: none;
+  }
+  .fc-actions {
+    grid-template-columns: 48px 1fr 48px;
+  }
+  .fc-act-nav {
+    width: 48px;
+    padding: 0;
+  }
+  .fc-root.is-compact .fc-card {
+    /* 听播页交给 flex 撑满剩余高度 */
+    height: 100%;
+  }
+}
+
+/* 超窄屏：进度点略缩 */
+@media (max-width: 380px) {
+  .fc-dot { width: 7px; height: 7px; }
+  .fc-progress strong { font-size: 13px; }
+  .fc-act-known span { font-size: 12px; }
+}
+
+/* 桌面听播：闪卡卡片更大气 */
+@media (min-width: 900px) {
+  .qq-flashcards {
+    padding: 4px 4px 10px;
+  }
+  .fc-root.is-compact .fc-card {
+    max-width: 720px;
+  }
+  .fc-root.is-compact .fc-stage {
+    justify-content: flex-start;
+  }
+  .fc-root.is-compact .fc-actions {
+    max-width: 720px;
+    grid-template-columns: 1fr 1.3fr 1fr;
+  }
+  .fc-root.is-compact .fc-act-nav {
+    width: auto;
+  }
+  .fc-root.is-compact .fc-act-nav span {
+    display: inline;
+  }
+  .fc-root.is-compact .fc-face p {
+    font-size: clamp(1.05rem, 1.4vw, 1.22rem);
   }
 }
 

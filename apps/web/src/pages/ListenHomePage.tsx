@@ -75,6 +75,20 @@ function matchFilter(item: LibraryItem, filter: FilterKey): boolean {
   return !completed && pct <= 0;
 }
 
+function matchQuery(item: LibraryItem, raw: string): boolean {
+  const q = raw.trim().toLowerCase();
+  if (!q) return true;
+  const hay = [
+    itemTitle(item),
+    itemSummary(item),
+    item.job.originalFilename || '',
+    ...(item.job.podcast?.tags || []),
+  ]
+    .join(' ')
+    .toLowerCase();
+  return hay.includes(q);
+}
+
 /** 瀑布流高度变体：短 / 中 / 高 */
 function cardSize(seed: string): 's' | 'm' | 't' {
   const n = hashSeed(seed) % 3;
@@ -88,6 +102,7 @@ export function ListenHomePage({ route }: { route: Route }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [query, setQuery] = useState('');
 
   const refresh = useCallback(async () => {
     try {
@@ -136,24 +151,29 @@ export function ListenHomePage({ route }: { route: Route }) {
     [jobs],
   );
 
+  const queried = useMemo(
+    () => library.filter((item) => matchQuery(item, query)),
+    [library, query],
+  );
+
   const filterCounts = useMemo(() => {
     const counts: Record<FilterKey, number> = {
-      all: library.length,
+      all: queried.length,
       unplayed: 0,
       progress: 0,
       done: 0,
     };
-    for (const item of library) {
+    for (const item of queried) {
       if (matchFilter(item, 'done')) counts.done += 1;
       else if (matchFilter(item, 'progress')) counts.progress += 1;
       else counts.unplayed += 1;
     }
     return counts;
-  }, [library]);
+  }, [queried]);
 
   const filtered = useMemo(
-    () => library.filter((item) => matchFilter(item, filter)),
-    [library, filter],
+    () => queried.filter((item) => matchFilter(item, filter)),
+    [queried, filter],
   );
 
   const playItem = (item: LibraryItem, opts?: { openPlayer?: boolean }) => {
@@ -277,22 +297,43 @@ export function ListenHomePage({ route }: { route: Route }) {
                     </button>
                   ))}
                 </div>
-                <div className="lh-toolbar-meta">
-                  {filtered.length === library.length
-                    ? `${library.length} 集`
-                    : `${filtered.length} / ${library.length}`}
-                </div>
+                <label className="lh-search">
+                  <span className="lh-search-icon" aria-hidden>
+                    ⌕
+                  </span>
+                  <input
+                    type="search"
+                    className="lh-search-input"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="搜索关键词"
+                    aria-label="搜索关键词"
+                  />
+                  {query.trim() && (
+                    <button
+                      type="button"
+                      className="lh-search-clear"
+                      onClick={() => setQuery('')}
+                      aria-label="清除搜索"
+                    >
+                      ×
+                    </button>
+                  )}
+                </label>
               </div>
 
               {!filtered.length ? (
                 <div className="lh-empty-filter">
-                  当前筛选下没有内容
+                  {query.trim() ? '没有匹配的播客' : '当前筛选下没有内容'}
                   <button
                     type="button"
                     className="lh-empty-filter-btn"
-                    onClick={() => setFilter('all')}
+                    onClick={() => {
+                      setFilter('all');
+                      setQuery('');
+                    }}
                   >
-                    查看全部
+                    清除条件
                   </button>
                 </div>
               ) : (
