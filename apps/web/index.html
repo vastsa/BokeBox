@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN" data-theme="system">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -18,9 +18,10 @@
           var key = 'pb-theme';
           var pref = localStorage.getItem(key);
           if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          // 保留 system，CSS 用 prefers-color-scheme 真正跟随系统
+          document.documentElement.setAttribute('data-theme', pref);
           var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
           var resolved = pref === 'dark' || (pref === 'system' && dark) ? 'dark' : 'light';
-          document.documentElement.setAttribute('data-theme', resolved);
           document.documentElement.style.colorScheme = resolved;
           var color = resolved === 'dark' ? '#0a0d12' : '#f6f8fc';
           var meta = document.querySelector('meta[name="theme-color"]');

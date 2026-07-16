@@ -47,11 +47,11 @@ function updateThemeColorMeta(resolved: ResolvedTheme) {
     meta.name = 'theme-color';
     meta.content = color;
     document.head.appendChild(meta);
-    return;
+  } else {
+    metas.forEach((meta) => {
+      meta.setAttribute('content', color);
+    });
   }
-  metas.forEach((meta) => {
-    meta.setAttribute('content', color);
-  });
 
   const apple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
   if (apple) {
@@ -60,36 +60,69 @@ function updateThemeColorMeta(resolved: ResolvedTheme) {
 }
 
 function notify(preference: ThemePreference, resolved: ResolvedTheme) {
-  const state = { preference, resolved };
-  listeners.forEach((listener) => listener(state));
+  listeners.forEach((listener) => listener({ preference, resolved }));
 }
+
+function bindMediaChange(handler: (event: MediaQueryListEvent) => void, target: MediaQueryList) {
+  if (typeof target.addEventListener === 'function') {
+    target.addEventListener('change', handler);
+    return () => target.removeEventListener('change', handler);
+  }
+  // Safari < 14
+  const legacy = target as MediaQueryList & {
+    addListener?: (cb: (event: MediaQueryListEvent) => void) => void;
+    removeListener?: (cb: (event: MediaQueryListEvent) => void) => void;
+  };
+  legacy.addListener?.(handler);
+  return () => legacy.removeListener?.(handler);
+}
+
+let unbindMedia: (() => void) | null = null;
 
 function ensureSystemListener(preference: ThemePreference) {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+  if (unbindMedia) {
+    unbindMedia();
+    unbindMedia = null;
+  }
+  mediaHandler = null;
+
+  if (preference !== 'system') return;
 
   if (!media) {
     media = window.matchMedia('(prefers-color-scheme: dark)');
   }
 
-  if (mediaHandler) {
-    media.removeEventListener('change', mediaHandler);
-    mediaHandler = null;
-  }
-
-  if (preference !== 'system') return;
-
   mediaHandler = () => {
-    applyTheme(getThemePreference());
+    // CSS 已通过 media 自动切换；这里同步 meta / color-scheme / 订阅者
+    const resolved = getSystemTheme();
+    document.documentElement.style.colorScheme = resolved;
+    updateThemeColorMeta(resolved);
+    notify('system', resolved);
   };
-  media.addEventListener('change', mediaHandler);
+  unbindMedia = bindMediaChange(mediaHandler, media);
 }
 
-/** 应用主题：写入 html[data-theme]，并在 system 模式下跟随系统自动切换 */
+/**
+ * 应用主题偏好。
+ * - light/dark：写入固定 data-theme
+ * - system：写入 data-theme="system"，由 CSS prefers-color-scheme 真正跟随系统
+ */
 export function applyTheme(preference: ThemePreference = getThemePreference()): ResolvedTheme {
   const resolved = resolveTheme(preference);
   const root = document.documentElement;
-  root.dataset.theme = resolved;
-  root.style.colorScheme = resolved;
+
+  // 关键：保留 system，让 CSS media 自动跟随；手动模式才写死 light/dark
+  root.setAttribute('data-theme', preference);
+  root.style.colorScheme = preference === 'system' ? 'light dark' : resolved;
+
+  // system 模式下浏览器会按 media 解析 color-scheme；同步 meta 用 resolved
+  if (preference === 'system') {
+    // 明确同步当前系统解析结果到 color-scheme，便于表单控件配色
+    root.style.colorScheme = resolved;
+  }
+
   updateThemeColorMeta(resolved);
   ensureSystemListener(preference);
   notify(preference, resolved);
@@ -107,12 +140,17 @@ export function setThemePreference(preference: ThemePreference): ResolvedTheme {
 
 export function subscribeTheme(listener: ThemeListener): () => void {
   listeners.add(listener);
+  // 立即推送一次当前状态
+  listener({
+    preference: getThemePreference(),
+    resolved: resolveTheme(),
+  });
   return () => {
     listeners.delete(listener);
   };
 }
 
-/** 启动时初始化主题并开启 system 自动切换 */
+/** 启动时初始化主题；system 模式依赖 CSS 媒体查询自动跟随 */
 export function initTheme(): ResolvedTheme {
   return applyTheme(getThemePreference());
 }
