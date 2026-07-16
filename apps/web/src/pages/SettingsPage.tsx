@@ -14,6 +14,12 @@ import { IconRefresh } from '../components/icons';
 import { PageHeader } from '../components/ui/PageHeader';
 import { clearAuthSession } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
+import {
+  getThemePreference,
+  setThemePreference,
+  subscribeTheme,
+  type ThemePreference,
+} from '../lib/theme';
 import { AppShell } from '../layouts/AppShell';
 
 type SettingsTab = 'voice' | 'persona' | 'cover' | 'ai' | 'account';
@@ -46,7 +52,7 @@ const TABS: Array<{
   {
     id: 'account',
     label: '账号与安全',
-    desc: '管理员身份、密码与会话',
+    desc: '外观主题、管理员身份、密码与会话',
   },
 ];
 
@@ -72,11 +78,23 @@ export function SettingsPage({ route }: { route: Route }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [themePref, setThemePref] = useState<ThemePreference>(() => getThemePreference());
 
   const activeTab = useMemo(
     () => TABS.find((t) => t.id === tab) || TABS[0],
     [tab],
   );
+
+  useEffect(() => {
+    return subscribeTheme(({ preference }) => {
+      setThemePref(preference);
+    });
+  }, []);
+
+  const onThemeChange = (next: ThemePreference) => {
+    setThemePref(next);
+    setThemePreference(next);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -401,6 +419,40 @@ export function SettingsPage({ route }: { route: Route }) {
                         >
                           退出登录
                         </button>
+                      </div>
+
+                      <div className="settings-block">
+                        <div className="settings-block-head">
+                          <h3>外观主题</h3>
+                          <p>默认跟随系统自动切换；也可固定为亮色或深色。</p>
+                        </div>
+                        <div className="theme-pref-grid" role="radiogroup" aria-label="外观主题">
+                          {(
+                            [
+                              { id: 'system', label: '跟随系统', desc: '自动切换' },
+                              { id: 'light', label: '亮色', desc: '浅色界面' },
+                              { id: 'dark', label: '深色', desc: '深色界面' },
+                            ] as const
+                          ).map((item) => {
+                            const active = themePref === item.id;
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={active}
+                                className={['theme-pref-card', active ? 'is-active' : ''].join(' ')}
+                                onClick={() => onThemeChange(item.id)}
+                              >
+                                <span className="theme-pref-swatch" data-tone={item.id} aria-hidden />
+                                <span className="theme-pref-copy">
+                                  <strong>{item.label}</strong>
+                                  <em>{item.desc}</em>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
 
                       <div className="settings-block">
