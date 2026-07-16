@@ -693,9 +693,9 @@ body:has(.global-player) {
   background-image: linear-gradient(145deg, #9bc5ff, #5b9cff 48%, #3e86f0);
 }
 
-/* admin console */
+/* admin console · 与 page-container 同宽，保证顶栏/首页/制作/设置对齐 */
 .admin-container {
-  width: min(1120px, calc(100% - 2 * var(--page-x)));
+  width: min(1040px, calc(100% - 2 * var(--page-x)));
   margin-inline: auto;
 }
 .admin-grid {
@@ -938,7 +938,8 @@ body:has(.global-player) {
 
 /* 上传页：单栏居中，阅读更聚焦 */
 .admin-upload-wrap {
-  max-width: 760px;
+  max-width: none;
+  width: 100%;
 }
 .admin-upload-wrap .admin-card {
   width: 100%;
@@ -946,7 +947,7 @@ body:has(.global-player) {
 
 /* refined polish v2 */
 .admin-container {
-  width: min(1080px, calc(100% - 2 * var(--page-x)));
+  width: min(1040px, calc(100% - 2 * var(--page-x)));
   margin-inline: auto;
 }
 .admin-card {
@@ -960,7 +961,8 @@ body:has(.global-player) {
   .admin-card { padding: 18px; }
 }
 .admin-upload-wrap {
-  max-width: 720px;
+  max-width: none;
+  width: 100%;
 }
 .nl-empty {
   display: flex;
@@ -2029,8 +2031,6 @@ body:has(.global-player) {
 
 /* ===== Upload Studio ===== */
 .upload-page-head {
-  max-width: 640px;
-  margin: 0 auto;
   width: 100%;
   padding-bottom: 4px;
 }
@@ -2055,8 +2055,6 @@ body:has(.global-player) {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 860px;
-  margin: 0 auto;
   width: 100%;
 }
 .upload-hero-copy { min-width: 0; }
@@ -2126,15 +2124,14 @@ body:has(.global-player) {
 
 .admin-upload-wrap {
   max-width: none;
+  width: 100%;
 }
 
-/* 主操作优先：上传 → 精简选项 */
+/* 主操作优先：上传 → 精简选项 · 宽度跟随 admin-container */
 .upload-studio {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 640px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -7282,8 +7279,9 @@ button.pb-cover {
   text-decoration: underline;
 }
 
-/* 创建页宽度收敛 */
+/* 创建页：与 admin-container 同宽，不再单独收窄 */
 .admin-upload-wrap {
-  max-width: 640px;
-  margin-inline: auto;
+  max-width: none;
+  width: 100%;
+  margin-inline: 0;
 }
