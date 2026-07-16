@@ -215,8 +215,9 @@ export async function assertPipelinePrereqs(
  * 异步处理流水线：
  * - URL 未落盘 → 先下载识别
  * - text → 跳过抽音频/转写
- * - video/audio → 抽音频 → 转写 → 脚本 → 封面 → 知识闪卡 → TTS
- * fromStep 指定起点，可跳过已完成的前置步骤。
+ * - video/audio → 抽音频 → 转写 → 脚本 → (封面 ∥ 知识闪卡 ∥ TTS)
+ * 脚本就绪后，封面 / 闪卡 / 合成彼此无依赖，默认并发执行以缩短总耗时。
+ * fromStep 指定起点，可跳过已完成的前置步骤；仅封面 / 仅闪卡仍单独跑完即结束。
  */
 export async function runPipeline(
   jobId: string,
@@ -412,14 +413,14 @@ export async function runPipeline(
       );
     }
 
-    // ── 3.5 封面（独立步骤；配置了图片模型才生成） ──
-    // start: extract/transcribe/script/cover → 尝试生成
-    // flashcards/synthesize → 复用已有封面
-    // fromStep=cover → 仅生成封面后结束
-    if (fromStep === 'cover' || start <= 3) {
-      if (!podcast) {
-        podcast = (await getJob(jobId))?.podcast;
-      }
+    // ── 后半段：封面 / 闪卡 / TTS ──
+    // 仅封面、仅闪卡仍串行并提前结束；完整路径下三者并发。
+    if (!podcast) {
+      podcast = (await getJob(jobId))?.podcast;
+    }
+
+    // ── 仅封面 ──
+    if (fromStep === 'cover') {
       if (!podcast?.title && !podcast?.script?.trim()) {
         throw new Error('缺少播客脚本，无法生成封面');
       }
@@ -428,65 +429,45 @@ export async function runPipeline(
         await setProgress(
           jobId,
           'generating_cover',
-          fromStep === 'cover' ? 40 : 73,
+          40,
           '正在生成播客封面…',
           { podcast, title: podcast?.title || job.title },
         );
         podcast = await maybeGeneratePodcastCover(jobId, podcast!);
         await setProgress(
           jobId,
-          'generating_cover',
-          fromStep === 'cover' ? 90 : 76,
+          'done',
+          100,
           podcast.hasCoverImage
-            ? '播客封面已生成'
-            : '封面未生成，将使用渐变封面',
-          { podcast, title: podcast.title },
-        );
-      } else if (fromStep === 'cover') {
-        await setProgress(
-          jobId,
-          'generating_cover',
-          90,
-          '未配置图片模型，跳过 AI 封面',
+            ? '播客封面已更新'
+            : '封面处理完成（未生成 AI 图）',
           {
-            podcast: podcast
-              ? { ...podcast, hasCoverImage: false }
-              : podcast,
-            title: podcast?.title || job.title,
+            podcast,
+            title: podcast.title,
+            published: job.published ?? true,
           },
         );
+      } else {
         podcast = podcast
           ? { ...podcast, hasCoverImage: false }
           : podcast;
-      } else {
-        // 未配置图片模型：保持/标记无 AI 封面
-        if (podcast && podcast.hasCoverImage == null) {
-          podcast = { ...podcast, hasCoverImage: false };
-        }
-      }
-
-      // 仅封面：生成完即结束
-      if (fromStep === 'cover') {
         await setProgress(
           jobId,
           'done',
           100,
-          podcast?.hasCoverImage
-            ? '播客封面已更新'
-            : '封面处理完成（未生成 AI 图）',
+          '未配置图片模型，跳过 AI 封面',
           {
             podcast,
             title: podcast?.title || job.title,
             published: job.published ?? true,
           },
         );
-        return;
       }
+      return;
     }
 
-    // ── 4. 知识闪卡（独立 AI；可单独作为重跑起点） ──
-    // start: extract/transcribe/script/cover/flashcards → 生成；synthesize → 跳过
-    if (start <= 4) {
+    // ── 仅知识闪卡 ──
+    if (fromStep === 'flashcards') {
       if (!transcript.trim()) {
         transcript = (await getJob(jobId))?.transcript || '';
       }
@@ -499,74 +480,37 @@ export async function runPipeline(
 
       await setProgress(jobId, 'generating_podcast', 80, '正在生成知识闪卡…');
       const latestCards = (await getJob(jobId)) || job;
-      try {
-        const { flashcards, demo: demoCards } = await generateFlashcards({
-          jobId,
-          transcript,
-          sourceTitle: latestCards.originalFilename || latestCards.title,
-          podcast,
-        });
-        podcast = { ...podcast, flashcards };
-        await setProgress(
-          jobId,
-          'generating_podcast',
-          84,
-          demoCards
-            ? '知识闪卡已生成（演示模式）'
-            : `知识闪卡已生成（${flashcards.length} 张）`,
-          { podcast, title: podcast.title },
-        );
-      } catch (cardErr) {
-        const msg = cardErr instanceof Error ? cardErr.message : String(cardErr);
-        console.warn('[pipeline] flashcards failed:', msg);
-        // 仅重跑闪卡时失败应抛出；完整流水线中不阻断 TTS
-        if (fromStep === 'flashcards') {
-          throw cardErr instanceof Error ? cardErr : new Error(msg);
-        }
-        await setProgress(
-          jobId,
-          'generating_podcast',
-          84,
-          `脚本已就绪（闪卡跳过：${msg.slice(0, 80)}）`,
-          { podcast, title: podcast.title },
-        );
-      }
-
-      // 仅闪卡：生成完即结束，不重跑 TTS
-      if (fromStep === 'flashcards') {
-        await setProgress(
-          jobId,
-          'done',
-          100,
-          podcast?.flashcards?.length
-            ? `知识闪卡已更新（${podcast.flashcards.length} 张）`
-            : '知识闪卡处理完成',
-          {
-            podcast,
-            title: podcast?.title || job.title,
-            published: job.published ?? true,
-          },
-        );
-        return;
-      }
-    } else {
+      const { flashcards, demo: demoCards } = await generateFlashcards({
+        jobId,
+        transcript,
+        sourceTitle: latestCards.originalFilename || latestCards.title,
+        podcast,
+      });
+      podcast = { ...podcast, flashcards };
       await setProgress(
         jobId,
-        'generating_podcast',
-        84,
-        '已跳过知识闪卡（复用已有内容）',
+        'done',
+        100,
+        demoCards
+          ? '知识闪卡已更新（演示模式）'
+          : `知识闪卡已更新（${flashcards.length} 张）`,
         {
           podcast,
-          title: podcast?.title || job.title,
+          title: podcast.title,
+          published: job.published ?? true,
         },
       );
+      return;
     }
 
     if (!podcast?.script?.trim()) {
       throw new Error('缺少播客脚本，无法合成音频');
     }
 
-    // ── 5. 合成 ──
+    // ── 并发：封面 + 闪卡 + TTS（互不依赖） ──
+    const needCover = start <= 3;
+    const needFlashcards = start <= 4;
+
     job = (await getJob(jobId)) || job;
     // 文本任务可能没有有效 listenPath：再尝试生成静音占位
     if (!(await pathExists(listenPath))) {
@@ -579,32 +523,136 @@ export async function runPipeline(
       }
     }
 
-    await setProgress(jobId, 'synthesizing_audio', 86, '正在合成播客音频…');
+    const parallelLabels: string[] = [];
+    if (needCover && hasImageModel()) parallelLabels.push('封面');
+    if (needFlashcards) parallelLabels.push('闪卡');
+    parallelLabels.push('音频');
+
+    await setProgress(
+      jobId,
+      'synthesizing_audio',
+      78,
+      parallelLabels.length > 1
+        ? `正在并发生成${parallelLabels.join(' / ')}…`
+        : '正在合成播客音频…',
+      {
+        podcast,
+        title: podcast.title,
+      },
+    );
+
+    // 并发任务只读本地快照，避免互相覆盖 DB 写
+    const podcastSnapshot = podcast;
+    const transcriptSnapshot =
+      transcript.trim() || (await getJob(jobId))?.transcript || '';
+    const sourceTitle =
+      job.originalFilename || job.title || podcastSnapshot.title;
+    const ttsOptions = job.tts;
+    const ttsSourcePath = listenPath;
+
+    const coverTask = async () => {
+      if (!needCover) return null;
+      if (!hasImageModel()) {
+        if (podcastSnapshot.hasCoverImage == null) {
+          return { ...podcastSnapshot, hasCoverImage: false as const };
+        }
+        return podcastSnapshot;
+      }
+      return maybeGeneratePodcastCover(jobId, podcastSnapshot);
+    };
+
+    const cardsTask = async () => {
+      if (!needFlashcards) return null;
+      if (!transcriptSnapshot.trim()) {
+        throw new Error('转写/文本为空，无法生成知识闪卡');
+      }
+      return generateFlashcards({
+        jobId,
+        transcript: transcriptSnapshot,
+        sourceTitle,
+        podcast: podcastSnapshot,
+      });
+    };
+
+    const ttsTask = async () =>
+      synthesizePodcastAudio({
+        script: podcastSnapshot.script,
+        sourceAudioPath: ttsSourcePath,
+        jobId,
+        tts: ttsOptions,
+      });
+
+    // allSettled：闪卡失败不拖垮封面与 TTS
+    const [coverSettled, cardsSettled, ttsSettled] = await Promise.allSettled([
+      coverTask(),
+      cardsTask(),
+      ttsTask(),
+    ]);
+
+    if (coverSettled.status === 'fulfilled' && coverSettled.value) {
+      podcast = {
+        ...podcast,
+        hasCoverImage: coverSettled.value.hasCoverImage,
+      };
+    } else if (coverSettled.status === 'rejected') {
+      const msg =
+        coverSettled.reason instanceof Error
+          ? coverSettled.reason.message
+          : String(coverSettled.reason);
+      console.warn('[pipeline] cover failed:', msg);
+      podcast = { ...podcast, hasCoverImage: false };
+    }
+
+    let flashcardNote = '';
+    if (needFlashcards) {
+      if (cardsSettled.status === 'fulfilled' && cardsSettled.value) {
+        const { flashcards, demo: demoCards } = cardsSettled.value;
+        podcast = { ...podcast, flashcards };
+        flashcardNote = demoCards
+          ? ' · 闪卡演示'
+          : ` · 闪卡${flashcards.length}张`;
+      } else if (cardsSettled.status === 'rejected') {
+        const msg =
+          cardsSettled.reason instanceof Error
+            ? cardsSettled.reason.message
+            : String(cardsSettled.reason);
+        console.warn('[pipeline] flashcards failed:', msg);
+        flashcardNote = ` · 闪卡跳过`;
+      }
+    }
+
+    if (ttsSettled.status === 'rejected') {
+      throw ttsSettled.reason instanceof Error
+        ? ttsSettled.reason
+        : new Error(String(ttsSettled.reason));
+    }
+
     const {
       audioPath: podcastAudioPath,
       demo: demoTts,
       mode,
       voice,
       scriptTiming,
-    } = await synthesizePodcastAudio({
-      script: podcast.script,
-      sourceAudioPath: listenPath,
-      jobId,
-      tts: job.tts,
-    });
+    } = ttsSettled.value;
 
-    // 写入逐行时间轴，供前端歌词/跟读对齐
     if (scriptTiming?.length) {
       podcast = { ...podcast, scriptTiming };
     }
+
+    const coverNote =
+      needCover && hasImageModel()
+        ? podcast.hasCoverImage
+          ? ' · 含封面'
+          : ' · 封面回退'
+        : '';
 
     await setProgress(
       jobId,
       'done',
       100,
       demoTts
-        ? `播客已生成（演示模式 · ${kindLabel(kind)}）`
-        : `播客生成完成（${kindLabel(kind)} · TTS: ${mode}${voice ? ' / ' + voice : ''}）`,
+        ? `播客已生成（演示模式 · ${kindLabel(kind)}${coverNote}${flashcardNote}）`
+        : `播客生成完成（${kindLabel(kind)} · TTS: ${mode}${voice ? ' / ' + voice : ''}${coverNote}${flashcardNote}）`,
       {
         podcastAudioPath,
         podcast,
