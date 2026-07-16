@@ -4137,15 +4137,14 @@ body:has(.global-player) {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  padding: 12px;
+  padding: 14px;
+  /* 全卡可读遮罩，内容可铺满 */
   background:
     linear-gradient(
       180deg,
-      rgba(8, 12, 22, 0.08) 0%,
-      rgba(8, 12, 22, 0.18) 38%,
-      rgba(8, 12, 22, 0.72) 72%,
-      rgba(8, 12, 22, 0.88) 100%
+      rgba(8, 12, 22, 0.42) 0%,
+      rgba(8, 12, 22, 0.52) 45%,
+      rgba(8, 12, 22, 0.72) 100%
     );
 }
 
@@ -4153,10 +4152,13 @@ body:has(.global-player) {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 5px;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
+  height: 100%;
   border: 0;
-  padding: 0 44px 0 0;
+  padding: 0 0 44px;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -4166,6 +4168,7 @@ body:has(.global-player) {
 .lh-card-badge {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   min-height: 20px;
   padding: 0 8px;
   border-radius: 999px;
@@ -4182,30 +4185,32 @@ body:has(.global-player) {
 
 .lh-card-title {
   margin: 0;
+  flex-shrink: 0;
   width: 100%;
-  font-size: clamp(14px, 2.8vw, 16px);
+  font-size: clamp(15px, 3.2vw, 18px);
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.3;
+  line-height: 1.28;
   color: #fff;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.28);
 }
 
 .lh-card-desc {
   margin: 0;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 500;
-  line-height: 1.45;
-  color: rgba(255, 255, 255, 0.82);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
   overflow: hidden;
+  /* 简介吃满卡片剩余高度，按高度自然裁切 */
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.22);
 }
 
 .lh-card-play {
@@ -4267,10 +4272,18 @@ body:has(.global-player) {
 
 @media (max-width: 380px) {
   .lh-card-overlay {
-    padding: 10px;
+    padding: 12px;
   }
   .lh-card-text {
-    padding-right: 40px;
+    padding-bottom: 40px;
+    gap: 6px;
+  }
+  .lh-card-title {
+    font-size: 14.5px;
+    -webkit-line-clamp: 3;
+  }
+  .lh-card-desc {
+    font-size: 12px;
   }
   .lh-card-play {
     width: 32px;
@@ -4291,10 +4304,9 @@ body:has(.global-player) {
     background:
       linear-gradient(
         180deg,
-        rgba(0, 0, 0, 0.12) 0%,
-        rgba(0, 0, 0, 0.28) 40%,
-        rgba(0, 0, 0, 0.78) 78%,
-        rgba(0, 0, 0, 0.9) 100%
+        rgba(0, 0, 0, 0.48) 0%,
+        rgba(0, 0, 0, 0.58) 45%,
+        rgba(0, 0, 0, 0.78) 100%
       );
   }
 }
