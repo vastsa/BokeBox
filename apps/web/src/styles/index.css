@@ -4284,38 +4284,22 @@ body:has(.global-player) {
   filter: brightness(1.03);
 }
 
-/* ---- Waterfall masonry ---- */
+/* ---- Waterfall masonry（react-plock 最短列布局） ---- */
 .lh-masonry {
-  column-count: 2;
-  column-gap: 14px;
+  width: 100%;
+  min-width: 0;
 }
 
-@media (min-width: 720px) {
-  .lh-masonry {
-    column-count: 3;
-    column-gap: 16px;
-  }
-}
-
-@media (min-width: 1100px) {
-  .lh-masonry {
-    column-count: 4;
-    column-gap: 18px;
-  }
+.lh-masonry > * {
+  min-width: 0;
 }
 
 .lh-card {
-  break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-  page-break-inside: avoid;
   min-width: 0;
-  margin: 0 0 14px;
+  width: 100%;
+  margin: 0;
   animation: enter-scale 0.4s var(--ease) both;
   animation-delay: var(--stagger, 0ms);
-}
-
-@media (min-width: 720px) {
-  .lh-card { margin-bottom: 16px; }
 }
 
 .lh-card-face {
@@ -4523,8 +4507,8 @@ body:has(.global-player) {
 }
 
 .lh-skel-card {
-  break-inside: avoid;
-  margin: 0 0 14px;
+  width: 100%;
+  margin: 0;
   aspect-ratio: 3 / 4;
   border-radius: 20px;
 }

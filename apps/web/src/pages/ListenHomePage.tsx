@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Masonry } from 'react-plock';
 import {
   fetchHistory,
   fetchJobs,
@@ -41,6 +42,17 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'progress', label: '在听' },
   { key: 'done', label: '听完' },
 ];
+
+/** 真正的最短列瀑布流：2 → 3 → 4 列 */
+const MASONRY_CONFIG = {
+  columns: [2, 3, 4],
+  gap: [14, 16, 18],
+  // media 长度需覆盖列配置索引（react-plock 按命中的 min-width 数量取 columns[i]）
+  media: [720, 1100, 10000],
+  useBalancedLayout: true,
+};
+
+const SKEL_ITEMS = Array.from({ length: 6 }, (_, i) => i);
 
 function itemTitle(item: LibraryItem): string {
   return item.job.podcast?.title || item.job.title;
@@ -256,18 +268,20 @@ export function ListenHomePage({ route }: { route: Route }) {
           )}
 
           {loading ? (
-            <div className="lh-masonry">
-              {Array.from({ length: 6 }).map((_, i) => (
+            <Masonry
+              className="lh-masonry"
+              items={SKEL_ITEMS}
+              config={MASONRY_CONFIG}
+              render={(i) => (
                 <div
-                  key={i}
                   className={[
                     'nl-shimmer',
                     'lh-skel-card',
                     `is-${(['s', 'm', 't'] as const)[i % 3]}`,
                   ].join(' ')}
                 />
-              ))}
-            </div>
+              )}
+            />
           ) : !library.length ? (
             <EmptyState
               icon={<IconLibrary size={22} />}
@@ -337,8 +351,12 @@ export function ListenHomePage({ route }: { route: Route }) {
                   </button>
                 </div>
               ) : (
-                <div className="lh-masonry" role="list">
-                  {filtered.map((item, idx) => (
+                <Masonry
+                  className="lh-masonry"
+                  role="list"
+                  items={filtered}
+                  config={MASONRY_CONFIG}
+                  render={(item, idx) => (
                     <CoverCard
                       key={item.job.id}
                       item={item}
@@ -352,8 +370,8 @@ export function ListenHomePage({ route }: { route: Route }) {
                         navigate({ name: 'job', id: item.job.id })
                       }
                     />
-                  ))}
-                </div>
+                  )}
+                />
               )}
             </>
           )}
