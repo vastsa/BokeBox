@@ -149,7 +149,7 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 > 三步开箱。更细的部署与模型说明见下方「附录」。
 
 ```bash
-git clone https://github.com/<your-name>/bokebox.git
+git clone https://github.com/xzulab/BokeBox.git
 cd bokebox
 cp .env.example .env   # 填入你的 API Key
 ./start.sh             # 打开 http://localhost:5173
