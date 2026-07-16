@@ -6,7 +6,7 @@ import { maybeGeneratePodcastCover } from './coverGenerator.js';
 import { hasImageModel } from '../utils/aiConfig.js';
 import { generateFlashcards } from './flashcardGenerator.js';
 import { synthesizePodcastAudio } from './ttsSynthesizer.js';
-import { importUrlContent } from './urlImporter.js';
+import { importUrlContent, isPlaceholderTitle } from './urlImporter.js';
 import { getJob, updateJob } from './jobStore.js';
 import { pathExists, writeText } from '../utils/fs.js';
 import { jobPaths } from '../utils/paths.js';
@@ -247,9 +247,10 @@ export async function runPipeline(
           mimeType: imported.mimeType,
           size: imported.size,
           originalFilename: imported.filename,
-          title: job.title?.startsWith('http')
-            ? imported.filename
-            : job.title || imported.filename,
+          // 占位标题（hostname / 原 URL）优先用网页真实标题
+          title: isPlaceholderTitle(job.title)
+            ? imported.title || imported.filename
+            : job.title || imported.title || imported.filename,
           transcript: imported.textContent,
         },
       );

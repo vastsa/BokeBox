@@ -315,7 +315,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               <input
                 type="url"
                 className="nl-input"
-                placeholder="https://… 视频 / 音频 / 文本链接"
+                placeholder="https://… 文章 / 视频 / 音频直链"
                 value={sourceUrl}
                 disabled={uploading}
                 onChange={(e) => setSourceUrl(e.target.value)}
@@ -329,7 +329,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             </label>
 
             <p className="upload-url-hint">
-              自动识别类型并分流处理。请使用可直接访问的公开链接。
+              支持网页文章正文抽取、音视频直链下载。自动识别类型并分流；请使用可公开访问的链接。
             </p>
 
             <button
@@ -379,7 +379,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             <div className="upload-progress-hint">
               {uploading
                 ? sourceMode === 'url'
-                  ? '任务已创建，服务端将下载并识别内容类型…'
+                  ? '任务已创建，服务端将抓取链接并提取正文/媒体…'
                   : '上传完成后自动跳转任务详情。'
                 : '任务已创建，正在跳转…'}
             </div>
