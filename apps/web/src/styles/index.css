@@ -7752,9 +7752,7 @@ html[data-theme="system"] .script-prompt-mode-tab.is-active {
    Settings · 管理台（克制 / 正式）
    ========================= */
 .settings-page {
-  /* 间距由 .app-page 统一控制 */
-  width: 100%;
-  max-width: 100%;
+  /* 间距由 .app-page 统一控制；宽度交给 .page-container，避免 width:100% 撑满全屏 */
   min-width: 0;
 }
 
