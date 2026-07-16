@@ -10,6 +10,10 @@ import {
   getVoiceDesignModel,
   hasApiKey,
 } from '../utils/aiConfig.js';
+import {
+  buildScriptTiming,
+  writeScriptTiming,
+} from './scriptTiming.js';
 
 export const TTS_MODE_META: Record<
   TtsMode,
@@ -135,7 +139,13 @@ export async function synthesizePodcastAudio(options: {
   sourceAudioPath: string;
   jobId: string;
   tts?: TtsOptions;
-}): Promise<{ audioPath: string; demo: boolean; mode: TtsMode; voice?: string }> {
+}): Promise<{
+  audioPath: string;
+  demo: boolean;
+  mode: TtsMode;
+  voice?: string;
+  scriptTiming?: import('./scriptTiming.js').ScriptLineTiming[];
+}> {
   const paths = jobPaths(options.jobId);
   await ensureDir(paths.dir);
   const mode: TtsMode = options.tts?.mode || 'default';
@@ -153,12 +163,25 @@ export async function synthesizePodcastAudio(options: {
       const { generateSilentMp3 } = await import('./audioExtractor.js');
       await generateSilentMp3(mp3Fallback, 2);
     }
-    return { audioPath: mp3Fallback, demo: true, mode, voice };
+    // 演示模式无实测块，按估算时间轴兜底
+    const timing = buildScriptTiming({
+      script: options.script,
+      durationSec: 2,
+    });
+    await writeScriptTiming(options.jobId, timing);
+    return {
+      audioPath: mp3Fallback,
+      demo: true,
+      mode,
+      voice,
+      scriptTiming: timing.lines,
+    };
   }
 
   // 控制单次 TTS 输入长度，避免超限；分段后顺序合成再拼接
   const chunks = splitScript(options.script, 500);
   const buffers: Buffer[] = [];
+  const chunkDurationsSec: number[] = [];
 
   for (let i = 0; i < chunks.length; i++) {
     // 开头风格标签仅注入首段，避免每段重复叠加；正文内嵌标签随原文分段
@@ -182,10 +205,22 @@ export async function synthesizePodcastAudio(options: {
     };
     const b64 = data.choices?.[0]?.message?.audio?.data;
     if (!b64) throw new Error('TTS 返回缺少 audio.data');
-    buffers.push(Buffer.from(b64, 'base64'));
+    const buf = Buffer.from(b64, 'base64');
+    buffers.push(buf);
+    chunkDurationsSec.push(wavDurationSec(buf));
   }
 
   const merged = mergeWavBuffers(buffers);
+  const totalDuration =
+    chunkDurationsSec.reduce((a, b) => a + b, 0) || wavDurationSec(merged);
+  const timing = buildScriptTiming({
+    script: options.script,
+    durationSec: totalDuration,
+    chunks,
+    chunkDurationsSec,
+  });
+  await writeScriptTiming(options.jobId, timing);
+
   const isWav = merged.slice(0, 4).toString() === 'RIFF';
   if (isWav) {
     await fs.writeFile(outPath, merged);
@@ -193,14 +228,50 @@ export async function synthesizePodcastAudio(options: {
     try {
       await convertToMp3(outPath, mp3Fallback);
       await removeIfExists(outPath);
-      return { audioPath: mp3Fallback, demo: false, mode, voice };
+      return {
+        audioPath: mp3Fallback,
+        demo: false,
+        mode,
+        voice,
+        scriptTiming: timing.lines,
+      };
     } catch {
-      return { audioPath: outPath, demo: false, mode, voice };
+      return {
+        audioPath: outPath,
+        demo: false,
+        mode,
+        voice,
+        scriptTiming: timing.lines,
+      };
     }
   }
 
   await fs.writeFile(mp3Fallback, merged);
-  return { audioPath: mp3Fallback, demo: false, mode, voice };
+  return {
+    audioPath: mp3Fallback,
+    demo: false,
+    mode,
+    voice,
+    scriptTiming: timing.lines,
+  };
+}
+
+/** 从标准 PCM WAV 读取时长（秒） */
+function wavDurationSec(buf: Buffer): number {
+  if (buf.slice(0, 4).toString() !== 'RIFF') return 0;
+  try {
+    const fmt = findChunk(buf, 'fmt ');
+    const data = findChunk(buf, 'data');
+    if (!fmt || !data) return 0;
+    const channels = fmt.chunk.readUInt16LE(0);
+    const sampleRate = fmt.chunk.readUInt32LE(4);
+    const bitsPerSample = fmt.chunk.readUInt16LE(14);
+    const bytesPerSec = sampleRate * channels * (bitsPerSample / 8);
+    if (bytesPerSec <= 0) return 0;
+    return data.chunk.length / bytesPerSec;
+  } catch {
+    return 0;
+  }
 }
 
 function normalizeStyleTagList(tags?: string[] | string | null): string[] {

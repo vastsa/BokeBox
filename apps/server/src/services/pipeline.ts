@@ -491,13 +491,23 @@ export async function runPipeline(
     }
 
     await setProgress(jobId, 'synthesizing_audio', 86, '正在合成播客音频…');
-    const { audioPath: podcastAudioPath, demo: demoTts, mode, voice } =
-      await synthesizePodcastAudio({
-        script: podcast.script,
-        sourceAudioPath: listenPath,
-        jobId,
-        tts: job.tts,
-      });
+    const {
+      audioPath: podcastAudioPath,
+      demo: demoTts,
+      mode,
+      voice,
+      scriptTiming,
+    } = await synthesizePodcastAudio({
+      script: podcast.script,
+      sourceAudioPath: listenPath,
+      jobId,
+      tts: job.tts,
+    });
+
+    // 写入逐行时间轴，供前端歌词/跟读对齐
+    if (scriptTiming?.length) {
+      podcast = { ...podcast, scriptTiming };
+    }
 
     await setProgress(
       jobId,

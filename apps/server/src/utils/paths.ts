@@ -38,6 +38,7 @@ export const LEGACY_BLOGS_DIR = path.join(STORAGE_DIR, 'blogs');
  *   script.txt        播客脚本
  *   shownotes.md      节目笔记
  *   flashcards.json   知识闪卡
+ *   script-timing.json 口播行时间轴
  *   podcast.mp3|.wav  合成播客
  */
 export interface JobPaths {
@@ -49,6 +50,7 @@ export interface JobPaths {
   script: string;
   showNotes: string;
   flashcards: string;
+  scriptTiming: string;
   podcastMp3: string;
   podcastWav: string;
 }
@@ -71,6 +73,7 @@ export function jobPaths(jobId: string): JobPaths {
     script: path.join(dir, 'script.txt'),
     showNotes: path.join(dir, 'shownotes.md'),
     flashcards: path.join(dir, 'flashcards.json'),
+    scriptTiming: path.join(dir, 'script-timing.json'),
     podcastMp3: path.join(dir, 'podcast.mp3'),
     podcastWav: path.join(dir, 'podcast.wav'),
   };

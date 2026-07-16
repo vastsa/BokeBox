@@ -9,8 +9,9 @@ import {
 } from 'react';
 import {
   activeLineIndex,
+  parseScriptLines,
   seekSecForLine,
-  splitScriptLines,
+  type ScriptLineTiming,
 } from '../../lib/scriptFollow';
 
 const LINE_H = 56;
@@ -31,17 +32,21 @@ export function ScriptFollow({
   durationSec,
   onSeek,
   variant = 'list',
+  timing,
 }: {
   script: string;
   currentSec: number;
   durationSec: number;
   onSeek?: (sec: number) => void;
   variant?: 'list' | 'lyrics';
+  /** 服务端合成时写入的真实/半真实时间轴 */
+  timing?: ScriptLineTiming[] | null;
 }) {
-  const lines = useMemo(() => splitScriptLines(script), [script]);
+  const parsed = useMemo(() => parseScriptLines(script), [script]);
+  const lines = useMemo(() => parsed.map((l) => l.text), [parsed]);
   const active = useMemo(
-    () => activeLineIndex(lines, currentSec, durationSec),
-    [lines, currentSec, durationSec],
+    () => activeLineIndex(parsed, currentSec, durationSec, timing),
+    [parsed, currentSec, durationSec, timing],
   );
   const listRef = useRef<HTMLDivElement | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
@@ -64,6 +69,8 @@ export function ScriptFollow({
         active={active}
         durationSec={durationSec}
         onSeek={onSeek}
+        parsed={parsed}
+        timing={timing}
       />
     );
   }
@@ -71,7 +78,7 @@ export function ScriptFollow({
   return (
     <div className="script-follow" ref={listRef}>
       <div className="script-follow-hint">
-        跟读高亮按进度估算 · 点击句子可跳转
+        跟读高亮已对齐口播节奏 · 点击句子可跳转
       </div>
       <div className="script-follow-list">
         {lines.map((line, i) => {
@@ -83,7 +90,7 @@ export function ScriptFollow({
               type="button"
               ref={i === active ? activeRef : undefined}
               className={['script-line', state].join(' ')}
-              onClick={() => onSeek?.(seekSecForLine(lines, i, durationSec))}
+              onClick={() => onSeek?.(seekSecForLine(parsed, i, durationSec, timing))}
             >
               <span className="script-line-idx">{i + 1}</span>
               <span className="script-line-text">{line}</span>
@@ -106,11 +113,15 @@ function LyricsWheel({
   active,
   durationSec,
   onSeek,
+  parsed,
+  timing,
 }: {
   lines: string[];
   active: number;
   durationSec: number;
   onSeek?: (sec: number) => void;
+  parsed: ReturnType<typeof parseScriptLines>;
+  timing?: ScriptLineTiming[] | null;
 }) {
   const maxY = Math.max(0, (lines.length - 1) * LINE_H);
 
@@ -162,9 +173,9 @@ function LyricsWheel({
       const i = clamp(index, 0, lines.length - 1);
       if (lastSeekIndex.current === i) return;
       lastSeekIndex.current = i;
-      onSeek?.(seekSecForLine(lines, i, durationSec));
+      onSeek?.(seekSecForLine(parsed, i, durationSec, timing));
     },
-    [durationSec, lines, onSeek],
+    [durationSec, parsed, onSeek, timing],
   );
 
   /** 平滑滚到目标 y，结束后可选 seek */

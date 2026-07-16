@@ -1,5 +1,10 @@
 import type { FastifyInstance } from 'fastify';
-import { getJob, listPublishedJobs, toPublic } from '../services/jobStore.js';
+import {
+  getJob,
+  listPublishedJobs,
+  toPublic,
+  withScriptTiming,
+} from '../services/jobStore.js';
 import {
   getListenRecord,
   listListenRecords,
@@ -12,12 +17,15 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
     const jobs = await listPublishedJobs();
     const records = await listListenRecords();
     const recordMap = Object.fromEntries(records.map((r) => [r.jobId, r]));
-    return {
-      items: jobs.map((job) => ({
-        job: toPublic(job),
+    const items = [];
+    for (const job of jobs) {
+      const enriched = await withScriptTiming(job);
+      items.push({
+        job: toPublic(enriched),
         listen: recordMap[job.id] || null,
-      })),
-    };
+      });
+    }
+    return { items };
   });
 
   app.get('/listen/history', async () => {
@@ -26,7 +34,8 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
     for (const rec of records) {
       const job = await getJob(rec.jobId);
       if (!job || job.status !== 'done' || !job.podcast) continue;
-      items.push({ job: toPublic(job), listen: rec });
+      const enriched = await withScriptTiming(job);
+      items.push({ job: toPublic(enriched), listen: rec });
     }
     return { items };
   });
@@ -37,7 +46,8 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: '播客不存在或尚未完成' });
     }
     const listen = await getListenRecord(job.id);
-    return { job: toPublic(job), listen: listen || null };
+    const enriched = await withScriptTiming(job);
+    return { job: toPublic(enriched), listen: listen || null };
   });
 
   app.post<{

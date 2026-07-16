@@ -41,6 +41,13 @@ export interface PodcastSegment {
   summary: string;
 }
 
+/** 口播脚本逐行时间轴（用于歌词/跟读对齐） */
+export interface ScriptLineTiming {
+  text: string;
+  startSec: number;
+  endSec: number;
+}
+
 /** 知识闪卡：问答对，便于复习记忆 */
 export interface Flashcard {
   /** 稳定 id，便于前端状态绑定 */
@@ -67,6 +74,8 @@ export interface PodcastContent {
   showNotes: string;
   /** 知识闪卡（独立 AI 生成） */
   flashcards?: Flashcard[];
+  /** 口播逐行时间轴（TTS 合成后写入，跟读对齐） */
+  scriptTiming?: ScriptLineTiming[];
   estimatedMinutes: number;
   coverGradient?: string;
 }

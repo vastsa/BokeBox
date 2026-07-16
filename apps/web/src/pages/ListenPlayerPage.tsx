@@ -446,6 +446,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
                   durationSec={active.duration}
                   onSeek={(sec) => player.seekTo(sec)}
                   variant="lyrics"
+                  timing={job.podcast?.scriptTiming}
                 />
               ) : (
                 <p className="qq-empty">暂无口播脚本</p>

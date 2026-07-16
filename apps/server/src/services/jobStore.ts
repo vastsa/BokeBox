@@ -6,6 +6,7 @@ import {
   type JobRow,
 } from '../db/sqlite.js';
 import type { Job, JobPublic } from '../types/job.js';
+import { readScriptTiming } from './scriptTiming.js';
 
 export function toPublic(job: Job): JobPublic {
   const { videoPath, audioPath, podcastAudioPath, ...rest } = job;
@@ -17,6 +18,20 @@ export function toPublic(job: Job): JobPublic {
     hasSourceAudio: Boolean(audioPath) || kind === 'audio',
     hasPodcastAudio: Boolean(podcastAudioPath),
     hasTranscript: Boolean(job.transcript?.trim()),
+  };
+}
+
+/** 把磁盘上的 script-timing.json 合并进 podcast（不改库） */
+export async function withScriptTiming(job: Job): Promise<Job> {
+  if (job.podcast?.scriptTiming?.length) return job;
+  const timing = await readScriptTiming(job.id);
+  if (!timing?.lines?.length || !job.podcast) return job;
+  return {
+    ...job,
+    podcast: {
+      ...job.podcast,
+      scriptTiming: timing.lines,
+    },
   };
 }
 

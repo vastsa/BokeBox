@@ -552,6 +552,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                         currentSec={playState.current}
                         durationSec={playState.duration}
                         onSeek={(sec) => setSeekRequest(sec)}
+                        timing={job.podcast.scriptTiming}
                       />
                     ) : (
                       <pre className="jd-pre">{job.podcast.script}</pre>
