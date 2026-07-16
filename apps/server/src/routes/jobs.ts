@@ -49,7 +49,10 @@ import type {
 } from '../types/job.js';
 import {
   getGlobalScriptPrompt,
+  getGlobalTtsOptions,
+  normalizeTtsOptions,
   setGlobalScriptPrompt,
+  setGlobalTtsOptions,
 } from '../services/settingsStore.js';
 import {
   normalizeScriptPrompt,
@@ -144,19 +147,32 @@ function parseStyleTagsField(raw: unknown): string[] | undefined {
 
 /** 统一归一化 TTS 配置：default 强制预置音色；不支持风格指令 */
 function normalizeTts(tts?: Partial<TtsOptions> | null): TtsOptions {
-  const mode = normalizeMode(tts?.mode ? String(tts.mode) : 'default');
-  const styleTags = parseStyleTagsField(
-    (tts as { styleTags?: unknown } | null | undefined)?.styleTags,
-  );
-  return {
-    mode,
-    voice:
-      mode === 'voicedesign'
-        ? undefined
-        : resolvePresetVoice(tts?.voice ? String(tts.voice) : undefined),
-    voiceDesign: tts?.voiceDesign ? String(tts.voiceDesign) : undefined,
-    styleTags: mode === 'voicedesign' ? undefined : styleTags,
-  };
+  return normalizeTtsOptions(tts);
+}
+
+/**
+ * 解析任务级 TTS：
+ * - ttsSourceMode=global（默认）：快照当前全局音色
+ * - ttsSourceMode=custom：使用请求体自定义
+ */
+function resolveTtsForJob(
+  fields: Record<string, unknown>,
+  explicit?: Partial<TtsOptions> | null,
+): TtsOptions {
+  const modeRaw = String(
+    fields.ttsSourceMode || fields.ttsConfigMode || 'global',
+  )
+    .trim()
+    .toLowerCase();
+  const sourceMode = modeRaw === 'custom' ? 'custom' : 'global';
+
+  if (sourceMode === 'custom') {
+    if (explicit != null) return normalizeTts(explicit);
+    return parseTtsFromBody(fields);
+  }
+
+  // 全局：任务创建时快照，保证重跑稳定
+  return normalizeTts(getGlobalTtsOptions());
 }
 
 
@@ -305,6 +321,20 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  // ── 全局 TTS 音色设置 ──
+  app.get('/settings/tts', async () => {
+    const tts = getGlobalTtsOptions();
+    return { tts };
+  });
+
+  app.put<{ Body: { tts?: TtsOptions | null } }>(
+    '/settings/tts',
+    async (req) => {
+      const tts = setGlobalTtsOptions(req.body?.tts);
+      return { tts };
+    },
+  );
+
   app.get('/jobs', async () => {
     const jobs = await listJobs();
     return { jobs: jobs.map(toPublic) };
@@ -440,7 +470,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         ? true
         : String(fields.published) !== 'false' && fields.published !== false;
 
-    const tts = parseTtsFromBody(fields);
+    const tts = resolveTtsForJob(fields);
     const scriptPrompt = resolveScriptPromptForJob(fields);
     const safeName = filePart.filename.replace(/[^\w.\u4e00-\u9fa5-]+/g, '_');
     const ext = path.extname(filePart.filename || '').toLowerCase();
@@ -508,6 +538,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     Body: {
       url?: string;
       tts?: TtsOptions;
+      ttsSourceMode?: 'global' | 'custom';
       published?: boolean;
       title?: string;
       scriptPrompt?: ScriptPromptOptions;
@@ -522,7 +553,13 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: 'url 必须是 http/https 链接' });
     }
 
-    const tts = normalizeTts(req.body?.tts);
+    const tts = resolveTtsForJob(
+      {
+        ttsSourceMode: req.body?.ttsSourceMode,
+        tts: req.body?.tts,
+      },
+      req.body?.tts,
+    );
     const scriptPrompt = resolveScriptPromptForJob(
       {
         scriptPromptMode: req.body?.scriptPromptMode,

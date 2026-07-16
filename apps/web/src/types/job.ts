@@ -85,6 +85,9 @@ export interface ScriptPromptOptions {
 /** 上传时选择：用全局默认 或 本次单独设置 */
 export type ScriptPromptMode = 'global' | 'custom';
 
+/** TTS 音色来源：全局默认 或 本次单独 */
+export type TtsSourceMode = 'global' | 'custom';
+
 export interface TtsOptions {
   mode: TtsMode;
   /** 预置精品音色（default） */

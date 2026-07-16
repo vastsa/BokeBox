@@ -7,6 +7,7 @@ import type {
   ScriptPromptMode,
   ScriptPromptOptions,
   TtsOptions,
+  TtsSourceMode,
 } from '../types/job';
 import { clearAuthSession, getToken } from '../lib/auth';
 
@@ -67,6 +68,7 @@ export async function createJob(
   file: File,
   options: {
     tts?: TtsOptions;
+    ttsSourceMode?: TtsSourceMode;
     published?: boolean;
     scriptPrompt?: ScriptPromptOptions;
     scriptPromptMode?: ScriptPromptMode;
@@ -98,13 +100,17 @@ export async function createJob(
     const form = new FormData();
     // 重要：字段必须在 file 之前，否则 @fastify/multipart 的 req.file()
     // 往往拿不到后续字段，TTS 会静默回落到 default
-    const tts = options.tts || { mode: 'default' as const };
-    form.append('tts', JSON.stringify(tts));
-    form.append('ttsMode', tts.mode || 'default');
-    if (tts.voice) form.append('voice', tts.voice);
-    if (tts.voiceDesign) form.append('voiceDesign', tts.voiceDesign);
-    if (tts.styleTags?.length) {
-      form.append('styleTags', JSON.stringify(tts.styleTags));
+    const ttsSourceMode = options.ttsSourceMode || 'global';
+    form.append('ttsSourceMode', ttsSourceMode);
+    if (ttsSourceMode === 'custom') {
+      const tts = options.tts || { mode: 'default' as const };
+      form.append('tts', JSON.stringify(tts));
+      form.append('ttsMode', tts.mode || 'default');
+      if (tts.voice) form.append('voice', tts.voice);
+      if (tts.voiceDesign) form.append('voiceDesign', tts.voiceDesign);
+      if (tts.styleTags?.length) {
+        form.append('styleTags', JSON.stringify(tts.styleTags));
+      }
     }
     if (options.published === false) form.append('published', 'false');
     const scriptPromptMode = options.scriptPromptMode || 'global';
@@ -121,18 +127,21 @@ export async function createJobFromUrl(
   url: string,
   options: {
     tts?: TtsOptions;
+    ttsSourceMode?: TtsSourceMode;
     published?: boolean;
     title?: string;
     scriptPrompt?: ScriptPromptOptions;
     scriptPromptMode?: ScriptPromptMode;
   } = {},
 ): Promise<Job> {
+  const ttsSourceMode = options.ttsSourceMode || 'global';
   const data = await request<{ job: Job }>('/jobs/from-url', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       url,
-      tts: options.tts,
+      ttsSourceMode,
+      tts: ttsSourceMode === 'custom' ? options.tts : undefined,
       published: options.published,
       title: options.title,
       scriptPrompt: options.scriptPrompt,
@@ -245,6 +254,21 @@ export async function saveScriptPromptSettings(
     body: JSON.stringify({ scriptPrompt: scriptPrompt || {} }),
   });
   return data.scriptPrompt || {};
+}
+
+export async function fetchTtsSettings(): Promise<{ tts: TtsOptions }> {
+  return request('/settings/tts');
+}
+
+export async function saveTtsSettings(
+  tts?: TtsOptions | null,
+): Promise<TtsOptions> {
+  const data = await request<{ tts: TtsOptions }>('/settings/tts', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tts: tts || { mode: 'default' } }),
+  });
+  return data.tts;
 }
 
 function appendQuery(url: string, params: Record<string, string | undefined>): string {

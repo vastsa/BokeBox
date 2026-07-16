@@ -10,6 +10,7 @@ import type {
   ScriptPromptMode,
   ScriptPromptOptions,
   TtsOptions,
+  TtsSourceMode,
 } from '../../types/job';
 import { ProgressBar } from '../ProgressBar';
 import {
@@ -23,8 +24,8 @@ import {
   loadGlobalScriptPrompt,
   ScriptPromptPicker,
 } from './ScriptPromptPicker';
-import { TtsModePicker } from './TtsModePicker';
-import { TtsSummary } from './TtsSummary';
+import { DEFAULT_GLOBAL_TTS, summarizeTts } from './GlobalTtsSettings';
+import { loadGlobalTts, TtsPicker } from './TtsPicker';
 
 const ACCEPT = [
   // 视频
@@ -35,23 +36,13 @@ const ACCEPT = [
   '.txt,.md,.markdown,.html,.htm,.json,.csv,.xml,.log,.srt,.vtt,text/*',
 ].join(',');
 
-const DEFAULT_TTS: TtsOptions = {
-  mode: 'default',
-  voice: '冰糖',
-  voiceDesign: '成熟稳重的中文播客主持人，音色温暖清晰，语速适中，有亲和力',
-};
-
-const MODE_LABEL: Record<string, string> = {
-  default: '自然口播',
-  voicedesign: '自定义音色',
-};
-
 type SourceMode = 'file' | 'url';
 type OptionPanel = 'none' | 'tts' | 'prompt';
 
 export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const ttsRef = useRef<TtsOptions>(DEFAULT_TTS);
+  const ttsRef = useRef<TtsOptions>(DEFAULT_GLOBAL_TTS);
+  const ttsSourceModeRef = useRef<TtsSourceMode>('global');
   const publishedRef = useRef(true);
 
   const [sourceMode, setSourceMode] = useState<SourceMode>('file');
@@ -62,7 +53,10 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number | null>(null);
-  const [tts, setTts] = useState<TtsOptions>(DEFAULT_TTS);
+  const [tts, setTts] = useState<TtsOptions>(DEFAULT_GLOBAL_TTS);
+  const [ttsSourceMode, setTtsSourceMode] = useState<TtsSourceMode>('global');
+  const [globalTts, setGlobalTts] = useState<TtsOptions>(DEFAULT_GLOBAL_TTS);
+  const [ttsReady, setTtsReady] = useState(false);
   const [published, setPublished] = useState(true);
   const [scriptPromptMode, setScriptPromptMode] =
     useState<ScriptPromptMode>('global');
@@ -78,11 +72,18 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
 
   useEffect(() => {
     let cancelled = false;
-    void loadGlobalScriptPrompt().then((g) => {
-      if (cancelled) return;
-      setGlobalScriptPrompt(g);
-      setScriptPromptReady(true);
-    });
+    void Promise.all([loadGlobalScriptPrompt(), loadGlobalTts()]).then(
+      ([prompt, ttsCfg]) => {
+        if (cancelled) return;
+        setGlobalScriptPrompt(prompt);
+        setScriptPromptReady(true);
+        setGlobalTts(ttsCfg);
+        // 自定义草稿默认从全局复制，便于微调
+        ttsRef.current = ttsCfg;
+        setTts(ttsCfg);
+        setTtsReady(true);
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -91,6 +92,11 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const updateTts = useCallback((next: TtsOptions) => {
     ttsRef.current = next;
     setTts(next);
+  }, []);
+
+  const updateTtsSourceMode = useCallback((next: TtsSourceMode) => {
+    ttsSourceModeRef.current = next;
+    setTtsSourceMode(next);
   }, []);
 
   const updatePublished = useCallback((next: boolean) => {
@@ -111,6 +117,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const handleFile = useCallback(
     async (file: File | undefined | null) => {
       if (!file) return;
+      const currentTtsSource = ttsSourceModeRef.current;
       const currentTts = ttsRef.current;
       const currentPublished = publishedRef.current;
       const currentPromptMode = scriptPromptModeRef.current;
@@ -124,7 +131,8 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
       setOpenPanel('none');
       try {
         const job = await createJob(file, {
-          tts: currentTts,
+          ttsSourceMode: currentTtsSource,
+          tts: currentTtsSource === 'custom' ? currentTts : undefined,
           published: currentPublished,
           scriptPromptMode: currentPromptMode,
           scriptPrompt:
@@ -154,6 +162,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
       return;
     }
 
+    const currentTtsSource = ttsSourceModeRef.current;
     const currentTts = ttsRef.current;
     const currentPublished = publishedRef.current;
     const currentPromptMode = scriptPromptModeRef.current;
@@ -167,7 +176,8 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
     setOpenPanel('none');
     try {
       const job = await createJobFromUrl(url, {
-        tts: currentTts,
+        ttsSourceMode: currentTtsSource,
+        tts: currentTtsSource === 'custom' ? currentTts : undefined,
         published: currentPublished,
         scriptPromptMode: currentPromptMode,
         scriptPrompt:
@@ -191,9 +201,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
     setOpenPanel((prev) => (prev === panel ? 'none' : panel));
   };
 
-  const ttsSummary = `${MODE_LABEL[tts.mode] || tts.mode}${
-    tts.mode !== 'voicedesign' && tts.voice ? ` · ${tts.voice}` : ''
-  }`;
+  const activeTts = ttsSourceMode === 'global' ? globalTts : tts;
+  const ttsSummary = summarizeTts(activeTts);
+  const ttsModeLabel = ttsSourceMode === 'global' ? '全局' : '本次';
   const promptSummary = summarizeScriptPrompt(
     scriptPromptMode === 'global' ? globalScriptPrompt : scriptPrompt,
   );
@@ -428,14 +438,14 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                 'upload-option-chip',
                 openPanel === 'tts' ? 'is-open' : '',
               ].join(' ')}
-              disabled={uploading}
+              disabled={uploading || !ttsReady}
               aria-expanded={openPanel === 'tts'}
               onClick={() => togglePanel('tts')}
             >
               <IconMic size={13} />
               <span className="chip-label">音色</span>
-              <span className="chip-value" title={ttsSummary}>
-                {ttsSummary}
+              <span className="chip-value" title={`${ttsModeLabel} · ${ttsSummary}`}>
+                {ttsModeLabel} · {ttsSummary}
               </span>
               <span className="chip-caret" aria-hidden>
                 {openPanel === 'tts' ? '收起' : '调整'}
@@ -468,7 +478,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               <div className="upload-option-panel-head">
                 <div className="left">
                   <IconMic size={14} />
-                  <span>TTS 音色</span>
+                  <span>音色</span>
                 </div>
                 <button
                   type="button"
@@ -478,11 +488,15 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                   完成
                 </button>
               </div>
-              {uploading ? (
-                <TtsSummary value={tts} />
-              ) : (
-                <TtsModePicker value={tts} onChange={updateTts} />
-              )}
+              <TtsPicker
+                mode={ttsSourceMode}
+                value={tts}
+                globalValue={globalTts}
+                disabled={uploading || !ttsReady}
+                compact
+                onModeChange={updateTtsSourceMode}
+                onChange={updateTts}
+              />
             </div>
           )}
 

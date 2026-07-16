@@ -8,6 +8,7 @@ import {
   type PublicAiConfig,
 } from '../api/client';
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
+import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
 import {
   IconCheck,
   IconRefresh,
@@ -20,7 +21,7 @@ import { AppShell } from '../layouts/AppShell';
 type SettingsTab = 'persona' | 'ai' | 'account';
 
 const TABS: Array<{ id: SettingsTab; label: string; desc: string }> = [
-  { id: 'persona', label: '口播人设', desc: '全局主播风格与提示词' },
+  { id: 'persona', label: '制作默认', desc: '全局人设与音色' },
   { id: 'ai', label: 'AI 服务', desc: 'API Key 与模型参数' },
   { id: 'account', label: '账号', desc: '密码与登录状态' },
 ];
@@ -207,7 +208,10 @@ export function SettingsPage({ route }: { route: Route }) {
                 id="settings-panel-persona"
                 aria-labelledby="settings-tab-persona"
               >
-                <GlobalScriptPromptSettings />
+                <div className="settings-stack">
+                  <GlobalTtsSettings />
+                  <GlobalScriptPromptSettings />
+                </div>
               </div>
             )}
 

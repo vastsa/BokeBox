@@ -1,8 +1,9 @@
 import { getDb } from '../db/sqlite.js';
-import type { ScriptPromptOptions } from '../types/job.js';
+import type { ScriptPromptOptions, TtsOptions } from '../types/job.js';
 import { normalizeScriptPrompt } from './scriptPrompt.js';
 
 const KEY_SCRIPT_PROMPT = 'script_prompt';
+const KEY_TTS_OPTIONS = 'tts_options';
 const KEY_AUTH = 'auth_account';
 const KEY_AI = 'ai_config';
 const KEY_SESSIONS = 'auth_sessions';
@@ -268,6 +269,104 @@ export function revokeSession(token?: string | null): void {
 
 export function revokeAllSessions(): void {
   deleteSetting(KEY_SESSIONS);
+}
+
+
+const PRESET_VOICE_IDS = new Set([
+  'mimo_default',
+  '冰糖',
+  '茉莉',
+  '苏打',
+  '白桦',
+  'Mia',
+  'Chloe',
+  'Milo',
+  'Dean',
+]);
+
+function resolveStoredVoice(voice?: string): string {
+  const fallback =
+    getAiConfig().defaultVoice?.trim() || DEFAULT_AI.defaultVoice;
+  const candidate = voice?.trim() || fallback;
+  if (PRESET_VOICE_IDS.has(candidate)) return candidate;
+  return fallback;
+}
+
+function normalizeMode(raw?: string | null): TtsOptions['mode'] {
+  const m = String(raw || 'default').trim();
+  if (m === 'voicedesign') return 'voicedesign';
+  return 'default';
+}
+
+function parseStyleTags(raw: unknown): string[] | undefined {
+  if (raw == null || raw === '') return undefined;
+  if (Array.isArray(raw)) {
+    const tags = raw.map((x) => String(x).trim()).filter(Boolean);
+    return tags.length ? tags : undefined;
+  }
+  const text = String(raw).trim();
+  if (!text) return undefined;
+  if (text.startsWith('[')) {
+    try {
+      const arr = JSON.parse(text) as unknown;
+      if (Array.isArray(arr)) {
+        const tags = arr.map((x) => String(x).trim()).filter(Boolean);
+        return tags.length ? tags : undefined;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  const tags = text.split(/[\s,，、|]+/).map((s) => s.trim()).filter(Boolean);
+  return tags.length ? tags : undefined;
+}
+
+/** 统一归一化全局/任务 TTS 配置 */
+export function normalizeTtsOptions(tts?: Partial<TtsOptions> | null): TtsOptions {
+  const mode = normalizeMode(tts?.mode ? String(tts.mode) : 'default');
+  const styleTags = parseStyleTags(
+    (tts as { styleTags?: unknown } | null | undefined)?.styleTags,
+  );
+  const voiceDesign = tts?.voiceDesign ? String(tts.voiceDesign).trim() : '';
+  return {
+    mode,
+    voice:
+      mode === 'voicedesign'
+        ? undefined
+        : resolveStoredVoice(tts?.voice ? String(tts.voice) : undefined),
+    voiceDesign: voiceDesign || undefined,
+    styleTags: mode === 'voicedesign' ? undefined : styleTags,
+  };
+}
+
+function defaultGlobalTts(): TtsOptions {
+  return normalizeTtsOptions({
+    mode: 'default',
+    voice: getAiConfig().defaultVoice || DEFAULT_AI.defaultVoice,
+    voiceDesign:
+      '成熟稳重的中文播客主持人，音色温暖清晰，语速适中，有亲和力',
+  });
+}
+
+/** 读取全局 TTS（音色）设置 */
+export function getGlobalTtsOptions(): TtsOptions {
+  const raw = getSettingRaw(KEY_TTS_OPTIONS);
+  if (!raw) return defaultGlobalTts();
+  try {
+    const parsed = JSON.parse(raw) as Partial<TtsOptions>;
+    return normalizeTtsOptions(parsed);
+  } catch {
+    return defaultGlobalTts();
+  }
+}
+
+/** 保存全局 TTS（音色）设置 */
+export function setGlobalTtsOptions(
+  tts?: Partial<TtsOptions> | null,
+): TtsOptions {
+  const next = normalizeTtsOptions(tts ?? defaultGlobalTts());
+  setSettingRaw(KEY_TTS_OPTIONS, JSON.stringify(next));
+  return next;
 }
 
 /** 读取全局口播提示词干预 */
