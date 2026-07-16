@@ -27,6 +27,49 @@ export function formatDuration(sec: number): string {
   return `${m}:${String(r).padStart(2, '0')}`;
 }
 
+
+/**
+ * 源文件名 / URL 展示文案：压缩超长链接，避免撑破列表与详情布局
+ * - http(s) URL → hostname + 路径摘要
+ * - 普通文件名过长时保留扩展名
+ */
+export function formatSourceLabel(raw?: string | null, maxLen = 48): string {
+  const text = String(raw || '').trim();
+  if (!text) return '—';
+
+  if (/^https?:\/\//i.test(text)) {
+    try {
+      const u = new URL(text);
+      const host = u.hostname.replace(/^www\./, '');
+      const path = `${u.pathname || ''}${u.search || ''}${u.hash || ''}`;
+      let label = host;
+      if (path && path !== '/') {
+        if (path.length <= 28) {
+          label = `${host}${path}`;
+        } else {
+          label = `${host}${path.slice(0, 12)}…${path.slice(-10)}`;
+        }
+      }
+      if (label.length <= maxLen) return label;
+      return `${[...label].slice(0, maxLen - 1).join('')}…`;
+    } catch {
+      // fall through
+    }
+  }
+
+  const chars = [...text];
+  if (chars.length <= maxLen) return text;
+
+  const dot = text.lastIndexOf('.');
+  if (dot > 0 && text.length - dot <= 8 && !text.slice(dot + 1).includes('/')) {
+    const ext = text.slice(dot);
+    const keep = Math.max(10, maxLen - [...ext].length - 1);
+    return `${chars.slice(0, keep).join('')}…${ext}`;
+  }
+  return `${chars.slice(0, maxLen - 1).join('')}…`;
+}
+
+
 /** 稳定哈希：封面色 / 纹理变体共用 */
 export function hashSeed(seed?: string): number {
   const key = seed || 'default';

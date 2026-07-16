@@ -477,6 +477,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1_5);
+  min-width: 0;
+  max-width: 100%;
 }
 .upload-url-field .label {
   font-size: var(--fs-sm-plus);
@@ -928,6 +930,8 @@ body:has(.global-player) {
 /* form */
 .nl-input, .nl-textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: var(--control-3xl);
   border-radius: var(--radius-md-minus);
   border: var(--bw-1) solid var(--separator-strong);
@@ -938,6 +942,10 @@ body:has(.global-player) {
   font-size: var(--fs-md);
   outline: none;
   transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.nl-input {
+  overflow-x: auto;
+  text-overflow: ellipsis;
 }
 .nl-textarea { min-height: var(--size-84); resize: vertical; line-height: var(--lh-relaxed); }
 .nl-input::placeholder, .nl-textarea::placeholder { color: var(--text-3); }
@@ -2493,8 +2501,18 @@ html[data-theme="system"] .player-icon-btn {
   line-height: 1.35;
 }
 .studio-job-sub .dot { opacity: 0.55; }
-.studio-job-sub .truncate {
+.studio-job-sub .truncate,
+.studio-job-sub .studio-source-label {
+  display: block;
+  min-width: 0;
   max-width: min(42vw, 220px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studio-job-progress-row .truncate {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2978,6 +2996,8 @@ html[data-theme="system"] .studio-job-live {
   font-size: var(--fs-base-plus);
   line-height: var(--lh-normal);
   color: color-mix(in srgb, var(--danger) 85%, var(--text));
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .upload-settings-card {
@@ -3770,6 +3790,9 @@ html[data-theme="system"] .mini-player {
   flex-direction: column;
   gap: var(--space-3);
   padding-bottom: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
 }
 .jd-back {
   display: inline-flex;
@@ -3827,26 +3850,37 @@ html[data-theme="system"] .mini-player {
   letter-spacing: var(--tracking-tight);
   line-height: var(--lh-tight);
   color: var(--text);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .jd-sub {
   margin: var(--space-1_5) 0 0;
   font-size: var(--fs-md);
   color: var(--text-2);
   line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .jd-meta {
   margin: var(--space-2) 0 0;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-1_5) var(--space-2_5);
   font-size: var(--fs-sm-plus);
   color: var(--text-3);
+  min-width: 0;
+  max-width: 100%;
 }
 .jd-meta .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  flex-shrink: 0;
 }
-.jd-meta .truncate {
-  max-width: var(--size-220);
+.jd-meta .truncate,
+.jd-meta .jd-source-label {
+  display: block;
+  min-width: 0;
+  max-width: min(100%, var(--size-220));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3925,6 +3959,13 @@ html[data-theme="system"] .mini-player {
   font-size: var(--fs-base-plus);
   line-height: var(--lh-normal);
   color: color-mix(in srgb, var(--danger) 85%, var(--text));
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.jd-break,
+.jd-break * {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .jd-layout {

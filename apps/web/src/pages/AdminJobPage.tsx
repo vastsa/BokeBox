@@ -29,7 +29,7 @@ import {
   IconVideo,
   IconWave,
 } from '../components/icons';
-import { coverGradientFor, formatSize, formatTime } from '../lib/format';
+import { coverGradientFor, formatSize, formatSourceLabel, formatTime } from '../lib/format';
 import { CoverArt } from '../components/ui/CoverArt';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus, PipelineFromStep } from '../types/job';
@@ -335,7 +335,12 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               <span>{job.message || '等待处理…'}</span>
             </p>
             <p className="jd-meta">
-              <span className="truncate">{job.originalFilename}</span>
+              <span
+                className="jd-source-label truncate"
+                title={job.sourceUrl || job.originalFilename}
+              >
+                {formatSourceLabel(job.sourceUrl || job.originalFilename)}
+              </span>
               <span>{formatSize(job.size)}</span>
               <span>{formatTime(job.createdAt)}</span>
               <span className="mono">#{job.id}</span>
@@ -422,7 +427,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
           )}
 
           {(job.error || actionError) && (
-            <div className="jd-alert" role="alert">
+            <div className="jd-alert jd-break" role="alert">
               <strong>{job.error ? '处理失败' : '操作失败'}</strong>
               <p>{job.error || actionError}</p>
             </div>

@@ -18,7 +18,7 @@ import {
 } from '../components/icons';
 import { EmptyState } from '../components/ui/EmptyState';
 import { CoverArt } from '../components/ui/CoverArt';
-import { formatSize, formatTime } from '../lib/format';
+import { formatSize, formatSourceLabel, formatTime } from '../lib/format';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
@@ -319,7 +319,12 @@ function JobRow({
           </div>
 
           <div className="studio-job-sub">
-            <span className="truncate">{job.originalFilename}</span>
+            <span
+              className="studio-source-label truncate"
+              title={job.sourceUrl || job.originalFilename}
+            >
+              {formatSourceLabel(job.sourceUrl || job.originalFilename)}
+            </span>
             <span className="dot">·</span>
             <span>{formatSize(job.size)}</span>
             <span className="dot">·</span>

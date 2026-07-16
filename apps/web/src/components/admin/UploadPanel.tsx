@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createJob, createJobFromUrl } from '../../api/client';
-import { formatSize } from '../../lib/format';
+import { formatSize, formatSourceLabel } from '../../lib/format';
 import {
   emptyScriptPrompt,
   summarizeScriptPrompt,
@@ -351,7 +351,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                 <IconVideo size={18} />
               </div>
               <div className="upload-file-meta">
-                <div className="upload-file-name">{fileName}</div>
+                <div className="upload-file-name" title={fileName || undefined}>{formatSourceLabel(fileName, 64)}</div>
                 <div className="upload-file-sub">
                   {fileSize != null
                     ? formatSize(fileSize)
