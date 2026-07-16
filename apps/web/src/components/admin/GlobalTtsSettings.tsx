@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchTtsSettings, saveTtsSettings } from '../../api/client';
 import type { TtsOptions } from '../../types/job';
-import { IconMic } from '../icons';
 import { TtsModePicker } from './TtsModePicker';
-import { TtsSummary } from './TtsSummary';
 
 const DEFAULT_TTS: TtsOptions = {
   mode: 'default',
@@ -14,12 +12,23 @@ const DEFAULT_TTS: TtsOptions = {
 function summarizeTts(tts: TtsOptions): string {
   if (tts.mode === 'voicedesign') {
     const desc = tts.voiceDesign?.trim();
-    return desc ? `自定义 · ${desc.slice(0, 28)}${desc.length > 28 ? '…' : ''}` : '自定义音色';
+    return desc
+      ? `自定义 · ${desc.slice(0, 28)}${desc.length > 28 ? '…' : ''}`
+      : '自定义音色';
   }
   const parts = ['自然口播'];
   if (tts.voice) parts.push(String(tts.voice));
   if (tts.styleTags?.length) parts.push(tts.styleTags.join(' '));
   return parts.join(' · ');
+}
+
+function ttsMetaChips(tts: TtsOptions): string[] {
+  if (tts.mode === 'voicedesign') {
+    return ['自定义音色'];
+  }
+  const chips = [String(tts.voice || '冰糖')];
+  if (tts.styleTags?.length) chips.push(...tts.styleTags.slice(0, 4));
+  return chips;
 }
 
 /** 设置页：全局音色编辑 */
@@ -48,6 +57,7 @@ export function GlobalTtsSettings() {
   }, [load]);
 
   const summary = useMemo(() => summarizeTts(value), [value]);
+  const chips = useMemo(() => ttsMetaChips(value), [value]);
 
   const onSave = async () => {
     setSaving(true);
@@ -72,14 +82,19 @@ export function GlobalTtsSettings() {
 
   return (
     <section className="settings-card settings-card-wide">
-      <div className="settings-card-head">
-        <IconMic size={16} />
-        <div>
-          <h2>全局音色</h2>
-          <p>
-            制作时选择「使用全局」会应用这里的配置。当前：
-            <strong> {summary}</strong>
-          </p>
+      <div className="settings-status-bar">
+        <div className="settings-status-copy">
+          <span className="settings-status-label">当前配置</span>
+          <strong className="settings-status-value" title={summary}>
+            {summary}
+          </strong>
+        </div>
+        <div className="settings-chip-row" aria-label="音色摘要">
+          {chips.map((chip) => (
+            <span key={chip} className="settings-chip">
+              {chip}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -87,17 +102,19 @@ export function GlobalTtsSettings() {
         <div className="auth-loading">加载音色…</div>
       ) : (
         <>
-          <div className="script-prompt-preview-wrap">
-            <TtsSummary value={value} />
+          <div className="settings-block">
+            <div className="settings-block-head">
+              <h3>编辑音色</h3>
+              <p>选择模式、预置声线或自定义描述</p>
+            </div>
+            <TtsModePicker
+              value={value}
+              onChange={(next) => {
+                setValue(next);
+                setSavedHint(false);
+              }}
+            />
           </div>
-
-          <TtsModePicker
-            value={value}
-            onChange={(next) => {
-              setValue(next);
-              setSavedHint(false);
-            }}
-          />
 
           {error && <div className="script-prompt-error">{error}</div>}
 

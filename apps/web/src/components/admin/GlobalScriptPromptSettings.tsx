@@ -11,7 +11,6 @@ import {
   summarizeScriptPrompt,
 } from '../../lib/scriptPrompt';
 import type { ScriptPromptOptions } from '../../types/job';
-import { IconSpark } from '../icons';
 import { ScriptPromptForm } from './ScriptPromptForm';
 
 /** 设置页：全局口播人设编辑 */
@@ -21,13 +20,24 @@ export function GlobalScriptPromptSettings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedHint, setSavedHint] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await fetchScriptPromptSettings();
-      setValue(normalizeScriptPrompt(data.scriptPrompt));
+      const next = normalizeScriptPrompt(data.scriptPrompt);
+      setValue(next);
+      // 若已有高级字段，自动展开，避免用户以为丢失
+      const advancedKeys: Array<keyof ScriptPromptOptions> = [
+        'openingStyle',
+        'closingStyle',
+        'extraInstructions',
+      ];
+      if (advancedKeys.some((k) => Boolean(next[k]))) {
+        setShowAdvanced(true);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -40,6 +50,10 @@ export function GlobalScriptPromptSettings() {
   }, [load]);
 
   const summary = useMemo(() => summarizeScriptPrompt(value), [value]);
+  const filledCount = useMemo(
+    () => SCRIPT_PROMPT_FIELDS.filter((f) => Boolean(value[f.key])).length,
+    [value],
+  );
 
   const onChangeField = useCallback(
     (key: keyof ScriptPromptOptions, text: string) => {
@@ -72,14 +86,19 @@ export function GlobalScriptPromptSettings() {
 
   return (
     <section className="settings-card settings-card-wide">
-      <div className="settings-card-head">
-        <IconSpark size={16} />
-        <div>
-          <h2>全局口播人设</h2>
-          <p>
-            制作时选择「使用全局」会应用这里的配置。当前：
-            <strong> {summary}</strong>
-          </p>
+      <div className="settings-status-bar">
+        <div className="settings-status-copy">
+          <span className="settings-status-label">当前人设</span>
+          <strong className="settings-status-value" title={summary}>
+            {summary}
+          </strong>
+        </div>
+        <div className="settings-chip-row">
+          <span className="settings-chip">
+            {hasScriptPrompt(value)
+              ? `已填 ${filledCount}/${SCRIPT_PROMPT_FIELDS.length}`
+              : '使用系统默认'}
+          </span>
         </div>
       </div>
 
@@ -87,28 +106,47 @@ export function GlobalScriptPromptSettings() {
         <div className="auth-loading">加载人设…</div>
       ) : (
         <>
-          {hasScriptPrompt(value) ? (
-            <div className="script-prompt-preview-wrap">
-              <dl className="script-prompt-preview">
-                {SCRIPT_PROMPT_FIELDS.filter((f) => value[f.key]).map((f) => (
-                  <div key={f.key} className="script-prompt-preview-row">
-                    <dt>{f.label}</dt>
-                    <dd>{value[f.key]}</dd>
-                  </div>
-                ))}
-              </dl>
+          <div className="settings-block">
+            <div className="settings-block-head">
+              <h3>基础身份</h3>
+              <p>主播是谁、节目叫什么、对谁说话</p>
             </div>
-          ) : (
-            <div className="script-prompt-empty">
-              尚未配置。留空则生成时使用系统默认提示词。
-            </div>
-          )}
+            <ScriptPromptForm
+              value={value}
+              disabled={saving}
+              onChangeField={onChangeField}
+              group="basic"
+            />
+          </div>
 
-          <ScriptPromptForm
-            value={value}
-            disabled={saving}
-            onChangeField={onChangeField}
-          />
+          <div className="settings-block">
+            <div className="settings-block-head settings-block-head-row">
+              <div>
+                <h3>结构偏好</h3>
+                <p>开场、收尾与额外指令（可选）</p>
+              </div>
+              <button
+                type="button"
+                className="nl-btn nl-btn-ghost settings-toggle-btn"
+                onClick={() => setShowAdvanced((v) => !v)}
+                aria-expanded={showAdvanced}
+              >
+                {showAdvanced ? '收起' : '展开'}
+              </button>
+            </div>
+            {showAdvanced ? (
+              <ScriptPromptForm
+                value={value}
+                disabled={saving}
+                onChangeField={onChangeField}
+                group="advanced"
+              />
+            ) : (
+              <div className="settings-collapsed-hint">
+                留空时走系统默认结构。有高级配置时会自动展开。
+              </div>
+            )}
+          </div>
 
           {error && <div className="script-prompt-error">{error}</div>}
 
