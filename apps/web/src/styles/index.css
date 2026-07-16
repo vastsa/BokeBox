@@ -7452,14 +7452,19 @@ button.pb-cover {
 }
 .script-prompt-preview-wrap { margin-bottom: 12px; }
 
-/* 设置页内的控件：更收敛一点 */
+/* 设置页控件收敛；保存按钮保持品牌主色，避免深色模式白底白字 */
 .settings-page .settings-card .nl-btn-primary {
-  background: var(--text);
-  box-shadow: none;
+  background: var(--brand-grad);
+  color: #fff;
+  box-shadow: var(--shadow-fab);
 }
 .settings-page .settings-card .nl-btn-primary:hover {
+  filter: brightness(1.03);
+  background: var(--brand-grad);
+}
+.settings-page .settings-card .nl-btn-primary:disabled {
+  opacity: 0.55;
   filter: none;
-  background: color-mix(in srgb, var(--text) 88%, #fff);
 }
 .settings-page .tts-mode,
 .settings-page .tts-voice {
