@@ -80,8 +80,8 @@ export function SetupPage() {
 
   const stepHint = useMemo(() => {
     if (step === 1) return '创建登录账号，保护你的私人播客库';
-    if (step === 2) return '配置模型服务，用于转写、写稿与合成';
-    if (step === 3) return '确认模型参数，可按需调整';
+    if (step === 2) return '配置模型服务，用于转写、写稿、合成与封面';
+    if (step === 3) return '填写各环节模型，含可选的图片封面模型';
     return '设置全局默认音色，制作时会默认使用';
   }, [step]);
 
@@ -273,7 +273,7 @@ export function SetupPage() {
             </label>
             <div className="auth-tip">
               <IconSpark size={14} />
-              <span>兼容 OpenAI 协议的网关即可，后续可在设置中修改。</span>
+              <span>兼容 OpenAI 协议的网关即可（含 /v1/images/generations 图片接口），后续可在设置中修改。</span>
             </div>
           </div>
         )}
@@ -286,6 +286,7 @@ export function SetupPage() {
                 <input
                   value={chatModel}
                   onChange={(e) => setChatModel(e.target.value)}
+                  spellCheck={false}
                 />
               </label>
               <label className="auth-field">
@@ -293,6 +294,7 @@ export function SetupPage() {
                 <input
                   value={asrModel}
                   onChange={(e) => setAsrModel(e.target.value)}
+                  spellCheck={false}
                 />
               </label>
               <label className="auth-field">
@@ -300,6 +302,7 @@ export function SetupPage() {
                 <input
                   value={ttsModel}
                   onChange={(e) => setTtsModel(e.target.value)}
+                  spellCheck={false}
                 />
               </label>
               <label className="auth-field">
@@ -307,20 +310,29 @@ export function SetupPage() {
                 <input
                   value={voiceDesignModel}
                   onChange={(e) => setVoiceDesignModel(e.target.value)}
-                />
-              </label>
-              <label className="auth-field">
-                <span>图片模型（可选）</span>
-                <input
-                  value={imageModel}
-                  onChange={(e) => setImageModel(e.target.value)}
-                  placeholder="留空则不生成 AI 封面"
+                  spellCheck={false}
                 />
               </label>
             </div>
-            <div className="auth-tip">
-              <IconSpark size={14} />
-              <span>图片模型用于生成播客封面，兼容 OpenAI 图片接口，可稍后在设置中补充。</span>
+
+            <div className="setup-image-model">
+              <label className="auth-field">
+                <span>图片模型</span>
+                <input
+                  value={imageModel}
+                  onChange={(e) => setImageModel(e.target.value)}
+                  placeholder="例如 dall-e-3 / flux… 留空则用渐变封面"
+                  spellCheck={false}
+                />
+              </label>
+              <div className="auth-tip">
+                <IconSpark size={14} />
+                <span>
+                  初始化时即可配置。填写后生成播客会调用
+                  <code> /v1/images/generations </code>
+                  自动出封面；留空可之后在设置里补。
+                </span>
+              </div>
             </div>
           </div>
         )}

@@ -7788,6 +7788,22 @@ button.pb-cover {
 
 
 /* Setup · 全局音色步骤 */
+
+.setup-image-model {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(127, 140, 170, 0.18);
+}
+.setup-image-model .auth-tip {
+  margin-top: 8px;
+}
+.setup-image-model code {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(127, 140, 170, 0.12);
+}
+
 .setup-tts-form {
   gap: 14px;
 }
