@@ -5282,6 +5282,37 @@ body:has(.global-player) {
   }
 }
 
+/* 闪卡模式：手机端压缩碟片与标题区，把垂直空间留给卡片 */
+@media (max-width: 899px) {
+  .qq-player.is-flashcards .qq-stage-right {
+    height: 88px;
+  }
+  .qq-player.is-flashcards .qq-disc {
+    width: 84px;
+    margin-right: 10%;
+  }
+  .qq-player.is-flashcards .qq-song-head {
+    margin-top: -72px;
+    padding-right: 28%;
+    margin-bottom: 6px;
+  }
+  .qq-player.is-flashcards .qq-song-title {
+    font-size: clamp(16px, 4.2vw, 18px);
+  }
+  .qq-player.is-flashcards .qq-song-artist {
+    display: none;
+  }
+  .qq-player.is-flashcards .qq-stage-left {
+    padding-bottom: 0;
+  }
+}
+
+@media (min-width: 900px) {
+  .qq-player.is-flashcards .qq-song-head {
+    margin-bottom: 8px;
+  }
+}
+
 /* ===== Knowledge Flashcards (fc-*) ===== */
 .jd-flashcards {
   display: flex;

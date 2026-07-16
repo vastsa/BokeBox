@@ -84,9 +84,9 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
           <button
             type="button"
             className="nl-btn nl-btn-primary"
-            onClick={() => navigate({ name: 'listen' })}
+            onClick={() => navigate({ name: 'home' })}
           >
-            返回听播厅
+            返回首页
           </button>
         </div>
       </div>
@@ -124,7 +124,15 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   };
 
   return (
-    <div className="qq-player nl-enter">
+    <div
+      className={[
+        'qq-player',
+        'nl-enter',
+        panel === 'flashcards' ? 'is-flashcards' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       {/* 氛围底：封面色模糊铺满 */}
       <div className="qq-ambient" aria-hidden>
         <div className={`qq-ambient-blob bg-gradient-to-br ${g}`} />
@@ -136,7 +144,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         <button
           type="button"
           className="qq-icon-btn"
-          onClick={() => navigate({ name: 'listen' })}
+          onClick={() => navigate({ name: 'home' })}
           aria-label="返回"
         >
           <IconBack size={18} />
