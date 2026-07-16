@@ -86,8 +86,8 @@ export function SettingsPage({ route }: { route: Route }) {
   );
 
   useEffect(() => {
-    return subscribeTheme(({ preference }) => {
-      setThemePref(preference);
+    return subscribeTheme((theme) => {
+      setThemePref(theme);
     });
   }, []);
 
@@ -424,12 +424,11 @@ export function SettingsPage({ route }: { route: Route }) {
                       <div className="settings-block">
                         <div className="settings-block-head">
                           <h3>外观主题</h3>
-                          <p>默认跟随系统自动切换；也可固定为亮色或深色。</p>
+                          <p>在亮色与深色界面之间切换。</p>
                         </div>
                         <div className="theme-pref-grid" role="radiogroup" aria-label="外观主题">
                           {(
                             [
-                              { id: 'system', label: '跟随系统', desc: '自动切换' },
                               { id: 'light', label: '亮色', desc: '浅色界面' },
                               { id: 'dark', label: '深色', desc: '深色界面' },
                             ] as const
