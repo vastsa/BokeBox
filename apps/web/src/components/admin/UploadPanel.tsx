@@ -329,7 +329,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             </label>
 
             <p className="upload-url-hint">
-              支持网页文章正文抽取、音视频直链下载。自动识别类型并分流；请使用可公开访问的链接。
+              支持网页正文抽取与反强反爬多通道（直连 UA 轮换 / Jina / 可选 Playwright）。音视频请尽量用直链。
             </p>
 
             <button

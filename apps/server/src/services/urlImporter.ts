@@ -585,27 +585,156 @@ export function extractReadableText(raw: string, mimeOrExt: string): string {
   return collapseWhitespace(raw);
 }
 
-// ── HTTP 抓取 ───────────────────────────────────────────────
+// ── HTTP 抓取 / 反强反爬 ───────────────────────────────────
 
-function browserHeaders(url: string): Record<string, string> {
-  let referer = '';
+type UaProfile = 'desktop' | 'mobile' | 'wechat';
+
+interface FetchProfile {
+  id: UaProfile;
+  userAgent: string;
+  secChUa?: string;
+  secChUaMobile?: string;
+  secChUaPlatform?: string;
+}
+
+const UA_PROFILES: FetchProfile[] = [
+  {
+    id: 'desktop',
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    secChUa: '"Chromium";v="126", "Google Chrome";v="126", "Not-A.Brand";v="99"',
+    secChUaMobile: '?0',
+    secChUaPlatform: '"macOS"',
+  },
+  {
+    id: 'mobile',
+    userAgent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+    secChUaMobile: '?1',
+    secChUaPlatform: '"iOS"',
+  },
+  {
+    id: 'wechat',
+    // 微信内置浏览器 UA：对公众号等站点更友好
+    userAgent:
+      'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/126.0.0.0 Mobile Safari/537.36 MicroMessenger/8.0.49.2600(0x28003137) NetType/WIFI Language/zh_CN',
+    secChUaMobile: '?1',
+    secChUaPlatform: '"Android"',
+  },
+];
+
+/** 简单 Cookie 罐：同源预热 + 透传 Set-Cookie */
+class CookieJar {
+  private jar = new Map<string, string>();
+
+  absorb(res: Response): void {
+    const anyHeaders = res.headers as Headers & {
+      getSetCookie?: () => string[];
+    };
+    const list =
+      typeof anyHeaders.getSetCookie === 'function'
+        ? anyHeaders.getSetCookie()
+        : [];
+    // 兼容只暴露拼接字符串的实现
+    if (!list.length) {
+      const single = res.headers.get('set-cookie');
+      if (single) list.push(single);
+    }
+    for (const raw of list) {
+      const part = String(raw).split(';')[0]?.trim();
+      if (!part || !part.includes('=')) continue;
+      const eq = part.indexOf('=');
+      const name = part.slice(0, eq).trim();
+      const value = part.slice(eq + 1).trim();
+      if (!name) continue;
+      if (value === '' || /^(delete|deleted)$/i.test(value)) {
+        this.jar.delete(name);
+      } else {
+        this.jar.set(name, value);
+      }
+    }
+  }
+
+  header(): string | undefined {
+    if (!this.jar.size) return undefined;
+    return [...this.jar.entries()].map(([k, v]) => `${k}=${v}`).join('; ');
+  }
+}
+
+function pickProfilesForUrl(url: string): FetchProfile[] {
   try {
-    const u = new URL(url);
-    referer = u.origin + '/';
+    const host = new URL(url).hostname.toLowerCase();
+    if (
+      host.includes('weixin.qq.com') ||
+      host.includes('qq.com') ||
+      host.includes('wechat')
+    ) {
+      return [
+        UA_PROFILES.find((p) => p.id === 'wechat')!,
+        UA_PROFILES.find((p) => p.id === 'mobile')!,
+        UA_PROFILES.find((p) => p.id === 'desktop')!,
+      ];
+    }
+    if (
+      host.includes('zhihu.com') ||
+      host.includes('xiaohongshu') ||
+      host.includes('douyin') ||
+      host.includes('toutiao') ||
+      host.includes('bilibili')
+    ) {
+      return [
+        UA_PROFILES.find((p) => p.id === 'mobile')!,
+        UA_PROFILES.find((p) => p.id === 'desktop')!,
+        UA_PROFILES.find((p) => p.id === 'wechat')!,
+      ];
+    }
   } catch {
     // ignore
   }
-  return {
-    'User-Agent':
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 PersonBoke/1.0',
-    Accept:
-      'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+  return [...UA_PROFILES];
+}
+
+function browserHeaders(
+  url: string,
+  profile: FetchProfile,
+  opts: { cookie?: string; referer?: string; navigate?: boolean } = {},
+): Record<string, string> {
+  let origin = '';
+  try {
+    origin = new URL(url).origin;
+  } catch {
+    // ignore
+  }
+  const referer = opts.referer || (origin ? `${origin}/` : '');
+  const navigate = opts.navigate !== false;
+  const headers: Record<string, string> = {
+    'User-Agent': profile.userAgent,
+    Accept: navigate
+      ? 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
+      : '*/*',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
     'Cache-Control': 'no-cache',
     Pragma: 'no-cache',
-    // 部分站点校验 Referer
-    ...(referer ? { Referer: referer } : {}),
+    'Upgrade-Insecure-Requests': '1',
   };
+  if (profile.secChUa) headers['sec-ch-ua'] = profile.secChUa;
+  if (profile.secChUaMobile) headers['sec-ch-ua-mobile'] = profile.secChUaMobile;
+  if (profile.secChUaPlatform) {
+    headers['sec-ch-ua-platform'] = profile.secChUaPlatform;
+  }
+  if (navigate) {
+    headers['Sec-Fetch-Dest'] = 'document';
+    headers['Sec-Fetch-Mode'] = 'navigate';
+    headers['Sec-Fetch-Site'] = referer ? 'same-origin' : 'none';
+    headers['Sec-Fetch-User'] = '?1';
+  } else {
+    headers['Sec-Fetch-Dest'] = 'empty';
+    headers['Sec-Fetch-Mode'] = 'cors';
+    headers['Sec-Fetch-Site'] = 'same-origin';
+  }
+  if (referer) headers.Referer = referer;
+  if (opts.cookie) headers.Cookie = opts.cookie;
+  return headers;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -616,33 +745,286 @@ function isRetryableStatus(status: number): boolean {
   return status === 408 || status === 425 || status === 429 || status >= 500;
 }
 
+function envFlag(name: string, defaultValue: boolean): boolean {
+  const raw = String(process.env[name] ?? '').trim().toLowerCase();
+  if (!raw) return defaultValue;
+  if (['0', 'false', 'off', 'no'].includes(raw)) return false;
+  if (['1', 'true', 'on', 'yes'].includes(raw)) return true;
+  return defaultValue;
+}
+
+/** 识别反爬 / 验证页 / 空壳页 */
+export function detectAntiBot(htmlOrText: string, title?: string | null): string | null {
+  const sample = `${title || ''}\n${htmlOrText}`.slice(0, 12000);
+  const lower = sample.toLowerCase();
+  const rules: Array<[RegExp, string]> = [
+    [/just a moment|checking your browser|cf-browser-verification|cloudflare/i, 'Cloudflare 验证'],
+    [/attention required|access denied|request blocked/i, '访问被拒绝'],
+    [/captcha|recaptcha|hcaptcha|geetest|滑动验证|安全验证|人机验证|请完成验证/i, '验证码/人机验证'],
+    [/请开启\s*javascript|enable javascript|noscript/i, '需 JS 渲染'],
+    [/验证后继续访问|环境异常|当前环境存在风险|系统繁忙.*稍后/i, '风控拦截'],
+    [/频繁访问|操作过于频繁|请求太快|rate.?limit/i, '访问频率限制'],
+    [/登录后查看|请先登录|扫码登录|登录后可阅读全文|开通会员.*阅读/i, '需登录/会员'],
+    [/sogou\.com\/link|anti.?spider|spider.?detect/i, '反爬虫识别'],
+  ];
+  for (const [re, label] of rules) {
+    if (re.test(sample) || re.test(lower)) return label;
+  }
+  // 极短 HTML 且几乎无正文
+  const textish = collapseWhitespace(stripTagsToText(removeNoiseBlocks(sample)));
+  if (htmlOrText.includes('<html') && textish.length < 40) {
+    return '空壳页面';
+  }
+  return null;
+}
+
+function isGoodArticleText(text: string): boolean {
+  const t = collapseWhitespace(text);
+  if (t.length < 80) return false;
+  // 至少有一定信息密度
+  const cjk = (t.match(/[\u4e00-\u9fff]/g) || []).length;
+  const letters = (t.match(/[a-zA-Z]/g) || []).length;
+  return cjk + letters >= 40;
+}
+
+async function rawFetch(
+  url: string,
+  headers: Record<string, string>,
+  options: { timeoutMs?: number } = {},
+): Promise<Response> {
+  const timeoutMs = options.timeoutMs ?? FETCH_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal,
+      headers,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/abort/i.test(msg)) {
+      throw new Error(`下载超时（超过 ${Math.round(timeoutMs / 1000)} 秒）`);
+    }
+    throw new Error(`下载失败: ${msg}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 同源首页预热 Cookie，降低直连触发风控概率 */
+async function warmUpCookies(
+  url: string,
+  profile: FetchProfile,
+  jar: CookieJar,
+): Promise<void> {
+  try {
+    const u = new URL(url);
+    const home = `${u.origin}/`;
+    if (home === url || home === `${url}/`) return;
+    const res = await rawFetch(
+      home,
+      browserHeaders(home, profile, { cookie: jar.header(), navigate: true }),
+      { timeoutMs: 20_000 },
+    );
+    jar.absorb(res);
+    try {
+      await res.arrayBuffer();
+    } catch {
+      // ignore
+    }
+    // 轻微抖动，模拟真人
+    await sleep(150 + Math.floor(Math.random() * 250));
+  } catch {
+    // 预热失败不阻断主流程
+  }
+}
+
+interface DirectPageResult {
+  ok: boolean;
+  status: number;
+  finalUrl: string;
+  headerMime: string;
+  body: Buffer;
+  profileId: UaProfile;
+  blockReason?: string | null;
+}
+
+async function fetchDirectOnce(
+  url: string,
+  profile: FetchProfile,
+  opts: { warm?: boolean; timeoutMs?: number } = {},
+): Promise<DirectPageResult> {
+  const jar = new CookieJar();
+  if (opts.warm !== false) {
+    await warmUpCookies(url, profile, jar);
+  }
+  const res = await rawFetch(
+    url,
+    browserHeaders(url, profile, {
+      cookie: jar.header(),
+      navigate: true,
+    }),
+    { timeoutMs: opts.timeoutMs },
+  );
+  jar.absorb(res);
+  const headerMime = (res.headers.get('content-type') || '').toLowerCase();
+  const finalUrl = res.url || url;
+
+  if (!res.ok) {
+    // 仍读取 body，便于识别验证页
+    let body: Buffer = Buffer.alloc(0);
+    try {
+      body = Buffer.from(await readBodyWithLimit(res, MAX_TEXT_BYTES));
+    } catch {
+      // ignore
+    }
+    const decoded = body.length ? decodeTextBuffer(body, headerMime) : '';
+    const title = decoded ? extractPageTitle(decoded) : null;
+    return {
+      ok: false,
+      status: res.status,
+      finalUrl,
+      headerMime,
+      body,
+      profileId: profile.id,
+      blockReason:
+        detectAntiBot(decoded, title) ||
+        `HTTP ${res.status}`,
+    };
+  }
+
+  const lenHeader = res.headers.get('content-length');
+  if (lenHeader && Number(lenHeader) > MAX_BYTES) {
+    throw new Error(`远程文件过大，最大 ${formatMb(MAX_BYTES)}`);
+  }
+
+  const isLikelyText =
+    headerMime.includes('html') ||
+    headerMime.includes('text') ||
+    headerMime.includes('json') ||
+    headerMime.includes('xml') ||
+    !headerMime ||
+    headerMime.includes('octet-stream');
+
+  const body: Buffer = Buffer.from(
+    await readBodyWithLimit(res, isLikelyText ? MAX_TEXT_BYTES : MAX_BYTES),
+  );
+  const decodedHead = decodeTextBuffer(
+    body.slice(0, Math.min(body.length, 64_000)),
+    headerMime,
+  );
+  const title = extractPageTitle(decodedHead);
+  const blockReason = detectAntiBot(decodedHead, title);
+
+  return {
+    ok: true,
+    status: res.status,
+    finalUrl,
+    headerMime,
+    body,
+    profileId: profile.id,
+    blockReason,
+  };
+}
+
+/**
+ * 直连多 UA 轮换 + Cookie 预热。
+ * 返回第一个「非强拦截」响应；若全拦截则返回最后一次结果。
+ */
+async function fetchDirectSmart(url: string): Promise<DirectPageResult> {
+  const profiles = pickProfilesForUrl(url);
+  let last: DirectPageResult | null = null;
+  let lastErr: Error | null = null;
+
+  for (let i = 0; i < profiles.length; i++) {
+    const profile = profiles[i]!;
+    for (let attempt = 1; attempt <= RETRY_MAX; attempt++) {
+      try {
+        const result = await fetchDirectOnce(url, profile, {
+          warm: attempt === 1,
+        });
+        last = result;
+
+        // 明确媒体 MIME：无需正文质量判断
+        const mimeKind = kindFromMime(result.headerMime);
+        if (result.ok && (mimeKind === 'video' || mimeKind === 'audio')) {
+          return result;
+        }
+
+        if (result.ok && !result.blockReason) {
+          // 文本页再看正文是否够用
+          if (mimeKind === 'text' || !mimeKind) {
+            const decoded = decodeTextBuffer(result.body, result.headerMime);
+            const isHtml =
+              result.headerMime.includes('html') || /^\s*</.test(decoded.slice(0, 256));
+            const text = isHtml
+              ? extractArticleContent(decoded).text
+              : extractReadableText(decoded, result.headerMime || 'text/plain');
+            if (isGoodArticleText(text) || mimeKind === 'text' && text.length >= 20) {
+              return result;
+            }
+            // 正文太差，换 UA / 策略
+            result.blockReason = result.blockReason || '正文过短';
+          } else {
+            return result;
+          }
+        }
+
+        // 404 不轮换
+        if (result.status === 404) return result;
+
+        if (
+          isRetryableStatus(result.status) &&
+          attempt < RETRY_MAX
+        ) {
+          await sleep(RETRY_BASE_MS * attempt + Math.floor(Math.random() * 200));
+          continue;
+        }
+        // 换下一个 UA
+        break;
+      } catch (err) {
+        lastErr = err instanceof Error ? err : new Error(String(err));
+        if (attempt < RETRY_MAX) {
+          await sleep(RETRY_BASE_MS * attempt);
+          continue;
+        }
+      }
+    }
+    // UA 间抖动
+    if (i < profiles.length - 1) {
+      await sleep(200 + Math.floor(Math.random() * 300));
+    }
+  }
+
+  if (last) return last;
+  throw lastErr || new Error('直连抓取失败');
+}
+
+/** 兼容旧调用：增强版直连 */
 async function fetchWithRetry(
   url: string,
   options: { timeoutMs?: number; signal?: AbortSignal } = {},
 ): Promise<Response> {
+  // signal 暂透传到底层较复杂；保持超时语义
+  void options.signal;
+  const profile = pickProfilesForUrl(url)[0]!;
+  const jar = new CookieJar();
+  await warmUpCookies(url, profile, jar);
   const timeoutMs = options.timeoutMs ?? FETCH_TIMEOUT_MS;
   let lastErr: Error | null = null;
 
   for (let attempt = 1; attempt <= RETRY_MAX; attempt++) {
-    const controller = new AbortController();
-    const onParentAbort = () => controller.abort();
-    if (options.signal) {
-      if (options.signal.aborted) controller.abort();
-      else options.signal.addEventListener('abort', onParentAbort, { once: true });
-    }
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
     try {
-      const res = await fetch(url, {
-        method: 'GET',
-        redirect: 'follow',
-        signal: controller.signal,
-        headers: browserHeaders(url),
-      });
-
+      const res = await rawFetch(
+        url,
+        browserHeaders(url, profile, { cookie: jar.header() }),
+        { timeoutMs },
+      );
+      jar.absorb(res);
       if (!res.ok && isRetryableStatus(res.status) && attempt < RETRY_MAX) {
         lastErr = new Error(`HTTP ${res.status}`);
-        // 尽量消费 body 以便连接复用
         try {
           await res.arrayBuffer();
         } catch {
@@ -653,24 +1035,319 @@ async function fetchWithRetry(
       }
       return res;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (/abort/i.test(msg)) {
-        throw new Error(`下载超时（超过 ${Math.round(timeoutMs / 1000)} 秒）`);
-      }
-      lastErr = err instanceof Error ? err : new Error(msg);
+      lastErr = err instanceof Error ? err : new Error(String(err));
       if (attempt < RETRY_MAX) {
         await sleep(RETRY_BASE_MS * attempt);
         continue;
       }
-    } finally {
-      clearTimeout(timer);
-      if (options.signal) {
-        options.signal.removeEventListener('abort', onParentAbort);
-      }
+    }
+  }
+  throw new Error(`下载失败: ${lastErr?.message || '未知错误'}`);
+}
+
+interface ReaderResult {
+  title?: string;
+  text: string;
+  finalUrl: string;
+  strategy: string;
+}
+
+/** Jina Reader：绕过多数站点反爬，输出可读 Markdown/文本 */
+async function fetchViaJina(url: string): Promise<ReaderResult> {
+  if (!envFlag('URL_FETCH_JINA', true)) {
+    throw new Error('Jina 通道已关闭（URL_FETCH_JINA=0）');
+  }
+  const endpoint = `https://r.jina.ai/${url}`;
+  const headers: Record<string, string> = {
+    Accept: 'text/plain, text/markdown, */*',
+    'User-Agent': UA_PROFILES[0]!.userAgent,
+    'X-Return-Format': 'markdown',
+    'X-Timeout': '45',
+    'X-Locale': 'zh-CN',
+  };
+  const apiKey = String(process.env.JINA_API_KEY || '').trim();
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
+  const res = await rawFetch(endpoint, headers, { timeoutMs: 90_000 });
+  if (!res.ok) {
+    throw new Error(`Jina HTTP ${res.status}`);
+  }
+  const body = await readBodyWithLimit(res, MAX_TEXT_BYTES);
+  const raw = decodeTextBuffer(body, res.headers.get('content-type') || 'text/plain');
+  if (!raw || raw.trim().length < 20) {
+    throw new Error('Jina 返回为空');
+  }
+  if (detectAntiBot(raw)) {
+    // Jina 有时也会回验证页提示
+    throw new Error(`Jina 仍被拦截：${detectAntiBot(raw)}`);
+  }
+
+  // Jina 常见格式：Title: xxx\nURL Source: ...\nMarkdown Content:\n...
+  let title: string | undefined;
+  const titleMatch =
+    /^(?:Title|标题)\s*[:：]\s*(.+)$/im.exec(raw) ||
+    /^#\s+(.+)$/m.exec(raw);
+  if (titleMatch?.[1]) title = titleMatch[1].trim();
+
+  let text = raw
+    .replace(/^(?:URL Source|来源)\s*[:：].*$/gim, '')
+    .replace(/^(?:Published Time|发布时间)\s*[:：].*$/gim, '')
+    .replace(/^(?:Title|标题)\s*[:：]\s*.*$/gim, '')
+    .replace(/^Markdown Content\s*[:：]?\s*/im, '')
+    .trim();
+
+  // 去掉 markdown 链接噪音但保留文字
+  text = text
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/#{1,6}\s+/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  if (title && text && !text.startsWith(title)) {
+    text = `${title}\n\n${text}`;
+  }
+  text = collapseWhitespace(text);
+  if (!isGoodArticleText(text)) {
+    throw new Error('Jina 正文过短');
+  }
+  return { title, text, finalUrl: url, strategy: 'jina' };
+}
+
+/** 备用：通过 Jina HTML 模式拿原文再本地抽取 */
+async function fetchViaJinaHtml(url: string): Promise<ReaderResult> {
+  if (!envFlag('URL_FETCH_JINA', true)) {
+    throw new Error('Jina 通道已关闭');
+  }
+  const endpoint = `https://r.jina.ai/${url}`;
+  const headers: Record<string, string> = {
+    Accept: 'text/html, */*',
+    'User-Agent': UA_PROFILES[0]!.userAgent,
+    'X-Return-Format': 'html',
+    'X-Timeout': '45',
+  };
+  const apiKey = String(process.env.JINA_API_KEY || '').trim();
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
+  const res = await rawFetch(endpoint, headers, { timeoutMs: 90_000 });
+  if (!res.ok) throw new Error(`Jina HTML HTTP ${res.status}`);
+  const body = await readBodyWithLimit(res, MAX_TEXT_BYTES);
+  const html = decodeTextBuffer(body, res.headers.get('content-type') || 'text/html');
+  const article = extractArticleContent(html);
+  if (!isGoodArticleText(article.text)) {
+    throw new Error('Jina HTML 正文过短');
+  }
+  return {
+    title: article.title || undefined,
+    text: article.text,
+    finalUrl: url,
+    strategy: 'jina-html',
+  };
+}
+
+/**
+ * 可选 Playwright 渲染（需本机已安装 playwright，不作为硬依赖）。
+ * URL_FETCH_PLAYWRIGHT=1 时启用。
+ */
+async function fetchViaPlaywright(url: string): Promise<ReaderResult> {
+  if (!envFlag('URL_FETCH_PLAYWRIGHT', false)) {
+    throw new Error('Playwright 通道未启用（URL_FETCH_PLAYWRIGHT=1）');
+  }
+  // 动态加载，避免硬依赖；用 Function 绕过静态模块解析
+  let playwright: any;
+  const dynImport = new Function('m', 'return import(m)') as (m: string) => Promise<any>;
+  try {
+    playwright = await dynImport('playwright');
+  } catch {
+    try {
+      playwright = await dynImport('playwright-core');
+    } catch {
+      throw new Error('未安装 playwright / playwright-core');
     }
   }
 
-  throw new Error(`下载失败: ${lastErr?.message || '未知错误'}`);
+  const browser = await playwright.chromium.launch({
+    headless: true,
+    args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
+  });
+  try {
+    const context = await browser.newContext({
+      userAgent: UA_PROFILES[0]!.userAgent,
+      locale: 'zh-CN',
+      viewport: { width: 1440, height: 1100 },
+      extraHTTPHeaders: {
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      },
+    });
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    });
+    const page = await context.newPage();
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    // 等正文出现 / 网络稍静
+    try {
+      await page.waitForLoadState('networkidle', { timeout: 12_000 });
+    } catch {
+      // ignore
+    }
+    await sleep(800);
+    const html = await page.content();
+    const titleFromPage = (await page.title()) || null;
+    const article = extractArticleContent(html);
+    const title = article.title || titleFromPage;
+    let text = article.text;
+    if (title && text && !text.startsWith(title)) text = `${title}\n\n${text}`;
+    text = collapseWhitespace(text);
+    if (!isGoodArticleText(text)) {
+      throw new Error('Playwright 渲染后正文仍过短');
+    }
+    if (detectAntiBot(html, title)) {
+      throw new Error(`Playwright 仍遇拦截：${detectAntiBot(html, title)}`);
+    }
+    return {
+      title: title || undefined,
+      text,
+      finalUrl: page.url() || url,
+      strategy: 'playwright',
+    };
+  } finally {
+    await browser.close().catch(() => undefined);
+  }
+}
+
+interface ResolvedPage {
+  kind: 'text' | 'media-buffer';
+  title?: string;
+  textContent?: string;
+  finalUrl: string;
+  headerMime: string;
+  body?: Buffer;
+  strategy: string;
+  filenameHint?: string;
+}
+
+/**
+ * 网页多通道抓取：
+ * 1) 直连 UA 轮换 + Cookie 预热
+ * 2) Jina Reader Markdown
+ * 3) Jina HTML
+ * 4) 可选 Playwright
+ */
+async function resolveArticlePage(url: string): Promise<ResolvedPage> {
+  const errors: string[] = [];
+
+  // 1) 直连
+  try {
+    const direct = await fetchDirectSmart(url);
+    const mimeKind = kindFromMime(direct.headerMime);
+    if (direct.ok && (mimeKind === 'video' || mimeKind === 'audio')) {
+      return {
+        kind: 'media-buffer',
+        finalUrl: direct.finalUrl,
+        headerMime: direct.headerMime,
+        body: Buffer.from(direct.body),
+        strategy: `direct:${direct.profileId}`,
+      };
+    }
+
+    if (direct.ok && direct.body.length) {
+      const decoded = decodeTextBuffer(direct.body, direct.headerMime);
+      const isHtml =
+        direct.headerMime.includes('html') ||
+        /^\s*</.test(decoded.slice(0, 256));
+      if (isHtml) {
+        const blocked = direct.blockReason || detectAntiBot(decoded);
+        const article = extractArticleContent(decoded);
+        if (!blocked && isGoodArticleText(article.text)) {
+          return {
+            kind: 'text',
+            title: article.title || undefined,
+            textContent: article.text,
+            finalUrl: direct.finalUrl,
+            headerMime: direct.headerMime || 'text/html',
+            strategy: `direct:${direct.profileId}`,
+          };
+        }
+        errors.push(
+          `direct:${direct.profileId}→${blocked || '正文过短'}`,
+        );
+      } else {
+        const text = extractReadableText(
+          decoded,
+          direct.headerMime || 'text/plain',
+        );
+        if (isGoodArticleText(text) || text.length >= 20) {
+          return {
+            kind: 'text',
+            textContent: text,
+            finalUrl: direct.finalUrl,
+            headerMime: direct.headerMime || 'text/plain',
+            strategy: `direct:${direct.profileId}`,
+          };
+        }
+        errors.push(`direct:${direct.profileId}→非HTML正文过短`);
+      }
+    } else {
+      errors.push(
+        `direct→${direct.blockReason || `HTTP ${direct.status}`}`,
+      );
+    }
+  } catch (err) {
+    errors.push(`direct→${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // 2) Jina markdown
+  try {
+    const jina = await fetchViaJina(url);
+    return {
+      kind: 'text',
+      title: jina.title,
+      textContent: jina.text,
+      finalUrl: jina.finalUrl,
+      headerMime: 'text/markdown',
+      strategy: jina.strategy,
+    };
+  } catch (err) {
+    errors.push(`jina→${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // 3) Jina html
+  try {
+    const jinaHtml = await fetchViaJinaHtml(url);
+    return {
+      kind: 'text',
+      title: jinaHtml.title,
+      textContent: jinaHtml.text,
+      finalUrl: jinaHtml.finalUrl,
+      headerMime: 'text/html',
+      strategy: jinaHtml.strategy,
+    };
+  } catch (err) {
+    errors.push(
+      `jina-html→${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  // 4) Playwright（可选）
+  try {
+    const pw = await fetchViaPlaywright(url);
+    return {
+      kind: 'text',
+      title: pw.title,
+      textContent: pw.text,
+      finalUrl: pw.finalUrl,
+      headerMime: 'text/html',
+      strategy: pw.strategy,
+    };
+  } catch (err) {
+    errors.push(
+      `playwright→${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  throw new Error(
+    `强反爬拦截，多通道均失败：${errors.join(' | ')}。可设置 JINA_API_KEY 或 URL_FETCH_PLAYWRIGHT=1（需安装 playwright）后重试`,
+  );
 }
 
 async function readBodyWithLimit(
@@ -680,7 +1357,9 @@ async function readBodyWithLimit(
   if (!res.body) {
     const ab = await res.arrayBuffer();
     const buf = Buffer.from(ab);
-    if (buf.length > maxBytes) throw new Error(`远程文件过大，最大 ${formatMb(maxBytes)}`);
+    if (buf.length > maxBytes) {
+      throw new Error(`远程文件过大，最大 ${formatMb(maxBytes)}`);
+    }
     return buf;
   }
 
@@ -754,11 +1433,20 @@ function formatMb(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))}MB`;
 }
 
+function looksLikeMediaUrl(url: string): boolean {
+  try {
+    const ext = extOf(path.basename(new URL(url).pathname));
+    return VIDEO_EXT.has(ext) || AUDIO_EXT.has(ext);
+  } catch {
+    return false;
+  }
+}
+
 // ── 主入口 ─────────────────────────────────────────────────
 
 /**
  * 从远程 URL 下载内容，识别 video / audio / text，并落盘到任务目录。
- * 网页会做正文抽取与标题识别；音视频流式落盘避免占满内存。
+ * 网页启用反强反爬多通道：UA 轮换 / Cookie 预热 / Jina / 可选 Playwright。
  */
 export async function importUrlContent(
   url: string,
@@ -769,149 +1457,115 @@ export async function importUrlContent(
   }
 
   const requestUrl = url.trim();
-  let res: Response;
-  try {
-    res = await fetchWithRetry(requestUrl);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(msg.startsWith('下载') ? msg : `下载失败: ${msg}`);
-  }
-
-  if (!res.ok) {
-    const hint =
-      res.status === 403
-        ? '（站点拒绝访问，可能需登录或防盗链）'
-        : res.status === 404
-          ? '（资源不存在）'
-          : res.status === 401
-            ? '（需要鉴权）'
-            : '';
-    throw new Error(`下载失败 HTTP ${res.status}${hint}`);
-  }
-
-  const finalUrl = res.url || requestUrl;
-  const headerMime = (res.headers.get('content-type') || '').toLowerCase();
-  const lenHeader = res.headers.get('content-length');
-  if (lenHeader && Number(lenHeader) > MAX_BYTES) {
-    throw new Error(`远程文件过大，最大 ${formatMb(MAX_BYTES)}`);
-  }
-
-  const filenameGuess = filenameFromUrl(
-    finalUrl,
-    res.headers.get('content-disposition'),
-  );
-  const extGuess = extOf(filenameGuess);
-
-  // 先根据 header / 扩展名猜测类型，决定内存读 or 流式写
-  const kindHint =
-    kindFromMime(headerMime) || kindFromExt(extGuess) || null;
-
   const paths = jobPaths(jobId);
   await ensureDir(paths.dir);
 
-  // ── 明确媒体：流式落盘 ──
-  if (kindHint === 'video' || kindHint === 'audio') {
-    const ext = extGuess || defaultExt(kindHint, headerMime);
-    const safeBase = safeFilenameBase(
-      path.basename(filenameGuess, extOf(filenameGuess)),
-    );
-    const filename = `${safeBase}${ext}`;
-    const sourcePath = paths.source(ext);
-    const size = await streamBodyToFile(res, sourcePath, MAX_BYTES);
-    if (!size) throw new Error('远程内容为空');
-    return {
-      kind: kindHint,
-      sourcePath,
-      mimeType: mimeFor(kindHint, ext, headerMime),
-      size,
-      filename,
+  // ── 明确媒体直链：增强直连下载 ──
+  if (looksLikeMediaUrl(requestUrl)) {
+    let res: Response;
+    try {
+      res = await fetchWithRetry(requestUrl);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(msg.startsWith('下载') ? msg : `下载失败: ${msg}`);
+    }
+    if (!res.ok) {
+      throw new Error(`下载失败 HTTP ${res.status}`);
+    }
+    const finalUrl = res.url || requestUrl;
+    const headerMime = (res.headers.get('content-type') || '').toLowerCase();
+    const filenameGuess = filenameFromUrl(
       finalUrl,
-    };
-  }
-
-  // ── 文本 / 未知：读入内存识别 ──
-  const maxRead =
-    kindHint === 'text' ||
-    headerMime.includes('html') ||
-    headerMime.includes('text') ||
-    headerMime.includes('json') ||
-    headerMime.includes('xml')
-      ? MAX_TEXT_BYTES
-      : MAX_BYTES;
-
-  const body = await readBodyWithLimit(res, maxRead);
-  if (!body.length) throw new Error('远程内容为空');
-
-  const kind =
-    kindHint ||
-    kindFromMime(headerMime) ||
-    kindFromExt(extGuess) ||
-    kindFromMagic(body) ||
-    null;
-
-  if (!kind) {
-    throw new Error(
-      '无法识别内容类型（仅支持视频 / 音频 / 文本网页）。请检查链接是否可直接访问，或是否为需登录页面。',
+      res.headers.get('content-disposition'),
     );
+    const extGuess = extOf(filenameGuess);
+    const kind =
+      kindFromMime(headerMime) ||
+      kindFromExt(extGuess) ||
+      'video';
+    if (kind === 'text') {
+      // 扩展名像媒体但实际是网页，丢弃响应体后走文章通道
+      try {
+        await res.arrayBuffer();
+      } catch {
+        // ignore
+      }
+    } else {
+      const ext = extGuess || defaultExt(kind, headerMime);
+      const safeBase = safeFilenameBase(
+        path.basename(filenameGuess, extOf(filenameGuess)),
+      );
+      const filename = `${safeBase}${ext}`;
+      const sourcePath = paths.source(ext);
+      const size = await streamBodyToFile(res, sourcePath, MAX_BYTES);
+      if (!size) throw new Error('远程内容为空');
+      return {
+        kind,
+        sourcePath,
+        mimeType: mimeFor(kind, ext, headerMime),
+        size,
+        filename,
+        finalUrl,
+      };
+    }
   }
 
-  // 未知类型实为媒体：补写文件
-  if (kind === 'video' || kind === 'audio') {
-    const ext = extGuess || defaultExt(kind, headerMime);
+  // ── 网页 / 未知：反强反爬多通道 ──
+  const resolved = await resolveArticlePage(requestUrl);
+
+  if (resolved.kind === 'media-buffer' && resolved.body) {
+    const filenameGuess = filenameFromUrl(resolved.finalUrl);
+    const extGuess = extOf(filenameGuess);
+    const kind =
+      kindFromMime(resolved.headerMime) ||
+      kindFromExt(extGuess) ||
+      kindFromMagic(resolved.body);
+    if (!kind || kind === 'text') {
+      throw new Error('媒体内容识别失败');
+    }
+    const ext = extGuess || defaultExt(kind, resolved.headerMime);
     const safeBase = safeFilenameBase(
       path.basename(filenameGuess, extOf(filenameGuess)),
     );
     const filename = `${safeBase}${ext}`;
     const sourcePath = paths.source(ext);
-    await fsp.writeFile(sourcePath, body);
+    await fsp.writeFile(sourcePath, resolved.body);
     const stat = await fsp.stat(sourcePath);
     return {
       kind,
       sourcePath,
-      mimeType: mimeFor(kind, ext, headerMime),
+      mimeType: mimeFor(kind, ext, resolved.headerMime),
       size: stat.size,
       filename,
-      finalUrl,
+      finalUrl: resolved.finalUrl,
     };
   }
 
-  // ── 文本 / 网页 ──
-  const decoded = decodeTextBuffer(body, headerMime);
-  const isHtml =
-    headerMime.includes('html') ||
-    extGuess === '.html' ||
-    extGuess === '.htm' ||
-    /^\s*</.test(decoded.slice(0, 256));
-
-  let textContent: string;
-  let pageTitle: string | null = null;
-
-  if (isHtml) {
-    const article = extractArticleContent(decoded);
-    textContent = article.text;
-    pageTitle = article.title;
-  } else {
-    textContent = extractReadableText(
-      decoded,
-      headerMime || extGuess || 'text/plain',
-    );
-  }
-
+  const textContent = resolved.textContent || '';
   if (!textContent || textContent.length < 20) {
     throw new Error(
-      '文本内容过短或无法提取有效正文（页面可能是动态渲染 / 需登录 / 反爬）',
+      '文本内容过短或无法提取有效正文（页面可能是动态渲染 / 需登录 / 强反爬）',
     );
   }
 
+  const pageTitle = resolved.title || null;
   const safeBase = safeFilenameBase(
-    pageTitle || path.basename(filenameGuess, extOf(filenameGuess)) || 'article',
+    pageTitle ||
+      path.basename(filenameFromUrl(resolved.finalUrl), extOf(filenameFromUrl(resolved.finalUrl))) ||
+      'article',
     'article',
   );
   const filename = `${safeBase}.txt`;
   const sourcePath = paths.source('.txt');
-  await writeText(sourcePath, textContent);
-  await writeText(paths.transcript, textContent);
+  // 文首标注抓取通道，便于排查（不污染口播时可忽略首行 meta）
+  const payload = textContent;
+  await writeText(sourcePath, payload);
+  await writeText(paths.transcript, payload);
   const stat = await fsp.stat(sourcePath);
+
+  console.info(
+    `[urlImporter] ${requestUrl} → strategy=${resolved.strategy} title=${pageTitle || '-'} chars=${payload.length}`,
+  );
 
   return {
     kind: 'text',
@@ -919,8 +1573,8 @@ export async function importUrlContent(
     mimeType: 'text/plain',
     size: stat.size,
     filename,
-    textContent,
+    textContent: payload,
     title: pageTitle || undefined,
-    finalUrl,
+    finalUrl: resolved.finalUrl,
   };
 }
