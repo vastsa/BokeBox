@@ -3,6 +3,7 @@ import type { ScriptPromptOptions, TtsOptions } from '../types/job.js';
 import { normalizeScriptPrompt } from './scriptPrompt.js';
 
 const KEY_SCRIPT_PROMPT = 'script_prompt';
+const KEY_COVER_PROMPT = 'cover_prompt';
 const KEY_TTS_OPTIONS = 'tts_options';
 const KEY_AUTH = 'auth_account';
 const KEY_AI = 'ai_config';
@@ -404,6 +405,40 @@ export function setGlobalScriptPrompt(
 ): ScriptPromptOptions {
   const next = normalizeScriptPrompt(prompt) || {};
   setSettingRaw(KEY_SCRIPT_PROMPT, JSON.stringify(next));
+  return next;
+}
+
+
+/** 读取后台配置的封面提示词模板（空表示使用代码内默认） */
+export function getCoverPromptTemplateStored(): string {
+  const raw = getSettingRaw(KEY_COVER_PROMPT);
+  if (!raw) return '';
+  // 兼容：历史上若误存 JSON 字符串
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed) as { template?: string };
+      return String(parsed.template || '').trim();
+    } catch {
+      // fallthrough
+    }
+  }
+  return trimmed;
+}
+
+/**
+ * 保存封面提示词模板。
+ * 传空 / null → 删除配置，回落系统默认。
+ */
+export function setCoverPromptTemplate(
+  template?: string | null,
+): string {
+  const next = template == null ? '' : String(template).trim();
+  if (!next) {
+    deleteSetting(KEY_COVER_PROMPT);
+    return '';
+  }
+  setSettingRaw(KEY_COVER_PROMPT, next);
   return next;
 }
 

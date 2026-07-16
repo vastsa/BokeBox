@@ -48,9 +48,11 @@ import type {
   TtsOptions,
 } from '../types/job.js';
 import {
+  getCoverPromptTemplateStored,
   getGlobalScriptPrompt,
   getGlobalTtsOptions,
   normalizeTtsOptions,
+  setCoverPromptTemplate,
   setGlobalScriptPrompt,
   setGlobalTtsOptions,
 } from '../services/settingsStore.js';
@@ -69,7 +71,11 @@ import {
   getVoiceDesignModel,
   hasApiKey,
 } from '../utils/aiConfig.js';
-import { findCoverFile } from '../services/coverGenerator.js';
+import {
+  COVER_PROMPT_VARIABLES,
+  DEFAULT_COVER_PROMPT_TEMPLATE,
+  findCoverFile,
+} from '../services/coverGenerator.js';
 
 /** 本地上传：视频 / 音频 / 文本（与 URL 导入一致） */
 const ALLOWED_EXT = ALLOWED_MEDIA_EXT;
@@ -332,6 +338,37 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     const tts = getGlobalTtsOptions();
     return { tts };
   });
+
+  // ── 全局封面提示词 ──
+  app.get('/settings/cover-prompt', async () => {
+    const stored = getCoverPromptTemplateStored();
+    return {
+      template: stored || DEFAULT_COVER_PROMPT_TEMPLATE,
+      stored,
+      defaultTemplate: DEFAULT_COVER_PROMPT_TEMPLATE,
+      isCustom: Boolean(stored),
+      variables: COVER_PROMPT_VARIABLES,
+    };
+  });
+
+  app.put<{ Body: { template?: string | null; reset?: boolean } }>(
+    '/settings/cover-prompt',
+    async (req) => {
+      const reset = Boolean(req.body?.reset);
+      const incoming = String(req.body?.template ?? '').trim();
+      // 与默认模板完全一致时不落库，保持「系统默认」状态
+      const stored = reset || incoming === DEFAULT_COVER_PROMPT_TEMPLATE.trim()
+        ? setCoverPromptTemplate('')
+        : setCoverPromptTemplate(req.body?.template);
+      return {
+        template: stored || DEFAULT_COVER_PROMPT_TEMPLATE,
+        stored,
+        defaultTemplate: DEFAULT_COVER_PROMPT_TEMPLATE,
+        isCustom: Boolean(stored),
+        variables: COVER_PROMPT_VARIABLES,
+      };
+    },
+  );
 
   app.put<{ Body: { tts?: TtsOptions | null } }>(
     '/settings/tts',

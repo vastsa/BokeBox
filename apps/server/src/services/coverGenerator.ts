@@ -9,6 +9,7 @@ import {
   hasApiKey,
   hasImageModel,
 } from '../utils/aiConfig.js';
+import { getCoverPromptTemplateStored } from './settingsStore.js';
 
 /** 候选封面文件名（按优先级） */
 const COVER_CANDIDATES = ['cover.png', 'cover.jpg', 'cover.jpeg', 'cover.webp'] as const;
@@ -136,67 +137,102 @@ function visualMotifs(podcast: PodcastContent): string {
   return uniq.slice(0, 6).join(', ');
 }
 
+/** 模板可用变量（设置页展示） */
+export const COVER_PROMPT_VARIABLES: Array<{
+  key: string;
+  label: string;
+  sample: string;
+}> = [
+  { key: 'title', label: '节目标题（已清洗前缀）', sample: '从视频到可收听的内容' },
+  { key: 'summary', label: '节目摘要', sample: '本期提炼核心观点并给出行动建议' },
+  { key: 'motifs', label: '视觉母题（大纲/标签）', sample: '内容复用, 口播脚本' },
+  { key: 'hostIntro', label: '主持人导语/语气', sample: '通勤向精华播客' },
+  { key: 'aspect', label: '画幅比例', sample: '1:1' },
+  { key: 'size', label: '生成尺寸', sample: '1024x1024' },
+  { key: 'compositionHint', label: '该画幅的构图说明', sample: 'Square album-tile layout…' },
+];
+
 /**
- * 播客封面提示词：
- * - 画幅在 9:16 / 3:4 / 1:1 间随机
- * - 单焦点、缩略图可读
- * - 禁止文字与真人肖像
+ * 默认封面提示词模板。
+ * 可用 {{title}} {{summary}} {{motifs}} {{hostIntro}} {{aspect}} {{size}} {{compositionHint}}
  */
-function buildCoverPrompt(
+export const DEFAULT_COVER_PROMPT_TEMPLATE = [
+  'Podcast cover artwork about: "{{title}}".',
+  'Core idea (visual mood only, never render as text): {{summary}}',
+  'Key visual motifs / symbols to hint at: {{motifs}}.',
+  'Tone hint: {{hostIntro}}',
+  '',
+  'FORMAT (hard requirements):',
+  '- Aspect ratio MUST be {{aspect}} (canvas size target {{size}}).',
+  '- {{compositionHint}}',
+  '- Full-bleed artwork edge-to-edge; no borders, no frames, no polaroid edges, no letterboxing/pillarboxing bars.',
+  '- Designed as a modern podcast cover that still looks strong when cropped or shown small.',
+  '',
+  'COMPOSITION:',
+  '- One strong primary focal subject; secondary elements soft and sparse.',
+  '- Keep important content away from extreme edges (safe area ~8%).',
+  '- Readable at small thumbnail sizes; avoid tiny details and dense clutter.',
+  '- Depth via soft atmosphere / light falloff; main subject stays sharp.',
+  '',
+  'STYLE & LOOK:',
+  '- Premium editorial illustration or stylized 3D render (not raw photo dump).',
+  '- Cohesive limited color palette, rich but clean; soft cinematic lighting.',
+  '- Contemporary high-signal aesthetic (top podcast charts / design awards vibe).',
+  '- High contrast subject so it pops on both light and dark UI backgrounds.',
+  '',
+  'STRICT NEGATIVES (do not include):',
+  '- Any text, letters, numbers, Chinese characters, titles, captions, subtitles.',
+  '- Logos, watermarks, brand marks, QR codes, UI chrome, buttons, progress bars.',
+  '- Photorealistic faces of real people / celebrities / identifiable individuals.',
+  '- NSFW, gore, political propaganda, screenshots, document pages, slides.',
+  '- Multiple unrelated scenes stitched together; messy collage; low-res artifacts.',
+  '- Wrong aspect ratio, black bars, or empty padded borders to fake the ratio.',
+].join('\n');
+
+export type CoverPromptVars = Record<string, string>;
+
+/** 从播客内容 + 画幅构造模板变量 */
+export function buildCoverPromptVars(
   podcast: PodcastContent,
   frame: CoverFrame,
+): CoverPromptVars {
+  return {
+    title: visualTitle(podcast.title || 'Podcast'),
+    summary: cleanText(podcast.summary, 160),
+    motifs: visualMotifs(podcast),
+    hostIntro: cleanText(podcast.hostIntro, 80),
+    aspect: frame.aspect,
+    size: frame.size,
+    compositionHint: frame.compositionHint,
+  };
+}
+
+/** 渲染 {{var}} 模板；清理多余空行 */
+export function renderCoverPromptTemplate(
+  template: string,
+  vars: CoverPromptVars,
 ): string {
-  const title = visualTitle(podcast.title || 'Podcast');
-  const summary = cleanText(podcast.summary, 160);
-  const host = cleanText(podcast.hostIntro, 80);
-  const motifs = visualMotifs(podcast);
+  const src = (template || '').trim() || DEFAULT_COVER_PROMPT_TEMPLATE;
+  const rendered = src.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key: string) => {
+    const v = vars[key];
+    return v == null ? '' : String(v);
+  });
+  return rendered
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
-  const subject = [
-    `Podcast cover artwork about: "${title}".`,
-    summary
-      ? `Core idea (visual mood only, never render as text): ${summary}`
-      : '',
-    motifs ? `Key visual motifs / symbols to hint at: ${motifs}.` : '',
-    host ? `Tone hint: ${host}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  const format = [
-    `FORMAT (hard requirements):`,
-    `- Aspect ratio MUST be ${frame.aspect} (canvas size target ${frame.size}).`,
-    `- ${frame.compositionHint}`,
-    `- Full-bleed artwork edge-to-edge; no borders, no frames, no polaroid edges, no letterboxing/pillarboxing bars.`,
-    `- Designed as a modern podcast cover that still looks strong when cropped or shown small.`,
-  ].join('\n');
-
-  const composition = [
-    `COMPOSITION:`,
-    `- One strong primary focal subject; secondary elements soft and sparse.`,
-    `- Keep important content away from extreme edges (safe area ~8%).`,
-    `- Readable at small thumbnail sizes; avoid tiny details and dense clutter.`,
-    `- Depth via soft atmosphere / light falloff; main subject stays sharp.`,
-  ].join('\n');
-
-  const style = [
-    `STYLE & LOOK:`,
-    `- Premium editorial illustration or stylized 3D render (not raw photo dump).`,
-    `- Cohesive limited color palette, rich but clean; soft cinematic lighting.`,
-    `- Contemporary high-signal aesthetic (top podcast charts / design awards vibe).`,
-    `- High contrast subject so it pops on both light and dark UI backgrounds.`,
-  ].join('\n');
-
-  const negatives = [
-    `STRICT NEGATIVES (do not include):`,
-    `- Any text, letters, numbers, Chinese characters, titles, captions, subtitles.`,
-    `- Logos, watermarks, brand marks, QR codes, UI chrome, buttons, progress bars.`,
-    `- Photorealistic faces of real people / celebrities / identifiable individuals.`,
-    `- NSFW, gore, political propaganda, screenshots, document pages, slides.`,
-    `- Multiple unrelated scenes stitched together; messy collage; low-res artifacts.`,
-    `- Wrong aspect ratio, black bars, or empty padded borders to fake the ratio.`,
-  ].join('\n');
-
-  return [subject, format, composition, style, negatives].join('\n\n');
+/**
+ * 合成最终图片 prompt：优先使用后台配置的模板，空则回落默认。
+ */
+export function buildCoverPrompt(
+  podcast: PodcastContent,
+  frame: CoverFrame,
+  template?: string | null,
+): string {
+  const vars = buildCoverPromptVars(podcast, frame);
+  return renderCoverPromptTemplate(template ?? DEFAULT_COVER_PROMPT_TEMPLATE, vars);
 }
 
 function extFromMime(mime?: string | null): string {
@@ -292,7 +328,7 @@ export async function generatePodcastCover(
     `${jobId}:${podcast.title || ''}:${Math.random().toString(36).slice(2, 8)}`,
   );
   const sizes = SIZE_FALLBACKS[base.aspect] || [base.size];
-  const prompt = buildCoverPrompt(podcast, { ...base, size: sizes[0]! });
+  const template = getCoverPromptTemplateStored() || DEFAULT_COVER_PROMPT_TEMPLATE;
 
   let lastError = '';
   let finalRes: Response | null = null;
@@ -303,7 +339,7 @@ export async function generatePodcastCover(
     // 先带 b64，失败再去 response_format
     let res = await requestCoverImage({
       model,
-      prompt: buildCoverPrompt(podcast, { ...base, size }),
+      prompt: buildCoverPrompt(podcast, { ...base, size }, template),
       size,
       withResponseFormat: true,
     });
@@ -321,7 +357,7 @@ export async function generatePodcastCover(
       // 其它错误：去掉 response_format 再试同尺寸一次
       res = await requestCoverImage({
         model,
-        prompt: buildCoverPrompt(podcast, { ...base, size }),
+        prompt: buildCoverPrompt(podcast, { ...base, size }, template),
         size,
         withResponseFormat: false,
       });

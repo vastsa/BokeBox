@@ -7,6 +7,7 @@ import {
   saveAiSettings,
   type PublicAiConfig,
 } from '../api/client';
+import { GlobalCoverPromptSettings } from '../components/admin/GlobalCoverPromptSettings';
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
 import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
 import { IconRefresh } from '../components/icons';
@@ -15,7 +16,7 @@ import { clearAuthSession } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 import { AppShell } from '../layouts/AppShell';
 
-type SettingsTab = 'voice' | 'persona' | 'ai' | 'account';
+type SettingsTab = 'voice' | 'persona' | 'cover' | 'ai' | 'account';
 
 const TABS: Array<{
   id: SettingsTab;
@@ -31,6 +32,11 @@ const TABS: Array<{
     id: 'persona',
     label: '口播人设',
     desc: '脚本生成时使用的主播与节目设定',
+  },
+  {
+    id: 'cover',
+    label: '封面提示词',
+    desc: 'AI 生成播客封面时使用的图片提示词模板',
   },
   {
     id: 'ai',
@@ -233,6 +239,17 @@ export function SettingsPage({ route }: { route: Route }) {
                     aria-labelledby="settings-tab-persona"
                   >
                     <GlobalScriptPromptSettings />
+                  </div>
+                )}
+
+                {tab === 'cover' && (
+                  <div
+                    className="settings-tab-panel"
+                    role="tabpanel"
+                    id="settings-panel-cover"
+                    aria-labelledby="settings-tab-cover"
+                  >
+                    <GlobalCoverPromptSettings />
                   </div>
                 )}
 

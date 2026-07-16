@@ -256,6 +256,36 @@ export async function saveScriptPromptSettings(
   return data.scriptPrompt || {};
 }
 
+
+export type CoverPromptVariable = {
+  key: string;
+  label: string;
+  sample: string;
+};
+
+export type CoverPromptSettings = {
+  template: string;
+  stored: string;
+  defaultTemplate: string;
+  isCustom: boolean;
+  variables: CoverPromptVariable[];
+};
+
+export async function fetchCoverPromptSettings(): Promise<CoverPromptSettings> {
+  return request('/settings/cover-prompt');
+}
+
+export async function saveCoverPromptSettings(body: {
+  template?: string | null;
+  reset?: boolean;
+}): Promise<CoverPromptSettings> {
+  return request('/settings/cover-prompt', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 export async function fetchTtsSettings(): Promise<{ tts: TtsOptions }> {
   return request('/settings/tts');
 }
