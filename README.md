@@ -117,7 +117,7 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 | 首页 | 播放页 |
 | :---: | :---: |
-| <img src="docs/img/lis.png" alt="BokeBox 桌面" /> | <img src="docs/img/home.png" alt="BokeBox 播放" /> |
+| <img src="docs/img/home.png" alt="BokeBox 桌面" /> | <img src="docs/img/lis.png" alt="BokeBox 播放" /> |
 
 你将拥有：
 
