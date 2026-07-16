@@ -7103,8 +7103,13 @@ button.pb-cover {
 }
 .script-prompt-mode-tab.is-active {
   background: var(--surface);
-  color: var(--brand-2);
+  color: var(--text);
   box-shadow: var(--shadow-sm);
+}
+@media (prefers-color-scheme: dark) {
+  .script-prompt-mode-tab.is-active {
+    color: var(--brand-2);
+  }
 }
 .script-prompt-mode-tab:disabled {
   cursor: not-allowed;
@@ -7807,15 +7812,15 @@ button.pb-cover {
 }
 .script-prompt-preview-wrap { margin-bottom: var(--space-3); }
 
-/* 设置页控件收敛；保存按钮保持品牌主色，避免深色模式白底白字 */
+/* 设置页控件：亮色克制墨色，深色品牌色保证对比 */
 .settings-page .settings-card .nl-btn-primary {
-  background: var(--brand-grad);
+  background: var(--text);
   color: var(--text-inv);
-  box-shadow: var(--shadow-fab);
+  box-shadow: none;
 }
 .settings-page .settings-card .nl-btn-primary:hover {
-  filter: brightness(1.03);
-  background: var(--brand-grad);
+  filter: none;
+  background: color-mix(in srgb, var(--text) 88%, var(--white));
 }
 .settings-page .settings-card .nl-btn-primary:disabled {
   opacity: 0.55;
@@ -7826,25 +7831,63 @@ button.pb-cover {
   border-radius: var(--radius-sm);
   box-shadow: none;
 }
-/* 选中态走品牌 soft token，深浅色自动适配对比度 */
+/* 亮色选中态：墨色描边 / 反色填充，正式克制 */
 .settings-page .tts-mode.is-active,
 .settings-page .tts-voice.is-active {
-  background: var(--brand-soft);
-  border-color: var(--brand-ring);
+  background: var(--surface-2);
+  border-color: var(--text);
   box-shadow: none;
 }
 .settings-page .tts-mode.is-active .title,
 .settings-page .tts-voice.is-active .name {
-  color: var(--brand-2);
+  color: var(--text);
 }
 .settings-page .tts-tag.is-active {
-  background: var(--brand-soft);
-  color: var(--brand-2);
-  border-color: var(--brand-ring);
+  background: var(--text);
+  color: var(--text-inv);
+  border-color: var(--text);
   box-shadow: none;
 }
 .settings-page .tts-tag.is-locked {
+  background: var(--text);
   color: var(--text-inv);
+  border-color: var(--text);
+  box-shadow: none;
+}
+
+/* 深色下 text 反色会发白，改用品牌 soft/grad */
+@media (prefers-color-scheme: dark) {
+  .settings-page .settings-card .nl-btn-primary {
+    background: var(--brand-grad);
+    color: var(--text-inv);
+    box-shadow: var(--shadow-fab);
+  }
+  .settings-page .settings-card .nl-btn-primary:hover {
+    filter: brightness(1.03);
+    background: var(--brand-grad);
+  }
+  .settings-page .tts-mode.is-active,
+  .settings-page .tts-voice.is-active {
+    background: var(--brand-soft);
+    border-color: var(--brand-ring);
+    box-shadow: none;
+  }
+  .settings-page .tts-mode.is-active .title,
+  .settings-page .tts-voice.is-active .name {
+    color: var(--brand-2);
+  }
+  .settings-page .tts-tag.is-active {
+    background: var(--brand-soft);
+    color: var(--brand-2);
+    border-color: var(--brand-ring);
+    box-shadow: none;
+  }
+  .settings-page .tts-tag.is-locked {
+    background: var(--brand-grad);
+    color: var(--text-inv);
+    border-color: transparent;
+    box-shadow: none;
+  }
 }
 
 .settings-page .auth-field span {
@@ -8213,73 +8256,76 @@ button.pb-cover {
 /* ===== Cover prompt settings ===== */
 .cover-prompt-textarea {
   width: 100%;
-  min-height: 280px;
+  min-height: var(--size-280);
   resize: vertical;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12.5px;
-  line-height: 1.55;
+  font-size: var(--fs-sm-plus);
+  line-height: var(--lh-relaxed);
   white-space: pre-wrap;
+  color: var(--text);
+  background: var(--surface);
 }
 .cover-prompt-vars {
-  margin-top: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--surface-2, #f3f6fb);
-  border: 1px solid rgba(127, 140, 170, 0.14);
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-3_5);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: var(--bw-1) solid var(--separator);
 }
 .cover-prompt-vars-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-2, #5b6575);
-  margin-bottom: 8px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-2);
+  margin-bottom: var(--space-2);
 }
 .cover-prompt-vars-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .cover-prompt-vars-list li {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 10px;
-  font-size: 12px;
-  color: var(--text-2, #5b6575);
+  gap: var(--space-2) var(--space-2_5);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
 }
 .cover-prompt-vars-list code {
   cursor: pointer;
-  font-size: 11.5px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: rgba(79, 142, 247, 0.1);
-  color: var(--brand, #4f8ef7);
-  border: 1px solid rgba(79, 142, 247, 0.18);
+  font-size: var(--fs-xs);
+  padding: var(--space-0_5) var(--space-1_75);
+  border-radius: var(--radius-2xs);
+  background: var(--brand-soft);
+  color: var(--brand-2);
+  border: var(--bw-1) solid var(--brand-ring);
 }
 .cover-prompt-vars-list code:hover {
-  background: rgba(79, 142, 247, 0.16);
+  background: color-mix(in srgb, var(--brand-soft) 70%, var(--brand));
+  color: var(--brand-2);
 }
 .cover-prompt-actions {
-  margin-top: 16px;
+  margin-top: var(--space-4);
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--space-2_5);
   justify-content: space-between;
   align-items: center;
 }
 .cover-prompt-actions-left {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .settings-inline-error {
-  margin-top: 10px;
-  color: #c23b3b;
-  font-size: 13px;
+  margin-top: var(--space-2_5);
+  color: var(--danger);
+  font-size: var(--fs-base);
 }
 .settings-inline-ok {
-  margin-top: 10px;
-  color: #2f7d4a;
-  font-size: 13px;
+  margin-top: var(--space-2_5);
+  color: var(--success);
+  font-size: var(--fs-base);
 }
