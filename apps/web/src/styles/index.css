@@ -524,6 +524,61 @@ body:has(.global-player) {
 .topbar:hover {
   border-bottom-color: var(--separator);
 }
+/* 手机端顶栏右上角：制作 / 设置 */
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.topbar-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--separator);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.topbar-action-btn:hover {
+  background: var(--brand-soft);
+  color: var(--brand-2);
+  border-color: color-mix(in srgb, var(--brand) 22%, transparent);
+}
+.topbar-action-btn:active {
+  transform: scale(0.96);
+}
+.topbar-action-btn.is-active {
+  background: var(--brand-soft);
+  color: var(--brand-2);
+  border-color: color-mix(in srgb, var(--brand) 22%, transparent);
+}
+@media (max-width: 360px) {
+  .topbar-action-btn {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0;
+  }
+  .topbar-action-btn span {
+    display: none;
+  }
+}
+
 .bottom-nav {
   position: fixed;
   left: 0;
@@ -540,9 +595,13 @@ body:has(.global-player) {
 }
 @media (prefers-color-scheme: dark) {
   .bottom-nav { background: rgba(21,27,36,0.94); }
+  .topbar-action-btn {
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+  }
 }
 @media (min-width: 768px) {
   .bottom-nav { display: none; }
+  .topbar-actions { display: none; }
 }
 
 /* progress / range */

@@ -49,6 +49,7 @@ export function AppShell({
             </span>
           </button>
 
+          {/* 桌面端：完整顶栏导航 */}
           <nav className="hidden items-center gap-0.5 rounded-full border border-[var(--separator)] bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] p-0.5 backdrop-blur md:flex">
             <TopNavItem
               active={homeActive}
@@ -69,6 +70,22 @@ export function AppShell({
               icon={<IconSpark size={14} />}
             />
           </nav>
+
+          {/* 手机端：右上角制作 / 设置 */}
+          <div className="topbar-actions md:hidden">
+            <TopActionButton
+              active={createActive}
+              label="制作"
+              onClick={() => navigate({ name: 'create' })}
+              icon={<IconUpload size={15} />}
+            />
+            <TopActionButton
+              active={settingsActive}
+              label="设置"
+              onClick={() => navigate({ name: 'settings' })}
+              icon={<IconSpark size={15} />}
+            />
+          </div>
         </div>
       </header>
 
@@ -126,6 +143,31 @@ function TopNavItem({
     >
       {icon}
       {label}
+    </button>
+  );
+}
+
+function TopActionButton({
+  active,
+  label,
+  onClick,
+  icon,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+  icon: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={['topbar-action-btn', active ? 'is-active' : ''].join(' ')}
+    >
+      {icon}
+      <span>{label}</span>
     </button>
   );
 }
