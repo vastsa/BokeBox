@@ -3969,6 +3969,14 @@ body:has(.global-player) {
     gap: 6px;
   }
   .global-player-cover { width: 36px; height: 36px; border-radius: 10px; }
+  .global-ctrl {
+    width: 36px;
+    height: 36px;
+  }
+  .global-ctrl.is-main {
+    width: 40px;
+    height: 40px;
+  }
 }
 
 /* =========================
@@ -4605,8 +4613,22 @@ body:has(.global-player) {
   right: -28vmax;
   top: -20vmax;
   border-radius: 50%;
-  filter: blur(40px) saturate(1.15);
+  filter: blur(48px) saturate(1.2);
   opacity: 0.42;
+  transition: opacity .4s ease;
+}
+.qq-ambient-blob-2 {
+  width: 55vmax;
+  height: 55vmax;
+  left: -18vmax;
+  bottom: -12vmax;
+  right: auto;
+  top: auto;
+  opacity: 0.22;
+  filter: blur(56px) saturate(1.1);
+}
+.qq-player.is-playing .qq-ambient-blob {
+  opacity: 0.5;
 }
 .qq-ambient-veil {
   position: absolute;
@@ -4617,6 +4639,8 @@ body:has(.global-player) {
 }
 @media (prefers-color-scheme: dark) {
   .qq-ambient-blob { opacity: 0.28; }
+  .qq-ambient-blob-2 { opacity: 0.16; }
+  .qq-player.is-playing .qq-ambient-blob { opacity: 0.34; }
   .qq-ambient-veil {
     background:
       radial-gradient(70% 60% at 80% 30%, transparent 0%, rgba(11,15,22,0.45) 68%, #0b0f16 100%),
@@ -4624,61 +4648,78 @@ body:has(.global-player) {
   }
 }
 
+/* top bar */
 .qq-top {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
   align-items: center;
   gap: 8px;
-  padding: max(10px, var(--safe-top)) 16px 6px;
+  padding: max(10px, var(--safe-top)) 14px 8px;
 }
 .qq-icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border: 0;
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
   color: var(--text-2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   text-decoration: none;
-  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  border: 1px solid color-mix(in srgb, var(--separator) 70%, transparent);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  -webkit-tap-highlight-color: transparent;
 }
 .qq-icon-btn:hover {
   background: var(--surface);
   color: var(--text);
 }
+.qq-icon-btn:active { transform: scale(0.96); }
+
 .qq-top-tabs {
   display: flex;
-  justify-content: center;
-  gap: 4px;
+  justify-content: flex-start;
+  gap: 2px;
   padding: 3px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
   border: 1px solid color-mix(in srgb, var(--separator) 80%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   width: fit-content;
+  max-width: 100%;
   margin-inline: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
+.qq-top-tabs::-webkit-scrollbar { display: none; }
 .qq-top-tab {
-  min-height: 28px;
-  padding: 0 14px;
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--text-3);
   font-size: 12.5px;
   font-weight: 650;
+  white-space: nowrap;
+  transition: background .15s ease, color .15s ease, transform .12s ease;
+  -webkit-tap-highlight-color: transparent;
 }
+.qq-top-tab:active { transform: scale(0.97); }
 .qq-top-tab.is-active {
   background: var(--surface);
   color: var(--text);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
 }
 
+/* stage */
 .qq-stage {
   position: relative;
   z-index: 1;
@@ -4687,14 +4728,14 @@ body:has(.global-player) {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
-  padding: 4px 0 0;
+  padding: 2px 0 0;
 }
 @media (min-width: 900px) {
   .qq-stage {
-    grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+    grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
     align-items: stretch;
     padding: 8px 28px 0;
-    gap: 24px;
+    gap: 20px;
   }
 }
 
@@ -4703,40 +4744,88 @@ body:has(.global-player) {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 4px 20px 0;
+  padding: 0 16px;
 }
 @media (min-width: 900px) {
-  .qq-stage-left { padding: 18px 8px 0 12px; }
+  .qq-stage-left { padding: 10px 8px 0 8px; }
 }
 
-.qq-song-head {
+/* hero: 标题 + 小碟（手机） */
+.qq-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
   margin-bottom: 10px;
+  min-height: 0;
+}
+.qq-song-head {
+  min-width: 0;
+  padding-bottom: 2px;
 }
 .qq-song-title {
   margin: 0;
-  font-size: clamp(20px, 2.6vw, 28px);
+  font-size: clamp(18px, 4.6vw, 26px);
   font-weight: 800;
   letter-spacing: -0.035em;
-  line-height: 1.25;
+  line-height: 1.22;
   color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .qq-song-artist {
   margin: 6px 0 0;
-  font-size: 13.5px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 550;
   color: var(--text-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.qq-song-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.qq-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--separator) 85%, transparent);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 650;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.qq-hero-disc {
+  flex-shrink: 0;
+  width: 118px;
+}
+.qq-hero-disc .qq-disc {
+  width: 100%;
+  margin: 0;
 }
 
 .qq-stage-body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  border-radius: 16px;
 }
 
-/* lyrics wheel · 连续滚动 / 惯性吸附 */
+/* lyrics wheel */
 .qq-lyrics-wheel {
   height: 100%;
-  min-height: 260px;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   touch-action: none;
@@ -4756,20 +4845,19 @@ body:has(.global-player) {
   mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    #000 14%,
-    #000 86%,
+    #000 12%,
+    #000 88%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    #000 14%,
-    #000 86%,
+    #000 12%,
+    #000 88%,
     transparent 100%
   );
 }
 
-/* 中心聚焦带 */
 .qq-lyrics-focus {
   position: absolute;
   left: 0;
@@ -4796,7 +4884,7 @@ body:has(.global-player) {
   border: 0;
   background: transparent;
   text-align: left;
-  padding: 0 14px;
+  padding: 0 12px;
   font-size: clamp(14.5px, 1.55vw, 17.5px);
   font-weight: 520;
   line-height: 1.35;
@@ -4805,7 +4893,6 @@ body:has(.global-player) {
   will-change: transform, opacity;
   cursor: inherit;
   z-index: 1;
-  /* 跟手时零延迟；跟播由 JS 插值驱动 */
   transition: color 0.18s ease, font-weight 0.18s ease, font-size 0.18s ease;
 }
 .qq-lyric-line.is-active {
@@ -4851,13 +4938,15 @@ body:has(.global-player) {
 .qq-outline {
   height: 100%;
   overflow-y: auto;
-  padding: 8px 4px 28px;
+  padding: 4px 2px 24px;
   scrollbar-width: thin;
+  overscroll-behavior: contain;
 }
 .qq-notes {
   font-size: 14px;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--text-2);
+  padding-right: 6px;
 }
 .qq-outline {
   list-style: none;
@@ -4865,12 +4954,18 @@ body:has(.global-player) {
   padding-left: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .qq-outline > li {
   display: flex;
   gap: 12px;
   align-items: flex-start;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--separator) 80%, transparent);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .qq-outline-idx {
   flex-shrink: 0;
@@ -4888,11 +4983,12 @@ body:has(.global-player) {
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
+  line-height: 1.35;
 }
 .qq-outline-desc {
-  margin-top: 3px;
+  margin-top: 4px;
   font-size: 12.5px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--text-3);
 }
 .qq-empty {
@@ -4900,28 +4996,46 @@ body:has(.global-player) {
   text-align: center;
   color: var(--text-3);
   font-size: 13.5px;
+  font-weight: 650;
 }
 
-/* disc */
+/* desktop disc */
 .qq-stage-right {
   display: none;
   align-items: center;
   justify-content: center;
   min-height: 0;
-  padding: 12px 20px 20px;
+  padding: 8px 12px 20px;
+}
+.qq-stage-right-inner {
+  display: grid;
+  place-items: center;
 }
 @media (min-width: 900px) {
   .qq-stage-right { display: flex; }
+  .qq-hero-disc { display: none; } /* 桌面用右侧大碟 */
+  .qq-hero {
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 14px;
+  }
+  .qq-song-title {
+    font-size: clamp(22px, 2.5vw, 30px);
+    -webkit-line-clamp: 3;
+  }
 }
+
 .qq-disc {
   position: relative;
   border: 0;
   background: transparent;
   padding: 0;
   cursor: pointer;
-  width: min(42vw, 420px);
+  width: min(40vw, 400px);
   aspect-ratio: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .2s ease;
 }
+.qq-disc:active { transform: scale(0.98); }
 .qq-disc-face {
   position: relative;
   width: 100%;
@@ -4929,12 +5043,16 @@ body:has(.global-player) {
   border-radius: 50%;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--separator) 80%, transparent);
+  box-shadow:
+    0 12px 36px color-mix(in srgb, var(--text) 12%, transparent),
+    0 0 0 1px color-mix(in srgb, #fff 18%, transparent) inset;
 }
 .qq-disc-ring {
   position: absolute;
   inset: 9%;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.22);
+  pointer-events: none;
 }
 .qq-disc-ring::before,
 .qq-disc-ring::after {
@@ -4955,45 +5073,72 @@ body:has(.global-player) {
   display: grid;
   place-items: center;
   color: #fff;
-  background: rgba(0,0,0,0.22);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  transition: background .15s ease, transform .15s ease;
+}
+.qq-disc:hover .qq-disc-label {
+  background: rgba(0,0,0,0.36);
+  transform: scale(1.03);
 }
 .qq-disc-glow {
-  display: none;
+  position: absolute;
+  inset: -8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--brand) 28%, transparent), transparent 68%);
+  opacity: 0;
+  transition: opacity .35s ease;
+  pointer-events: none;
+  z-index: -1;
 }
+.qq-disc-shadow {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -6%;
+  height: 14%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--text) 18%, transparent), transparent 70%);
+  filter: blur(6px);
+  pointer-events: none;
+  z-index: -1;
+}
+.qq-disc.is-spinning .qq-disc-glow { opacity: 1; }
 .qq-disc.is-spinning .qq-disc-face {
-  animation: qq-spin 16s linear infinite;
+  animation: qq-spin 18s linear infinite;
 }
 @keyframes qq-spin {
   to { transform: rotate(360deg); }
 }
 
-/* mobile disc peek */
-@media (max-width: 899px) {
-  .qq-stage {
-    grid-template-rows: auto minmax(0, 1fr);
+/* 内容聚焦：笔记/大纲/闪卡 压缩标题区与碟 */
+.qq-player.is-focus-content .qq-hero {
+  margin-bottom: 6px;
+}
+.qq-player.is-focus-content .qq-hero-disc {
+  width: 84px;
+}
+.qq-player.is-focus-content .qq-song-title {
+  font-size: clamp(16px, 4vw, 18px);
+  -webkit-line-clamp: 1;
+}
+.qq-player.is-focus-content .qq-song-artist,
+.qq-player.is-focus-content .qq-song-chips {
+  display: none;
+}
+@media (min-width: 900px) {
+  .qq-player.is-focus-content .qq-song-title {
+    font-size: clamp(20px, 2.2vw, 26px);
+    -webkit-line-clamp: 2;
   }
-  .qq-stage-right {
+  .qq-player.is-focus-content .qq-song-artist {
+    display: -webkit-box;
+  }
+  .qq-player.is-focus-content .qq-song-chips {
     display: flex;
-    order: -1;
-    padding: 4px 0 0;
-    height: 160px;
-  }
-  .qq-disc {
-    width: 140px;
-    margin-left: auto;
-    margin-right: 8%;
-  }
-  .qq-stage-left {
-    padding-top: 0;
-  }
-  .qq-song-head {
-    padding-right: 36%;
-    margin-top: -132px;
-    position: relative;
-    z-index: 2;
   }
 }
 
@@ -5003,18 +5148,19 @@ body:has(.global-player) {
   z-index: 3;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  padding: 10px 16px calc(12px + var(--safe-bottom));
+  gap: 6px;
+  padding: 10px 14px calc(12px + var(--safe-bottom));
   background:
-    linear-gradient(180deg, transparent, color-mix(in srgb, var(--surface) 55%, transparent) 28%),
-    color-mix(in srgb, var(--surface) 82%, transparent);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  border-top: 1px solid color-mix(in srgb, var(--separator) 80%, transparent);
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--surface) 55%, transparent) 22%),
+    color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border-top: 1px solid color-mix(in srgb, var(--separator) 75%, transparent);
+  box-shadow: 0 -8px 28px color-mix(in srgb, var(--text) 4%, transparent);
 }
 @media (min-width: 900px) {
   .qq-dock {
-    grid-template-columns: minmax(180px, 1fr) minmax(320px, 1.4fr) minmax(160px, 1fr);
+    grid-template-columns: minmax(180px, 1fr) minmax(340px, 1.45fr) minmax(200px, 1fr);
     align-items: center;
     gap: 16px;
     padding: 12px 28px calc(14px + var(--safe-bottom));
@@ -5031,10 +5177,13 @@ body:has(.global-player) {
   .qq-dock-left { display: flex; }
 }
 .qq-dock-cover {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
   flex-shrink: 0;
+}
+.qq-dock-meta {
+  min-width: 0;
 }
 .qq-dock-title {
   display: flex;
@@ -5053,12 +5202,12 @@ body:has(.global-player) {
 .qq-dock-center {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 .qq-progress-row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
   align-items: center;
   gap: 8px;
 }
@@ -5067,10 +5216,24 @@ body:has(.global-player) {
   font-variant-numeric: tabular-nums;
   color: var(--text-3);
   text-align: center;
+  font-weight: 650;
 }
+.qq-time.is-btn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color .15s ease, background .15s ease;
+}
+.qq-time.is-btn:hover {
+  color: var(--brand-2);
+  background: var(--brand-soft);
+}
+
 .qq-progress-wrap {
   position: relative;
-  height: 18px;
+  height: 22px;
   display: flex;
   align-items: center;
 }
@@ -5078,64 +5241,92 @@ body:has(.global-player) {
   position: absolute;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 4px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--text) 10%, transparent);
   overflow: hidden;
   pointer-events: none;
+  transition: height .15s ease;
 }
 .qq-progress-bar > i {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--brand);
+  background: linear-gradient(90deg, var(--brand), color-mix(in srgb, var(--brand) 70%, #8fb8ff));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--brand) 35%, transparent);
+}
+.qq-progress-wrap.is-scrubbing .qq-progress-bar {
+  height: 6px;
 }
 .qq-range {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: 18px;
+  height: 22px;
   margin: 0;
   appearance: none;
   background: transparent;
   cursor: pointer;
 }
 .qq-range::-webkit-slider-runnable-track {
-  height: 3px;
+  height: 4px;
   background: transparent;
   border-radius: 999px;
 }
 .qq-range::-webkit-slider-thumb {
   appearance: none;
-  width: 12px;
-  height: 12px;
-  margin-top: -4.5px;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
   border-radius: 999px;
-  background: var(--brand);
-  border: 0;
+  background: #fff;
+  border: 2px solid var(--brand);
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--brand) 35%, transparent);
+  transition: transform .12s ease;
+}
+.qq-progress-wrap.is-scrubbing .qq-range::-webkit-slider-thumb {
+  transform: scale(1.18);
 }
 .qq-range::-moz-range-track {
-  height: 3px;
+  height: 4px;
   background: transparent;
   border: 0;
 }
 .qq-range::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border: 0;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--brand);
   border-radius: 999px;
-  background: var(--brand);
+  background: #fff;
+}
+.qq-scrub-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  transform: translateX(-50%);
+  min-width: 48px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 88%, transparent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .qq-controls {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 22px;
 }
 .qq-ctrl {
-  width: 40px;
-  height: 40px;
+  position: relative;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 999px;
   display: grid;
@@ -5143,22 +5334,37 @@ body:has(.global-player) {
   background: transparent;
   color: var(--text-2);
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  -webkit-tap-highlight-color: transparent;
 }
 .qq-ctrl:hover {
   background: color-mix(in srgb, var(--surface-2) 80%, transparent);
   color: var(--text);
 }
+.qq-ctrl:active { transform: scale(0.95); }
 .qq-ctrl.is-main {
-  width: 52px;
-  height: 52px;
-  background: var(--brand);
+  width: 58px;
+  height: 58px;
+  background: var(--brand-grad, var(--brand));
   color: #fff;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--brand) 35%, transparent);
 }
 .qq-ctrl.is-main:hover {
   filter: brightness(1.05);
   color: #fff;
-  background: var(--brand);
+  background: var(--brand-grad, var(--brand));
   transform: scale(1.03);
+}
+.qq-ctrl.has-badge em {
+  position: absolute;
+  right: 2px;
+  bottom: 4px;
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: currentColor;
+  opacity: 0.85;
+  letter-spacing: -0.02em;
 }
 
 .qq-dock-right {
@@ -5166,46 +5372,69 @@ body:has(.global-player) {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-width: 0;
 }
 @media (min-width: 900px) {
   .qq-dock-right { justify-content: flex-end; }
 }
+
 .qq-rate-group {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   padding: 3px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-2) 80%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--separator) 70%, transparent);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.qq-rate-group::-webkit-scrollbar { display: none; }
 .qq-rate {
-  min-height: 26px;
-  min-width: 36px;
+  flex: 0 0 auto;
+  min-height: 28px;
+  min-width: 38px;
   padding: 0 8px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--text-3);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  transition: background .15s ease, color .15s ease;
 }
 .qq-rate.is-active {
   background: var(--surface);
   color: var(--brand-2);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
 }
-.qq-panel-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--separator);
-  background: var(--surface);
-  color: var(--text-3);
-  font-size: 12px;
-  font-weight: 750;
-}
-.qq-panel-btn.is-active {
+
+/* 手机：循环切换倍速；桌面：完整速率条 */
+.qq-rate-cycle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  min-width: 58px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--separator) 80%, transparent);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
   color: var(--brand-2);
-  border-color: color-mix(in srgb, var(--brand) 30%, transparent);
-  background: var(--brand-soft);
+  font-size: 12.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  -webkit-tap-highlight-color: transparent;
+}
+.qq-rate-cycle:active { transform: scale(0.97); }
+.qq-rate-desktop { display: none; }
+
+@media (min-width: 900px) {
+  .qq-rate-desktop { display: flex; }
+  .qq-rate-cycle { display: none; }
 }
 
 .qq-error,
@@ -5222,48 +5451,68 @@ body:has(.global-player) {
   text-align: center;
   color: var(--text-2);
 }
+.qq-error-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 22px;
+  font-weight: 800;
+}
 .qq-loading-disc {
   width: 120px;
   height: 120px;
   border-radius: 50%;
 }
 
+/* 手机 dock 细节 */
 @media (max-width: 899px) {
+  .qq-controls { gap: 28px; }
+  .qq-ctrl { width: 46px; height: 46px; }
+  .qq-ctrl.is-main {
+    width: 62px;
+    height: 62px;
+  }
+  .qq-progress-row {
+    grid-template-columns: 40px minmax(0, 1fr) 44px;
+  }
   .qq-dock-right {
-    justify-content: space-between;
+    justify-content: center;
   }
-  .qq-controls { gap: 22px; }
-}
-
-/* 闪卡模式：手机端压缩碟片与标题区，把垂直空间留给卡片 */
-@media (max-width: 899px) {
-  .qq-player.is-flashcards .qq-stage-right {
-    height: 88px;
-  }
-  .qq-player.is-flashcards .qq-disc {
-    width: 84px;
-    margin-right: 10%;
-  }
-  .qq-player.is-flashcards .qq-song-head {
-    margin-top: -72px;
-    padding-right: 28%;
-    margin-bottom: 6px;
-  }
-  .qq-player.is-flashcards .qq-song-title {
-    font-size: clamp(16px, 4.2vw, 18px);
-  }
-  .qq-player.is-flashcards .qq-song-artist {
-    display: none;
-  }
-  .qq-player.is-flashcards .qq-stage-left {
-    padding-bottom: 0;
+  .qq-top-tab {
+    padding: 0 11px;
+    font-size: 12px;
   }
 }
 
+/* 超窄 */
+@media (max-width: 380px) {
+  .qq-hero-disc { width: 100px; }
+  .qq-player.is-focus-content .qq-hero-disc { width: 76px; }
+  .qq-song-title { font-size: 16.5px; }
+  .qq-controls { gap: 20px; }
+}
+
+/* 桌面增强 */
 @media (min-width: 900px) {
-  .qq-player.is-flashcards .qq-song-head {
-    margin-bottom: 8px;
+  .qq-stage-right .qq-disc {
+    width: min(36vw, 380px);
   }
+  .qq-stage-body {
+    border-radius: 18px;
+  }
+  .qq-notes,
+  .qq-outline {
+    padding: 6px 8px 28px 2px;
+  }
+}
+
+/* 兼容旧 is-flashcards（与 is-focus-content 并存） */
+.qq-player.is-flashcards .qq-hero-disc {
+  width: 84px;
 }
 
 /* ===== Knowledge Flashcards (fc-*) ===== */

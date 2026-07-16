@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { fetchListenItem, podcastAudioUrl } from '../api/client';
 import { trackFromJob } from '../player/trackFromJob';
@@ -21,12 +21,19 @@ import type { LibraryItem } from '../types/job';
 
 type Panel = 'lyrics' | 'notes' | 'flashcards' | 'outline';
 
+const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+
 export function ListenPlayerPage({ id, route: _route }: { id: string; route: Route }) {
   const player = usePlayer();
   const [item, setItem] = useState<LibraryItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>('lyrics');
+  const [scrubbing, setScrubbing] = useState(false);
+  const [scrubValue, setScrubValue] = useState(0);
+  const scrubbingRef = useRef(false);
+  const [showRemain, setShowRemain] = useState(false);
   const boundId = useRef<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     void fetchListenItem(id)
@@ -37,9 +44,9 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         };
         setItem(merged);
         setError(null);
-        // 有脚本默认歌词模式，否则笔记
         if (merged.job.podcast?.script) setPanel('lyrics');
         else if (merged.job.podcast?.showNotes) setPanel('notes');
+        else if (merged.job.podcast?.flashcards?.length) setPanel('flashcards');
         else setPanel('outline');
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
@@ -71,15 +78,77 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         }
       : { playing: false, current: 0, duration: 0, rate: 1 };
 
+  const displayCurrent = scrubbing ? scrubValue : active.current;
   const pct = useMemo(
-    () => (active.duration > 0 ? (active.current / active.duration) * 100 : 0),
-    [active.current, active.duration],
+    () => (active.duration > 0 ? (displayCurrent / active.duration) * 100 : 0),
+    [displayCurrent, active.duration],
   );
+  const remain = Math.max(0, (active.duration || 0) - displayCurrent);
+
+  const ensureAndPlay = useCallback(() => {
+    if (!item) return;
+    const job = item.job;
+    if (player.track?.id !== job.id) {
+      player.playTrack(trackFromJob(job), { autoplay: true, resume: true });
+      return;
+    }
+    player.toggle();
+  }, [item, player]);
+
+  const cycleRate = useCallback(() => {
+    const idx = RATES.findIndex((r) => Math.abs(r - active.rate) < 0.001);
+    const next = RATES[(idx + 1) % RATES.length];
+    player.setRate(next);
+  }, [active.rate, player]);
+
+  // 键盘：空格播放、方向键 seek、[ ] 调速
+  useEffect(() => {
+    if (!item) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) {
+        return;
+      }
+      // 闪卡页已占用方向键 / 空格时：仅在非闪卡面板响应空格与左右
+      if (panel === 'flashcards') {
+        if (e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') return;
+      }
+
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        ensureAndPlay();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        player.seekBy(e.shiftKey ? -30 : -15);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        player.seekBy(e.shiftKey ? 30 : 15);
+      } else if (e.key === '[') {
+        e.preventDefault();
+        const idx = RATES.findIndex((r) => Math.abs(r - active.rate) < 0.001);
+        const prev = RATES[Math.max(0, (idx < 0 ? 1 : idx) - 1)];
+        player.setRate(prev);
+      } else if (e.key === ']') {
+        e.preventDefault();
+        const idx = RATES.findIndex((r) => Math.abs(r - active.rate) < 0.001);
+        const next = RATES[Math.min(RATES.length - 1, (idx < 0 ? 1 : idx) + 1)];
+        player.setRate(next);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        player.seekTo(0);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active.rate, ensureAndPlay, item, panel, player]);
 
   if (error) {
     return (
       <div className="qq-player">
         <div className="qq-error">
+          <div className="qq-error-icon" aria-hidden>
+            !
+          </div>
           <p>{error}</p>
           <button
             type="button"
@@ -108,38 +177,70 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   const job = item.job;
   const g = coverGradientFor(job.id, job.podcast?.coverGradient);
   const title = job.podcast?.title || job.title;
+  const tags = job.podcast?.tags || [];
   const artist =
-    (job.podcast?.tags || []).slice(0, 2).join(' / ') ||
+    tags.slice(0, 2).join(' · ') ||
     (job.podcast?.estimatedMinutes
       ? `约 ${job.podcast.estimatedMinutes} 分钟`
       : '私人播客');
   const hasScript = Boolean(job.podcast?.script);
+  const focusContent = panel === 'flashcards' || panel === 'notes' || panel === 'outline';
 
-  const ensureAndPlay = () => {
-    if (player.track?.id !== job.id) {
-      player.playTrack(trackFromJob(job), { autoplay: true, resume: true });
-      return;
-    }
-    player.toggle();
-  };
+  const tabs = (
+    [
+      ...(hasScript ? ([['lyrics', '歌词']] as const) : []),
+      ['notes', '笔记'] as const,
+      ['flashcards', '闪卡'] as const,
+      ['outline', '大纲'] as const,
+    ] as Array<readonly [Panel, string]>
+  );
+
+  const disc = (
+    <button
+      type="button"
+      className={['qq-disc', active.playing ? 'is-spinning' : ''].join(' ')}
+      onClick={ensureAndPlay}
+      aria-label={active.playing ? '暂停' : '播放'}
+    >
+      <CoverArt
+        seed={job.id}
+        preferred={job.podcast?.coverGradient}
+        title={title}
+        className="qq-disc-face is-round"
+        monogram
+      >
+        <div className="qq-disc-ring" />
+        <div className="qq-disc-label">
+          {active.playing ? <IconPause size={26} /> : <IconPlay size={26} />}
+        </div>
+      </CoverArt>
+      <div className="qq-disc-glow" aria-hidden />
+      <div className="qq-disc-shadow" aria-hidden />
+    </button>
+  );
 
   return (
     <div
+      ref={rootRef}
       className={[
         'qq-player',
         'nl-enter',
+        active.playing ? 'is-playing' : '',
+        focusContent ? 'is-focus-content' : '',
         panel === 'flashcards' ? 'is-flashcards' : '',
+        panel === 'lyrics' ? 'is-lyrics' : '',
+        panel === 'notes' ? 'is-notes' : '',
+        panel === 'outline' ? 'is-outline' : '',
       ]
         .filter(Boolean)
         .join(' ')}
     >
-      {/* 氛围底：封面色模糊铺满 */}
       <div className="qq-ambient" aria-hidden>
-        <div className={`qq-ambient-blob bg-gradient-to-br ${g}`} />
+        <div className={['qq-ambient-blob', `bg-gradient-to-br ${g}`].join(' ')} />
+        <div className={['qq-ambient-blob', 'qq-ambient-blob-2', `bg-gradient-to-br ${g}`].join(' ')} />
         <div className="qq-ambient-veil" />
       </div>
 
-      {/* 顶栏极简 */}
       <header className="qq-top">
         <button
           type="button"
@@ -149,18 +250,13 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         >
           <IconBack size={18} />
         </button>
-        <div className="qq-top-tabs">
-          {(
-            [
-              ...(hasScript ? ([['lyrics', '歌词']] as const) : []),
-              ['notes', '笔记'] as const,
-              ['flashcards', '闪卡'] as const,
-              ['outline', '大纲'] as const,
-            ] as Array<readonly [Panel, string]>
-          ).map(([k, label]) => (
+        <div className="qq-top-tabs" role="tablist" aria-label="内容面板">
+          {tabs.map(([k, label]) => (
             <button
               key={k}
               type="button"
+              role="tab"
+              aria-selected={panel === k}
               className={['qq-top-tab', panel === k ? 'is-active' : ''].join(' ')}
               onClick={() => setPanel(k)}
             >
@@ -171,21 +267,40 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         <a
           href={podcastAudioUrl(job.id, true)}
           className="qq-icon-btn"
-          aria-label="下载"
+          aria-label="下载音频"
+          title="下载"
         >
           <IconDownload size={16} />
         </a>
       </header>
 
-      {/* 主舞台：左文案 / 右大碟 */}
       <div className="qq-stage">
         <div className="qq-stage-left">
-          <div className="qq-song-head">
-            <h1 className="qq-song-title">{title}</h1>
-            <p className="qq-song-artist">{artist}</p>
+          <div className="qq-hero">
+            <div className="qq-song-head">
+              <h1 className="qq-song-title" title={title}>
+                {title}
+              </h1>
+              <p className="qq-song-artist">{artist}</p>
+              {(tags.length > 0 || job.podcast?.estimatedMinutes) && (
+                <div className="qq-song-chips">
+                  {job.podcast?.estimatedMinutes ? (
+                    <span className="qq-chip">约 {job.podcast.estimatedMinutes} 分钟</span>
+                  ) : null}
+                  {tags.slice(0, 3).map((t) => (
+                    <span key={t} className="qq-chip">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="qq-hero-disc" aria-hidden={false}>
+              {disc}
+            </div>
           </div>
 
-          <div className="qq-stage-body">
+          <div className="qq-stage-body" role="tabpanel">
             {panel === 'lyrics' &&
               (hasScript ? (
                 <ScriptFollow
@@ -244,30 +359,11 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         </div>
 
         <div className="qq-stage-right">
-          <button
-            type="button"
-            className={['qq-disc', active.playing ? 'is-spinning' : ''].join(' ')}
-            onClick={ensureAndPlay}
-            aria-label={active.playing ? '暂停' : '播放'}
-          >
-            <CoverArt
-              seed={job.id}
-              preferred={job.podcast?.coverGradient}
-              title={title}
-              className="qq-disc-face is-round"
-              monogram
-            >
-              <div className="qq-disc-ring" />
-              <div className="qq-disc-label">
-                {active.playing ? <IconPause size={28} /> : <IconPlay size={28} />}
-              </div>
-            </CoverArt>
-            <div className="qq-disc-glow" aria-hidden />
-          </button>
+          {/* 桌面大碟：复用同一套 disc 节点会破坏单例，这里再渲染一份仅桌面可见 */}
+          <div className="qq-stage-right-inner">{disc}</div>
         </div>
       </div>
 
-      {/* 底部控制条 · QQ 音乐风 */}
       <footer className="qq-dock">
         <div className="qq-dock-left">
           <CoverArt
@@ -276,7 +372,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
             title={title}
             className="qq-dock-cover"
           />
-          <div className="min-w-0">
+          <div className="qq-dock-meta">
             <div className="qq-dock-title">
               <span className="truncate">{title}</span>
             </div>
@@ -286,34 +382,67 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
 
         <div className="qq-dock-center">
           <div className="qq-progress-row">
-            <span className="qq-time">{formatDuration(active.current)}</span>
-            <div className="qq-progress-wrap">
+            <span className="qq-time">{formatDuration(displayCurrent)}</span>
+            <div className={['qq-progress-wrap', scrubbing ? 'is-scrubbing' : ''].join(' ')}>
+              <div className="qq-progress-bar" aria-hidden>
+                <i style={{ width: `${pct}%` }} />
+              </div>
               <input
                 type="range"
                 min={0}
                 max={active.duration || 0}
                 step={0.1}
-                value={active.current}
-                onChange={(e) => player.seekTo(Number(e.target.value))}
+                value={displayCurrent}
+                onPointerDown={() => {
+                  scrubbingRef.current = true;
+                  setScrubbing(true);
+                  setScrubValue(active.current);
+                }}
+                onPointerUp={(e) => {
+                  const v = Number((e.target as HTMLInputElement).value);
+                  scrubbingRef.current = false;
+                  setScrubbing(false);
+                  player.seekTo(v);
+                }}
+                onPointerCancel={() => {
+                  scrubbingRef.current = false;
+                  setScrubbing(false);
+                }}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setScrubValue(v);
+                  if (!scrubbingRef.current) player.seekTo(v);
+                }}
                 className="qq-range"
                 aria-label="播放进度"
               />
-              <div className="qq-progress-bar">
-                <i style={{ width: `${pct}%` }} />
-              </div>
+              {scrubbing && (
+                <div className="qq-scrub-tip" aria-hidden>
+                  {formatDuration(scrubValue)}
+                </div>
+              )}
             </div>
-            <span className="qq-time">{formatDuration(active.duration)}</span>
+            <button
+              type="button"
+              className="qq-time is-btn"
+              onClick={() => setShowRemain((v) => !v)}
+              title={showRemain ? '显示总时长' : '显示剩余时长'}
+              aria-label={showRemain ? '显示总时长' : '显示剩余时长'}
+            >
+              {showRemain ? `-${formatDuration(remain)}` : formatDuration(active.duration)}
+            </button>
           </div>
 
           <div className="qq-controls">
             <button
               type="button"
-              className="qq-ctrl"
+              className="qq-ctrl has-badge"
               onClick={() => player.seekBy(-15)}
               aria-label="后退15秒"
               title="-15s"
             >
               <IconSkipBack size={18} />
+              <em>15</em>
             </button>
             <button
               type="button"
@@ -321,39 +450,44 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               onClick={ensureAndPlay}
               aria-label={active.playing ? '暂停' : '播放'}
             >
-              {active.playing ? <IconPause size={22} /> : <IconPlay size={22} />}
+              {active.playing ? <IconPause size={24} /> : <IconPlay size={24} />}
             </button>
             <button
               type="button"
-              className="qq-ctrl"
+              className="qq-ctrl has-badge"
               onClick={() => player.seekBy(15)}
               aria-label="前进15秒"
               title="+15s"
             >
               <IconSkipForward size={18} />
+              <em>15</em>
             </button>
           </div>
         </div>
 
         <div className="qq-dock-right">
-          <div className="qq-rate-group" role="group" aria-label="倍速">
-            {[1, 1.25, 1.5, 1.75].map((r) => (
+          <div className="qq-rate-group qq-rate-desktop" role="group" aria-label="倍速">
+            {RATES.map((r) => (
               <button
                 key={r}
                 type="button"
-                className={['qq-rate', active.rate === r ? 'is-active' : ''].join(' ')}
+                className={['qq-rate', Math.abs(active.rate - r) < 0.001 ? 'is-active' : ''].join(
+                  ' ',
+                )}
                 onClick={() => player.setRate(r)}
               >
-                {r}x
+                {r % 1 === 0 ? `${r}.0` : r}x
               </button>
             ))}
           </div>
           <button
             type="button"
-            className={['qq-panel-btn', panel === 'lyrics' ? 'is-active' : ''].join(' ')}
-            onClick={() => setPanel(hasScript ? 'lyrics' : 'notes')}
+            className="qq-rate-cycle"
+            onClick={cycleRate}
+            aria-label={`倍速 ${active.rate}x，点击切换`}
+            title="切换倍速"
           >
-            词
+            {active.rate % 1 === 0 ? `${active.rate}.0` : active.rate}x
           </button>
         </div>
       </footer>
