@@ -29,7 +29,6 @@ export function GlobalScriptPromptSettings() {
       const data = await fetchScriptPromptSettings();
       const next = normalizeScriptPrompt(data.scriptPrompt);
       setValue(next);
-      // 若已有高级字段，自动展开，避免用户以为丢失
       const advancedKeys: Array<keyof ScriptPromptOptions> = [
         'openingStyle',
         'closingStyle',
@@ -86,21 +85,20 @@ export function GlobalScriptPromptSettings() {
 
   return (
     <section className="settings-card settings-card-wide">
-      <div className="settings-status-bar">
-        <div className="settings-status-copy">
-          <span className="settings-status-label">当前人设</span>
-          <strong className="settings-status-value" title={summary}>
-            {summary}
-          </strong>
+      <dl className="settings-meta-list" aria-label="当前人设摘要">
+        <div className="settings-meta-row">
+          <dt>当前摘要</dt>
+          <dd title={summary}>{summary}</dd>
         </div>
-        <div className="settings-chip-row">
-          <span className="settings-chip">
+        <div className="settings-meta-row">
+          <dt>状态</dt>
+          <dd>
             {hasScriptPrompt(value)
-              ? `已填 ${filledCount}/${SCRIPT_PROMPT_FIELDS.length}`
-              : '使用系统默认'}
-          </span>
+              ? `已配置 ${filledCount} / ${SCRIPT_PROMPT_FIELDS.length} 项`
+              : '未配置，使用系统默认'}
+          </dd>
         </div>
-      </div>
+      </dl>
 
       {loading ? (
         <div className="auth-loading">加载人设…</div>
@@ -108,8 +106,8 @@ export function GlobalScriptPromptSettings() {
         <>
           <div className="settings-block">
             <div className="settings-block-head">
-              <h3>基础身份</h3>
-              <p>主播是谁、节目叫什么、对谁说话</p>
+              <h3>基础设定</h3>
+              <p>主播身份、节目名称与表达风格。</p>
             </div>
             <ScriptPromptForm
               value={value}
@@ -123,11 +121,11 @@ export function GlobalScriptPromptSettings() {
             <div className="settings-block-head settings-block-head-row">
               <div>
                 <h3>结构偏好</h3>
-                <p>开场、收尾与额外指令（可选）</p>
+                <p>开场、收尾与额外指令（可选）。</p>
               </div>
               <button
                 type="button"
-                className="nl-btn nl-btn-ghost settings-toggle-btn"
+                className="settings-text-toggle"
                 onClick={() => setShowAdvanced((v) => !v)}
                 aria-expanded={showAdvanced}
               >
@@ -142,9 +140,9 @@ export function GlobalScriptPromptSettings() {
                 group="advanced"
               />
             ) : (
-              <div className="settings-collapsed-hint">
-                留空时走系统默认结构。有高级配置时会自动展开。
-              </div>
+              <p className="settings-collapsed-hint">
+                未展开时保持系统默认结构；若已有高级配置会自动展开。
+              </p>
             )}
           </div>
 
@@ -167,7 +165,7 @@ export function GlobalScriptPromptSettings() {
                 onClick={() => void onSave()}
                 disabled={saving}
               >
-                {saving ? '保存中…' : '保存人设'}
+                {saving ? '保存中…' : '保存'}
               </button>
             </div>
           </div>

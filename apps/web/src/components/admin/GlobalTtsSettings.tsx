@@ -22,15 +22,6 @@ function summarizeTts(tts: TtsOptions): string {
   return parts.join(' · ');
 }
 
-function ttsMetaChips(tts: TtsOptions): string[] {
-  if (tts.mode === 'voicedesign') {
-    return ['自定义音色'];
-  }
-  const chips = [String(tts.voice || '冰糖')];
-  if (tts.styleTags?.length) chips.push(...tts.styleTags.slice(0, 4));
-  return chips;
-}
-
 /** 设置页：全局音色编辑 */
 export function GlobalTtsSettings() {
   const [value, setValue] = useState<TtsOptions>(DEFAULT_TTS);
@@ -57,7 +48,16 @@ export function GlobalTtsSettings() {
   }, [load]);
 
   const summary = useMemo(() => summarizeTts(value), [value]);
-  const chips = useMemo(() => ttsMetaChips(value), [value]);
+  const modeLabel =
+    value.mode === 'voicedesign' ? '自定义音色' : '自然口播';
+  const voiceLabel =
+    value.mode === 'voicedesign'
+      ? value.voiceDesign?.trim() || '未填写描述'
+      : String(value.voice || '冰糖');
+  const styleLabel =
+    value.mode === 'default' && value.styleTags?.length
+      ? value.styleTags.join('、')
+      : '无';
 
   const onSave = async () => {
     setSaving(true);
@@ -82,21 +82,26 @@ export function GlobalTtsSettings() {
 
   return (
     <section className="settings-card settings-card-wide">
-      <div className="settings-status-bar">
-        <div className="settings-status-copy">
-          <span className="settings-status-label">当前配置</span>
-          <strong className="settings-status-value" title={summary}>
-            {summary}
-          </strong>
+      <dl className="settings-meta-list" aria-label="当前音色摘要">
+        <div className="settings-meta-row">
+          <dt>当前摘要</dt>
+          <dd title={summary}>{summary}</dd>
         </div>
-        <div className="settings-chip-row" aria-label="音色摘要">
-          {chips.map((chip) => (
-            <span key={chip} className="settings-chip">
-              {chip}
-            </span>
-          ))}
+        <div className="settings-meta-row">
+          <dt>模式</dt>
+          <dd>{modeLabel}</dd>
         </div>
-      </div>
+        <div className="settings-meta-row">
+          <dt>{value.mode === 'voicedesign' ? '描述' : '音色'}</dt>
+          <dd title={voiceLabel}>{voiceLabel}</dd>
+        </div>
+        {value.mode === 'default' && (
+          <div className="settings-meta-row">
+            <dt>风格标签</dt>
+            <dd>{styleLabel}</dd>
+          </div>
+        )}
+      </dl>
 
       {loading ? (
         <div className="auth-loading">加载音色…</div>
@@ -104,8 +109,8 @@ export function GlobalTtsSettings() {
         <>
           <div className="settings-block">
             <div className="settings-block-head">
-              <h3>编辑音色</h3>
-              <p>选择模式、预置声线或自定义描述</p>
+              <h3>编辑配置</h3>
+              <p>选择合成模式、预置音色或自定义描述。</p>
             </div>
             <TtsModePicker
               value={value}
@@ -135,7 +140,7 @@ export function GlobalTtsSettings() {
                 onClick={() => void onSave()}
                 disabled={saving}
               >
-                {saving ? '保存中…' : '保存音色'}
+                {saving ? '保存中…' : '保存'}
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   changePassword,
   fetchAiSettings,
@@ -9,13 +9,7 @@ import {
 } from '../api/client';
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
 import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
-import {
-  IconCheck,
-  IconLink,
-  IconMic,
-  IconRefresh,
-  IconSpark,
-} from '../components/icons';
+import { IconRefresh } from '../components/icons';
 import { clearAuthSession } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 import { AppShell } from '../layouts/AppShell';
@@ -25,37 +19,27 @@ type SettingsTab = 'voice' | 'persona' | 'ai' | 'account';
 const TABS: Array<{
   id: SettingsTab;
   label: string;
-  short: string;
   desc: string;
-  icon: (props: { size?: number }) => ReactNode;
 }> = [
   {
     id: 'voice',
     label: '全局音色',
-    short: '音色',
-    desc: '制作时选择「使用全局」会套用这里的播音音色',
-    icon: IconMic,
+    desc: '制作任务默认采用的 TTS 配置',
   },
   {
     id: 'persona',
     label: '口播人设',
-    short: '人设',
-    desc: '主播身份、节目风格与开场收尾偏好',
-    icon: IconSpark,
+    desc: '脚本生成时使用的主播与节目设定',
   },
   {
     id: 'ai',
     label: 'AI 服务',
-    short: 'AI',
-    desc: '接口密钥、地址与生成模型',
-    icon: IconLink,
+    desc: '接口凭证、服务地址与模型参数',
   },
   {
     id: 'account',
-    label: '账号安全',
-    short: '账号',
-    desc: '登录身份、密码与退出',
-    icon: IconCheck,
+    label: '账号与安全',
+    desc: '管理员身份、密码与会话',
   },
 ];
 
@@ -111,7 +95,6 @@ export function SettingsPage({ route }: { route: Route }) {
     void load();
   }, []);
 
-  // 切换 tab 时清掉瞬时提示，避免串台
   useEffect(() => {
     setMsg(null);
     setError(null);
@@ -172,16 +155,11 @@ export function SettingsPage({ route }: { route: Route }) {
       <div className="admin-container nl-enter settings-page">
         <header className="settings-hero">
           <div className="settings-hero-copy">
-            <div className="page-kicker">Settings</div>
+            <div className="page-kicker">Administration</div>
             <h1 className="page-title">系统设置</h1>
             <p className="page-subtitle">
-              一次只看一块配置，改完再切下一项
-              {username ? (
-                <>
-                  {' · '}
-                  <strong>{username}</strong>
-                </>
-              ) : null}
+              管理全局默认配置与管理员账户
+              {username ? ` · ${username}` : ''}
             </p>
           </div>
           <div className="settings-hero-actions">
@@ -199,9 +177,9 @@ export function SettingsPage({ route }: { route: Route }) {
 
         <div className="settings-shell">
           <nav className="settings-nav" aria-label="设置分类">
+            <div className="settings-nav-label">配置项</div>
             <div className="settings-nav-track" role="tablist">
               {TABS.map((item) => {
-                const Icon = item.icon;
                 const active = tab === item.id;
                 return (
                   <button
@@ -216,14 +194,7 @@ export function SettingsPage({ route }: { route: Route }) {
                       .join(' ')}
                     onClick={() => setTab(item.id)}
                   >
-                    <span className="settings-nav-icon" aria-hidden>
-                      <Icon size={15} />
-                    </span>
-                    <span className="settings-nav-copy">
-                      <span className="settings-nav-label">{item.label}</span>
-                      <span className="settings-nav-desc">{item.desc}</span>
-                    </span>
-                    <span className="settings-nav-short">{item.short}</span>
+                    <span className="settings-nav-item-label">{item.label}</span>
                   </button>
                 );
               })}
@@ -272,21 +243,25 @@ export function SettingsPage({ route }: { route: Route }) {
                     <section className="settings-card settings-card-wide">
                       <div className="settings-block">
                         <div className="settings-block-head">
-                          <h3>连接</h3>
-                          <p>
-                            API Key 留空表示不修改
-                            {ai?.apiKeySet ? ' · 已配置' : ' · 未配置'}
-                          </p>
+                          <h3>连接配置</h3>
+                          <p>接口凭证与服务端点。API Key 留空表示保持不变。</p>
                         </div>
                         <div className="settings-fields">
                           <label className="auth-field">
-                            <span>API Key</span>
+                            <span>
+                              API Key
+                              <em className="settings-field-meta">
+                                {ai?.apiKeySet ? '已配置' : '未配置'}
+                              </em>
+                            </span>
                             <input
                               type="password"
                               value={apiKey}
                               onChange={(e) => setApiKey(e.target.value)}
                               placeholder={
-                                ai?.apiKeySet ? '已配置，输入新值以覆盖' : 'sk-...'
+                                ai?.apiKeySet
+                                  ? '输入新密钥以覆盖'
+                                  : '请输入 API Key'
                               }
                               autoComplete="off"
                             />
@@ -297,6 +272,7 @@ export function SettingsPage({ route }: { route: Route }) {
                               value={baseUrl}
                               onChange={(e) => setBaseUrl(e.target.value)}
                               placeholder="https://api.example.com/v1"
+                              spellCheck={false}
                             />
                           </label>
                         </div>
@@ -304,8 +280,8 @@ export function SettingsPage({ route }: { route: Route }) {
 
                       <div className="settings-block">
                         <div className="settings-block-head">
-                          <h3>模型</h3>
-                          <p>各环节使用的模型 ID，按需修改</p>
+                          <h3>模型参数</h3>
+                          <p>各处理环节使用的模型标识。</p>
                         </div>
                         <div className="settings-fields settings-fields-2">
                           <label className="auth-field">
@@ -313,6 +289,7 @@ export function SettingsPage({ route }: { route: Route }) {
                             <input
                               value={chatModel}
                               onChange={(e) => setChatModel(e.target.value)}
+                              spellCheck={false}
                             />
                           </label>
                           <label className="auth-field">
@@ -320,6 +297,7 @@ export function SettingsPage({ route }: { route: Route }) {
                             <input
                               value={asrModel}
                               onChange={(e) => setAsrModel(e.target.value)}
+                              spellCheck={false}
                             />
                           </label>
                           <label className="auth-field">
@@ -327,6 +305,7 @@ export function SettingsPage({ route }: { route: Route }) {
                             <input
                               value={ttsModel}
                               onChange={(e) => setTtsModel(e.target.value)}
+                              spellCheck={false}
                             />
                           </label>
                           <label className="auth-field">
@@ -336,6 +315,7 @@ export function SettingsPage({ route }: { route: Route }) {
                               onChange={(e) =>
                                 setVoiceDesignModel(e.target.value)
                               }
+                              spellCheck={false}
                             />
                           </label>
                         </div>
@@ -344,22 +324,21 @@ export function SettingsPage({ route }: { route: Route }) {
                           <input
                             value={defaultVoice}
                             onChange={(e) => setDefaultVoice(e.target.value)}
-                            placeholder="服务端回落音色，可与全局音色配合"
+                            placeholder="服务端回落音色"
+                            spellCheck={false}
                           />
                         </label>
                       </div>
 
                       <div className="settings-card-actions">
-                        <span className="settings-card-hint">
-                          仅管理员可修改
-                        </span>
+                        <span className="settings-card-hint">仅管理员可修改</span>
                         <button
                           type="button"
                           className="nl-btn nl-btn-primary"
                           onClick={() => void onSaveAi()}
                           disabled={savingAi}
                         >
-                          {savingAi ? '保存中…' : '保存 AI 配置'}
+                          {savingAi ? '保存中…' : '保存'}
                         </button>
                       </div>
                     </section>
@@ -375,20 +354,16 @@ export function SettingsPage({ route }: { route: Route }) {
                   >
                     <section className="settings-card settings-card-wide">
                       <div className="settings-profile">
-                        <div className="settings-profile-avatar" aria-hidden>
-                          {(username || '?').slice(0, 1).toUpperCase()}
-                        </div>
                         <div className="settings-profile-meta">
+                          <div className="settings-profile-kicker">当前账户</div>
                           <div className="settings-profile-name">
-                            {username || '…'}
+                            {username || '—'}
                           </div>
-                          <div className="settings-profile-sub">
-                            本地管理员账号
-                          </div>
+                          <div className="settings-profile-sub">管理员</div>
                         </div>
                         <button
                           type="button"
-                          className="nl-btn nl-btn-ghost"
+                          className="nl-btn nl-btn-secondary"
                           onClick={() => void onLogout()}
                         >
                           退出登录
@@ -398,7 +373,7 @@ export function SettingsPage({ route }: { route: Route }) {
                       <div className="settings-block">
                         <div className="settings-block-head">
                           <h3>修改密码</h3>
-                          <p>更新后会自动退出，请使用新密码重新登录</p>
+                          <p>更新后当前会话将失效，需使用新密码重新登录。</p>
                         </div>
                         <div className="settings-fields">
                           <label className="auth-field">
@@ -441,7 +416,7 @@ export function SettingsPage({ route }: { route: Route }) {
                         <span />
                         <button
                           type="button"
-                          className="nl-btn nl-btn-secondary"
+                          className="nl-btn nl-btn-primary"
                           onClick={() => void onChangePassword()}
                           disabled={savingPw}
                         >
