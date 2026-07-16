@@ -329,7 +329,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             </label>
 
             <p className="upload-url-hint">
-              支持网页正文抽取与反强反爬多通道（直连 UA 轮换 / Jina / 可选 Playwright）。音视频请尽量用直链。
+              支持网页文章正文抽取，以及视频 / 音频直链导入；请使用可公开访问的链接。
             </p>
 
             <button
@@ -379,7 +379,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             <div className="upload-progress-hint">
               {uploading
                 ? sourceMode === 'url'
-                  ? '任务已创建，服务端将抓取链接并提取正文/媒体…'
+                  ? '任务已创建，服务端将下载并识别内容…'
                   : '上传完成后自动跳转任务详情。'
                 : '任务已创建，正在跳转…'}
             </div>

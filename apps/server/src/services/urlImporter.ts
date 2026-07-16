@@ -1345,8 +1345,9 @@ async function resolveArticlePage(url: string): Promise<ResolvedPage> {
     );
   }
 
+  console.warn('[urlImporter] all strategies failed:', errors.join(' | '));
   throw new Error(
-    `强反爬拦截，多通道均失败：${errors.join(' | ')}。可设置 JINA_API_KEY 或 URL_FETCH_PLAYWRIGHT=1（需安装 playwright）后重试`,
+    '暂时无法获取该链接内容，请确认链接可公开访问后重试',
   );
 }
 
@@ -1544,7 +1545,7 @@ export async function importUrlContent(
   const textContent = resolved.textContent || '';
   if (!textContent || textContent.length < 20) {
     throw new Error(
-      '文本内容过短或无法提取有效正文（页面可能是动态渲染 / 需登录 / 强反爬）',
+      '未能提取到有效正文，请换一篇可公开阅读的文章链接',
     );
   }
 
