@@ -1,323 +1,258 @@
-# BokeBox · 播匣
+<p align="center">
+  <img src="apps/web/public/favicon.svg" width="96" height="96" alt="BokeBox" />
+</p>
 
-**AI 生成 · 人设可配的私人视频转播客**
+<h1 align="center">BokeBox · 播匣</h1>
 
-把视频 / 链接 / 文本丢进匣子，自动完成「提取音频 → 转写 → 总结口播稿 → TTS 合成 → 封面 / 闪卡」，变成可听的私人播客。
+<p align="center">
+  <b>视频进匣，AI 成播</b><br/>
+  <sub>把长视频变成能听完的私人播客 —— 人设、音色、风格，全都由你定</sub>
+</p>
 
-[功能特性](#-功能特性) · [快速开始](#-快速开始) · [流水线](#-制作流水线) · [配置](#-配置说明) · [部署](#-部署) · [开发](#-本地开发)
+<p align="center">
+  <a href="#-30-秒看懂"><img src="https://img.shields.io/badge/AI-生成口播-7C5CFF?style=flat-square" alt="AI" /></a>
+  <a href="#-它解决什么问题"><img src="https://img.shields.io/badge/私人-单用户部署-0EA5E9?style=flat-square" alt="Private" /></a>
+  <a href="#-开始使用"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square" alt="MIT" /></a>
+</p>
 
----
-
-## ✨ 功能特性
-
-- **端到端自动化**：上传视频或粘贴链接，一键跑完播客制作流水线
-- **AI 口播生成**：基于转写内容总结脚本，并合成自然口播音频
-- **人设可自定义**：主播称呼、身份、节目名、说话风格、语气、开场收尾等
-- **音色可选**：支持预置精品音色，或 VoiceDesign 文字描述定制音色
-- **知识闪卡**：从内容中提炼要点卡片，方便复习
-- **封面生成**：配置图片模型后自动生成播客封面
-- **沉浸听播**：播放进度记忆、倍速、睡眠定时、脚本跟随
-- **单用户私有化**：首次初始化账号与 API Key，数据落本地 SQLite
-
----
-
-## 🖼 界面预览
-
-| 任务详情（桌面） | 任务详情（移动） |
-| --- | --- |
-| ![任务详情桌面](storage/screenshots/job-v2-desktop-top.png) | ![任务详情移动](storage/screenshots/job-mobile-top.png) |
-
-> 更多截图见 `storage/screenshots/`。
+<p align="center">
+  <a href="#-30-秒看懂">了解产品</a> ·
+  <a href="#-谁适合用">适合谁</a> ·
+  <a href="#-界面一览">界面</a> ·
+  <a href="#-开始使用">开始使用</a>
+</p>
 
 ---
 
-## 🧭 页面导览
+## 🎧 你是不是也有过这些时刻？
 
-| 路由 | 说明 |
-| --- | --- |
-| `#/home` | 播客库 + 制作中任务 |
-| `#/create` | 上传视频 / 链接，配置人设与音色 |
-| `#/jobs/:id` | 流水线资产、重试、重合成、播放 |
-| `#/play/:id` | 沉浸听播 |
-| `#/settings` | 账号、API Key、模型与全局人设 |
+- 收藏了 2 小时的技术分享 / 产品发布会，**永远找不到时间看完**
+- 通勤、洗碗、散步时想学点东西，手机里却只有短视频噪音
+- 想做一档「只给自己听」的节目，又不想对着麦克风录到深夜
+- 听过 AI 播客 demo，结果声音假、人设死板，听两分钟就关掉
 
-旧路径 `#/listen`、`#/admin/*` 仍兼容跳转。
+**BokeBox 就是为这些时刻准备的。**
+
+把视频、链接或文稿丢进匣子，它会帮你：
+
+1. 听懂内容  
+2. 写成口播稿  
+3. 用你指定的声音说出来  
+4. 变成一档随时可听的私人播客  
 
 ---
 
-## 🔄 制作流水线
+## ⚡ 30 秒看懂
 
 ```text
-上传视频 / 链接 / 文本
-        │
-        ▼
-   提取音频 (ffmpeg)
-        │
-        ▼
-   ASR 语音转写
-        │
-        ▼
-   LLM 总结播客脚本（含口播音频标签）
-        │
-        ├──────────────┬──────────────┐
-        ▼              ▼              ▼
-   图片模型封面    知识闪卡生成    TTS 合成播客
-        │              │              │
-        └──────────────┴──────────────┘
-                       │
-                       ▼
-              发布到听播前台
+  你丢进去的                    BokeBox 交还给你的
+ ─────────────                 ─────────────────
+  会议录像                      有节奏的口播节目
+  课程回放          ──AI──▶     可自定义的主播人设
+  深度长文                      预置 / 描述定制音色
+  任意链接                      封面 · 闪卡 · 听播进度
 ```
 
-### 口播人设
-
-上传时可选：
-
-- **使用全局**：读取设置中的默认人设（任务创建时快照）
-- **本次单独设置**：仅对本任务生效
-
-可配置项：主播称呼、身份角色、节目名、说话风格、目标听众、语气调性、开场 / 收尾偏好、额外要求。
-
-### TTS 模式
-
-| 模式 | 默认模型 | 说明 |
-| --- | --- | --- |
-| `default` | `mimo-v2.5-tts` | 自然口播 · 预置音色 · **音频标签控制** |
-| `voicedesign` | `mimo-v2.5-tts-voicedesign` | 文字描述定制音色（不支持预置音色 / 音频标签） |
-
-**自然口播（音频标签）要点：**
-
-- 不支持 user 侧「风格指令」
-- 语气控制写在 assistant 文本内的音频标签中
-- 开头风格标签：`(磁性)` `(沉稳 温柔)` `(慵懒)` …
-- 正文细粒度标签：`（深呼吸）` `（轻笑）` `（沉默片刻）` `（语速加快）` …
-- 生成口播稿时，LLM 会自动写入上述标签
-
-预置音色示例：`冰糖` `茉莉` `苏打` `白桦` `Mia` `Chloe` `Milo` `Dean`（默认 `冰糖`）
+**一句话：**  
+不是又一个「视频转音频」工具，而是一台 **只属于你的 AI 播客工作室**。
 
 ---
 
-## 🚀 快速开始
+## ✨ 为什么值得 Star
 
-### 环境要求
+| 你在意的 | BokeBox 怎么做 |
+| --- | --- |
+| **真的能听完** | 不是干巴巴朗读字幕，而是 AI 重写为口播结构：有开场、有重点、有收尾 |
+| **听起来像「有人在讲」** | 支持自然口播音色 + 语气标签（停顿、轻笑、语速变化……） |
+| **人设你说了算** | 主播是谁、对谁讲、什么风格、节目叫什么 —— 全局默认或单集临时改 |
+| **知识不会听完就忘** | 自动提炼知识闪卡，方便回看重点 |
+| **数据在你自己手里** | 单用户私有部署，任务与进度落本地，不做公域内容社交 |
 
-- Node.js `>= 22.5`
-- pnpm `9.x`（推荐 `9.15.0`）
-- ffmpeg（本地 dev 也可由 `ffmpeg-static` 提供）
-- 可用的 OpenAI 兼容 API（Chat / ASR / TTS，可选 Image）
+如果你也相信：
 
-### 一键启动
+> 好内容值得被「听」第二次，而且应该用你喜欢的方式被讲述。
+
+那就给 BokeBox 一个 ⭐ 吧 —— 让更多人看见「私人 AI 播客」这件事。
+
+---
+
+## 🎯 它解决什么问题
+
+### 从「看不完」到「听得进」
+
+长视频信息密度高，但占用的是「眼睛时间」。  
+BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能消化。
+
+### 从「机器念稿」到「有人设的节目」
+
+你可以设定：
+
+- 主播怎么称呼自己  
+- 像产品经理、老师，还是朋友聊天  
+- 节目名、语气调性、开场收尾习惯  
+- 用哪一副声音说话（或用文字描述出你想要的音色）
+
+**AI 负责生成，你负责审美与风格。**
+
+### 从「听过就忘」到「带走闪卡」
+
+每期不只给你音频，还会整理知识闪卡与节目笔记，让一耳朵内容变成可复习资产。
+
+---
+
+## 👤 谁适合用
+
+- **终身学习者**：课程、访谈、发布会太多，只想用碎片时间听重点  
+- **创作者 / 研究者**：先把素材听消化，再决定写什么、剪什么  
+- **一人公司 / 独立开发者**：把周会、播客、长文统一收成自己的「信息广播」  
+- **注重隐私的人**：内容不出自己的机器，不为平台算法打工  
+
+不适合：想做公域播客平台、多租户 SaaS、或纯在线协作编辑的团队（BokeBox 刻意做小、做私、做深）。
+
+---
+
+## 🖼 界面一览
+
+制作、听播、任务资产，都在同一个私有空间里完成。
+
+| 桌面端 | 移动端 |
+| :---: | :---: |
+| <img src="storage/screenshots/job-v2-desktop-top.png" width="480" alt="BokeBox 桌面端任务详情" /> | <img src="storage/screenshots/job-mobile-top.png" width="240" alt="BokeBox 移动端任务详情" /> |
+
+你将拥有：
+
+- **首页播客库** —— 做好的节目与进行中的任务一眼可见  
+- **一键制作页** —— 上传视频 / 粘贴链接，顺手配好人设与音色  
+- **任务详情** —— 转写、脚本、音频、封面、闪卡全链路可回看  
+- **沉浸播放器** —— 进度记忆、倍速、睡眠定时，听感完整  
+
+---
+
+## 🪄 使用体感
+
+1. **丢进去**  
+   本地视频、网页链接，或已有文稿。
+
+2. **设一下（可选）**  
+   沿用你的全局人设，或给这一集单独定调。
+
+3. **去忙别的**  
+   转写 → 写稿 → 配音 → 封面 / 闪卡，后台自动跑完。
+
+4. **戴上耳机**  
+   打开播放页，像听一档真正为你制作的节目。
+
+---
+
+## 🚀 开始使用
+
+> 三步开箱。更细的部署与模型说明见下方「附录」。
 
 ```bash
 git clone https://github.com/<your-name>/bokebox.git
 cd bokebox
-
-cp .env.example .env
-# 编辑 .env，至少填入 OPENAI_API_KEY / OPENAI_BASE_URL
-
-chmod +x start.sh
-./start.sh          # 本地开发：前端 5173 + 后端 8787
-# ./start.sh prod   # 本地生产：构建后单端口托管
-# ./start.sh docker # Docker Compose
+cp .env.example .env   # 填入你的 API Key
+./start.sh             # 打开 http://localhost:5173
 ```
 
-| 模式 | 地址 |
-| --- | --- |
-| 开发前端 | http://localhost:5173 |
-| 开发后端 | http://localhost:8787 |
-| 生产 / Docker | http://localhost:8787 |
+首次进入会引导你完成 **账号初始化** 与模型配置。  
+之后，你的第一期私人播客，只差一条视频。
 
-首次打开进入 **系统初始化**：设置用户名密码、API Key 与模型参数。
+**Docker 用户：**
+
+```bash
+cp .env.example .env
+./start.sh docker
+# 访问 http://localhost:8787
+```
 
 ---
 
-## ⚙️ 配置说明
+## 💬 一句话安利（可转发）
 
-复制 `.env.example` 为 `.env`：
+> BokeBox（播匣）：把看不完的视频，变成听得进的私人播客。AI 生成口播，人设和音色都能自定义，数据只留在你自己的机器上。
+
+如果这个方向戳中你：
+
+1. ⭐ **Star** 本仓库，让更多人看见  
+2. 提交 Issue，说说你最想听「哪种内容被播客化」  
+3. PR 欢迎 —— 尤其是体验、文案、更多声音与模型适配  
+
+---
+
+## 🛤 我们想把匣子装得更好
+
+- 更自然的多集节目与「续听」体验  
+- 更丰富的音色与提供方选择  
+- 订阅导出（例如 RSS），接到你已有的听播软件  
+- 桌面端更轻的一键封装  
+
+你的 Star、Issue 和 PR，就是路线图的投票。
+
+---
+
+## ❤️ 写在最后
+
+大多数工具在帮你「更快地生产内容」。  
+BokeBox 更在意帮你 **更好地消化内容**。
+
+在信息过载的时代，能被你听完的，才算真正属于你。
+
+**视频进匣，AI 成播。**  
+欢迎把 BokeBox 收进你的工具箱 —— 并点一颗 Star，让这件事被更多人看见。
+
+---
+
+<details>
+<summary><b>附录：给想动手部署的你</b></summary>
+
+### 环境
+
+- Node.js ≥ 22.5 · pnpm 9.x  
+- 可用的 OpenAI 兼容 API（Chat / ASR / TTS，图片模型可选）
+
+### 常用命令
+
+| 命令 | 说明 |
+| --- | --- |
+| `./start.sh` | 本地开发（前端 5173 + 后端 8787） |
+| `./start.sh prod` | 构建后单端口运行 |
+| `./start.sh docker` | Docker Compose 启动 |
+| `./start.sh docker:down` | 停止容器 |
+
+### 配置要点（`.env`）
 
 ```bash
-PORT=8787
 OPENAI_API_KEY=sk-your-key
 OPENAI_BASE_URL=https://api.example.com/v1
 OPENAI_CHAT_MODEL=mimo-v2.5
 OPENAI_TRANSCRIBE_MODEL=mimo-v2.5-asr
 OPENAI_TTS_MODEL=mimo-v2.5-tts
-OPENAI_TTS_VOICEDESIGN_MODEL=mimo-v2.5-tts-voicedesign
 OPENAI_TTS_DEFAULT_VOICE=冰糖
-VITE_API_BASE=/api
-OPENAI_IMAGE_MODEL=
-
-# URL 抓取
-URL_FETCH_JINA=1
-# JINA_API_KEY=
-URL_FETCH_PLAYWRIGHT=0
 ```
 
-| 变量 | 说明 |
-| --- | --- |
-| `OPENAI_API_KEY` | API Key（也可在设置页配置） |
-| `OPENAI_BASE_URL` | OpenAI 兼容接口 Base URL |
-| `OPENAI_*_MODEL` | Chat / ASR / TTS / Image 模型名 |
-| `OPENAI_TTS_DEFAULT_VOICE` | 默认预置音色 |
-| `URL_FETCH_JINA` | 是否用 Jina Reader 绕过部分站点反爬 |
-| `URL_FETCH_PLAYWRIGHT` | 是否启用本地 Playwright 渲染抓取 |
+完整变量见 `.env.example`。CI/CD 与镜像发布见 [`docs/ci-cd.md`](docs/ci-cd.md)。
 
-> 模型默认对齐 [MiMo](https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/audio/speech-synthesis-v2.5) 能力；只要接口兼容 OpenAI 形态，也可换成其他提供方。
-
----
-
-## 📁 存储布局
-
-任务与收听进度使用 **SQLite**（`storage/app.db`）。媒体按任务聚合：
+### 流水线（简图）
 
 ```text
-storage/
-  app.db
-  jobs/
-    {jobId}/
-      source.mp4        # 原始上传
-      audio.mp3         # 可听源音频
-      asr.mp3           # ASR 专用
-      transcript.txt    # 转写稿
-      script.txt        # 播客脚本
-      shownotes.md      # 节目笔记
-      flashcards.json   # 知识闪卡
-      podcast.mp3       # 合成播客
+上传 → 提取音频 → ASR 转写 → 总结口播稿
+     → 并行：封面 / 闪卡 / TTS → 听播库
 ```
 
-- 首次启动会自动从旧版 `jobs.json` / `listen.json` 迁移
-- 旧版摊开目录会在启动时迁入 `jobs/{id}/`
+### 技术栈（不重要，但有人问）
 
----
+React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
-## 🏗 项目结构
+### License
 
-```text
-bokebox/
-├── apps/
-│   ├── server/          # Fastify API · 流水线 · SQLite
-│   └── web/             # React + Vite 前台
-├── storage/             # 运行时数据（默认 gitignore）
-├── docs/                # 补充文档（CI/CD 等）
-├── docker-compose.yml
-├── Dockerfile
-├── start.sh             # 一键启动
-└── package.json         # pnpm monorepo
-```
+[MIT](LICENSE) —— 自由使用、修改与分发。
 
-**技术栈**
-
-| 层 | 技术 |
-| --- | --- |
-| 前端 | React 19 · Vite · Tailwind CSS 4 |
-| 后端 | Fastify 5 · TypeScript · Zod |
-| 媒体 | ffmpeg / fluent-ffmpeg |
-| 数据 | SQLite |
-| 包管理 | pnpm workspace |
-
----
-
-## 🐳 部署
-
-### Docker Compose（本地构建）
-
-```bash
-cp .env.example .env
-./start.sh docker
-# 或
-docker compose up -d --build
-```
-
-- 镜像内由 Fastify 同时提供 API + 前端静态资源
-- `./storage` 挂载持久化
-- 健康检查：`GET /api/health`
-
-### 拉取预构建镜像
-
-```bash
-export GHCR_IMAGE=ghcr.io/<owner>/bokebox
-export IMAGE_TAG=latest
-./start.sh docker:prod
-```
-
-### GitHub Actions + GHCR
-
-推送到 `main` 或打 `v*` tag 可自动构建多架构镜像（见 `docs/ci-cd.md`）：
-
-```text
-ghcr.io/<owner>/bokebox:latest
-ghcr.io/<owner>/bokebox:sha-<short>
-ghcr.io/<owner>/bokebox:1.0.0
-```
-
----
-
-## 🛠 本地开发
-
-```bash
-pnpm install
-pnpm dev                 # 前后端并行热更新
-pnpm --filter @person-boke/web dev
-pnpm --filter @person-boke/server dev
-pnpm build
-pnpm start               # 仅启动已构建的 server
-```
-
-常用脚本：
-
-| 命令 | 说明 |
-| --- | --- |
-| `pnpm start:app` | `./start.sh` 开发模式 |
-| `pnpm start:prod` | 构建后单端口运行 |
-| `pnpm docker:up` | Compose 启动 |
-| `pnpm docker:down` | Compose 停止 |
-
----
-
-## 🔒 安全说明
-
-- 面向 **单用户私有部署**，请勿直接裸奔公网而不加反向代理 / HTTPS
-- API Key 可写在 `.env` 或设置页；**不要提交** `.env` 与 `storage/`
-- 修改默认密码，并限制宿主机端口暴露范围
-
----
-
-## 🗺 Roadmap（建议）
-
-- [ ] 多集节目合集 / 订阅导出（RSS）
-- [ ] 更多 ASR / TTS 提供方适配
-- [ ] 批量导入与队列并发策略优化
-- [ ] 桌面端封装（Tauri）
-
-欢迎通过 Issue / PR 提出想法。
-
----
-
-## 🤝 贡献
-
-1. Fork 本仓库
-2. 创建分支：`git checkout -b feature/your-feature`
-3. 提交变更：`git commit -m "feat: ..."`
-4. 推送分支并开启 Pull Request
-
-提交信息建议遵循 [Conventional Commits](https://www.conventionalcommits.org/)：`feat` / `fix` / `docs` / `refactor` / `chore` …
-
----
-
-## 📄 License
-
-本项目采用 [MIT License](LICENSE) 开源。
-
----
-
-## 🙏 致谢
-
-- [MiMo](https://mimo.mi.com/) — ASR / Chat / TTS 能力参考
-- [Fastify](https://fastify.dev/) · [Vite](https://vitejs.dev/) · [React](https://react.dev/) · [ffmpeg](https://ffmpeg.org/)
+</details>
 
 ---
 
 <p align="center">
-  <b>BokeBox</b> · 视频进匣，AI 成播<br/>
-  <sub>AI 生成口播，人设与音色可自定义</sub>
+  <b>BokeBox</b><br/>
+  <sub>私人 AI 播客匣 · MIT License</sub>
 </p>
