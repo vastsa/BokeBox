@@ -4074,7 +4074,7 @@ body:has(.global-player) {
 .lh-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 @media (min-width: 640px) {
@@ -4101,24 +4101,22 @@ body:has(.global-player) {
   position: relative;
   width: 100%;
   aspect-ratio: 3 / 4;
-  border-radius: 18px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   transition:
     transform var(--dur-fast) var(--ease),
     box-shadow var(--dur-fast) var(--ease);
 }
 
 .lh-card:hover .lh-card-face {
-  transform: translateY(-3px);
-  box-shadow:
-    0 10px 28px rgba(20, 40, 90, 0.16),
-    0 2px 6px rgba(20, 26, 36, 0.06);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .lh-card.is-active .lh-card-face {
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--brand) 55%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--brand) 45%, transparent),
     var(--shadow-md);
 }
 
@@ -4131,39 +4129,44 @@ body:has(.global-player) {
   box-shadow: none !important;
 }
 
+/* 顶部标题 / 底部简介 / 中间留白 */
 .lh-card-overlay {
   position: absolute;
   inset: 0;
   z-index: 2;
   display: flex;
   flex-direction: column;
-  padding: 14px;
-  /* 全卡可读遮罩，内容可铺满 */
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 16px;
+  border: 0;
+  margin: 0;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: #fff;
   background:
     linear-gradient(
       180deg,
-      rgba(8, 12, 22, 0.42) 0%,
-      rgba(8, 12, 22, 0.52) 45%,
-      rgba(8, 12, 22, 0.72) 100%
+      rgba(8, 12, 22, 0.56) 0%,
+      rgba(8, 12, 22, 0.1) 30%,
+      rgba(8, 12, 22, 0.06) 50%,
+      rgba(8, 12, 22, 0.5) 78%,
+      rgba(8, 12, 22, 0.76) 100%
     );
 }
 
-.lh-card-text {
+
+/* 用子元素在 space-between 布局中占位：badge+title 一组，desc 一组 */
+.lh-card-top {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  padding: 0 0 44px;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  color: #fff;
+  max-width: 100%;
+  padding-right: 4px;
 }
+
 
 .lh-card-badge {
   display: inline-flex;
@@ -4175,9 +4178,9 @@ body:has(.global-player) {
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.95);
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   font-variant-numeric: tabular-nums;
@@ -4185,15 +4188,14 @@ body:has(.global-player) {
 
 .lh-card-title {
   margin: 0;
-  flex-shrink: 0;
   width: 100%;
-  font-size: clamp(15px, 3.2vw, 18px);
+  font-size: clamp(15px, 3vw, 17px);
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.28;
+  line-height: 1.32;
   color: #fff;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.28);
@@ -4201,15 +4203,16 @@ body:has(.global-player) {
 
 .lh-card-desc {
   margin: 0;
-  flex: 1 1 auto;
-  min-height: 0;
   width: 100%;
-  font-size: 12.5px;
+  max-width: calc(100% - 40px);
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.82);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  /* 简介吃满卡片剩余高度，按高度自然裁切 */
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.22);
 }
 
@@ -4217,16 +4220,16 @@ body:has(.global-player) {
   position: absolute;
   right: 12px;
   bottom: 12px;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border: 0;
   border-radius: 999px;
   display: grid;
   place-items: center;
   cursor: pointer;
   color: #16305f;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   transition:
     transform var(--dur-fast) var(--ease),
     filter var(--dur-fast) var(--ease),
@@ -4272,18 +4275,13 @@ body:has(.global-player) {
 
 @media (max-width: 380px) {
   .lh-card-overlay {
-    padding: 12px;
-  }
-  .lh-card-text {
-    padding-bottom: 40px;
-    gap: 6px;
+    padding: 12px 12px 14px;
   }
   .lh-card-title {
     font-size: 14.5px;
-    -webkit-line-clamp: 3;
   }
   .lh-card-desc {
-    font-size: 12px;
+    font-size: 11.5px;
   }
   .lh-card-play {
     width: 32px;
@@ -4304,9 +4302,11 @@ body:has(.global-player) {
     background:
       linear-gradient(
         180deg,
-        rgba(0, 0, 0, 0.48) 0%,
-        rgba(0, 0, 0, 0.58) 45%,
-        rgba(0, 0, 0, 0.78) 100%
+        rgba(0, 0, 0, 0.62) 0%,
+        rgba(0, 0, 0, 0.16) 30%,
+        rgba(0, 0, 0, 0.1) 52%,
+        rgba(0, 0, 0, 0.58) 80%,
+        rgba(0, 0, 0, 0.8) 100%
       );
   }
 }

@@ -226,28 +226,28 @@ function CoverCard({
           aria-hidden
         />
 
-        {/* 封面文字：标题 + 简介叠在封面上 */}
-        <div className="lh-card-overlay">
-          <button
-            type="button"
-            className="lh-card-text"
-            onClick={onOpen}
-            aria-label={`打开 ${title}`}
-          >
+        {/* 上：标题 / 中：留白 / 下：简介 */}
+        <button
+          type="button"
+          className="lh-card-overlay"
+          onClick={onOpen}
+          aria-label={`打开 ${title}`}
+        >
+          <div className="lh-card-top">
             <span className="lh-card-badge">{badge}</span>
             <h2 className="lh-card-title">{title}</h2>
-            <p className="lh-card-desc">{summary}</p>
-          </button>
+          </div>
+          <p className="lh-card-desc">{summary}</p>
+        </button>
 
-          <button
-            type="button"
-            className="lh-card-play"
-            onClick={onPlay}
-            aria-label={playing ? '暂停' : `播放 ${title}`}
-          >
-            {playing ? <IconPause size={16} /> : <IconPlay size={16} />}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="lh-card-play"
+          onClick={onPlay}
+          aria-label={playing ? '暂停' : `播放 ${title}`}
+        >
+          {playing ? <IconPause size={16} /> : <IconPlay size={16} />}
+        </button>
 
         {pct > 0 && !item.listen?.completed && (
           <span className="lh-card-bar" aria-hidden>
