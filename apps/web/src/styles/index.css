@@ -57,7 +57,6 @@
   --global-player-h: 0px;
 }
 
-
 /* 导入方式切换 */
 .upload-source-tabs {
   display: grid;
@@ -95,9 +94,9 @@
 .upload-url-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 22px 18px;
-  border-radius: 20px;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
   border: 1.5px solid color-mix(in srgb, var(--brand) 22%, var(--separator-strong));
   background:
     radial-gradient(90% 80% at 50% 0%, color-mix(in srgb, var(--brand-soft) 80%, transparent) 0%, transparent 58%),
@@ -694,7 +693,6 @@ body:has(.global-player) {
   background-image: linear-gradient(145deg, #9bc5ff, #5b9cff 48%, #3e86f0);
 }
 
-
 /* admin console */
 .admin-container {
   width: min(1120px, calc(100% - 2 * var(--page-x)));
@@ -821,8 +819,6 @@ body:has(.global-player) {
   color: var(--text-3);
 }
 
-
-
 /* 预置精品音色选择 */
 .tts-voice-grid {
   display: grid;
@@ -862,7 +858,6 @@ body:has(.global-player) {
   line-height: 1.4;
   color: var(--text-3);
 }
-
 
 /* 自然口播：风格标签 / 音频标签提示 */
 .tts-sing-panel {
@@ -941,7 +936,6 @@ body:has(.global-player) {
   padding: 0 4px;
 }
 
-
 /* 上传页：单栏居中，阅读更聚焦 */
 .admin-upload-wrap {
   max-width: 760px;
@@ -949,7 +943,6 @@ body:has(.global-player) {
 .admin-upload-wrap .admin-card {
   width: 100%;
 }
-
 
 /* refined polish v2 */
 .admin-container {
@@ -1030,7 +1023,6 @@ body:has(.global-player) {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--text-3) 45%, transparent) transparent;
 }
-
 
 /* ========== Listen cover grid & polish v3 ========== */
 .cover-grid {
@@ -1273,7 +1265,6 @@ body:has(.global-player) {
   border-bottom: 1px solid var(--separator);
   padding: 4px 6px 0;
 }
-
 
 /* ========== Immersive player + job cards v4 ========== */
 .player-page {
@@ -1704,7 +1695,6 @@ body:has(.global-player) {
   50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 14%, transparent); }
 }
 
-
 .studio-alert {
   border-radius: 12px;
   padding: 10px 12px;
@@ -2038,12 +2028,18 @@ body:has(.global-player) {
 .job-card { display: none; }
 
 /* ===== Upload Studio ===== */
+.upload-page-head {
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+  padding-bottom: 4px;
+}
 .upload-back-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
-  margin-bottom: 12px;
+  min-height: 32px;
+  margin-bottom: 8px;
   padding: 0 2px;
   border: 0;
   background: transparent;
@@ -2132,12 +2128,12 @@ body:has(.global-player) {
   max-width: none;
 }
 
-/* 上下布局：配置 → 提示 → 上传（上传即开始，故放最后） */
+/* 主操作优先：上传 → 精简选项 */
 .upload-studio {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  max-width: 860px;
+  gap: 12px;
+  max-width: 640px;
   margin: 0 auto;
   width: 100%;
 }
@@ -2154,7 +2150,7 @@ body:has(.global-player) {
 .upload-dropzone {
   position: relative;
   overflow: hidden;
-  min-height: 280px;
+  min-height: 200px;
   border-radius: 20px;
   border: 1.5px dashed color-mix(in srgb, var(--brand) 28%, var(--separator-strong));
   background:
@@ -2203,32 +2199,32 @@ body:has(.global-player) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  min-height: 280px;
-  padding: 28px 20px;
+  gap: 12px;
+  min-height: 200px;
+  padding: 24px 18px;
   text-align: center;
 }
 .upload-dropzone-icon {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   color: #fff;
   background: var(--brand-grad);
   box-shadow: var(--shadow-fab);
 }
 .upload-dropzone-copy h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--text);
 }
 .upload-dropzone-copy p {
-  margin: 6px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
   color: var(--text-3);
 }
 .upload-dropzone-badges {
@@ -2557,7 +2553,6 @@ body:has(.global-player) {
   }
 }
 
-
 /* ===== TTS Summary (read-only) ===== */
 .tts-summary {
   display: flex;
@@ -2637,7 +2632,6 @@ body:has(.global-player) {
 .upload-switch-row.is-locked .upload-switch-input {
   cursor: not-allowed;
 }
-
 
 /* ========== Script follow + job detail v5 ========== */
 .script-follow-hint {
@@ -4339,7 +4333,6 @@ body:has(.global-player) {
 .lh-card.is-m .lh-card-desc { -webkit-line-clamp: 3; }
 .lh-card.is-t .lh-card-desc { -webkit-line-clamp: 5; }
 
-
 .lh-card-face::after {
   content: '';
   position: absolute;
@@ -4400,7 +4393,6 @@ body:has(.global-player) {
     );
 }
 
-
 /* 用子元素在 space-between 布局中占位：badge+title 一组，desc 一组 */
 .lh-card-top {
   display: flex;
@@ -4410,7 +4402,6 @@ body:has(.global-player) {
   max-width: 100%;
   padding-right: 2px;
 }
-
 
 .lh-card-badge {
   display: inline-flex;
@@ -4529,7 +4520,6 @@ body:has(.global-player) {
 .lh-skel-card.is-s { aspect-ratio: 1 / 1; }
 .lh-skel-card.is-m { aspect-ratio: 3 / 4; }
 .lh-skel-card.is-t { aspect-ratio: 2 / 3; }
-
 
 @media (max-width: 380px) {
   .lh-card-overlay {
@@ -4848,19 +4838,6 @@ body:has(.global-player) {
   animation-duration: 22s;
   animation-timing-function: linear;
 }
-/* 内容聚焦时碟片更弱更小 */
-.qq-player.is-focus-content .qq-hero-disc {
-  width: 56px;
-  opacity: 0.55;
-  filter: saturate(0.85) brightness(1.02);
-}
-.qq-player.is-focus-content .qq-hero-disc .qq-disc-label {
-  inset: 32%;
-}
-.qq-player.is-flashcards .qq-hero-disc {
-  width: 56px;
-  opacity: 0.5;
-}
 
 .qq-stage-body {
   flex: 1;
@@ -5161,34 +5138,6 @@ body:has(.global-player) {
   to { transform: rotate(360deg); }
 }
 
-/* 内容聚焦：笔记/大纲/闪卡 压缩标题区与碟 */
-.qq-player.is-focus-content .qq-hero {
-  margin-bottom: 6px;
-}
-.qq-player.is-focus-content .qq-hero-disc {
-  width: 56px;
-}
-.qq-player.is-focus-content .qq-song-title {
-  font-size: clamp(16px, 4vw, 18px);
-  -webkit-line-clamp: 1;
-}
-.qq-player.is-focus-content .qq-song-artist,
-.qq-player.is-focus-content .qq-song-chips {
-  display: none;
-}
-@media (min-width: 900px) {
-  .qq-player.is-focus-content .qq-song-title {
-    font-size: clamp(20px, 2.2vw, 26px);
-    -webkit-line-clamp: 2;
-  }
-  .qq-player.is-focus-content .qq-song-artist {
-    display: -webkit-box;
-  }
-  .qq-player.is-focus-content .qq-song-chips {
-    display: flex;
-  }
-}
-
 /* dock */
 .qq-dock {
   position: relative;
@@ -5484,7 +5433,6 @@ body:has(.global-player) {
   .qq-rate-cycle { display: none; }
 }
 
-
 .qq-ctrl.is-ep {
   color: var(--text-3);
 }
@@ -5640,7 +5588,6 @@ body:has(.global-player) {
 /* 超窄 */
 @media (max-width: 380px) {
   .qq-hero-disc { width: 64px; }
-  .qq-player.is-focus-content .qq-hero-disc { width: 48px; }
   .qq-song-title { font-size: 16.5px; }
   .qq-controls { gap: 12px; }
 }
@@ -5657,12 +5604,6 @@ body:has(.global-player) {
   .qq-outline {
     padding: 6px 8px 28px 2px;
   }
-}
-
-/* 兼容旧 is-flashcards（与 is-focus-content 并存） */
-.qq-player.is-flashcards .qq-hero-disc {
-  width: 56px;
-  opacity: 0.5;
 }
 
 /* ===== Knowledge Flashcards (fc-*) ===== */
@@ -6476,7 +6417,6 @@ button.pb-cover {
   z-index: 1;
 }
 
-
 /* CoverArt 与既有尺寸 class 的兼容 */
 .global-player-cover.pb-cover,
 .mini-player-cover.pb-cover,
@@ -6716,7 +6656,6 @@ button.pb-cover {
   color: var(--text-2);
   word-break: break-word;
 }
-
 
 /* =========================
    Auth · Setup · Settings
@@ -7093,4 +7032,173 @@ button.pb-cover {
 }
 .lh-card-manage:hover {
   background: rgba(0,0,0,0.42);
+}
+
+
+/* ===== Create page · progressive options ===== */
+.upload-options {
+  width: 100%;
+}
+.upload-options-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.upload-switch-row-compact {
+  min-height: 40px;
+  padding: 0 2px;
+  gap: 12px;
+}
+.upload-switch-row-compact .upload-switch-copy .title {
+  font-size: 13.5px;
+}
+.upload-option-chips {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 560px) {
+  .upload-option-chips {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.upload-option-chip {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--separator);
+  background: var(--surface-2);
+  color: var(--text-2);
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.upload-option-chip:hover:not(:disabled) {
+  border-color: var(--brand-ring);
+  background: var(--surface-brand);
+  color: var(--text);
+}
+.upload-option-chip.is-open {
+  border-color: transparent;
+  background: var(--brand-soft);
+  color: var(--brand-2);
+  box-shadow: 0 0 0 1px var(--brand-ring);
+}
+.upload-option-chip:disabled {
+  opacity: 0.6;
+}
+.upload-option-chip .chip-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: inherit;
+}
+.upload-option-chip .chip-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--text-3);
+}
+.upload-option-chip.is-open .chip-value {
+  color: color-mix(in srgb, var(--brand-2) 78%, var(--text-3));
+}
+.upload-option-chip .chip-caret {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--brand-2);
+  flex-shrink: 0;
+}
+.upload-option-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--separator);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--brand-soft) 40%, transparent), transparent 48%),
+    var(--surface-2);
+}
+.upload-option-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.upload-option-panel-head .left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.upload-option-close {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+.upload-option-close:hover {
+  background: color-mix(in srgb, var(--brand-soft) 70%, var(--brand) 12%);
+}
+
+.script-prompt-compact-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.script-prompt-compact-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.script-prompt-compact-tag.is-more {
+  color: var(--text-3);
+}
+
+.tts-tips-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  margin-top: 4px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--brand-2);
+  font-size: 12px;
+  font-weight: 650;
+}
+.tts-tips-toggle:hover {
+  text-decoration: underline;
+}
+
+/* 创建页宽度收敛 */
+.admin-upload-wrap {
+  max-width: 640px;
+  margin-inline: auto;
 }

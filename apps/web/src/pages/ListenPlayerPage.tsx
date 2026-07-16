@@ -312,7 +312,6 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
       ? `约 ${job.podcast.estimatedMinutes} 分钟`
       : '私人播客');
   const hasScript = Boolean(job.podcast?.script);
-  const focusContent = panel === 'flashcards' || panel === 'notes' || panel === 'outline';
   const sleepActive = sleep.kind !== 'off';
   const sleepLabel =
     sleep.kind === 'timer'
@@ -368,11 +367,6 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         'qq-player',
         'nl-enter',
         active.playing ? 'is-playing' : '',
-        focusContent ? 'is-focus-content' : '',
-        panel === 'flashcards' ? 'is-flashcards' : '',
-        panel === 'lyrics' ? 'is-lyrics' : '',
-        panel === 'notes' ? 'is-notes' : '',
-        panel === 'outline' ? 'is-outline' : '',
         sleepActive ? 'is-sleeping' : '',
       ]
         .filter(Boolean)
