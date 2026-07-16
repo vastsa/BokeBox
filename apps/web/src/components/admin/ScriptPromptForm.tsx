@@ -24,11 +24,14 @@ export function ScriptPromptForm({
   value,
   disabled,
   onChangeField,
+  onBlurField,
   group = 'all',
 }: {
   value: ScriptPromptOptions;
   disabled?: boolean;
   onChangeField: (key: keyof ScriptPromptOptions, text: string) => void;
+  /** blur 后再做 trim / 字数夹取等修正 */
+  onBlurField?: (key: keyof ScriptPromptOptions) => void;
   /** 设置页可按区块拆分字段，制作页仍用 all */
   group?: 'all' | 'basic' | 'advanced';
 }) {
@@ -54,6 +57,7 @@ export function ScriptPromptForm({
           field.key === 'showName' ||
           field.key === 'audience' ||
           field.key === 'speakingStyle';
+        const isNumber = field.inputType === 'number';
 
         return (
           <label
@@ -71,19 +75,20 @@ export function ScriptPromptForm({
                 placeholder={field.placeholder}
                 value={value[field.key] || ''}
                 onChange={(e) => onChangeField(field.key, e.target.value)}
+                onBlur={() => onBlurField?.(field.key)}
               />
             ) : (
               <input
                 className="nl-input"
-                type={field.inputType || 'text'}
-                inputMode={field.inputType === 'number' ? 'numeric' : undefined}
-                min={field.inputType === 'number' ? 300 : undefined}
-                max={field.inputType === 'number' ? 8000 : undefined}
-                step={field.inputType === 'number' ? 50 : undefined}
+                // 数字字段用 text + inputMode，避免 number 控件中途被改写
+                type="text"
+                inputMode={isNumber ? 'numeric' : undefined}
+                pattern={isNumber ? '[0-9]*' : undefined}
                 disabled={disabled}
                 placeholder={field.placeholder}
                 value={value[field.key] || ''}
                 onChange={(e) => onChangeField(field.key, e.target.value)}
+                onBlur={() => onBlurField?.(field.key)}
               />
             )}
           </label>

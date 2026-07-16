@@ -1,5 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import {
+  commitScriptPromptField,
+  draftScriptPromptField,
   emptyScriptPrompt,
   hasScriptPrompt,
   normalizeScriptPrompt,
@@ -40,7 +42,14 @@ export function ScriptPromptPicker({
 
   const updateField = useCallback(
     (key: keyof ScriptPromptOptions, text: string) => {
-      onChange(normalizeScriptPrompt({ ...value, [key]: text }));
+      onChange(draftScriptPromptField(value, key, text));
+    },
+    [onChange, value],
+  );
+
+  const blurField = useCallback(
+    (key: keyof ScriptPromptOptions) => {
+      onChange(commitScriptPromptField(value, key));
     },
     [onChange, value],
   );
@@ -136,6 +145,7 @@ export function ScriptPromptPicker({
             value={value}
             disabled={disabled}
             onChangeField={updateField}
+            onBlurField={blurField}
           />
           <div className="script-prompt-global-actions">
             <button

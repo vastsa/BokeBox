@@ -4,6 +4,8 @@ import {
   saveScriptPromptSettings,
 } from '../../api/client';
 import {
+  commitScriptPromptField,
+  draftScriptPromptField,
   emptyScriptPrompt,
   hasScriptPrompt,
   normalizeScriptPrompt,
@@ -32,6 +34,7 @@ export function GlobalScriptPromptSettings() {
       const advancedKeys: Array<keyof ScriptPromptOptions> = [
         'openingStyle',
         'closingStyle',
+        'maxChars',
         'extraInstructions',
       ];
       if (advancedKeys.some((k) => Boolean(next[k]))) {
@@ -56,18 +59,23 @@ export function GlobalScriptPromptSettings() {
 
   const onChangeField = useCallback(
     (key: keyof ScriptPromptOptions, text: string) => {
-      setValue((prev) => normalizeScriptPrompt({ ...prev, [key]: text }));
+      // 输入中不夹取字数上下限，避免中途被改写成 300
+      setValue((prev) => draftScriptPromptField(prev, key, text));
       setSavedHint(false);
     },
     [],
   );
+
+  const onBlurField = useCallback((key: keyof ScriptPromptOptions) => {
+    setValue((prev) => commitScriptPromptField(prev, key));
+  }, []);
 
   const onSave = async () => {
     setSaving(true);
     setError(null);
     setSavedHint(false);
     try {
-      const next = await saveScriptPromptSettings(value);
+      const next = await saveScriptPromptSettings(normalizeScriptPrompt(value));
       setValue(normalizeScriptPrompt(next));
       setSavedHint(true);
       window.setTimeout(() => setSavedHint(false), 2200);
@@ -113,6 +121,7 @@ export function GlobalScriptPromptSettings() {
               value={value}
               disabled={saving}
               onChangeField={onChangeField}
+              onBlurField={onBlurField}
               group="basic"
             />
           </div>
@@ -137,6 +146,7 @@ export function GlobalScriptPromptSettings() {
                 value={value}
                 disabled={saving}
                 onChangeField={onChangeField}
+              onBlurField={onBlurField}
                 group="advanced"
               />
             ) : (
