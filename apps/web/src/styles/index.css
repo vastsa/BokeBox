@@ -882,7 +882,7 @@ body:has(.global-player) {
 .nl-textarea { min-height: var(--size-84); resize: vertical; line-height: var(--lh-relaxed); }
 .nl-input::placeholder, .nl-textarea::placeholder { color: var(--text-3); }
 .nl-input:focus, .nl-textarea:focus {
-  border-color: color-mix(in srgb, var(--brand) 70%, white);
+  border-color: color-mix(in srgb, var(--brand) 70%, var(--white));
   box-shadow: var(--shadow-ring-brand);
   background: var(--surface);
 }
@@ -4079,7 +4079,7 @@ body:has(.global-player) {
   border-radius: var(--radius-md);
   border: var(--bw-1) solid var(--separator-strong);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, white), var(--surface-2));
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--white)), var(--surface-2));
   color: var(--text);
   font-size: var(--fs-md);
   font-weight: var(--fw-bold);
@@ -4089,7 +4089,7 @@ body:has(.global-player) {
   background-image:
     linear-gradient(45deg, transparent 50%, var(--text-3) 50%),
     linear-gradient(135deg, var(--text-3) 50%, transparent 50%),
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, white), var(--surface-2));
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--white)), var(--surface-2));
   background-position:
     calc(100% - 16px) calc(50% - 2px),
     calc(100% - 11px) calc(50% - 2px),
@@ -7826,20 +7826,25 @@ button.pb-cover {
   border-radius: var(--radius-sm);
   box-shadow: none;
 }
+/* 选中态走品牌 soft token，深浅色自动适配对比度 */
 .settings-page .tts-mode.is-active,
 .settings-page .tts-voice.is-active {
-  background: var(--surface-2);
-  border-color: var(--text);
+  background: var(--brand-soft);
+  border-color: var(--brand-ring);
   box-shadow: none;
 }
 .settings-page .tts-mode.is-active .title,
 .settings-page .tts-voice.is-active .name {
-  color: var(--text);
+  color: var(--brand-2);
 }
 .settings-page .tts-tag.is-active {
-  background: var(--text);
+  background: var(--brand-soft);
+  color: var(--brand-2);
+  border-color: var(--brand-ring);
+  box-shadow: none;
+}
+.settings-page .tts-tag.is-locked {
   color: var(--text-inv);
-  border-color: var(--text);
 }
 
 .settings-page .auth-field span {
