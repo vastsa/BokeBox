@@ -72,16 +72,48 @@ export function motifIndexFor(seed?: string): number {
   return hashSeed(seed) % 4;
 }
 
-/** 封面 monogram：取首个中文/字母/数字 */
-export function monogramFrom(text?: string): string {
-  if (!text) return '播';
-  const cleaned = text
-    .replace(/[【】\[\]（）()《》「」『』·•|,./\\#@!$%^&*_+=~`'"<>?:;]/g, '')
+/**
+ * 封面标题文案：默认按完整标题做排版设计，而不是单字 monogram
+ * - 清洗装饰符号，保留可读内容
+ * - 过滤 UUID / 哈希类 seed，避免把 id 画在封面上
+ * - 超长标题做视觉截断，保证封面可读
+ */
+export function coverLabelFrom(text?: string): string {
+  if (!text) return '播客';
+  let cleaned = text
+    .replace(/https?:\/\/\S+/gi, ' ')
+    .replace(/[【】\[\]（）()《》「」『』<>]/g, ' ')
+    .replace(/[·•|,./\\#@!$%^&*_+=~`'":;？?！!。、]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
-  const match = cleaned.match(/[\u4e00-\u9fffA-Za-z0-9]/);
-  if (!match) return '播';
-  const ch = match[0];
-  return /[a-z]/.test(ch) ? ch.toUpperCase() : ch;
+  if (!cleaned) return '播客';
+
+  // job.id / uuid / 纯哈希不作为封面文案
+  if (
+    /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(cleaned) ||
+    /^[0-9a-f]{16,}$/i.test(cleaned)
+  ) {
+    return '播客';
+  }
+
+  const chars = [...cleaned];
+  if (chars.length > 28) {
+    cleaned = `${chars.slice(0, 26).join('')}…`;
+  }
+  return cleaned;
+}
+
+/** 按标题长度给出封面字号档位 */
+export function coverLabelTone(label: string): 'short' | 'medium' | 'long' {
+  const len = [...label].length;
+  if (len <= 4) return 'short';
+  if (len <= 12) return 'medium';
+  return 'long';
+}
+
+/** @deprecated 请使用 coverLabelFrom；保留兼容旧调用 */
+export function monogramFrom(text?: string): string {
+  return coverLabelFrom(text);
 }
 
 export function listenProgressPct(

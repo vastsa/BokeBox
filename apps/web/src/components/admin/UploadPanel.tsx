@@ -210,9 +210,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               <div className="desc">
                 {uploading
                   ? published
-                    ? '任务完成后将发布到听播前台'
-                    : '任务仅在后台处理，不会自动发布'
-                  : '开启后，任务完成后会进入听播前台'}
+                    ? '任务完成后可直接收听'
+                    : '任务完成后暂不进入播客库'
+                  : '开启后，任务完成后会出现在首页播客库'}
               </div>
             </div>
             <span className={['upload-switch', published ? 'is-on' : ''].join(' ')}>
@@ -275,7 +275,6 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               disabled={uploading || !scriptPromptReady}
               onModeChange={updateScriptPromptMode}
               onChange={updateScriptPrompt}
-              onGlobalChange={setGlobalScriptPrompt}
             />
           </div>
         </div>
@@ -371,7 +370,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                 <span className="upload-badge">视频 / 音频 / 文本</span>
                 <span className="upload-badge">自动识别分流</span>
                 <span className="upload-badge">
-                  {published ? '完成后发布' : '仅后台处理'}
+                  {published ? '完成后入库' : '暂不入库'}
                 </span>
                 {tts.mode !== 'voicedesign' && tts.voice ? (
                   <span className="upload-badge">{tts.voice}</span>
@@ -437,7 +436,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               <span className="upload-badge">音频 → 转写</span>
               <span className="upload-badge">文本 → 跳过转写</span>
               <span className="upload-badge">
-                {published ? '完成后发布' : '仅后台处理'}
+                {published ? '完成后入库' : '暂不入库'}
               </span>
             </div>
 
@@ -468,7 +467,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                   <span className="dot">·</span>
                   {promptSummary}
                   <span className="dot">·</span>
-                  {published ? '完成后发布' : '暂不发布'}
+                  {published ? '完成后入库' : '暂不发布'}
                 </div>
               </div>
               <div className="upload-file-status">

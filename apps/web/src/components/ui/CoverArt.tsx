@@ -5,7 +5,8 @@ import type {
 } from 'react';
 import {
   coverGradientFor,
-  monogramFrom,
+  coverLabelFrom,
+  coverLabelTone,
   motifIndexFor,
 } from '../../lib/format';
 
@@ -14,10 +15,10 @@ type CoverBase = {
   seed?: string;
   /** 服务端/曲目预设的 Tailwind 渐变类 */
   preferred?: string;
-  /** 用于 monogram 的标题 */
+  /** 用于封面标题排版的标题文案 */
   title?: string;
   className?: string;
-  /** 是否显示字母/汉字徽标 */
+  /** 是否显示标题文案（默认 true：按标题设计显示） */
   monogram?: boolean;
   /** 是否叠加纹理层 */
   pattern?: boolean;
@@ -42,7 +43,8 @@ type CoverSpanProps = CoverBase &
 export type CoverArtProps = CoverDivProps | CoverButtonProps | CoverSpanProps;
 
 /**
- * 全局占位封面：渐变 + 纹理变体 + monogram
+ * 全局占位封面：渐变 + 纹理变体 + 标题排版
+ * 默认按完整标题设计显示，而不是单字 monogram
  * 可直接挂载既有尺寸 class（如 nc-album-art / global-player-cover）
  */
 export function CoverArt(props: CoverArtProps) {
@@ -59,7 +61,9 @@ export function CoverArt(props: CoverArtProps) {
   } = props;
 
   const grad = coverGradientFor(seed, preferred);
-  const mono = monogramFrom(title || seed);
+  // 仅用 title 做封面文案；缺失时给通用占位，避免把 job.id 画上去
+  const label = coverLabelFrom(title);
+  const tone = coverLabelTone(label);
   const motif = motifIndexFor(seed || title || 'default');
   const classes = ['pb-cover', `bg-gradient-to-br ${grad}`, className]
     .filter(Boolean)
@@ -82,9 +86,10 @@ export function CoverArt(props: CoverArtProps) {
           ]
             .filter(Boolean)
             .join(' ')}
+          data-tone={tone}
           aria-hidden
         >
-          {mono}
+          {label}
         </span>
       )}
       <span className="pb-cover-shine" aria-hidden />

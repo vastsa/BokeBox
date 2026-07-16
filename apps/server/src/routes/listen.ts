@@ -25,7 +25,7 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
     const items = [];
     for (const rec of records) {
       const job = await getJob(rec.jobId);
-      if (!job || !job.published || job.status !== 'done') continue;
+      if (!job || job.status !== 'done' || !job.podcast) continue;
       items.push({ job: toPublic(job), listen: rec });
     }
     return { items };
@@ -33,8 +33,8 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
 
   app.get<{ Params: { id: string } }>('/listen/:id', async (req, reply) => {
     const job = await getJob(req.params.id);
-    if (!job || !job.published || job.status !== 'done' || !job.podcast) {
-      return reply.code(404).send({ error: '播客不存在或未发布' });
+    if (!job || job.status !== 'done' || !job.podcast) {
+      return reply.code(404).send({ error: '播客不存在或尚未完成' });
     }
     const listen = await getListenRecord(job.id);
     return { job: toPublic(job), listen: listen || null };
@@ -50,7 +50,7 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
     };
   }>('/listen/:id/progress', async (req, reply) => {
     const job = await getJob(req.params.id);
-    if (!job || !job.published) {
+    if (!job || job.status !== 'done') {
       return reply.code(404).send({ error: '播客不存在' });
     }
     const body = req.body || { progressSec: 0, durationSec: 0 };

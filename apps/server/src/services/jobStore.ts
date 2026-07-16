@@ -27,15 +27,18 @@ export async function listJobs(): Promise<Job[]> {
   return rows.map(rowToJob);
 }
 
+/** 可听任务：单用户端不再强依赖 published，完成即可听 */
 export async function listPublishedJobs(): Promise<Job[]> {
   const rows = getDb()
     .prepare(
       `SELECT * FROM jobs
-       WHERE published = 1 AND status = 'done' AND podcast_json IS NOT NULL
+       WHERE status = 'done' AND podcast_json IS NOT NULL
        ORDER BY created_at DESC`,
     )
     .all() as JobRow[];
-  return rows.map(rowToJob).filter((j) => Boolean(j.podcast));
+  return rows
+    .map(rowToJob)
+    .filter((j) => Boolean(j.podcast) && (j.published !== false));
 }
 
 export async function getJob(id: string): Promise<Job | undefined> {

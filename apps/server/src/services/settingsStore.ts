@@ -3,6 +3,57 @@ import type { ScriptPromptOptions } from '../types/job.js';
 import { normalizeScriptPrompt } from './scriptPrompt.js';
 
 const KEY_SCRIPT_PROMPT = 'script_prompt';
+const KEY_AUTH = 'auth_account';
+const KEY_AI = 'ai_config';
+const KEY_SESSIONS = 'auth_sessions';
+const KEY_SETUP = 'setup_completed';
+
+export type AuthAccount = {
+  username: string;
+  /** scrypt 派生：salt:hash（hex） */
+  passwordHash: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AiConfig = {
+  apiKey: string;
+  baseUrl: string;
+  chatModel: string;
+  asrModel: string;
+  ttsModel: string;
+  voiceDesignModel: string;
+  defaultVoice: string;
+};
+
+export type PublicAiConfig = {
+  apiKeySet: boolean;
+  /** 脱敏后的 key 尾号，未设置时为空 */
+  apiKeyHint: string;
+  baseUrl: string;
+  chatModel: string;
+  asrModel: string;
+  ttsModel: string;
+  voiceDesignModel: string;
+  defaultVoice: string;
+};
+
+export type SessionRecord = {
+  token: string;
+  username: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+const DEFAULT_AI: AiConfig = {
+  apiKey: '',
+  baseUrl: 'https://api.oj.ink/v1',
+  chatModel: 'mimo-v2.5',
+  asrModel: 'mimo-v2.5-asr',
+  ttsModel: 'mimo-v2.5-tts',
+  voiceDesignModel: 'mimo-v2.5-tts-voicedesign',
+  defaultVoice: '冰糖',
+};
 
 function getSettingRaw(key: string): string | null {
   const row = getDb()
@@ -24,6 +75,201 @@ function setSettingRaw(key: string, value: string): void {
     .run({ key, value, updated_at: now });
 }
 
+function deleteSetting(key: string): void {
+  getDb().prepare('DELETE FROM app_settings WHERE key = ?').run(key);
+}
+
+function parseJson<T>(raw: string | null): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** 是否已完成系统初始化 */
+export function isSetupCompleted(): boolean {
+  if (getSettingRaw(KEY_SETUP) === '1') return true;
+  // 兼容：有账号即视为已初始化
+  return Boolean(getAuthAccount());
+}
+
+export function markSetupCompleted(): void {
+  setSettingRaw(KEY_SETUP, '1');
+}
+
+export function getAuthAccount(): AuthAccount | null {
+  return parseJson<AuthAccount>(getSettingRaw(KEY_AUTH));
+}
+
+export function setAuthAccount(account: AuthAccount): AuthAccount {
+  setSettingRaw(KEY_AUTH, JSON.stringify(account));
+  return account;
+}
+
+export function getAiConfig(): AiConfig {
+  const stored = parseJson<Partial<AiConfig>>(getSettingRaw(KEY_AI));
+  const envKey = process.env.OPENAI_API_KEY?.trim() || '';
+  const envBase = (process.env.OPENAI_BASE_URL || '').replace(/\/$/, '');
+  return {
+    apiKey: stored?.apiKey?.trim() || envKey || DEFAULT_AI.apiKey,
+    baseUrl: (stored?.baseUrl || envBase || DEFAULT_AI.baseUrl).replace(
+      /\/$/,
+      '',
+    ),
+    chatModel:
+      stored?.chatModel?.trim() ||
+      process.env.OPENAI_CHAT_MODEL ||
+      DEFAULT_AI.chatModel,
+    asrModel:
+      stored?.asrModel?.trim() ||
+      process.env.OPENAI_TRANSCRIBE_MODEL ||
+      DEFAULT_AI.asrModel,
+    ttsModel:
+      stored?.ttsModel?.trim() ||
+      process.env.OPENAI_TTS_MODEL ||
+      DEFAULT_AI.ttsModel,
+    voiceDesignModel:
+      stored?.voiceDesignModel?.trim() ||
+      process.env.OPENAI_TTS_VOICEDESIGN_MODEL ||
+      DEFAULT_AI.voiceDesignModel,
+    defaultVoice:
+      stored?.defaultVoice?.trim() ||
+      process.env.OPENAI_TTS_DEFAULT_VOICE ||
+      DEFAULT_AI.defaultVoice,
+  };
+}
+
+/** 仅读取库中已保存配置（不含 env 回落），用于判断是否写过 */
+export function getStoredAiConfig(): Partial<AiConfig> | null {
+  return parseJson<Partial<AiConfig>>(getSettingRaw(KEY_AI));
+}
+
+export function setAiConfig(patch: Partial<AiConfig>): AiConfig {
+  const current = getAiConfig();
+  const next: AiConfig = {
+    apiKey:
+      patch.apiKey !== undefined
+        ? String(patch.apiKey).trim()
+        : current.apiKey,
+    baseUrl: (
+      patch.baseUrl !== undefined
+        ? String(patch.baseUrl).trim()
+        : current.baseUrl
+    ).replace(/\/$/, ''),
+    chatModel:
+      patch.chatModel !== undefined
+        ? String(patch.chatModel).trim() || current.chatModel
+        : current.chatModel,
+    asrModel:
+      patch.asrModel !== undefined
+        ? String(patch.asrModel).trim() || current.asrModel
+        : current.asrModel,
+    ttsModel:
+      patch.ttsModel !== undefined
+        ? String(patch.ttsModel).trim() || current.ttsModel
+        : current.ttsModel,
+    voiceDesignModel:
+      patch.voiceDesignModel !== undefined
+        ? String(patch.voiceDesignModel).trim() || current.voiceDesignModel
+        : current.voiceDesignModel,
+    defaultVoice:
+      patch.defaultVoice !== undefined
+        ? String(patch.defaultVoice).trim() || current.defaultVoice
+        : current.defaultVoice,
+  };
+  // 空字符串 apiKey 表示不覆盖（编辑场景）
+  if (patch.apiKey === '') {
+    next.apiKey = current.apiKey;
+  }
+  setSettingRaw(KEY_AI, JSON.stringify(next));
+  return next;
+}
+
+export function maskApiKey(apiKey?: string): string {
+  const key = (apiKey || '').trim();
+  if (!key) return '';
+  if (key.length <= 8) return '••••';
+  return `${key.slice(0, 3)}••••${key.slice(-4)}`;
+}
+
+export function toPublicAiConfig(cfg?: AiConfig): PublicAiConfig {
+  const c = cfg || getAiConfig();
+  return {
+    apiKeySet: Boolean(c.apiKey),
+    apiKeyHint: maskApiKey(c.apiKey),
+    baseUrl: c.baseUrl,
+    chatModel: c.chatModel,
+    asrModel: c.asrModel,
+    ttsModel: c.ttsModel,
+    voiceDesignModel: c.voiceDesignModel,
+    defaultVoice: c.defaultVoice,
+  };
+}
+
+export function getDefaultAiConfigForSetup(): PublicAiConfig & {
+  /** 初始化页可预填明文默认（仅 base/model，不含密钥） */
+  suggested: Omit<AiConfig, 'apiKey'>;
+} {
+  const c = getAiConfig();
+  return {
+    ...toPublicAiConfig(c),
+    suggested: {
+      baseUrl: c.baseUrl || DEFAULT_AI.baseUrl,
+      chatModel: c.chatModel || DEFAULT_AI.chatModel,
+      asrModel: c.asrModel || DEFAULT_AI.asrModel,
+      ttsModel: c.ttsModel || DEFAULT_AI.ttsModel,
+      voiceDesignModel: c.voiceDesignModel || DEFAULT_AI.voiceDesignModel,
+      defaultVoice: c.defaultVoice || DEFAULT_AI.defaultVoice,
+    },
+  };
+}
+
+function listSessions(): SessionRecord[] {
+  const all = parseJson<SessionRecord[]>(getSettingRaw(KEY_SESSIONS)) || [];
+  const now = Date.now();
+  return all.filter((s) => new Date(s.expiresAt).getTime() > now);
+}
+
+function saveSessions(sessions: SessionRecord[]): void {
+  setSettingRaw(KEY_SESSIONS, JSON.stringify(sessions));
+}
+
+export function createSession(
+  username: string,
+  ttlMs = 1000 * 60 * 60 * 24 * 30,
+): SessionRecord {
+  const token = cryptoRandomToken();
+  const now = new Date();
+  const session: SessionRecord = {
+    token,
+    username,
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
+  };
+  const next = listSessions().filter((s) => s.username !== username);
+  next.push(session);
+  // 最多保留 10 个会话
+  saveSessions(next.slice(-10));
+  return session;
+}
+
+export function getSession(token?: string | null): SessionRecord | null {
+  if (!token) return null;
+  const found = listSessions().find((s) => s.token === token);
+  return found || null;
+}
+
+export function revokeSession(token?: string | null): void {
+  if (!token) return;
+  saveSessions(listSessions().filter((s) => s.token !== token));
+}
+
+export function revokeAllSessions(): void {
+  deleteSetting(KEY_SESSIONS);
+}
+
 /** 读取全局口播提示词干预 */
 export function getGlobalScriptPrompt(): ScriptPromptOptions {
   const raw = getSettingRaw(KEY_SCRIPT_PROMPT);
@@ -43,4 +289,11 @@ export function setGlobalScriptPrompt(
   const next = normalizeScriptPrompt(prompt) || {};
   setSettingRaw(KEY_SCRIPT_PROMPT, JSON.stringify(next));
   return next;
+}
+
+function cryptoRandomToken(): string {
+  const bytes = new Uint8Array(32);
+  // Node 全局 crypto
+  globalThis.crypto.getRandomValues(bytes);
+  return Buffer.from(bytes).toString('base64url');
 }

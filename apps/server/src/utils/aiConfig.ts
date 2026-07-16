@@ -1,9 +1,12 @@
+import { getAiConfig } from '../services/settingsStore.js';
+
+/** 运行时优先读库内 AI 配置，回落到环境变量（由 settingsStore 统一处理） */
 export function getBaseUrl(): string {
-  return (process.env.OPENAI_BASE_URL || 'https://api.oj.ink/v1').replace(/\/$/, '');
+  return getAiConfig().baseUrl.replace(/\/$/, '');
 }
 
 export function getApiKey(): string {
-  return process.env.OPENAI_API_KEY?.trim() || '';
+  return getAiConfig().apiKey.trim();
 }
 
 export function hasApiKey(): boolean {
@@ -11,24 +14,24 @@ export function hasApiKey(): boolean {
 }
 
 export function getChatModel(): string {
-  return process.env.OPENAI_CHAT_MODEL || 'mimo-v2.5';
+  return getAiConfig().chatModel;
 }
 
 export function getAsrModel(): string {
-  return process.env.OPENAI_TRANSCRIBE_MODEL || 'mimo-v2.5-asr';
+  return getAiConfig().asrModel;
 }
 
 export function getTtsModel(): string {
-  return process.env.OPENAI_TTS_MODEL || 'mimo-v2.5-tts';
+  return getAiConfig().ttsModel;
 }
 
 export function getVoiceDesignModel(): string {
-  return process.env.OPENAI_TTS_VOICEDESIGN_MODEL || 'mimo-v2.5-tts-voicedesign';
+  return getAiConfig().voiceDesignModel;
 }
 
-/** 自然口播默认预置音色（中国站推荐冰糖） */
+/** 自然口播默认预置音色 */
 export function getDefaultTtsVoice(): string {
-  return process.env.OPENAI_TTS_DEFAULT_VOICE?.trim() || '冰糖';
+  return getAiConfig().defaultVoice;
 }
 
 export async function aiFetch(path: string, init: RequestInit = {}): Promise<Response> {

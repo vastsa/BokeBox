@@ -92,14 +92,14 @@ export function AdminPage({ route }: { route: Route }) {
             <div className="page-kicker">Studio Console</div>
             <h1 className="page-title">任务管理</h1>
             <p className="page-subtitle">
-              管理视频转播客资产，发布到听播前台。
+              管理视频转播客资产，生成播客资产。
             </p>
           </div>
           <div className="studio-head-actions">
             <button
               type="button"
               className="nl-btn nl-btn-primary"
-              onClick={() => navigate({ name: 'admin-upload' })}
+              onClick={() => navigate({ name: 'create' })}
             >
               <IconUpload size={15} />
               上传
@@ -107,9 +107,9 @@ export function AdminPage({ route }: { route: Route }) {
             <button
               type="button"
               className="nl-btn nl-btn-secondary"
-              onClick={() => navigate({ name: 'listen' })}
+              onClick={() => navigate({ name: 'home' })}
             >
-              听播
+              首页
             </button>
             <button
               type="button"
@@ -173,7 +173,7 @@ export function AdminPage({ route }: { route: Route }) {
             <button
               type="button"
               className="nl-btn nl-btn-secondary"
-              onClick={() => navigate({ name: 'admin-upload' })}
+              onClick={() => navigate({ name: 'create' })}
             >
               <IconUpload size={14} />
               新建
@@ -193,7 +193,7 @@ export function AdminPage({ route }: { route: Route }) {
                 title="还没有任务"
                 description="上传一段视频，自动生成可发布的播客。"
                 actionLabel="上传视频"
-                onAction={() => navigate({ name: 'admin-upload' })}
+                onAction={() => navigate({ name: 'create' })}
               />
             </div>
           ) : (
@@ -204,7 +204,7 @@ export function AdminPage({ route }: { route: Route }) {
                   job={job}
                   index={i}
                   busy={busyId === job.id}
-                  onOpen={() => navigate({ name: 'admin-job', id: job.id })}
+                  onOpen={() => navigate({ name: 'job', id: job.id })}
                   onTogglePublish={() =>
                     void runJobAction(job.id, () =>
                       updateJob(job.id, { published: !job.published }),

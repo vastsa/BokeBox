@@ -1,8 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  fetchScriptPromptSettings,
-  saveScriptPromptSettings,
-} from '../../api/client';
+import { useCallback, useMemo } from 'react';
 import {
   emptyScriptPrompt,
   hasScriptPrompt,
@@ -10,8 +6,11 @@ import {
   SCRIPT_PROMPT_FIELDS,
   summarizeScriptPrompt,
 } from '../../lib/scriptPrompt';
+import { navigate } from '../../lib/router';
 import type { ScriptPromptMode, ScriptPromptOptions } from '../../types/job';
 import { IconSpark } from '../icons';
+import { ScriptPromptForm } from './ScriptPromptForm';
+import { fetchScriptPromptSettings } from '../../api/client';
 
 export function ScriptPromptPicker({
   mode,
@@ -20,7 +19,6 @@ export function ScriptPromptPicker({
   disabled = false,
   onModeChange,
   onChange,
-  onGlobalChange,
 }: {
   mode: ScriptPromptMode;
   value: ScriptPromptOptions;
@@ -28,18 +26,9 @@ export function ScriptPromptPicker({
   disabled?: boolean;
   onModeChange: (mode: ScriptPromptMode) => void;
   onChange: (next: ScriptPromptOptions) => void;
-  onGlobalChange: (next: ScriptPromptOptions) => void;
+  /** @deprecated 全局编辑已迁至设置页，保留以兼容旧调用 */
+  onGlobalChange?: (next: ScriptPromptOptions) => void;
 }) {
-  const [editingGlobal, setEditingGlobal] = useState(false);
-  const [draftGlobal, setDraftGlobal] = useState<ScriptPromptOptions>({});
-  const [savingGlobal, setSavingGlobal] = useState(false);
-  const [globalError, setGlobalError] = useState<string | null>(null);
-  const [globalSavedHint, setGlobalSavedHint] = useState(false);
-
-  useEffect(() => {
-    if (!editingGlobal) setDraftGlobal(globalValue);
-  }, [editingGlobal, globalValue]);
-
   const activePrompt = mode === 'global' ? globalValue : value;
   const summary = useMemo(
     () => summarizeScriptPrompt(activePrompt),
@@ -52,32 +41,6 @@ export function ScriptPromptPicker({
     },
     [onChange, value],
   );
-
-  const updateGlobalField = useCallback(
-    (key: keyof ScriptPromptOptions, text: string) => {
-      setDraftGlobal((prev) =>
-        normalizeScriptPrompt({ ...prev, [key]: text }),
-      );
-    },
-    [],
-  );
-
-  const saveGlobal = async () => {
-    setSavingGlobal(true);
-    setGlobalError(null);
-    setGlobalSavedHint(false);
-    try {
-      const next = await saveScriptPromptSettings(draftGlobal);
-      onGlobalChange(next);
-      setEditingGlobal(false);
-      setGlobalSavedHint(true);
-      window.setTimeout(() => setGlobalSavedHint(false), 2000);
-    } catch (e) {
-      setGlobalError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSavingGlobal(false);
-    }
-  };
 
   return (
     <div className={['script-prompt-picker', disabled ? 'is-disabled' : ''].join(' ')}>
@@ -115,73 +78,31 @@ export function ScriptPromptPicker({
 
       {mode === 'global' && (
         <div className="script-prompt-global-box">
-          {!editingGlobal ? (
-            <>
-              {hasScriptPrompt(globalValue) ? (
-                <dl className="script-prompt-preview">
-                  {SCRIPT_PROMPT_FIELDS.filter((f) => globalValue[f.key]).map((f) => (
-                    <div key={f.key} className="script-prompt-preview-row">
-                      <dt>{f.label}</dt>
-                      <dd>{globalValue[f.key]}</dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : (
-                <div className="script-prompt-empty">
-                  尚未配置全局人设，生成时使用系统默认提示词。
+          {hasScriptPrompt(globalValue) ? (
+            <dl className="script-prompt-preview">
+              {SCRIPT_PROMPT_FIELDS.filter((f) => globalValue[f.key]).map((f) => (
+                <div key={f.key} className="script-prompt-preview-row">
+                  <dt>{f.label}</dt>
+                  <dd>{globalValue[f.key]}</dd>
                 </div>
-              )}
-              <div className="script-prompt-global-actions">
-                <button
-                  type="button"
-                  className="nl-btn nl-btn-secondary script-prompt-edit-btn"
-                  disabled={disabled}
-                  onClick={() => {
-                    setDraftGlobal(globalValue);
-                    setEditingGlobal(true);
-                  }}
-                >
-                  <IconSpark size={14} />
-                  编辑全局设置
-                </button>
-                {globalSavedHint && (
-                  <span className="script-prompt-saved">已保存</span>
-                )}
-              </div>
-            </>
+              ))}
+            </dl>
           ) : (
-            <>
-              <ScriptPromptForm
-                value={draftGlobal}
-                disabled={disabled || savingGlobal}
-                onChangeField={updateGlobalField}
-              />
-              {globalError && (
-                <div className="script-prompt-error">{globalError}</div>
-              )}
-              <div className="script-prompt-global-actions">
-                <button
-                  type="button"
-                  className="nl-btn nl-btn-secondary"
-                  disabled={savingGlobal}
-                  onClick={() => {
-                    setEditingGlobal(false);
-                    setGlobalError(null);
-                  }}
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  className="nl-btn nl-btn-primary"
-                  disabled={savingGlobal}
-                  onClick={() => void saveGlobal()}
-                >
-                  {savingGlobal ? '保存中…' : '保存为全局'}
-                </button>
-              </div>
-            </>
+            <div className="script-prompt-empty">
+              尚未配置全局人设，生成时使用系统默认提示词。
+            </div>
           )}
+          <div className="script-prompt-global-actions">
+            <button
+              type="button"
+              className="nl-btn nl-btn-secondary script-prompt-edit-btn"
+              disabled={disabled}
+              onClick={() => navigate({ name: 'settings' })}
+            >
+              <IconSpark size={14} />
+              去设置中编辑
+            </button>
+          </div>
         </div>
       )}
 
@@ -219,46 +140,7 @@ export function ScriptPromptPicker({
   );
 }
 
-function ScriptPromptForm({
-  value,
-  disabled,
-  onChangeField,
-}: {
-  value: ScriptPromptOptions;
-  disabled?: boolean;
-  onChangeField: (key: keyof ScriptPromptOptions, text: string) => void;
-}) {
-  return (
-    <div className="script-prompt-form">
-      {SCRIPT_PROMPT_FIELDS.map((field) => (
-        <label key={field.key} className="script-prompt-field">
-          <span className="script-prompt-field-label">{field.label}</span>
-          {field.multiline ? (
-            <textarea
-              className="nl-textarea"
-              rows={3}
-              disabled={disabled}
-              placeholder={field.placeholder}
-              value={value[field.key] || ''}
-              onChange={(e) => onChangeField(field.key, e.target.value)}
-            />
-          ) : (
-            <input
-              className="nl-input"
-              type="text"
-              disabled={disabled}
-              placeholder={field.placeholder}
-              value={value[field.key] || ''}
-              onChange={(e) => onChangeField(field.key, e.target.value)}
-            />
-          )}
-        </label>
-      ))}
-    </div>
-  );
-}
-
-/** 页面加载时拉取全局设置的小 hook 式 helper */
+/** 页面加载时拉取全局设置 */
 export async function loadGlobalScriptPrompt(): Promise<ScriptPromptOptions> {
   try {
     const data = await fetchScriptPromptSettings();

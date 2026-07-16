@@ -8,14 +8,43 @@ import type {
   ScriptPromptOptions,
   TtsOptions,
 } from '../types/job';
+import { clearAuthSession, getToken } from '../lib/auth';
 
 const BASE = import.meta.env.VITE_API_BASE || '/api';
 
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+}
+
+function authHeaders(extra?: HeadersInit): Headers {
+  const headers = new Headers(extra || {});
+  const token = getToken();
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return headers;
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${url}`, init);
+  const headers = authHeaders(init?.headers);
+  const res = await fetch(`${BASE}${url}`, { ...init, headers, credentials: 'include' });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error((data as { error?: string }).error || `请求失败 (${res.status})`);
+    const err = data as { error?: string; code?: string };
+    if (res.status === 401 && err.code === 'UNAUTHORIZED') {
+      clearAuthSession();
+    }
+    throw new ApiError(
+      err.error || `请求失败 (${res.status})`,
+      res.status,
+      err.code,
+    );
   }
   return data as T;
 }
@@ -48,6 +77,8 @@ export async function createJob(
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${BASE}/jobs`);
     xhr.responseType = 'json';
+    const token = getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && options.onProgress) {
         options.onProgress(Math.round((e.loaded / e.total) * 100));
@@ -216,14 +247,150 @@ export async function saveScriptPromptSettings(
   return data.scriptPrompt || {};
 }
 
-export function podcastAudioUrl(id: string, download = false): string {
-  return `${BASE}/jobs/${id}/audio${download ? '?download=1' : ''}`;
+function appendQuery(url: string, params: Record<string, string | undefined>): string {
+  const abs = /^https?:\/\//i.test(url);
+  const u = new URL(url, 'http://local.invalid');
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== '') u.searchParams.set(k, v);
+  }
+  const token = getToken();
+  if (token) u.searchParams.set('access_token', token);
+  if (abs) return u.toString();
+  return `${u.pathname}${u.search}`;
+}
+
+export function podcastAudioUrl(
+  id: string,
+  download = false,
+  cacheKey?: string,
+): string {
+  return appendQuery(`${BASE}/jobs/${id}/audio`, {
+    download: download ? '1' : undefined,
+    v: cacheKey,
+  });
 }
 
 export function sourceAudioUrl(id: string): string {
-  return `${BASE}/jobs/${id}/source-audio`;
+  return appendQuery(`${BASE}/jobs/${id}/source-audio`, {});
 }
 
 export function videoUrl(id: string): string {
-  return `${BASE}/jobs/${id}/video`;
+  return appendQuery(`${BASE}/jobs/${id}/video`, {});
+}
+
+
+// ── 系统初始化 / 登录 / 设置 ──
+
+export type SetupStatus = {
+  initialized: boolean;
+  needsSetup: boolean;
+  ai?: {
+    apiKeySet: boolean;
+    apiKeyHint: string;
+    baseUrl: string;
+    chatModel: string;
+    asrModel: string;
+    ttsModel: string;
+    voiceDesignModel: string;
+    defaultVoice: string;
+    suggested: {
+      baseUrl: string;
+      chatModel: string;
+      asrModel: string;
+      ttsModel: string;
+      voiceDesignModel: string;
+      defaultVoice: string;
+    };
+  };
+};
+
+export type PublicAiConfig = {
+  apiKeySet: boolean;
+  apiKeyHint: string;
+  baseUrl: string;
+  chatModel: string;
+  asrModel: string;
+  ttsModel: string;
+  voiceDesignModel: string;
+  defaultVoice: string;
+};
+
+export async function fetchSetupStatus(): Promise<SetupStatus> {
+  return request('/setup/status');
+}
+
+export async function completeSetup(body: {
+  username: string;
+  password: string;
+  confirmPassword?: string;
+  apiKey: string;
+  baseUrl?: string;
+  chatModel?: string;
+  asrModel?: string;
+  ttsModel?: string;
+  voiceDesignModel?: string;
+  defaultVoice?: string;
+}): Promise<{ ok: boolean; username: string; token: string; expiresAt: string }> {
+  return request('/setup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function login(body: {
+  username: string;
+  password: string;
+}): Promise<{ ok: boolean; username: string; token: string; expiresAt: string }> {
+  return request('/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await request('/auth/logout', { method: 'POST' });
+  } catch {
+    // 忽略网络错误，本地仍清会话
+  }
+}
+
+export async function fetchMe(): Promise<{ username: string; createdAt?: string }> {
+  return request('/auth/me');
+}
+
+export async function changePassword(body: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword?: string;
+}): Promise<{ ok: boolean; message?: string }> {
+  return request('/auth/password', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchAiSettings(): Promise<PublicAiConfig> {
+  const data = await request<{ ai: PublicAiConfig }>('/settings/ai');
+  return data.ai;
+}
+
+export async function saveAiSettings(body: {
+  apiKey?: string;
+  baseUrl?: string;
+  chatModel?: string;
+  asrModel?: string;
+  ttsModel?: string;
+  voiceDesignModel?: string;
+  defaultVoice?: string;
+}): Promise<PublicAiConfig> {
+  const data = await request<{ ai: PublicAiConfig }>('/settings/ai', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return data.ai;
 }

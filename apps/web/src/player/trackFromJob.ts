@@ -8,12 +8,12 @@ export function trackFromJob(
   job: Job,
   opts?: { version?: string | number | null },
 ): PlayerTrack {
-  const base = podcastAudioUrl(job.id);
   const version = opts?.version ?? job.updatedAt;
-  const src =
-    version != null && version !== ''
-      ? `${base}?v=${encodeURIComponent(String(version))}`
-      : base;
+  const src = podcastAudioUrl(
+    job.id,
+    false,
+    version != null && version !== '' ? String(version) : undefined,
+  );
 
   return {
     id: job.id,

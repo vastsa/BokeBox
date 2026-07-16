@@ -6,6 +6,7 @@ import { config as loadEnv } from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import { jobRoutes } from './routes/jobs.js';
 import { listenRoutes } from './routes/listen.js';
+import { authRoutes, registerAuthGuard } from './routes/auth.js';
 import { JOBS_DIR, ROOT_DIR, SQLITE_DB } from './utils/paths.js';
 import { ensureDir, pathExists } from './utils/fs.js';
 import { hasApiKey, getBaseUrl, getChatModel } from './utils/aiConfig.js';
@@ -38,6 +39,8 @@ async function main() {
     limits: { fileSize: 500 * 1024 * 1024, files: 1 },
   });
 
+  await app.register(authRoutes, { prefix: '/api' });
+  registerAuthGuard(app);
   await app.register(jobRoutes, { prefix: '/api' });
   await app.register(listenRoutes, { prefix: '/api' });
 

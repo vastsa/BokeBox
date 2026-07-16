@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
-import { IconDashboard, IconHeadphones } from '../components/icons';
+import {
+  IconHeadphones,
+  IconLibrary,
+  IconSpark,
+  IconUpload,
+} from '../components/icons';
 import { navigate, type Route } from '../lib/router';
 
 export function AppShell({
@@ -11,11 +16,16 @@ export function AppShell({
   children: ReactNode;
   hideBottomNav?: boolean;
 }) {
-  const listenActive = route.name === 'listen' || route.name === 'player';
-  const adminActive =
+  const homeActive =
+    route.name === 'home' ||
+    route.name === 'listen' ||
     route.name === 'admin' ||
-    route.name === 'admin-upload' ||
+    route.name === 'player' ||
+    route.name === 'job' ||
     route.name === 'admin-job';
+  const createActive =
+    route.name === 'create' || route.name === 'admin-upload';
+  const settingsActive = route.name === 'settings';
 
   return (
     <div className="page-shell">
@@ -23,7 +33,7 @@ export function AppShell({
         <div className="page-container flex items-center justify-between gap-3 py-1.5">
           <button
             type="button"
-            onClick={() => navigate({ name: 'listen' })}
+            onClick={() => navigate({ name: 'home' })}
             className="flex min-h-[36px] items-center gap-2"
           >
             <span className="brand-mark">
@@ -41,16 +51,22 @@ export function AppShell({
 
           <nav className="hidden items-center gap-0.5 rounded-full border border-[var(--separator)] bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] p-0.5 backdrop-blur md:flex">
             <TopNavItem
-              active={listenActive}
-              label="听播"
-              onClick={() => navigate({ name: 'listen' })}
-              icon={<IconHeadphones size={14} />}
+              active={homeActive}
+              label="首页"
+              onClick={() => navigate({ name: 'home' })}
+              icon={<IconLibrary size={14} />}
             />
             <TopNavItem
-              active={adminActive}
-              label="后台"
-              onClick={() => navigate({ name: 'admin' })}
-              icon={<IconDashboard size={14} />}
+              active={createActive}
+              label="制作"
+              onClick={() => navigate({ name: 'create' })}
+              icon={<IconUpload size={14} />}
+            />
+            <TopNavItem
+              active={settingsActive}
+              label="设置"
+              onClick={() => navigate({ name: 'settings' })}
+              icon={<IconSpark size={14} />}
             />
           </nav>
         </div>
@@ -60,18 +76,24 @@ export function AppShell({
 
       {!hideBottomNav && (
         <nav className="bottom-nav" aria-label="主导航">
-          <div className="mx-auto grid max-w-sm grid-cols-2 gap-0.5">
+          <div className="mx-auto grid max-w-sm grid-cols-3 gap-0.5">
             <BottomNavItem
-              active={listenActive}
-              label="听播"
-              onClick={() => navigate({ name: 'listen' })}
-              icon={<IconHeadphones size={18} />}
+              active={homeActive}
+              label="首页"
+              onClick={() => navigate({ name: 'home' })}
+              icon={<IconLibrary size={18} />}
             />
             <BottomNavItem
-              active={adminActive}
-              label="后台"
-              onClick={() => navigate({ name: 'admin' })}
-              icon={<IconDashboard size={18} />}
+              active={createActive}
+              label="制作"
+              onClick={() => navigate({ name: 'create' })}
+              icon={<IconUpload size={18} />}
+            />
+            <BottomNavItem
+              active={settingsActive}
+              label="设置"
+              onClick={() => navigate({ name: 'settings' })}
+              icon={<IconSpark size={18} />}
             />
           </div>
         </nav>

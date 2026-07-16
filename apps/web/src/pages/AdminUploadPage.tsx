@@ -26,10 +26,10 @@ export function AdminUploadPage({ route }: { route: Route }) {
           <button
             type="button"
             className="upload-back-btn"
-            onClick={() => navigate({ name: 'admin' })}
+            onClick={() => navigate({ name: 'home' })}
           >
             <IconBack size={16} />
-            返回任务管理
+            返回首页
           </button>
 
           <div className="upload-hero">
@@ -66,7 +66,7 @@ export function AdminUploadPage({ route }: { route: Route }) {
         <section className="admin-upload-wrap">
           <UploadPanel
             onCreated={(job) => {
-              navigate({ name: 'admin-job', id: job.id });
+              navigate({ name: 'job', id: job.id });
             }}
           />
         </section>

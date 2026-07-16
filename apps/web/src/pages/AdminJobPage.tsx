@@ -230,9 +230,9 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
             <button
               type="button"
               className="nl-btn nl-btn-primary mt-4"
-              onClick={() => navigate({ name: 'admin' })}
+              onClick={() => navigate({ name: 'home' })}
             >
-              返回后台
+              返回首页
             </button>
           </div>
         </div>
@@ -274,7 +274,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
     try {
       await fn();
       if (kind === 'delete') {
-        navigate({ name: 'admin' });
+        navigate({ name: 'home' });
         return;
       }
       await refresh();
@@ -291,11 +291,11 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
       <div className="admin-container nl-enter jd-page">
         <button
           type="button"
-          onClick={() => navigate({ name: 'admin' })}
+          onClick={() => navigate({ name: 'home' })}
           className="jd-back"
         >
           <IconBack size={16} />
-          返回任务库
+          返回首页
         </button>
 
         {/* 顶栏信息 */}
@@ -336,7 +336,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                 className="nl-btn nl-btn-primary"
                 onClick={() => navigate({ name: 'player', id: job.id })}
               >
-                前台试听
+                打开播放
               </button>
             )}
             <button
@@ -353,7 +353,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                 ? '更新中…'
                 : job.published
                   ? '取消发布'
-                  : '发布到前台'}
+                  : '发布到库'}
             </button>
             <button
               type="button"
@@ -448,7 +448,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                 <MiniPlayer
                   key={job.updatedAt}
                   trackId={job.id}
-                  src={`${podcastAudioUrl(job.id)}?v=${encodeURIComponent(String(job.updatedAt))}`}
+                  src={podcastAudioUrl(job.id, false, String(job.updatedAt))}
                   title={title}
                   downloadUrl={podcastAudioUrl(job.id, true)}
                   coverClassName={cover}
