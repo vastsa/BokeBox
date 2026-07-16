@@ -1,0 +1,37 @@
+# 生产编排：拉取 CI 推送的 GHCR 镜像（不在服务器本地 build）
+# 用法:
+#   export IMAGE_TAG=latest   # 或 sha-xxxx / 1.0.0
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# 镜像默认: ghcr.io/<owner>/person-boke
+# 可通过环境变量覆盖:
+#   GHCR_IMAGE=ghcr.io/vastsa/person-boke
+#   IMAGE_TAG=latest
+
+services:
+  person-boke:
+    image: ${GHCR_IMAGE:-ghcr.io/vastsa/person-boke}:${IMAGE_TAG:-latest}
+    container_name: person-boke
+    ports:
+      - "${PORT:-8787}:8787"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8787
+    volumes:
+      - ./storage:/app/storage
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8787/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3

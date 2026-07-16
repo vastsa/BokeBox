@@ -12,7 +12,9 @@
     "start:app": "./start.sh",
     "start:prod": "./start.sh prod",
     "docker:up": "./start.sh docker",
-    "docker:down": "./start.sh docker:down"
+    "docker:down": "./start.sh docker:down",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up -d",
+    "docker:prod:pull": "docker compose -f docker-compose.prod.yml pull"
   },
   "engines": {
     "node": ">=22.5"

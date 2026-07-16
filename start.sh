@@ -3,7 +3,8 @@
 # 用法:
 #   ./start.sh            本地开发（前后端热更新）
 #   ./start.sh prod       本地生产模式（构建后仅启服务端）
-#   ./start.sh docker     Docker Compose 构建并启动
+#   ./start.sh docker     Docker Compose 本地构建并启动
+#   ./start.sh docker:prod  拉取 GHCR 生产镜像并启动
 #   ./start.sh docker:down  停止并移除容器
 #   ./start.sh stop       停止本地后台进程（若用了 --detach）
 
@@ -149,15 +150,56 @@ docker_up() {
 
 docker_down() {
   if docker compose version >/dev/null 2>&1; then
-    docker compose down
+    COMPOSE=(docker compose)
   elif command -v docker-compose >/dev/null 2>&1; then
-    docker-compose down
+    COMPOSE=(docker-compose)
   else
     err "未找到 docker compose"
     exit 1
   fi
+  # 同时尝试本地 build 与 prod 编排
+  "${COMPOSE[@]}" down 2>/dev/null || true
+  if [[ -f docker-compose.prod.yml ]]; then
+    "${COMPOSE[@]}" -f docker-compose.prod.yml down 2>/dev/null || true
+  fi
   ok "容器已停止"
 }
+
+docker_prod() {
+  ensure_env
+  ensure_storage
+  if command -v docker >/dev/null 2>&1; then
+    if docker compose version >/dev/null 2>&1; then
+      COMPOSE=(docker compose)
+    elif command -v docker-compose >/dev/null 2>&1; then
+      COMPOSE=(docker-compose)
+    else
+      err "已安装 docker，但未找到 compose 插件"
+      exit 1
+    fi
+  else
+    err "未安装 Docker。请安装 Docker Desktop 后再试"
+    exit 1
+  fi
+
+  if [[ ! -f docker-compose.prod.yml ]]; then
+    err "缺少 docker-compose.prod.yml"
+    exit 1
+  fi
+
+  export GHCR_IMAGE="${GHCR_IMAGE:-ghcr.io/vastsa/person-boke}"
+  export IMAGE_TAG="${IMAGE_TAG:-latest}"
+  log "拉取生产镜像 ${GHCR_IMAGE}:${IMAGE_TAG} …"
+  "${COMPOSE[@]}" -f docker-compose.prod.yml pull
+  log "启动生产容器 …"
+  "${COMPOSE[@]}" -f docker-compose.prod.yml up -d
+  echo
+  ok "容器已启动: person-boke（GHCR 镜像）"
+  ok "访问: http://localhost:${PORT:-8787}"
+  ok "日志: ${COMPOSE[*]} -f docker-compose.prod.yml logs -f"
+  ok "停止: ./start.sh docker:down"
+}
+
 
 usage() {
   cat <<USAGE
@@ -166,7 +208,8 @@ Person Boke · 一键启动
 用法:
   ./start.sh              本地开发（热更新）
   ./start.sh prod         本地生产（构建后单端口）
-  ./start.sh docker       Docker Compose 启动
+  ./start.sh docker       Docker Compose 本地构建启动
+  ./start.sh docker:prod  拉取 GHCR 镜像启动
   ./start.sh docker:down  停止 Docker 容器
   ./start.sh help         显示帮助
 
@@ -183,6 +226,9 @@ case "$MODE" in
     ;;
   docker|up)
     docker_up
+    ;;
+  docker:prod|prod-docker)
+    docker_prod
     ;;
   docker:down|down)
     docker_down

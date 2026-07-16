@@ -156,8 +156,31 @@ pnpm dev
 ```bash
 cp .env.example .env   # 填写 API Key
 docker compose up -d --build
+# 或: ./start.sh docker
 ```
 
 - 镜像内由 Fastify 同时提供 API + 前端静态资源
 - `./storage` 挂载持久化 SQLite 与媒体文件
 - 健康检查：`GET /api/health`
+
+### Docker CI/CD（GitHub Actions + GHCR）
+
+推送到 `main` 或打 `v*` tag 会自动构建多架构镜像并推送到 GHCR：
+
+```text
+ghcr.io/<owner>/person-boke:latest
+ghcr.io/<owner>/person-boke:sha-<short>
+ghcr.io/<owner>/person-boke:1.0.0   # 来自 git tag v1.0.0
+```
+
+生产机拉取（无需在服务器 build）：
+
+```bash
+# 准备 docker-compose.prod.yml + .env + storage/
+export GHCR_IMAGE=ghcr.io/vastsa/person-boke
+export IMAGE_TAG=latest
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+可选 SSH 自动部署、secrets 列表见 [docs/ci-cd.md](docs/ci-cd.md)。

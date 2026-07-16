@@ -1,0 +1,273 @@
+# Person Boke · Docker CI/CD
+# - PR / 手动：构建并验证镜像（不推送）
+# - push main / tag v*：构建并推送到 GHCR
+# - 可选：配置 DEPLOY_* secrets 后自动 SSH 部署
+
+name: Docker CI/CD
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      push:
+        description: '推送镜像到 GHCR'
+        type: boolean
+        default: true
+      deploy:
+        description: 'SSH 部署到生产机（需已配置 secrets）'
+        type: boolean
+        default: false
+
+concurrency:
+  group: docker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ── 类型检查 / 应用构建（不依赖 Docker，失败快） ──
+  check:
+    name: Typecheck & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm -r build
+
+  # ── Docker 构建 / 推送 ──
+  docker:
+    name: Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: check
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      should_deploy: ${{ steps.flags.outputs.should_deploy }}
+      image_base: ${{ steps.meta_prep.outputs.image_base }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare image name (GHCR 要求全小写)
+        id: meta_prep
+        run: |
+          owner_repo="$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          echo "image_base=${{ env.REGISTRY }}/${owner_repo}" >> "$GITHUB_OUTPUT"
+          echo "image_base=${{ env.REGISTRY }}/${owner_repo}"
+
+      - name: Decide push / deploy flags
+        id: flags
+        run: |
+          PUSH=false
+          DEPLOY=false
+          case "${{ github.event_name }}" in
+            pull_request)
+              PUSH=false
+              ;;
+            workflow_dispatch)
+              PUSH="${{ inputs.push }}"
+              DEPLOY="${{ inputs.deploy }}"
+              ;;
+            push)
+              PUSH=true
+              if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+                DEPLOY=true
+              fi
+              ;;
+          esac
+          echo "push=${PUSH}" >> "$GITHUB_OUTPUT"
+          echo "should_deploy=${DEPLOY}" >> "$GITHUB_OUTPUT"
+          echo "flags: push=${PUSH} deploy=${DEPLOY}"
+
+      - name: Set up QEMU
+        if: steps.flags.outputs.push == 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: steps.flags.outputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.meta_prep.outputs.image_base }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=ref,event=pr
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          # PR 只构建当前架构做验证；推送时出 amd64+arm64
+          platforms: ${{ steps.flags.outputs.push == 'true' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+          push: ${{ steps.flags.outputs.push == 'true' }}
+          load: ${{ steps.flags.outputs.push != 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Smoke test image (PR / no-push)
+        if: steps.flags.outputs.push != 'true'
+        run: |
+          set -euo pipefail
+          IMAGE="$(echo '${{ steps.meta.outputs.tags }}' | head -n1)"
+          echo "Smoke testing: $IMAGE"
+          docker run -d --name person-boke-smoke \
+            -e HOST=0.0.0.0 \
+            -e PORT=8787 \
+            -e OPENAI_API_KEY=demo \
+            -p 8787:8787 \
+            "$IMAGE"
+          cleanup() { docker rm -f person-boke-smoke >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:8787/api/health" >/tmp/health.json; then
+              echo "health ok:"
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Health check failed"
+          docker logs person-boke-smoke || true
+          exit 1
+
+      - name: Summary
+        run: |
+          {
+            echo "## Docker 构建结果"
+            echo ""
+            echo "- **推送**: \`${{ steps.flags.outputs.push }}\`"
+            echo "- **镜像**: \`${{ steps.meta_prep.outputs.image_base }}\`"
+            echo "- **tags**:"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            if [[ -n "${{ steps.build.outputs.digest }}" ]]; then
+              echo "- **digest**: \`${{ steps.build.outputs.digest }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── 可选 SSH 部署 ──
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: docker
+    if: |
+      needs.docker.outputs.should_deploy == 'true' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    environment:
+      name: production
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check deploy secrets
+        id: prep
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [[ -z "${DEPLOY_HOST}" || -z "${DEPLOY_USER}" || -z "${DEPLOY_SSH_KEY}" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "未配置 DEPLOY_HOST / DEPLOY_USER / DEPLOY_SSH_KEY，跳过部署。"
+            {
+              echo "## 部署跳过"
+              echo "请在仓库 Secrets 配置 \`DEPLOY_HOST\`、\`DEPLOY_USER\`、\`DEPLOY_SSH_KEY\`。"
+              echo "详见 docs/ci-cd.md"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy over SSH
+        if: steps.prep.outputs.skip != 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_PATH_INPUT: ${{ secrets.DEPLOY_PATH }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          GHCR_PULL_USER: ${{ secrets.GHCR_PULL_USER }}
+          IMAGE_BASE: ${{ needs.docker.outputs.image_base }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: DEPLOY_PATH_INPUT,GHCR_PULL_TOKEN,GHCR_PULL_USER,IMAGE_BASE
+          script_stop: true
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${DEPLOY_PATH_INPUT:-$HOME/person-boke}"
+            IMAGE="${IMAGE_BASE}:latest"
+            echo "▶ 部署目录: $DEPLOY_PATH"
+            echo "▶ 镜像: $IMAGE"
+            mkdir -p "$DEPLOY_PATH"
+            cd "$DEPLOY_PATH"
+
+            if [[ ! -f docker-compose.prod.yml && ! -f docker-compose.yml ]]; then
+              echo "✗ 部署目录缺少 docker-compose.prod.yml"
+              echo "  请先将仓库的 docker-compose.prod.yml 与 .env 放到 $DEPLOY_PATH"
+              exit 1
+            fi
+
+            COMPOSE_FILE=docker-compose.prod.yml
+            if [[ ! -f "$COMPOSE_FILE" ]]; then
+              COMPOSE_FILE=docker-compose.yml
+            fi
+
+            if [[ -n "${GHCR_PULL_TOKEN:-}" ]]; then
+              PULL_USER="${GHCR_PULL_USER:-$(echo "$IMAGE_BASE" | cut -d/ -f2)}"
+              echo "$GHCR_PULL_TOKEN" | docker login ghcr.io -u "$PULL_USER" --password-stdin
+            fi
+
+            export IMAGE_TAG=latest
+            # 若 compose 使用 GHCR_IMAGE，注入当前仓库镜像
+            export GHCR_IMAGE="$IMAGE_BASE"
+            docker compose -f "$COMPOSE_FILE" pull
+            docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
+            docker image prune -f
+            echo "✓ 部署完成"
+            docker compose -f "$COMPOSE_FILE" ps
