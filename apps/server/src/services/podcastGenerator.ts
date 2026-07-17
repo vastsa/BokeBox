@@ -373,6 +373,7 @@ export async function generatePodcast(
 ): Promise<{ podcast: PodcastContent; demo: boolean }> {
   const paths = jobPaths(jobId);
   const loc = resolveContentLocale(locale);
+  console.info(`[podcast] job=${jobId} contentLocale=${loc}`);
   const demo = !hasApiKey();
   const podcast = demo
     ? demoPodcast(transcript, sourceTitle, scriptPrompt, loc)

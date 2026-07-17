@@ -18,6 +18,7 @@ import {
   t,
   type Locale,
 } from '../i18n/index.js';
+import { getContentLocale } from './settingsStore.js';
 
 const running = new Set<string>();
 
@@ -62,7 +63,9 @@ function kindLabel(locale: Locale, kind: SourceKind): string {
 }
 
 function jobContentLocale(job?: { locale?: string } | null): Locale {
-  return resolveContentLocale(job?.locale);
+  // 任务未落库 locale 时回落全局，避免误用硬编码中文
+  if (job?.locale) return resolveContentLocale(job.locale);
+  return resolveContentLocale(getContentLocale());
 }
 
 /** 进度/错误文案语言（无 UI 包时回落默认界面语言） */

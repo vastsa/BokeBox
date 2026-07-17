@@ -5,6 +5,7 @@ import {
   scriptPromptFieldLabels,
   scriptPromptSectionTitle,
 } from '../i18n/contentLocale.js';
+import { contentPromptLanguage } from '../i18n/registry.js';
 
 const FIELDS: Array<{
   key: keyof ScriptPromptOptions;
@@ -116,27 +117,19 @@ export function buildScriptPromptSection(
   const labels = scriptPromptFieldLabels(loc);
   const lines: string[] = ['', scriptPromptSectionTitle(loc)];
 
+  const zhFamily = loc === 'zh-CN' || loc === 'zh-TW';
+  const langName = contentPromptLanguage(loc);
+
   for (const { key, label } of labels) {
     const value = p[key as keyof ScriptPromptOptions];
     if (value) {
-      lines.push(loc === 'en-US' ? `- ${label}: ${value}` : `- ${label}：${value}`);
+      lines.push(zhFamily ? `- ${label}：${value}` : `- ${label}: ${value}`);
     }
   }
 
   const maxChars = resolveScriptMaxChars(p);
   const targetMin = Math.round(maxChars * 0.75);
-  if (loc === 'en-US') {
-    lines.push(
-      'Write script / hostIntro strictly with the persona above:',
-      '1. Opening and closing should reflect host identity and show branding (mention show name naturally if set).',
-      '2. Wording, pacing, and address style must match the specified speaking style and tone.',
-      '3. Target the stated audience; avoid mismatched jargon.',
-      `4. Spoken script length after removing audio tags must be ≤ ${maxChars} characters, ideally ${targetMin}-${maxChars}. Prefer shorter over longer.`,
-      '5. Honor extra requirements without inventing facts absent from the transcript.',
-      '6. Still obey MiMo TTS audio-tag rules (style tags remain Chinese control tokens).',
-      '7. User-facing fields must be written in English.',
-    );
-  } else {
+  if (zhFamily) {
     lines.push(
       '请严格按以上人设撰写 script / hostIntro：',
       '1. 开场与收尾要体现主播身份与节目辨识度（若有节目名请自然点出）。',
@@ -151,7 +144,20 @@ export function buildScriptPromptSection(
         ' 字，宁短勿超。',
       '5. 额外要求必须遵守，但不能编造转写稿中不存在的事实。',
       '6. 仍然必须遵守 MiMo TTS 音频标签控制规则。',
-      '7. 面向用户的字段必须使用中文。',
+      loc === 'zh-TW'
+        ? '7. 面向用户的字段必须使用繁體中文。'
+        : '7. 面向用户的字段必须使用简体中文。',
+    );
+  } else {
+    lines.push(
+      'Write script / hostIntro strictly with the persona above:',
+      '1. Opening and closing should reflect host identity and show branding (mention show name naturally if set).',
+      '2. Wording, pacing, and address style must match the specified speaking style and tone.',
+      '3. Target the stated audience; avoid mismatched jargon.',
+      `4. Spoken script length after removing audio tags must be ≤ ${maxChars} characters, ideally ${targetMin}-${maxChars}. Prefer shorter over longer.`,
+      '5. Honor extra requirements without inventing facts absent from the transcript.',
+      '6. Still obey MiMo TTS audio-tag rules (style tags remain Chinese control tokens).',
+      `7. User-facing fields must be written in ${langName}.`,
     );
   }
 

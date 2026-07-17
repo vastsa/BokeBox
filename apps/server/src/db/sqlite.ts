@@ -39,6 +39,9 @@ export function initDatabase(): DatabaseSync {
     if (!names.has('script_prompt_json')) {
       db!.exec(`ALTER TABLE jobs ADD COLUMN script_prompt_json TEXT`);
     }
+    if (!names.has('locale')) {
+      db!.exec(`ALTER TABLE jobs ADD COLUMN locale TEXT DEFAULT 'zh-CN'`);
+    }
   };
 
   db.exec(`
@@ -51,6 +54,7 @@ export function initDatabase(): DatabaseSync {
       status TEXT NOT NULL,
       progress REAL NOT NULL DEFAULT 0,
       message TEXT NOT NULL DEFAULT '',
+      locale TEXT DEFAULT 'zh-CN',
       video_path TEXT NOT NULL DEFAULT '',
       audio_path TEXT,
       podcast_audio_path TEXT,
@@ -185,6 +189,7 @@ export type JobRow = {
   status: string;
   progress: number;
   message: string;
+  locale: string | null;
   video_path: string;
   audio_path: string | null;
   podcast_audio_path: string | null;
@@ -224,8 +229,14 @@ export function normalizeJob(job: Job): Job {
     if (Object.keys(cleaned).length) scriptPrompt = cleaned;
   }
 
+  const locale =
+    typeof job.locale === 'string' && job.locale.trim()
+      ? job.locale.trim()
+      : undefined;
+
   return {
     ...job,
+    locale,
     published: job.published ?? true,
     sourceKind,
     sourceUrl: job.sourceUrl?.trim() || undefined,
@@ -250,6 +261,7 @@ export function jobToRow(job: Job): JobRow {
     status: job.status,
     progress: job.progress ?? 0,
     message: job.message ?? '',
+    locale: job.locale || null,
     video_path: job.videoPath ?? '',
     audio_path: job.audioPath ?? null,
     podcast_audio_path: job.podcastAudioPath ?? null,
@@ -304,6 +316,7 @@ export function rowToJob(row: JobRow): Job {
     status: row.status as Job['status'],
     progress: Number(row.progress) || 0,
     message: row.message || '',
+    locale: row.locale || undefined,
     videoPath: row.video_path || '',
     audioPath: row.audio_path || undefined,
     podcastAudioPath: row.podcast_audio_path || undefined,

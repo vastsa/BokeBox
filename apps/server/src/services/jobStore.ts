@@ -71,12 +71,12 @@ export async function createJob(job: Job): Promise<Job> {
     .prepare(
       `INSERT INTO jobs (
         id, title, original_filename, mime_type, size, status, progress,
-        message, video_path, audio_path, podcast_audio_path, transcript,
+        message, locale, video_path, audio_path, podcast_audio_path, transcript,
         podcast_json, tts_json, published, error, created_at, updated_at,
         source_kind, source_url, script_prompt_json
       ) VALUES (
         @id, @title, @original_filename, @mime_type, @size, @status, @progress,
-        @message, @video_path, @audio_path, @podcast_audio_path, @transcript,
+        @message, @locale, @video_path, @audio_path, @podcast_audio_path, @transcript,
         @podcast_json, @tts_json, @published, @error, @created_at, @updated_at,
         @source_kind, @source_url, @script_prompt_json
       )`,
@@ -109,6 +109,7 @@ export async function updateJob(
         status = @status,
         progress = @progress,
         message = @message,
+        locale = @locale,
         video_path = @video_path,
         audio_path = @audio_path,
         podcast_audio_path = @podcast_audio_path,

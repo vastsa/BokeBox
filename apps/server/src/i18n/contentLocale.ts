@@ -135,6 +135,9 @@ export function buildPodcastSystemPrompt(input: {
 
   // en-US 与其它内容语言：英文脚手架 + 目标语约束，新增语言只需注册表
   return [
+    `CRITICAL: The entire podcast output MUST be written in ${lang}.`,
+    `If the source transcript is in another language, translate and rewrite into natural spoken ${lang}.`,
+    `Do NOT output Simplified Chinese, Traditional Chinese, or any other language except ${lang} (MiMo TTS control tags may stay as Chinese tokens).`,
     `You are a senior ${lang} podcast producer and editor, also skilled at MiMo-TTS audio tag control.`,
     'Rewrite the source transcript into one episode that can be sent directly to TTS.',
     'Requirements:',
