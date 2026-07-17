@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   fetchAiSettings,
   saveAiSettings,
@@ -32,6 +32,35 @@ type ProviderOpt = {
   suggestedModels?: Record<string, string>;
 };
 
+function ServiceCard({
+  badge,
+  title,
+  desc,
+  children,
+}: {
+  badge?: string;
+  title: string;
+  desc: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="settings-card settings-card-wide">
+      <div className="settings-block">
+        <div className="settings-block-head">
+          {badge ? (
+            <div className="ai-service-card-badge" aria-hidden>
+              {badge}
+            </div>
+          ) : null}
+          <h3>{title}</h3>
+          <p>{desc}</p>
+        </div>
+        {children}
+      </div>
+    </section>
+  );
+}
+
 /**
  * AI 服务设置：按 LLM / ASR / TTS / 图片分卡片配置
  * 各服务可独立端点与密钥；留空则继承「默认连接」
@@ -48,7 +77,6 @@ export function AiServiceSettings({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // 全局默认连接
   const [globalBaseUrl, setGlobalBaseUrl] = useState('');
   const [globalApiKey, setGlobalApiKey] = useState('');
 
@@ -96,7 +124,9 @@ export function AiServiceSettings({
       setTtsProvider(cfg.tts?.provider || cfg.ttsProvider || 'mimo');
       setWhisperBin(cfg.asr?.whisperBin || cfg.whisperBin || '');
       setWhisperLang(cfg.asr?.whisperLang || cfg.whisperLang || '');
-      setVoiceDesignModel(cfg.tts?.voiceDesignModel || cfg.voiceDesignModel || '');
+      setVoiceDesignModel(
+        cfg.tts?.voiceDesignModel || cfg.voiceDesignModel || '',
+      );
       setDefaultVoice(cfg.tts?.defaultVoice || cfg.defaultVoice || '');
     } catch (e) {
       onError?.(e instanceof Error ? e.message : String(e));
@@ -117,7 +147,6 @@ export function AiServiceSettings({
       const next = await saveAiSettings({
         apiKey: globalApiKey.trim() || undefined,
         baseUrl: globalBaseUrl.trim(),
-        // 全局兼容字段
         chatModel: llm.model.trim(),
         asrModel: asr.model.trim(),
         ttsModel: tts.model.trim(),
@@ -128,7 +157,6 @@ export function AiServiceSettings({
         ttsProvider: ttsProvider.trim() || 'mimo',
         whisperBin: whisperBin.trim(),
         whisperLang: whisperLang.trim(),
-        // 分服务端点
         llmBaseUrl: llm.baseUrl.trim(),
         llmApiKey: llm.apiKey.trim(),
         asrBaseUrl: asr.baseUrl.trim(),
@@ -161,36 +189,40 @@ export function AiServiceSettings({
   };
 
   if (loading) {
-    return <div className="settings-inline-hint">{t('settings.loading')}</div>;
+    return (
+      <section className="settings-card settings-card-wide">
+        <div className="settings-block">
+          <div className="auth-loading">{t('settings.loading')}</div>
+        </div>
+      </section>
+    );
   }
 
-  const asrProviders: ProviderOpt[] =
-    ai?.asrProviders?.length
-      ? ai.asrProviders
-      : [
-          { id: 'mimo', name: 'MiMo ASR', description: '' },
-          { id: 'openai', name: 'OpenAI 兼容 ASR', description: '' },
-          { id: 'local-whisper', name: '本地 Whisper', description: '' },
-        ];
-  const ttsProviders: ProviderOpt[] =
-    ai?.ttsProviders?.length
-      ? ai.ttsProviders
-      : [
-          { id: 'mimo', name: 'MiMo TTS', description: '' },
-          { id: 'openai', name: 'OpenAI 兼容 TTS', description: '' },
-          { id: 'edge', name: 'Edge TTS', description: '' },
-        ];
+  const asrProviders: ProviderOpt[] = ai?.asrProviders?.length
+    ? ai.asrProviders
+    : [
+        { id: 'mimo', name: 'MiMo ASR', description: '' },
+        { id: 'openai', name: 'OpenAI 兼容 ASR', description: '' },
+        { id: 'local-whisper', name: '本地 Whisper', description: '' },
+      ];
+  const ttsProviders: ProviderOpt[] = ai?.ttsProviders?.length
+    ? ai.ttsProviders
+    : [
+        { id: 'mimo', name: 'MiMo TTS', description: '' },
+        { id: 'openai', name: 'OpenAI 兼容 TTS', description: '' },
+        { id: 'edge', name: 'Edge TTS', description: '' },
+      ];
 
   const inheritHint = t('settings.endpointInheritHint');
+  const keyPlaceholder = (set?: boolean) =>
+    set ? t('settings.apiKeyOverride') : inheritHint;
 
   return (
-    <div className="settings-stack ai-service-settings">
-      {/* 默认连接 */}
-      <section className="settings-card">
-        <header className="ai-service-card-head">
-          <h3 className="ai-service-card-title">{t('settings.svcDefaults')}</h3>
-          <p className="ai-service-card-desc">{t('settings.svcDefaultsDesc')}</p>
-        </header>
+    <div className="ai-service-settings">
+      <ServiceCard
+        title={t('settings.svcDefaults')}
+        desc={t('settings.svcDefaultsDesc')}
+      >
         <div className="settings-fields settings-fields-2">
           <label className="auth-field">
             <span>Base URL</span>
@@ -221,15 +253,13 @@ export function AiServiceSettings({
             ? `${t('settings.apiKeySet')} · ${ai.apiKeyHint}`
             : t('settings.apiKeyUnset')}
         </p>
-      </section>
+      </ServiceCard>
 
-      {/* LLM */}
-      <section className="settings-card">
-        <header className="ai-service-card-head">
-          <div className="ai-service-card-badge">LLM</div>
-          <h3 className="ai-service-card-title">{t('settings.svcLlm')}</h3>
-          <p className="ai-service-card-desc">{t('settings.svcLlmDesc')}</p>
-        </header>
+      <ServiceCard
+        badge="LLM"
+        title={t('settings.svcLlm')}
+        desc={t('settings.svcLlmDesc')}
+      >
         <div className="settings-fields settings-fields-2">
           <label className="auth-field">
             <span>{t('settings.svcEndpoint')}</span>
@@ -245,11 +275,7 @@ export function AiServiceSettings({
             <input
               value={llm.apiKey}
               onChange={(e) => setLlm((s) => ({ ...s, apiKey: e.target.value }))}
-              placeholder={
-                ai?.llm?.apiKeySet
-                  ? t('settings.apiKeyOverride')
-                  : inheritHint
-              }
+              placeholder={keyPlaceholder(ai?.llm?.apiKeySet)}
               autoComplete="off"
             />
           </label>
@@ -263,15 +289,13 @@ export function AiServiceSettings({
             />
           </label>
         </div>
-      </section>
+      </ServiceCard>
 
-      {/* ASR */}
-      <section className="settings-card">
-        <header className="ai-service-card-head">
-          <div className="ai-service-card-badge">ASR</div>
-          <h3 className="ai-service-card-title">{t('settings.svcAsr')}</h3>
-          <p className="ai-service-card-desc">{t('settings.svcAsrDesc')}</p>
-        </header>
+      <ServiceCard
+        badge="ASR"
+        title={t('settings.svcAsr')}
+        desc={t('settings.svcAsrDesc')}
+      >
         <div className="settings-fields settings-fields-2">
           <label className="auth-field">
             <span>{t('settings.asrProvider')}</span>
@@ -315,15 +339,16 @@ export function AiServiceSettings({
               }
               spellCheck={false}
             />
-            {asrProvider === 'local-whisper' && (
+            {asrProvider === 'local-whisper' ? (
               <datalist id="ai-svc-whisper-models">
                 {WHISPER_MODEL_OPTIONS.map((m) => (
                   <option key={m} value={m} />
                 ))}
               </datalist>
-            )}
+            ) : null}
           </label>
-          {asrProvider !== 'local-whisper' && (
+
+          {asrProvider !== 'local-whisper' ? (
             <>
               <label className="auth-field">
                 <span>{t('settings.svcEndpoint')}</span>
@@ -343,17 +368,12 @@ export function AiServiceSettings({
                   onChange={(e) =>
                     setAsr((s) => ({ ...s, apiKey: e.target.value }))
                   }
-                  placeholder={
-                    ai?.asr?.apiKeySet
-                      ? t('settings.apiKeyOverride')
-                      : inheritHint
-                  }
+                  placeholder={keyPlaceholder(ai?.asr?.apiKeySet)}
                   autoComplete="off"
                 />
               </label>
             </>
-          )}
-          {asrProvider === 'local-whisper' && (
+          ) : (
             <>
               <label className="auth-field auth-field-span2">
                 <span>{t('settings.whisperBin')}</span>
@@ -383,15 +403,13 @@ export function AiServiceSettings({
             </>
           )}
         </div>
-      </section>
+      </ServiceCard>
 
-      {/* TTS */}
-      <section className="settings-card">
-        <header className="ai-service-card-head">
-          <div className="ai-service-card-badge">TTS</div>
-          <h3 className="ai-service-card-title">{t('settings.svcTts')}</h3>
-          <p className="ai-service-card-desc">{t('settings.svcTtsDesc')}</p>
-        </header>
+      <ServiceCard
+        badge="TTS"
+        title={t('settings.svcTts')}
+        desc={t('settings.svcTtsDesc')}
+      >
         <div className="settings-fields settings-fields-2">
           <label className="auth-field">
             <span>{t('settings.ttsProvider')}</span>
@@ -403,9 +421,12 @@ export function AiServiceSettings({
                 const meta = ttsProviders.find((p) => p.id === id);
                 const suggested = meta?.suggestedModels?.tts;
                 if (suggested) setTts((s) => ({ ...s, model: suggested }));
-                else if (id === 'edge') setTts((s) => ({ ...s, model: 'edge-neural' }));
-                else if (id === 'openai') setTts((s) => ({ ...s, model: 'tts-1' }));
-                else if (id === 'mimo') setTts((s) => ({ ...s, model: 'mimo-v2.5-tts' }));
+                else if (id === 'edge')
+                  setTts((s) => ({ ...s, model: 'edge-neural' }));
+                else if (id === 'openai')
+                  setTts((s) => ({ ...s, model: 'tts-1' }));
+                else if (id === 'mimo')
+                  setTts((s) => ({ ...s, model: 'mimo-v2.5-tts' }));
                 const voice = meta?.suggestedModels?.defaultVoice;
                 if (voice) setDefaultVoice(voice);
                 else if (id === 'edge') setDefaultVoice('zh-CN-XiaoxiaoNeural');
@@ -432,7 +453,8 @@ export function AiServiceSettings({
               disabled={ttsProvider === 'edge'}
             />
           </label>
-          {ttsProvider !== 'edge' && (
+
+          {ttsProvider !== 'edge' ? (
             <>
               <label className="auth-field">
                 <span>{t('settings.svcEndpoint')}</span>
@@ -452,17 +474,14 @@ export function AiServiceSettings({
                   onChange={(e) =>
                     setTts((s) => ({ ...s, apiKey: e.target.value }))
                   }
-                  placeholder={
-                    ai?.tts?.apiKeySet
-                      ? t('settings.apiKeyOverride')
-                      : inheritHint
-                  }
+                  placeholder={keyPlaceholder(ai?.tts?.apiKeySet)}
                   autoComplete="off"
                 />
               </label>
             </>
-          )}
-          {ttsProvider === 'mimo' && (
+          ) : null}
+
+          {ttsProvider === 'mimo' ? (
             <label className="auth-field">
               <span>{t('settings.voiceDesignModel')}</span>
               <input
@@ -471,7 +490,8 @@ export function AiServiceSettings({
                 spellCheck={false}
               />
             </label>
-          )}
+          ) : null}
+
           <label className="auth-field">
             <span>
               {ttsProvider === 'edge'
@@ -498,21 +518,20 @@ export function AiServiceSettings({
               />
             )}
           </label>
-          {ttsProvider === 'edge' && (
+
+          {ttsProvider === 'edge' ? (
             <p className="settings-field-tip auth-field-span2">
               {t('settings.edgeHint')}
             </p>
-          )}
+          ) : null}
         </div>
-      </section>
+      </ServiceCard>
 
-      {/* Image */}
-      <section className="settings-card">
-        <header className="ai-service-card-head">
-          <div className="ai-service-card-badge">IMG</div>
-          <h3 className="ai-service-card-title">{t('settings.svcImage')}</h3>
-          <p className="ai-service-card-desc">{t('settings.svcImageDesc')}</p>
-        </header>
+      <ServiceCard
+        badge="IMG"
+        title={t('settings.svcImage')}
+        desc={t('settings.svcImageDesc')}
+      >
         <div className="settings-fields settings-fields-2">
           <label className="auth-field">
             <span>{t('settings.svcEndpoint')}</span>
@@ -532,11 +551,7 @@ export function AiServiceSettings({
               onChange={(e) =>
                 setImage((s) => ({ ...s, apiKey: e.target.value }))
               }
-              placeholder={
-                ai?.image?.apiKeySet
-                  ? t('settings.apiKeyOverride')
-                  : inheritHint
-              }
+              placeholder={keyPlaceholder(ai?.image?.apiKeySet)}
               autoComplete="off"
             />
           </label>
@@ -556,19 +571,21 @@ export function AiServiceSettings({
           {t('settings.imageHintPrefix')}
           <code>/images/generations</code> {t('settings.imageHintSuffix')}
         </p>
-      </section>
+      </ServiceCard>
 
-      <div className="settings-card-actions">
-        <span className="settings-card-hint">{t('settings.adminOnly')}</span>
-        <button
-          type="button"
-          className="nl-btn nl-btn-primary"
-          onClick={() => void onSave()}
-          disabled={saving}
-        >
-          {saving ? t('common.saving') : t('common.save')}
-        </button>
-      </div>
+      <section className="settings-card settings-card-wide">
+        <div className="settings-card-actions">
+          <span className="settings-card-hint">{t('settings.adminOnly')}</span>
+          <button
+            type="button"
+            className="nl-btn nl-btn-primary"
+            onClick={() => void onSave()}
+            disabled={saving}
+          >
+            {saving ? t('common.saving') : t('common.save')}
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

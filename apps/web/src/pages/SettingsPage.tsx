@@ -535,17 +535,20 @@ export function SettingsPage({ route }: { route: Route }) {
                           aria-label={t('settings.contentLanguageAria')}
                           onChange={setContentLocale}
                         />
-                        <div className="settings-card-actions" style={{ marginTop: 12 }}>
-                          <button
-                            type="button"
-                            className="nl-btn nl-btn-primary"
-                            onClick={() => void onSaveAiLocaleOnly()}
-                            disabled={savingAi}
-                          >
-                            {savingAi ? t('common.saving') : t('common.save')}
-                          </button>
-                        </div>
                       </SettingsBlock>
+                      <div className="settings-card-actions">
+                        <span className="settings-card-hint">
+                          {t('settings.adminOnly')}
+                        </span>
+                        <button
+                          type="button"
+                          className="nl-btn nl-btn-primary"
+                          onClick={() => void onSaveAiLocaleOnly()}
+                          disabled={savingAi}
+                        >
+                          {savingAi ? t('common.saving') : t('common.save')}
+                        </button>
+                      </div>
                     </SettingsCard>
 
                     <AiServiceSettings

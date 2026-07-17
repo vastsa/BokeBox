@@ -10656,34 +10656,71 @@ html[data-theme="dark"] .admin-chrome-tabs {
 }
 
 
-/* AI 服务分卡片设置 */
+/* AI 服务分卡片设置：复用 settings-card / settings-block 体系 */
 .ai-service-settings {
-  gap: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3_5);
+  width: 100%;
+  min-width: 0;
 }
-.ai-service-card-head {
-  margin-bottom: var(--space-3);
+.ai-service-settings > .settings-card {
+  width: 100%;
+  min-width: 0;
 }
-.ai-service-card-badge {
+.ai-service-settings .settings-block-head .ai-service-card-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.5rem;
+  width: fit-content;
+  margin: 0 0 var(--space-1_5);
+  padding: 0.12rem 0.55rem;
   border-radius: 999px;
-  font-size: var(--fs-xs);
+  font-size: 11px;
+  line-height: 1.4;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--brand);
   background: color-mix(in srgb, var(--brand) 12%, var(--surface));
-  margin-bottom: var(--space-1_5);
+  border: var(--bw-1) solid color-mix(in srgb, var(--brand) 22%, var(--separator));
 }
-.ai-service-card-title {
+.ai-service-settings .settings-fields {
+  width: 100%;
+  min-width: 0;
+}
+.ai-service-settings .settings-fields-2 {
+  align-items: start;
+}
+.ai-service-settings .auth-field {
+  min-width: 0;
+}
+.ai-service-settings .auth-field input,
+.ai-service-settings .auth-field select {
+  width: 100%;
+  max-width: 100%;
+}
+.ai-service-settings .auth-field input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.ai-service-settings .settings-field-tip {
   margin: 0;
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-bold);
-  color: var(--text);
-}
-.ai-service-card-desc {
-  margin: var(--space-1) 0 0;
   font-size: var(--fs-base);
+  line-height: var(--lh-normal);
   color: var(--text-3);
-  line-height: 1.5;
+}
+.ai-service-settings .settings-field-tip code {
+  font-size: 0.92em;
+  padding: 0.05em 0.35em;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.ai-service-settings > .settings-card:last-child > .settings-card-actions {
+  border-top: 0;
+  padding: var(--space-3_5) var(--space-4);
+}
+@media (max-width: 640px) {
+  .ai-service-settings .settings-fields-2 {
+    grid-template-columns: 1fr;
+  }
 }
