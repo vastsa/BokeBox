@@ -1287,13 +1287,13 @@ html[data-theme="dark"] .nl-empty {
   color: var(--brand-2);
   box-shadow: var(--shadow-sm);
 }
-.admin-asset {
-  border: var(--bw-1) solid var(--separator);
+.admin-asset-card {
+  border: 0;
   background: var(--surface-2);
   border-radius: var(--radius-md);
   padding: var(--space-3);
 }
-.admin-asset + .admin-asset { margin-top: var(--space-2_5); }
+.admin-asset-card + .admin-asset-card { margin-top: var(--space-2_5); }
 .tts-mode-grid {
   display: grid;
   gap: var(--space-2);
@@ -9635,27 +9635,26 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
   display: inline-flex;
   align-items: center;
   gap: var(--space-1_5);
-  min-height: 32px;
+  min-height: 30px;
   padding: 0 var(--space-2_5);
   border-radius: var(--radius-full);
-  border: var(--bw-1) solid var(--separator);
-  background: var(--surface);
+  border: 0;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
   color: var(--text-2);
   font-size: var(--fs-base);
   font-weight: var(--fw-semibold);
   cursor: pointer;
   transition:
     background var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease);
 }
 
 .admin-filter em {
   font-style: normal;
-  min-width: 1.25rem;
+  min-width: 1.15rem;
   padding: 0 6px;
   border-radius: var(--radius-full);
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
   color: var(--text-3);
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
@@ -9664,28 +9663,26 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
 
 .admin-filter:hover {
   color: var(--text);
-  border-color: var(--separator-strong);
+  background: color-mix(in srgb, var(--surface-3) 90%, transparent);
 }
 
 .admin-filter.is-active {
   color: var(--brand-2);
-  border-color: color-mix(in srgb, var(--brand) 28%, transparent);
   background: var(--brand-soft);
 }
 
 .admin-filter.is-active em {
-  background: color-mix(in srgb, var(--brand) 16%, transparent);
+  background: color-mix(in srgb, var(--brand) 14%, transparent);
   color: var(--brand-2);
 }
 
 .admin-filter.is-danger.is-active {
   color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 28%, transparent);
   background: var(--danger-soft);
 }
 
 .admin-filter.is-danger.is-active em {
-  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
   color: var(--danger);
 }
 
@@ -9921,20 +9918,20 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
 .admin-asset {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 0 var(--space-1_5);
+  min-height: 20px;
+  padding: 0 var(--space-1_75);
   border-radius: var(--radius-full);
-  border: var(--bw-1) solid var(--separator);
-  background: var(--surface);
+  border: 0;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
   color: var(--text-3);
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
+  letter-spacing: 0.01em;
 }
 
 .admin-asset.is-ok {
   color: var(--success);
-  border-color: color-mix(in srgb, var(--success) 22%, transparent);
-  background: color-mix(in srgb, var(--success-soft) 55%, var(--surface));
+  background: color-mix(in srgb, var(--success-soft) 72%, transparent);
 }
 
 .admin-job-tts {
@@ -9999,6 +9996,56 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
 
 .admin-console .jd-hero {
   margin-top: 0;
+}
+
+
+/* 制作台标签：去硬边框，统一软底胶囊 */
+.admin-console .nl-tag,
+.admin-job-card .nl-tag,
+.admin-job-badges .nl-tag {
+  border: 0 !important;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text-2);
+  padding: 2px 8px;
+  min-height: 20px;
+  line-height: 1.2;
+}
+
+.admin-console .nl-tag-success,
+.admin-job-card .nl-tag-success,
+.admin-job-badges .nl-tag-success {
+  background: color-mix(in srgb, var(--success-soft) 80%, transparent);
+  color: var(--success);
+}
+
+.admin-console .nl-tag-warning,
+.admin-job-card .nl-tag-warning,
+.admin-job-badges .nl-tag-warning {
+  background: color-mix(in srgb, var(--warning-soft) 80%, transparent);
+  color: var(--warning);
+}
+
+.admin-console .nl-tag-danger,
+.admin-job-card .nl-tag-danger,
+.admin-job-badges .nl-tag-danger {
+  background: color-mix(in srgb, var(--danger-soft) 80%, transparent);
+  color: var(--danger);
+}
+
+.admin-console .nl-tag-brand,
+.admin-job-card .nl-tag-brand,
+.admin-job-badges .nl-tag-brand {
+  background: color-mix(in srgb, var(--brand-soft) 90%, transparent);
+  color: var(--brand-2);
+}
+
+/* 任务详情页标签同款 */
+.admin-console .jd-tags span {
+  border: 0;
+  background: color-mix(in srgb, var(--text) 5.5%, transparent);
+  color: var(--text-2);
+  box-shadow: none;
 }
 
 html[data-theme="dark"] .admin-stat,
