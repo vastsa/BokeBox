@@ -678,11 +678,13 @@ html[data-theme="dark"] ::selection {
   color: var(--text);
 }
 
-/* layout */
+/* layout
+ * 顶部安全区由 sticky .topbar / .qq-top 自行 padding，
+ * page-shell 不再叠加 --safe-top，避免 QQ/微信内置浏览器顶部出现空白带。
+ */
 .page-shell {
   min-height: 100vh;
   min-height: 100dvh;
-  padding-top: var(--safe-top);
 }
 .page-container {
   width: min(var(--container-max), calc(100% - 2 * var(--page-x)));
