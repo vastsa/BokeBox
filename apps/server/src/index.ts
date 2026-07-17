@@ -58,15 +58,19 @@ async function main() {
       return reply.type('text/html; charset=utf-8').send(html);
     };
 
-    // 根路径直接吐带 SEO 的 index
+    // 根路径 / 与 /index.html 直接吐带 SEO 的 index
+    // 注意：@fastify/static 在 wildcard:false 时会为每个静态文件单独注册路由，
+    // 若再手动注册 /index.html 会触发 FST_ERR_DUPLICATED_ROUTE。
     app.get('/', async (_req, reply) => sendSeoIndex(reply));
     app.get('/index.html', async (_req, reply) => sendSeoIndex(reply));
 
     await app.register(fastifyStatic, {
       root: webDist,
       prefix: '/',
-      // 根路径已自定义
-      wildcard: false,
+      // 关闭目录 index，避免与自定义 / 冲突
+      index: false,
+      // 使用通配路由托管其余静态资源，避免预注册 /index.html
+      wildcard: true,
     });
     app.setNotFoundHandler(async (req, reply) => {
       if (req.url.startsWith('/api')) {
