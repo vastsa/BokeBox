@@ -153,6 +153,31 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 ---
 
+## 🔌 MCP（AI 直接调用）
+
+BokeBox 内置 **MCP（Model Context Protocol）** 端点，服务启动后会在后台 **自动生成长期 Token**。
+
+- 协议端点：`POST /mcp`（Bearer Token）
+- 安装配置：登录后 `GET /api/mcp/install`（或在 **设置 → MCP** 复制）
+- 常用工具：`create_podcast_from_url` / `create_podcast_from_text` / `list_jobs` / `get_job` …
+
+Cursor 示例配置：
+
+```json
+{
+  "mcpServers": {
+    "bokebox": {
+      "url": "http://localhost:8787/mcp",
+      "headers": {
+        "Authorization": "Bearer <在设置页复制的 Token>"
+      }
+    }
+  }
+}
+```
+
+可选环境变量 `PUBLIC_BASE_URL`：当经反向代理暴露时，用于生成正确的安装地址。
+
 ## 🚀 开始使用
 
 > 三步开箱。更细的部署与模型说明见下方「附录」。

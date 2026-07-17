@@ -3,10 +3,15 @@ import {
   changePassword,
   fetchAccessSettings,
   fetchAiSettings,
+  fetchMcpInstall,
+  fetchMcpStatus,
   fetchMe,
   logout,
+  regenerateMcpToken,
   saveAccessSettings,
   saveAiSettings,
+  type McpInstallBundle,
+  type McpStatus,
   type PublicAiConfig,
 } from '../api/client';
 import { GlobalAiPromptSettings } from '../components/admin/GlobalAiPromptSettings';
@@ -37,7 +42,7 @@ import {
   setCachedSeo,
 } from '../lib/seo';
 
-type SettingsTab = 'voice' | 'persona' | 'cover' | 'prompts' | 'ai' | 'site' | 'account';
+type SettingsTab = 'voice' | 'persona' | 'cover' | 'prompts' | 'ai' | 'mcp' | 'site' | 'account';
 
 function SettingsPanel({
   id,
@@ -139,6 +144,16 @@ export function SettingsPage({ route }: { route: Route }) {
   const [savingAccess, setSavingAccess] = useState(false);
   const [savingSite, setSavingSite] = useState(false);
 
+  const [mcpStatus, setMcpStatus] = useState<McpStatus | null>(null);
+  const [mcpInstall, setMcpInstall] = useState<McpInstallBundle | null>(null);
+  const [mcpLoading, setMcpLoading] = useState(false);
+  const [mcpBusy, setMcpBusy] = useState(false);
+  const [mcpShowToken, setMcpShowToken] = useState(false);
+  const [mcpBaseUrl, setMcpBaseUrl] = useState('');
+  const [mcpActiveClient, setMcpActiveClient] = useState<
+    'cursor' | 'claude' | 'codex'
+  >('cursor');
+
   const tabs = useMemo(
     () =>
       (
@@ -167,6 +182,11 @@ export function SettingsPage({ route }: { route: Route }) {
             id: 'ai' as const,
             label: t('settings.tabAi'),
             desc: t('settings.tabAiDesc'),
+          },
+          {
+            id: 'mcp' as const,
+            label: t('settings.tabMcp'),
+            desc: t('settings.tabMcpDesc'),
           },
           {
             id: 'site' as const,
@@ -216,10 +236,11 @@ export function SettingsPage({ route }: { route: Route }) {
     setLoading(true);
     setError(null);
     try {
-      const [me, aiCfg, access] = await Promise.all([
+      const [me, aiCfg, access, mcp] = await Promise.all([
         fetchMe(),
         fetchAiSettings(),
         fetchAccessSettings(),
+        fetchMcpStatus().catch(() => null),
       ]);
       setUsername(me.username);
       setGuestHomePublic(Boolean(access.guestHomePublic));
@@ -245,6 +266,29 @@ export function SettingsPage({ route }: { route: Route }) {
       setContentLocale(resolveContentLocale(aiCfg.contentLocale));
       setContentLocaleOptions(aiCfg.contentLocales || []);
       setApiKey('');
+      if (mcp) {
+        setMcpStatus(mcp);
+        setMcpBaseUrl(mcp.baseUrl || '');
+      }
+      // 安装配置含明文 token，单独拉取
+      try {
+        setMcpLoading(true);
+        const installRes = await fetchMcpInstall();
+        setMcpInstall(installRes.install);
+        setMcpStatus((prev) =>
+          prev
+            ? {
+                ...prev,
+                token: installRes.install.token,
+                endpoint: installRes.install.endpoint,
+              }
+            : prev,
+        );
+      } catch {
+        // ignore install load failure
+      } finally {
+        setMcpLoading(false);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -287,6 +331,74 @@ export function SettingsPage({ route }: { route: Route }) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSavingAi(false);
+    }
+  };
+
+
+  const copyText = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setMsg(t('settings.mcpCopied'));
+      setError(null);
+    } catch {
+      setError(t('settings.mcpCopyFailed'));
+    }
+  };
+
+  const loadMcpInstall = async (baseUrl?: string) => {
+    setMcpLoading(true);
+    setError(null);
+    try {
+      const res = await fetchMcpInstall(baseUrl);
+      setMcpInstall(res.install);
+      setMcpStatus((prev) => ({
+        enabled: true,
+        hasToken: true,
+        tokenHint: res.status.tokenHint || prev?.tokenHint || '',
+        createdAt: res.status.createdAt || prev?.createdAt,
+        updatedAt: res.status.updatedAt || prev?.updatedAt,
+        lastUsedAt: res.status.lastUsedAt || prev?.lastUsedAt,
+        username: res.status.username || prev?.username,
+        endpoint: res.install.endpoint,
+        baseUrl: baseUrl?.trim() || prev?.baseUrl || '',
+        tools: (res.tools || []).map((x) => ({
+          name: x.name,
+          description: x.description,
+        })),
+        token: res.install.token,
+      }));
+      setMsg(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setMcpLoading(false);
+    }
+  };
+
+  const onRegenerateMcp = async () => {
+    setMcpBusy(true);
+    setError(null);
+    try {
+      const res = await regenerateMcpToken();
+      setMcpInstall(res.install);
+      setMcpStatus({
+        enabled: true,
+        hasToken: true,
+        tokenHint: res.tokenHint,
+        createdAt: res.createdAt,
+        updatedAt: res.updatedAt,
+        lastUsedAt: res.lastUsedAt,
+        username: res.username,
+        endpoint: res.endpoint,
+        baseUrl: mcpBaseUrl || mcpStatus?.baseUrl || '',
+        tools: res.tools || mcpStatus?.tools || [],
+        token: res.token,
+      });
+      setMsg(t('settings.mcpRegenerated'));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setMcpBusy(false);
     }
   };
 
@@ -583,6 +695,249 @@ export function SettingsPage({ route }: { route: Route }) {
                           {savingAi ? t('common.saving') : t('common.save')}
                         </button>
                       </div>
+                    </SettingsCard>
+                  </div>
+                </SettingsPanel>
+
+
+                <SettingsPanel id="mcp" active={tab === 'mcp'}>
+                  <div className="settings-stack">
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.mcpTitle')}
+                        desc={t('settings.mcpDesc')}
+                      >
+                        <p className="settings-inline-hint">
+                          {t('settings.mcpAutoToken')}
+                        </p>
+                        {mcpLoading && !mcpInstall ? (
+                          <div className="auth-loading">
+                            {t('settings.mcpLoading')}
+                          </div>
+                        ) : (
+                          <div className="settings-fields">
+                            <label className="auth-field">
+                              <span>{t('settings.mcpEndpoint')}</span>
+                              <div className="settings-inline-row">
+                                <input
+                                  type="text"
+                                  readOnly
+                                  value={
+                                    mcpInstall?.endpoint ||
+                                    mcpStatus?.endpoint ||
+                                    ''
+                                  }
+                                  spellCheck={false}
+                                />
+                                <button
+                                  type="button"
+                                  className="nl-btn nl-btn-secondary"
+                                  onClick={() =>
+                                    void copyText(
+                                      mcpInstall?.endpoint ||
+                                        mcpStatus?.endpoint ||
+                                        '',
+                                    )
+                                  }
+                                >
+                                  {t('settings.mcpCopyEndpoint')}
+                                </button>
+                              </div>
+                            </label>
+                            <label className="auth-field">
+                              <span>{t('settings.mcpToken')}</span>
+                              <div className="settings-inline-row">
+                                <input
+                                  type={mcpShowToken ? 'text' : 'password'}
+                                  readOnly
+                                  value={
+                                    mcpInstall?.token ||
+                                    mcpStatus?.token ||
+                                    mcpStatus?.tokenHint ||
+                                    ''
+                                  }
+                                  spellCheck={false}
+                                />
+                                <button
+                                  type="button"
+                                  className="nl-btn nl-btn-ghost"
+                                  onClick={() => setMcpShowToken((v) => !v)}
+                                >
+                                  {mcpShowToken
+                                    ? t('settings.mcpHideToken')
+                                    : t('settings.mcpShowToken')}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="nl-btn nl-btn-secondary"
+                                  onClick={() =>
+                                    void copyText(
+                                      mcpInstall?.token ||
+                                        mcpStatus?.token ||
+                                        '',
+                                    )
+                                  }
+                                >
+                                  {t('settings.mcpCopyToken')}
+                                </button>
+                              </div>
+                              <em className="settings-field-meta">
+                                {t('settings.mcpTokenHint')}
+                              </em>
+                            </label>
+                            <div className="settings-meta-list is-inline">
+                              <div className="settings-meta-row">
+                                <dt>{t('settings.mcpLastUsed')}</dt>
+                                <dd>
+                                  {mcpStatus?.lastUsedAt ||
+                                    t('settings.mcpNeverUsed')}
+                                </dd>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </SettingsBlock>
+                      <div className="settings-card-actions">
+                        <span className="settings-card-hint">
+                          {mcpStatus?.tokenHint
+                            ? `hint: ${mcpStatus.tokenHint}`
+                            : ''}
+                        </span>
+                        <button
+                          type="button"
+                          className="nl-btn nl-btn-danger"
+                          onClick={() => void onRegenerateMcp()}
+                          disabled={mcpBusy}
+                        >
+                          {mcpBusy
+                            ? t('settings.mcpRegenerating')
+                            : t('settings.mcpRegenerate')}
+                        </button>
+                      </div>
+                    </SettingsCard>
+
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.mcpBaseUrl')}
+                        desc={t('settings.mcpBaseUrlDesc')}
+                      >
+                        <div className="settings-inline-row">
+                          <input
+                            type="url"
+                            value={mcpBaseUrl}
+                            onChange={(e) => setMcpBaseUrl(e.target.value)}
+                            placeholder={t('settings.mcpBaseUrlPlaceholder')}
+                            spellCheck={false}
+                          />
+                          <button
+                            type="button"
+                            className="nl-btn nl-btn-secondary"
+                            onClick={() => void loadMcpInstall(mcpBaseUrl)}
+                            disabled={mcpLoading}
+                          >
+                            {t('settings.mcpReloadInstall')}
+                          </button>
+                        </div>
+                      </SettingsBlock>
+                    </SettingsCard>
+
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.mcpHowTo')}
+                        desc={t('settings.mcpInstallDesc')}
+                      >
+                        <ol className="settings-steps">
+                          <li>{t('settings.mcpHowTo1')}</li>
+                          <li>{t('settings.mcpHowTo2')}</li>
+                          <li>{t('settings.mcpHowTo3')}</li>
+                        </ol>
+                      </SettingsBlock>
+                    </SettingsCard>
+
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.mcpInstallTitle')}
+                        desc={t('settings.mcpInstallDesc')}
+                      >
+                        <div className="settings-chip-row" role="tablist">
+                          {(
+                            [
+                              {
+                                id: 'cursor' as const,
+                                label: t('settings.mcpClientCursor'),
+                              },
+                              {
+                                id: 'claude' as const,
+                                label: t('settings.mcpClientClaude'),
+                              },
+                              {
+                                id: 'codex' as const,
+                                label: t('settings.mcpClientCodex'),
+                              },
+                            ] as const
+                          ).map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              role="tab"
+                              aria-selected={mcpActiveClient === item.id}
+                              className={[
+                                'settings-chip',
+                                mcpActiveClient === item.id ? 'is-active' : '',
+                              ].join(' ')}
+                              onClick={() => setMcpActiveClient(item.id)}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                        <pre className="settings-code-block">
+                          {mcpActiveClient === 'cursor'
+                            ? mcpInstall?.snippets.cursorJson || ''
+                            : mcpActiveClient === 'claude'
+                              ? mcpInstall?.snippets.claudeDesktopJson || ''
+                              : mcpInstall?.snippets.codexJson ||
+                                mcpInstall?.snippets.openclawJson ||
+                                ''}
+                        </pre>
+                      </SettingsBlock>
+                      <div className="settings-card-actions">
+                        <span className="settings-card-hint">
+                          {mcpInstall?.endpoint || ''}
+                        </span>
+                        <button
+                          type="button"
+                          className="nl-btn nl-btn-primary"
+                          onClick={() => {
+                            const snippet =
+                              mcpActiveClient === 'cursor'
+                                ? mcpInstall?.snippets.cursorJson
+                                : mcpActiveClient === 'claude'
+                                  ? mcpInstall?.snippets.claudeDesktopJson
+                                  : mcpInstall?.snippets.codexJson;
+                            if (snippet) void copyText(snippet);
+                          }}
+                          disabled={!mcpInstall}
+                        >
+                          {t('settings.mcpCopyConfig')}
+                        </button>
+                      </div>
+                    </SettingsCard>
+
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.mcpToolsTitle')}
+                        desc={t('settings.mcpToolsDesc')}
+                      >
+                        <ul className="settings-tool-list">
+                          {(mcpStatus?.tools || []).map((tool) => (
+                            <li key={tool.name}>
+                              <code>{tool.name}</code>
+                              <span>{tool.description}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </SettingsBlock>
                     </SettingsCard>
                   </div>
                 </SettingsPanel>

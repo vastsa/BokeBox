@@ -8,6 +8,11 @@ import { fileURLToPath } from 'node:url';
 import { jobRoutes } from './routes/jobs.js';
 import { listenRoutes } from './routes/listen.js';
 import { authRoutes, registerAuthGuard } from './routes/auth.js';
+import {
+  bootstrapMcpToken,
+  mcpManageRoutes,
+  mcpProtocolRoutes,
+} from './routes/mcp.js';
 import { JOBS_DIR, ROOT_DIR, SQLITE_DB } from './utils/paths.js';
 import { ensureDir, pathExists } from './utils/fs.js';
 import { hasApiKey, getBaseUrl, getChatModel } from './utils/aiConfig.js';
@@ -31,6 +36,8 @@ async function main() {
   initDatabase();
   // 旧版按类型摊开 → 按任务聚合
   await migrateStorageLayout();
+  // 后台自动签发 MCP Token（已初始化时）
+  bootstrapMcpToken();
 
   const app = Fastify({
     logger: true,
@@ -46,6 +53,9 @@ async function main() {
   registerAuthGuard(app);
   await app.register(jobRoutes, { prefix: '/api' });
   await app.register(listenRoutes, { prefix: '/api' });
+  await app.register(mcpManageRoutes, { prefix: '/api' });
+  // MCP 协议端点挂在根路径 /mcp，便于客户端直接安装
+  await app.register(mcpProtocolRoutes);
 
   const webDist = path.resolve(__dirname, '../../web/dist');
   if (await pathExists(webDist)) {
@@ -73,7 +83,7 @@ async function main() {
       wildcard: true,
     });
     app.setNotFoundHandler(async (req, reply) => {
-      if (req.url.startsWith('/api')) {
+      if (req.url.startsWith('/api') || req.url.split('?')[0] === '/mcp') {
         return reply.code(404).send({ error: 'Not Found' });
       }
       // SPA fallback：同样注入 SEO
@@ -84,6 +94,7 @@ async function main() {
   await app.listen({ port: PORT, host: HOST });
   app.log.info(`BokeBox listening on http://${HOST}:${PORT}`);
   app.log.info('Open source (LGPL-3.0): https://github.com/vastsa/BokeBox/');
+  app.log.info(`MCP endpoint: http://${HOST}:${PORT}/mcp`);
   app.log.info(`SQLite: ${SQLITE_DB}`);
   app.log.info(
     hasApiKey()

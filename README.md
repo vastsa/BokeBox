@@ -153,6 +153,31 @@ You get:
 
 ---
 
+## 🔌 MCP (AI-native control)
+
+BokeBox ships with a built-in **MCP (Model Context Protocol)** endpoint. After setup, the server **auto-issues a long-lived token**.
+
+- Protocol: `POST /mcp` (Bearer token)
+- Install payload: `GET /api/mcp/install` (login required), or **Settings → MCP**
+- Tools include: `create_podcast_from_url`, `create_podcast_from_text`, `list_jobs`, `get_job`, …
+
+Cursor example:
+
+```json
+{
+  "mcpServers": {
+    "bokebox": {
+      "url": "http://localhost:8787/mcp",
+      "headers": {
+        "Authorization": "Bearer <token from Settings → MCP>"
+      }
+    }
+  }
+}
+```
+
+Optional env `PUBLIC_BASE_URL` helps generate the correct install URL behind a reverse proxy.
+
 ## 🚀 Get started
 
 > Three steps to ship. Deeper deploy & model notes are in the appendix.

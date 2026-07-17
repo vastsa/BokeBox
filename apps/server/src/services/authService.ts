@@ -14,6 +14,7 @@ import {
   type AuthAccount,
   type SessionRecord,
 } from './settingsStore.js';
+import { ensureMcpToken } from './mcpTokenStore.js';
 import type { TtsOptions } from '../types/job.js';
 import { AppError, isContentLocale, isLocale } from '../i18n/index.js';
 
@@ -127,6 +128,8 @@ export function completeSetup(input: SetupInput): {
   };
   setAiConfig(aiPatch);
   markSetupCompleted();
+  // 初始化完成后自动签发 MCP Token，供 AI 安装/调用
+  ensureMcpToken();
 
   const session = createSession(username);
   return {
