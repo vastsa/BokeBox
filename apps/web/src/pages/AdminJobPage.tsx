@@ -712,12 +712,12 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               <div className="jd-assets">
                 <AssetRow
                   icon={<IconVideo size={14} />}
-                  label="{t('job.originalVideo')}"
+                  label={t('job.originalVideo')}
                   ready={Boolean(job.hasVideo)}
                 />
                 <AssetRow
                   icon={<IconWave size={14} />}
-                  label="{t('job.extractedAudio')}"
+                  label={t('job.extractedAudio')}
                   ready={Boolean(job.hasSourceAudio)}
                 />
                 <AssetRow
