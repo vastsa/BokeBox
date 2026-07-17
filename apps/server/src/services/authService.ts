@@ -49,6 +49,8 @@ export type SetupInput = {
   asrProvider?: string;
   ttsModel?: string;
   ttsProvider?: string;
+  whisperBin?: string;
+  whisperLang?: string;
   voiceDesignModel?: string;
   imageModel?: string;
   defaultVoice?: string;
@@ -90,10 +92,8 @@ export function completeSetup(input: SetupInput): {
   const passErr = validatePassword(input.password);
   if (passErr) throw new AppError(passErr, 400);
 
+  // API Key 可选：本地 Whisper + Edge TTS 可不配云端密钥（对话模型将走演示）
   const apiKey = (input.apiKey || '').trim();
-  if (!apiKey) {
-    throw new AppError('auth.apiKeyRequired', 400);
-  }
 
   const now = new Date().toISOString();
   const account: AuthAccount = {
@@ -120,6 +120,8 @@ export function completeSetup(input: SetupInput): {
     asrProvider: input.asrProvider,
     ttsModel: input.ttsModel,
     ttsProvider: input.ttsProvider,
+    whisperBin: input.whisperBin,
+    whisperLang: input.whisperLang,
     voiceDesignModel: input.voiceDesignModel,
     imageModel: input.imageModel,
     defaultVoice:

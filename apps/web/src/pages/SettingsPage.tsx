@@ -10,6 +10,7 @@ import {
   regenerateMcpToken,
   saveAccessSettings,
   saveAiSettings,
+  saveTtsSettings,
   type McpInstallBundle,
   type McpStatus,
   type PublicAiConfig,
@@ -37,6 +38,11 @@ import {
 import { AppShell } from '../layouts/AppShell';
 import { PROJECT_GITHUB_URL, PROJECT_LICENSE_SPDX } from '../lib/project';
 import { setCachedSiteName } from '../lib/site';
+import {
+  EDGE_VOICE_OPTIONS,
+  WHISPER_LANG_OPTIONS,
+  WHISPER_MODEL_OPTIONS,
+} from '../lib/providerOptions';
 import {
   buildPublicSiteSeo,
   setCachedSeo,
@@ -124,6 +130,8 @@ export function SettingsPage({ route }: { route: Route }) {
   const [asrProvider, setAsrProvider] = useState('mimo');
   const [ttsModel, setTtsModel] = useState('');
   const [ttsProvider, setTtsProvider] = useState('mimo');
+  const [whisperBin, setWhisperBin] = useState('');
+  const [whisperLang, setWhisperLang] = useState('');
   const [voiceDesignModel, setVoiceDesignModel] = useState('');
   const [imageModel, setImageModel] = useState('');
   const [defaultVoice, setDefaultVoice] = useState('');
@@ -264,6 +272,8 @@ export function SettingsPage({ route }: { route: Route }) {
       setAsrProvider(aiCfg.asrProvider || 'mimo');
       setTtsModel(aiCfg.ttsModel);
       setTtsProvider(aiCfg.ttsProvider || 'mimo');
+      setWhisperBin(aiCfg.whisperBin || '');
+      setWhisperLang(aiCfg.whisperLang || '');
       setVoiceDesignModel(aiCfg.voiceDesignModel);
       setImageModel(aiCfg.imageModel || '');
       setDefaultVoice(aiCfg.defaultVoice);
@@ -322,6 +332,8 @@ export function SettingsPage({ route }: { route: Route }) {
         asrProvider: asrProvider.trim() || 'mimo',
         ttsModel: ttsModel.trim(),
         ttsProvider: ttsProvider.trim() || 'mimo',
+        whisperBin: whisperBin.trim(),
+        whisperLang: whisperLang.trim(),
         voiceDesignModel: voiceDesignModel.trim(),
         imageModel: imageModel.trim(),
         defaultVoice: defaultVoice.trim(),
@@ -332,6 +344,18 @@ export function SettingsPage({ route }: { route: Route }) {
       setContentLocale(resolveContentLocale(next.contentLocale));
       if (next.contentLocales) setContentLocaleOptions(next.contentLocales);
       setApiKey('');
+      // 同步默认音色到全局口播音色（Edge / OpenAI / MiMo 共用）
+      try {
+        const voice = defaultVoice.trim();
+        if (voice) {
+          await saveTtsSettings({
+            mode: 'default',
+            voice,
+          });
+        }
+      } catch {
+        // ignore
+      }
       setMsg(t('settings.aiSaved'));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -706,9 +730,55 @@ export function SettingsPage({ route }: { route: Route }) {
                             <input
                               value={asrModel}
                               onChange={(e) => setAsrModel(e.target.value)}
+                              list={
+                                asrProvider === 'local-whisper'
+                                  ? 'whisper-model-options'
+                                  : undefined
+                              }
+                              placeholder={
+                                asrProvider === 'local-whisper'
+                                  ? 'base / small / ggml 模型路径'
+                                  : undefined
+                              }
                               spellCheck={false}
                             />
+                            {asrProvider === 'local-whisper' && (
+                              <datalist id="whisper-model-options">
+                                {WHISPER_MODEL_OPTIONS.map((m) => (
+                                  <option key={m} value={m} />
+                                ))}
+                              </datalist>
+                            )}
                           </label>
+                          {asrProvider === 'local-whisper' && (
+                            <>
+                              <label className="auth-field auth-field-span2">
+                                <span>{t('settings.whisperBin')}</span>
+                                <input
+                                  value={whisperBin}
+                                  onChange={(e) => setWhisperBin(e.target.value)}
+                                  placeholder={t('settings.whisperBinPlaceholder')}
+                                  spellCheck={false}
+                                />
+                              </label>
+                              <label className="auth-field">
+                                <span>{t('settings.whisperLang')}</span>
+                                <select
+                                  value={whisperLang}
+                                  onChange={(e) => setWhisperLang(e.target.value)}
+                                >
+                                  {WHISPER_LANG_OPTIONS.map((opt) => (
+                                    <option key={opt.id || 'auto'} value={opt.id}>
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <p className="settings-field-tip auth-field-span2">
+                                {t('settings.whisperHint')}
+                              </p>
+                            </>
+                          )}
                           <label className="auth-field">
                             <span>{t('settings.ttsModel')}</span>
                             <input
@@ -737,14 +807,40 @@ export function SettingsPage({ route }: { route: Route }) {
                             />
                           </label>
                           <label className="auth-field">
-                            <span>{t('settings.defaultVoiceId')}</span>
-                            <input
-                              value={defaultVoice}
-                              onChange={(e) => setDefaultVoice(e.target.value)}
-                              placeholder={t('settings.defaultVoicePlaceholder')}
-                              spellCheck={false}
-                            />
+                            <span>
+                              {ttsProvider === 'edge'
+                                ? t('settings.edgeVoice')
+                                : t('settings.defaultVoiceId')}
+                            </span>
+                            {ttsProvider === 'edge' ? (
+                              <select
+                                value={defaultVoice}
+                                onChange={(e) => setDefaultVoice(e.target.value)}
+                              >
+                                {EDGE_VOICE_OPTIONS.map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.name} · {v.language}
+                                  </option>
+                                ))}
+                                {!EDGE_VOICE_OPTIONS.some((v) => v.id === defaultVoice) &&
+                                defaultVoice ? (
+                                  <option value={defaultVoice}>{defaultVoice}</option>
+                                ) : null}
+                              </select>
+                            ) : (
+                              <input
+                                value={defaultVoice}
+                                onChange={(e) => setDefaultVoice(e.target.value)}
+                                placeholder={t('settings.defaultVoicePlaceholder')}
+                                spellCheck={false}
+                              />
+                            )}
                           </label>
+                          {ttsProvider === 'edge' && (
+                            <p className="settings-field-tip auth-field-span2">
+                              {t('settings.edgeHint')}
+                            </p>
+                          )}
                         </div>
                         <p className="settings-field-tip">
                           {t('settings.imageHintPrefix')}

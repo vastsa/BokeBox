@@ -142,6 +142,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       asrProvider?: string;
       ttsModel?: string;
       ttsProvider?: string;
+      whisperBin?: string;
+      whisperLang?: string;
       voiceDesignModel?: string;
       imageModel?: string;
       defaultVoice?: string;
@@ -167,6 +169,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         asrProvider: body.asrProvider,
         ttsModel: body.ttsModel,
         ttsProvider: body.ttsProvider,
+        whisperBin: body.whisperBin,
+        whisperLang: body.whisperLang,
         voiceDesignModel: body.voiceDesignModel,
         imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,
@@ -273,6 +277,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         asrProvider: body.asrProvider,
         ttsModel: body.ttsModel,
         ttsProvider: body.ttsProvider,
+        whisperBin: body.whisperBin,
+        whisperLang: body.whisperLang,
         voiceDesignModel: body.voiceDesignModel,
         imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,

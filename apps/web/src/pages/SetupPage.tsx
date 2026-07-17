@@ -19,6 +19,11 @@ import {
   type Locale,
 } from '../i18n';
 import type { TtsOptions } from '../types/job';
+import {
+  EDGE_VOICE_OPTIONS,
+  WHISPER_LANG_OPTIONS,
+  WHISPER_MODEL_OPTIONS,
+} from '../lib/providerOptions';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -29,6 +34,8 @@ const DEFAULTS = {
   asrProvider: 'mimo',
   ttsModel: 'mimo-v2.5-tts',
   ttsProvider: 'mimo',
+  whisperBin: '',
+  whisperLang: '',
   voiceDesignModel: 'mimo-v2.5-tts-voicedesign',
   imageModel: '',
   defaultVoice: '冰糖',
@@ -52,6 +59,8 @@ export function SetupPage() {
   const [asrProvider, setAsrProvider] = useState(DEFAULTS.asrProvider);
   const [ttsModel, setTtsModel] = useState(DEFAULTS.ttsModel);
   const [ttsProvider, setTtsProvider] = useState(DEFAULTS.ttsProvider);
+  const [whisperBin, setWhisperBin] = useState(DEFAULTS.whisperBin);
+  const [whisperLang, setWhisperLang] = useState(DEFAULTS.whisperLang);
   const [voiceDesignModel, setVoiceDesignModel] = useState(
     DEFAULTS.voiceDesignModel,
   );
@@ -78,6 +87,8 @@ export function SetupPage() {
           setAsrProvider(s.asrProvider || DEFAULTS.asrProvider);
           setTtsModel(s.ttsModel || DEFAULTS.ttsModel);
           setTtsProvider(s.ttsProvider || DEFAULTS.ttsProvider);
+          setWhisperBin(s.whisperBin || DEFAULTS.whisperBin);
+          setWhisperLang(s.whisperLang || DEFAULTS.whisperLang);
           setVoiceDesignModel(s.voiceDesignModel || DEFAULTS.voiceDesignModel);
           setImageModel(s.imageModel || DEFAULTS.imageModel);
           const voice = s.defaultVoice || DEFAULTS.defaultVoice;
@@ -128,10 +139,7 @@ export function SetupPage() {
       return;
     }
     if (step === 2) {
-      if (!apiKey.trim()) {
-        setError(t('setup.errApiKey'));
-        return;
-      }
+      // API Key 可选：本地 Whisper + Edge 可不填；云端对话/封面仍建议配置
       if (!baseUrl.trim()) {
         setError(t('setup.errBaseUrl'));
         return;
@@ -172,6 +180,8 @@ export function SetupPage() {
         asrProvider: asrProvider.trim() || 'mimo',
         ttsModel: ttsModel.trim(),
         ttsProvider: ttsProvider.trim() || 'mimo',
+        whisperBin: whisperBin.trim(),
+        whisperLang: whisperLang.trim(),
         voiceDesignModel: voiceDesignModel.trim(),
         imageModel: imageModel.trim(),
         defaultVoice,
@@ -299,7 +309,7 @@ export function SetupPage() {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 autoComplete="off"
-                placeholder="sk-..."
+                placeholder={t('setup.apiKeyOptionalPlaceholder')}
               />
             </label>
             <label className="auth-field">
@@ -313,7 +323,7 @@ export function SetupPage() {
             </label>
             <div className="auth-tip">
               <IconSpark size={14} />
-              <span>{t('setup.apiKeyHint')}</span>
+              <span>{t('setup.apiKeyOptionalHint')}</span>
             </div>
           </div>
         )}
@@ -390,8 +400,25 @@ export function SetupPage() {
                 <input
                   value={asrModel}
                   onChange={(e) => setAsrModel(e.target.value)}
+                  list={
+                    asrProvider === 'local-whisper'
+                      ? 'setup-whisper-model-options'
+                      : undefined
+                  }
+                  placeholder={
+                    asrProvider === 'local-whisper'
+                      ? 'base / small / ggml 模型路径'
+                      : undefined
+                  }
                   spellCheck={false}
                 />
+                {asrProvider === 'local-whisper' && (
+                  <datalist id="setup-whisper-model-options">
+                    {WHISPER_MODEL_OPTIONS.map((m) => (
+                      <option key={m} value={m} />
+                    ))}
+                  </datalist>
+                )}
               </label>
               <label className="auth-field">
                 <span>{t('setup.ttsModel')}</span>
@@ -401,6 +428,61 @@ export function SetupPage() {
                   spellCheck={false}
                 />
               </label>
+              {asrProvider === 'local-whisper' && (
+                <>
+                  <label className="auth-field">
+                    <span>{t('setup.whisperBin')}</span>
+                    <input
+                      value={whisperBin}
+                      onChange={(e) => setWhisperBin(e.target.value)}
+                      placeholder={t('setup.whisperBinPlaceholder')}
+                      spellCheck={false}
+                    />
+                  </label>
+                  <label className="auth-field">
+                    <span>{t('setup.whisperLang')}</span>
+                    <select
+                      value={whisperLang}
+                      onChange={(e) => setWhisperLang(e.target.value)}
+                    >
+                      {WHISPER_LANG_OPTIONS.map((opt) => (
+                        <option key={opt.id || 'auto'} value={opt.id}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="auth-tip auth-field-span2">
+                    <span>{t('setup.whisperHint')}</span>
+                  </div>
+                </>
+              )}
+              {ttsProvider === 'edge' && (
+                <>
+                  <label className="auth-field">
+                    <span>{t('setup.edgeVoice')}</span>
+                    <select
+                      value={String(tts.voice || 'zh-CN-XiaoxiaoNeural')}
+                      onChange={(e) =>
+                        setTts((prev) => ({
+                          ...prev,
+                          mode: 'default',
+                          voice: e.target.value,
+                        }))
+                      }
+                    >
+                      {EDGE_VOICE_OPTIONS.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name} · {v.language}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="auth-tip auth-field-span2">
+                    <span>{t('setup.edgeHint')}</span>
+                  </div>
+                </>
+              )}
               <label className="auth-field">
                 <span>{t('setup.voiceDesignModel')}</span>
                 <input

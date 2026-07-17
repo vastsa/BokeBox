@@ -30,9 +30,19 @@ export function getAsrProviderId(): string {
   return (getAiConfig().asrProvider || 'mimo').trim() || 'mimo';
 }
 
-/** TTS 提供方 id：mimo | openai | 自定义注册 */
+/** TTS 提供方 id：mimo | openai | edge | 自定义注册 */
 export function getTtsProviderId(): string {
   return (getAiConfig().ttsProvider || 'mimo').trim() || 'mimo';
+}
+
+/** 本地 Whisper 可执行文件；空表示自动 PATH 探测 */
+export function getWhisperBin(): string {
+  return (getAiConfig().whisperBin || '').trim();
+}
+
+/** 本地 Whisper 语言提示；空表示自动检测 */
+export function getWhisperLang(): string {
+  return (getAiConfig().whisperLang || '').trim();
 }
 
 export function getVoiceDesignModel(): string {

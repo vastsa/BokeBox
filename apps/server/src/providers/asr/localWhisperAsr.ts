@@ -3,7 +3,7 @@ import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { getAsrModel } from '../../utils/aiConfig.js';
+import { getAsrModel, getWhisperBin, getWhisperLang } from '../../utils/aiConfig.js';
 import { ensureDir, pathExists, removeDirIfExists, removeIfExists } from '../../utils/fs.js';
 import type { AsrProvider, AsrTranscribeInput, AsrTranscribeResult } from './types.js';
 
@@ -14,8 +14,10 @@ interface ResolvedWhisper {
   flavor: WhisperFlavor;
 }
 
-function envBin(): string {
+/** 优先设置页配置，其次环境变量（兼容） */
+function configuredBin(): string {
   return (
+    getWhisperBin() ||
     process.env.BOKEBOX_WHISPER_BIN ||
     process.env.WHISPER_BIN ||
     process.env.WHISPER_CPP_BIN ||
@@ -23,8 +25,13 @@ function envBin(): string {
   ).trim();
 }
 
-function envLang(inputLang?: string): string | undefined {
-  const lang = (inputLang || process.env.BOKEBOX_WHISPER_LANG || '').trim();
+function configuredLang(inputLang?: string): string | undefined {
+  const lang = (
+    inputLang ||
+    getWhisperLang() ||
+    process.env.BOKEBOX_WHISPER_LANG ||
+    ''
+  ).trim();
   return lang || undefined;
 }
 
@@ -79,7 +86,7 @@ function detectFlavor(bin: string): WhisperFlavor {
 
 /** 解析本地 Whisper 可执行文件 */
 export async function resolveWhisperBinary(): Promise<ResolvedWhisper | null> {
-  const configured = envBin();
+  const configured = configuredBin();
   if (configured) {
     if (await commandExists(configured)) {
       return { bin: configured, flavor: detectFlavor(configured) };
@@ -245,7 +252,8 @@ function installHint(): string {
     '安装任选其一后重试：',
     '  1) pip install -U openai-whisper   # 命令：whisper',
     '  2) 安装 whisper.cpp 并保证 whisper-cli 在 PATH',
-    '也可设置环境变量 BOKEBOX_WHISPER_BIN=/path/to/binary',
+    '请在「设置 → 模型参数」填写 Whisper 可执行文件路径，',
+    '或保证 whisper / whisper-cli 在系统 PATH 中。',
     '模型名写在「转写模型」：openai-whisper 用 tiny/base/small/medium/large；',
     'whisper.cpp 建议填 ggml 模型文件绝对路径。',
   ].join('\n');
@@ -265,7 +273,7 @@ export const localWhisperAsrProvider: AsrProvider = {
   strictAvailability: true,
   isAvailable() {
     // 配置了绝对路径则检查文件存在；否则保持可选（转写时再解析 PATH）
-    const configured = envBin();
+    const configured = configuredBin();
     if (configured) {
       return fsSync.existsSync(configured);
     }
@@ -278,7 +286,7 @@ export const localWhisperAsrProvider: AsrProvider = {
     }
 
     const model = (input.model?.trim() || getAsrModel() || 'base').trim();
-    const language = envLang(input.language);
+    const language = configuredLang(input.language);
     await ensureDir(path.dirname(input.audioPath));
 
     let text: string;

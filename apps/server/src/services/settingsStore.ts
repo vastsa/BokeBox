@@ -39,14 +39,22 @@ export type AiConfig = {
   /** 内容生成与 AI 提示词默认语言 */
   contentLocale: Locale;
   /**
-   * ASR 提供方：mimo | openai | 自定义 registerAsrProvider 注册 id
+   * ASR 提供方：mimo | openai | local-whisper | 自定义 registerAsrProvider 注册 id
    * 热切换：保存后下一请求立即生效
    */
   asrProvider: string;
   /**
-   * TTS 提供方：mimo | openai | 自定义 registerTtsProvider 注册 id
+   * TTS 提供方：mimo | openai | edge | 自定义 registerTtsProvider 注册 id
    */
   ttsProvider: string;
+  /**
+   * 本地 Whisper 可执行文件路径；空则自动在 PATH 查找 whisper / whisper-cli
+   */
+  whisperBin: string;
+  /**
+   * 本地 Whisper 语言提示，如 zh / en；空则自动检测
+   */
+  whisperLang: string;
 };
 
 export type PublicAiConfig = {
@@ -70,6 +78,10 @@ export type PublicAiConfig = {
   asrProvider: string;
   /** TTS 提供方 id */
   ttsProvider: string;
+  /** 本地 Whisper 可执行文件路径 */
+  whisperBin: string;
+  /** 本地 Whisper 语言提示 */
+  whisperLang: string;
   /** 可选 ASR 提供方清单 */
   asrProviders?: Array<{
     id: string;
@@ -107,6 +119,8 @@ const DEFAULT_AI: AiConfig = {
   contentLocale: 'zh-CN',
   asrProvider: 'mimo',
   ttsProvider: 'mimo',
+  whisperBin: '',
+  whisperLang: '',
 };
 
 function getSettingRaw(key: string): string | null {
@@ -430,6 +444,19 @@ export function getAiConfig(): AiConfig {
       stored?.ttsProvider?.trim() ||
       process.env.BOKEBOX_TTS_PROVIDER ||
       DEFAULT_AI.ttsProvider,
+    whisperBin:
+      (stored?.whisperBin !== undefined
+        ? String(stored.whisperBin || '').trim()
+        : '') ||
+      process.env.BOKEBOX_WHISPER_BIN?.trim() ||
+      process.env.WHISPER_BIN?.trim() ||
+      DEFAULT_AI.whisperBin,
+    whisperLang:
+      (stored?.whisperLang !== undefined
+        ? String(stored.whisperLang || '').trim()
+        : '') ||
+      process.env.BOKEBOX_WHISPER_LANG?.trim() ||
+      DEFAULT_AI.whisperLang,
     voiceDesignModel:
       stored?.voiceDesignModel?.trim() ||
       process.env.OPENAI_TTS_VOICEDESIGN_MODEL ||
@@ -486,6 +513,15 @@ export function setAiConfig(patch: Partial<AiConfig>): AiConfig {
       patch.ttsProvider !== undefined
         ? String(patch.ttsProvider).trim() || current.ttsProvider
         : current.ttsProvider,
+    // 允许显式空字符串：表示自动探测 PATH
+    whisperBin:
+      patch.whisperBin !== undefined
+        ? String(patch.whisperBin).trim()
+        : current.whisperBin,
+    whisperLang:
+      patch.whisperLang !== undefined
+        ? String(patch.whisperLang).trim()
+        : current.whisperLang,
     voiceDesignModel:
       patch.voiceDesignModel !== undefined
         ? String(patch.voiceDesignModel).trim() || current.voiceDesignModel
@@ -536,6 +572,8 @@ export function toPublicAiConfig(cfg?: AiConfig): PublicAiConfig {
     uiLocales: listLocaleMeta({ ui: true }),
     asrProvider: c.asrProvider || DEFAULT_AI.asrProvider,
     ttsProvider: c.ttsProvider || DEFAULT_AI.ttsProvider,
+    whisperBin: c.whisperBin || '',
+    whisperLang: c.whisperLang || '',
   };
 }
 
@@ -575,6 +613,8 @@ export function getDefaultAiConfigForSetup(): PublicAiConfig & {
       contentLocale: c.contentLocale || DEFAULT_AI.contentLocale,
       asrProvider: c.asrProvider || DEFAULT_AI.asrProvider,
       ttsProvider: c.ttsProvider || DEFAULT_AI.ttsProvider,
+      whisperBin: c.whisperBin || DEFAULT_AI.whisperBin,
+      whisperLang: c.whisperLang || DEFAULT_AI.whisperLang,
     },
   };
 }
