@@ -34,13 +34,11 @@ import {
   extractReadableText,
   isValidHttpUrl,
 } from '../services/urlImporter.js';
+import { getActiveTtsUiMeta } from '../services/ttsSynthesizer.js';
 import {
-  AUDIO_TAG_EXAMPLES,
-  PRESET_VOICES,
-  resolvePresetVoice,
-  SPEECH_STYLE_TAG_PRESETS,
-  TTS_MODE_META,
-} from '../services/ttsSynthesizer.js';
+  listAsrProviderDescriptors,
+  listTtsProviderDescriptors,
+} from '../providers/index.js';
 import type {
   Job,
   PipelineFromStep,
@@ -64,11 +62,13 @@ import {
 import { deleteListenRecord } from '../services/listenStore.js';
 import {
   getAsrModel,
+  getAsrProviderId,
   getBaseUrl,
   getChatModel,
   getDefaultTtsVoice,
   getImageModel,
   getTtsModel,
+  getTtsProviderId,
   getVoiceDesignModel,
   hasApiKey,
 } from '../utils/aiConfig.js';
@@ -318,24 +318,39 @@ async function sendMedia(
 }
 
 export async function jobRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/health', async () => ({
-    ok: true,
-    demoMode: !hasApiKey(),
-    baseUrl: getBaseUrl(),
-    models: {
-      chat: getChatModel(),
-      asr: getAsrModel(),
-      tts: getTtsModel(),
-      voiceDesign: getVoiceDesignModel(),
-      image: getImageModel() || undefined,
-    },
-    ttsModes: TTS_MODE_META,
-    presetVoices: PRESET_VOICES,
-    defaultVoice: getDefaultTtsVoice(),
-    speechStyleTags: SPEECH_STYLE_TAG_PRESETS,
-    audioTagExamples: AUDIO_TAG_EXAMPLES,
-    time: new Date().toISOString(),
-  }));
+  app.get('/health', async () => {
+    const ttsUi = getActiveTtsUiMeta();
+    return {
+      ok: true,
+      demoMode: !hasApiKey(),
+      baseUrl: getBaseUrl(),
+      models: {
+        chat: getChatModel(),
+        asr: getAsrModel(),
+        tts: getTtsModel(),
+        voiceDesign: getVoiceDesignModel(),
+        image: getImageModel() || undefined,
+      },
+      providers: {
+        asr: getAsrProviderId(),
+        tts: getTtsProviderId(),
+        asrList: listAsrProviderDescriptors().filter((p) => p.id !== 'demo'),
+        ttsList: listTtsProviderDescriptors().filter((p) => p.id !== 'demo'),
+      },
+      ttsModes: ttsUi.ttsModes,
+      presetVoices: ttsUi.presetVoices,
+      defaultVoice: getDefaultTtsVoice(),
+      speechStyleTags: ttsUi.speechStyleTags,
+      audioTagExamples: ttsUi.audioTagExamples,
+      ttsCapabilities: {
+        providerId: ttsUi.providerId,
+        providerName: ttsUi.providerName,
+        supportsStyleTags: ttsUi.supportsStyleTags,
+        supportsVoiceDesign: ttsUi.supportsVoiceDesign,
+      },
+      time: new Date().toISOString(),
+    };
+  });
 
 
   // ── 全局口播提示词设置 ──

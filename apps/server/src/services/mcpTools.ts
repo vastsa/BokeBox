@@ -30,11 +30,13 @@ import { ensureDir, removeDirIfExists } from '../utils/fs.js';
 import { deleteListenRecord } from './listenStore.js';
 import {
   getAsrModel,
+  getAsrProviderId,
   getBaseUrl,
   getChatModel,
   getDefaultTtsVoice,
   getImageModel,
   getTtsModel,
+  getTtsProviderId,
   getVoiceDesignModel,
   hasApiKey,
 } from '../utils/aiConfig.js';
@@ -538,6 +540,10 @@ function toolHealth() {
       tts: getTtsModel(),
       voiceDesign: getVoiceDesignModel(),
       image: getImageModel() || undefined,
+    },
+    providers: {
+      asr: getAsrProviderId(),
+      tts: getTtsProviderId(),
     },
     defaultVoice: getDefaultTtsVoice(),
     contentLocale: getContentLocale(),

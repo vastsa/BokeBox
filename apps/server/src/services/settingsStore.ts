@@ -38,6 +38,15 @@ export type AiConfig = {
   defaultVoice: string;
   /** 内容生成与 AI 提示词默认语言 */
   contentLocale: Locale;
+  /**
+   * ASR 提供方：mimo | openai | 自定义 registerAsrProvider 注册 id
+   * 热切换：保存后下一请求立即生效
+   */
+  asrProvider: string;
+  /**
+   * TTS 提供方：mimo | openai | 自定义 registerTtsProvider 注册 id
+   */
+  ttsProvider: string;
 };
 
 export type PublicAiConfig = {
@@ -57,6 +66,26 @@ export type PublicAiConfig = {
   contentLocales: LocaleMeta[];
   /** 可选界面语言 */
   uiLocales: LocaleMeta[];
+  /** ASR 提供方 id */
+  asrProvider: string;
+  /** TTS 提供方 id */
+  ttsProvider: string;
+  /** 可选 ASR 提供方清单 */
+  asrProviders?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    available: boolean;
+    suggestedModels?: Record<string, string>;
+  }>;
+  /** 可选 TTS 提供方清单 */
+  ttsProviders?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    available: boolean;
+    suggestedModels?: Record<string, string>;
+  }>;
 };
 
 export type SessionRecord = {
@@ -76,6 +105,8 @@ const DEFAULT_AI: AiConfig = {
   imageModel: '',
   defaultVoice: '冰糖',
   contentLocale: 'zh-CN',
+  asrProvider: 'mimo',
+  ttsProvider: 'mimo',
 };
 
 function getSettingRaw(key: string): string | null {
@@ -391,6 +422,14 @@ export function getAiConfig(): AiConfig {
       stored?.ttsModel?.trim() ||
       process.env.OPENAI_TTS_MODEL ||
       DEFAULT_AI.ttsModel,
+    asrProvider:
+      stored?.asrProvider?.trim() ||
+      process.env.BOKEBOX_ASR_PROVIDER ||
+      DEFAULT_AI.asrProvider,
+    ttsProvider:
+      stored?.ttsProvider?.trim() ||
+      process.env.BOKEBOX_TTS_PROVIDER ||
+      DEFAULT_AI.ttsProvider,
     voiceDesignModel:
       stored?.voiceDesignModel?.trim() ||
       process.env.OPENAI_TTS_VOICEDESIGN_MODEL ||
@@ -439,6 +478,14 @@ export function setAiConfig(patch: Partial<AiConfig>): AiConfig {
       patch.ttsModel !== undefined
         ? String(patch.ttsModel).trim() || current.ttsModel
         : current.ttsModel,
+    asrProvider:
+      patch.asrProvider !== undefined
+        ? String(patch.asrProvider).trim() || current.asrProvider
+        : current.asrProvider,
+    ttsProvider:
+      patch.ttsProvider !== undefined
+        ? String(patch.ttsProvider).trim() || current.ttsProvider
+        : current.ttsProvider,
     voiceDesignModel:
       patch.voiceDesignModel !== undefined
         ? String(patch.voiceDesignModel).trim() || current.voiceDesignModel
@@ -487,6 +534,26 @@ export function toPublicAiConfig(cfg?: AiConfig): PublicAiConfig {
     contentLocale: c.contentLocale || 'zh-CN',
     contentLocales: listLocaleMeta({ content: true }),
     uiLocales: listLocaleMeta({ ui: true }),
+    asrProvider: c.asrProvider || DEFAULT_AI.asrProvider,
+    ttsProvider: c.ttsProvider || DEFAULT_AI.ttsProvider,
+  };
+}
+
+/**
+ * 附加 Provider 清单。由路由层调用，避免 settingsStore ↔ providers 循环依赖。
+ */
+export function withProviderCatalog(
+  ai: PublicAiConfig,
+  catalog?: {
+    asrProviders?: PublicAiConfig['asrProviders'];
+    ttsProviders?: PublicAiConfig['ttsProviders'];
+  },
+): PublicAiConfig {
+  if (!catalog) return ai;
+  return {
+    ...ai,
+    asrProviders: catalog.asrProviders,
+    ttsProviders: catalog.ttsProviders,
   };
 }
 
@@ -506,6 +573,8 @@ export function getDefaultAiConfigForSetup(): PublicAiConfig & {
       imageModel: c.imageModel || DEFAULT_AI.imageModel,
       defaultVoice: c.defaultVoice || DEFAULT_AI.defaultVoice,
       contentLocale: c.contentLocale || DEFAULT_AI.contentLocale,
+      asrProvider: c.asrProvider || DEFAULT_AI.asrProvider,
+      ttsProvider: c.ttsProvider || DEFAULT_AI.ttsProvider,
     },
   };
 }

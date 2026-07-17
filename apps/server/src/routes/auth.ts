@@ -27,9 +27,12 @@ import {
   setSiteName,
   setSiteSeo,
   toPublicAiConfig,
+  withProviderCatalog,
   type AiConfig,
   type SiteSeoInput,
 } from '../services/settingsStore.js';
+import { listAsrProviderDescriptors } from '../providers/asr/index.js';
+import { listTtsProviderDescriptors } from '../providers/tts/index.js';
 
 function errStatus(err: unknown, fallback = 500): number {
   if (
@@ -95,6 +98,14 @@ export function getRequestUser(
   return { username: session.username, token };
 }
 
+
+function publicAiWithProviders(cfg?: Parameters<typeof toPublicAiConfig>[0]) {
+  return withProviderCatalog(toPublicAiConfig(cfg), {
+    asrProviders: listAsrProviderDescriptors().filter((p) => p.id !== 'demo'),
+    ttsProviders: listTtsProviderDescriptors().filter((p) => p.id !== 'demo'),
+  });
+}
+
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   /** 初始化状态：公开 */
   app.get('/setup/status', async () => {
@@ -128,7 +139,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       baseUrl?: string;
       chatModel?: string;
       asrModel?: string;
+      asrProvider?: string;
       ttsModel?: string;
+      ttsProvider?: string;
       voiceDesignModel?: string;
       imageModel?: string;
       defaultVoice?: string;
@@ -151,7 +164,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         baseUrl: body.baseUrl,
         chatModel: body.chatModel,
         asrModel: body.asrModel,
+        asrProvider: body.asrProvider,
         ttsModel: body.ttsModel,
+        ttsProvider: body.ttsProvider,
         voiceDesignModel: body.voiceDesignModel,
         imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,
@@ -164,7 +179,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         username: result.account.username,
         token: result.session.token,
         expiresAt: result.session.expiresAt,
-        ai: toPublicAiConfig(),
+        ai: publicAiWithProviders(),
       };
     } catch (err) {
       return sendError(reply, err, getRequestLocale(req));
@@ -242,7 +257,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.get('/settings/ai', async (req, reply) => {
     const user = getRequestUser(req);
     if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
-    return { ai: toPublicAiConfig() };
+    return { ai: publicAiWithProviders() };
   });
 
   app.put<{ Body: Partial<AiConfig> }>('/settings/ai', async (req, reply) => {
@@ -255,13 +270,15 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         baseUrl: body.baseUrl,
         chatModel: body.chatModel,
         asrModel: body.asrModel,
+        asrProvider: body.asrProvider,
         ttsModel: body.ttsModel,
+        ttsProvider: body.ttsProvider,
         voiceDesignModel: body.voiceDesignModel,
         imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,
         contentLocale: body.contentLocale as import('../i18n/types.js').Locale | undefined,
       });
-      return { ai: toPublicAiConfig(next) };
+      return { ai: publicAiWithProviders(next) };
     } catch (err) {
       return sendError(reply, err, getRequestLocale(req));
     }

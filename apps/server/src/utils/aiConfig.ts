@@ -25,6 +25,16 @@ export function getTtsModel(): string {
   return getAiConfig().ttsModel;
 }
 
+/** ASR 提供方 id：mimo | openai | 自定义注册 */
+export function getAsrProviderId(): string {
+  return (getAiConfig().asrProvider || 'mimo').trim() || 'mimo';
+}
+
+/** TTS 提供方 id：mimo | openai | 自定义注册 */
+export function getTtsProviderId(): string {
+  return (getAiConfig().ttsProvider || 'mimo').trim() || 'mimo';
+}
+
 export function getVoiceDesignModel(): string {
   return getAiConfig().voiceDesignModel;
 }

@@ -46,7 +46,9 @@ export type SetupInput = {
   baseUrl?: string;
   chatModel?: string;
   asrModel?: string;
+  asrProvider?: string;
   ttsModel?: string;
+  ttsProvider?: string;
   voiceDesignModel?: string;
   imageModel?: string;
   defaultVoice?: string;
@@ -115,7 +117,9 @@ export function completeSetup(input: SetupInput): {
     baseUrl: input.baseUrl,
     chatModel: input.chatModel,
     asrModel: input.asrModel,
+    asrProvider: input.asrProvider,
     ttsModel: input.ttsModel,
+    ttsProvider: input.ttsProvider,
     voiceDesignModel: input.voiceDesignModel,
     imageModel: input.imageModel,
     defaultVoice:

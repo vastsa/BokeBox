@@ -26,7 +26,9 @@ const DEFAULTS = {
   baseUrl: 'https://api.oj.ink/v1',
   chatModel: 'mimo-v2.5',
   asrModel: 'mimo-v2.5-asr',
+  asrProvider: 'mimo',
   ttsModel: 'mimo-v2.5-tts',
+  ttsProvider: 'mimo',
   voiceDesignModel: 'mimo-v2.5-tts-voicedesign',
   imageModel: '',
   defaultVoice: '冰糖',
@@ -47,7 +49,9 @@ export function SetupPage() {
   const [baseUrl, setBaseUrl] = useState(DEFAULTS.baseUrl);
   const [chatModel, setChatModel] = useState(DEFAULTS.chatModel);
   const [asrModel, setAsrModel] = useState(DEFAULTS.asrModel);
+  const [asrProvider, setAsrProvider] = useState(DEFAULTS.asrProvider);
   const [ttsModel, setTtsModel] = useState(DEFAULTS.ttsModel);
+  const [ttsProvider, setTtsProvider] = useState(DEFAULTS.ttsProvider);
   const [voiceDesignModel, setVoiceDesignModel] = useState(
     DEFAULTS.voiceDesignModel,
   );
@@ -71,7 +75,9 @@ export function SetupPage() {
           setBaseUrl(s.baseUrl || DEFAULTS.baseUrl);
           setChatModel(s.chatModel || DEFAULTS.chatModel);
           setAsrModel(s.asrModel || DEFAULTS.asrModel);
+          setAsrProvider(s.asrProvider || DEFAULTS.asrProvider);
           setTtsModel(s.ttsModel || DEFAULTS.ttsModel);
+          setTtsProvider(s.ttsProvider || DEFAULTS.ttsProvider);
           setVoiceDesignModel(s.voiceDesignModel || DEFAULTS.voiceDesignModel);
           setImageModel(s.imageModel || DEFAULTS.imageModel);
           const voice = s.defaultVoice || DEFAULTS.defaultVoice;
@@ -163,7 +169,9 @@ export function SetupPage() {
         baseUrl: baseUrl.trim(),
         chatModel: chatModel.trim(),
         asrModel: asrModel.trim(),
+        asrProvider: asrProvider.trim() || 'mimo',
         ttsModel: ttsModel.trim(),
+        ttsProvider: ttsProvider.trim() || 'mimo',
         voiceDesignModel: voiceDesignModel.trim(),
         imageModel: imageModel.trim(),
         defaultVoice,
@@ -320,6 +328,51 @@ export function SetupPage() {
                   onChange={(e) => setChatModel(e.target.value)}
                   spellCheck={false}
                 />
+              </label>
+              <label className="auth-field">
+                <span>{t('setup.asrProvider')}</span>
+                <select
+                  value={asrProvider}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setAsrProvider(id);
+                    if (id === 'openai') setAsrModel('whisper-1');
+                    if (id === 'mimo') setAsrModel('mimo-v2.5-asr');
+                  }}
+                >
+                  <option value="mimo">MiMo ASR</option>
+                  <option value="openai">OpenAI 兼容 ASR</option>
+                </select>
+              </label>
+              <label className="auth-field">
+                <span>{t('setup.ttsProvider')}</span>
+                <select
+                  value={ttsProvider}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setTtsProvider(id);
+                    if (id === 'openai') {
+                      setTtsModel('tts-1');
+                      setTts((prev) => ({
+                        ...prev,
+                        mode: 'default',
+                        voice: 'alloy',
+                      }));
+                    }
+                    if (id === 'mimo') {
+                      setTtsModel('mimo-v2.5-tts');
+                      setVoiceDesignModel('mimo-v2.5-tts-voicedesign');
+                      setTts((prev) => ({
+                        ...prev,
+                        mode: 'default',
+                        voice: '冰糖',
+                      }));
+                    }
+                  }}
+                >
+                  <option value="mimo">MiMo TTS</option>
+                  <option value="openai">OpenAI 兼容 TTS</option>
+                </select>
               </label>
               <label className="auth-field">
                 <span>{t('setup.asrModel')}</span>
