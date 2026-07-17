@@ -272,6 +272,9 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
     const outputPass = new OutputPass();
     composer.addPass(outputPass);
 
+    // 标签点击后短时间内忽略 canvas 拾取，防止“点 A 选中 B”
+    let ignoreCanvasPickUntil = 0;
+
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.048;
@@ -449,8 +452,16 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       count.textContent = String(tag.count);
       el.append(dot, text, count);
       el.style.setProperty('--star', `#${color.getHexString()}`);
-      el.addEventListener('click', (ev) => {
+      el.dataset.tagName = tag.name;
+      el.addEventListener('pointerdown', (ev) => {
+        // 避免事件落到 canvas 再拾取到别的星
         ev.stopPropagation();
+        ignoreCanvasPickUntil = performance.now() + 500;
+      });
+      el.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        ignoreCanvasPickUntil = performance.now() + 500;
         const next = selectedRef.current === tag.name ? null : tag.name;
         onSelectRef.current(next);
       });
@@ -527,14 +538,10 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
     ring2.renderOrder = 3;
     scene.add(ring2);
 
-    const raycaster = new THREE.Raycaster();
-    // 放大命中半径
-    raycaster.params.Points = { threshold: 0.2 };
-    const pointer = new THREE.Vector2();
     let pointerDown: { x: number; y: number } | null = null;
     let hoverName: string | null = null;
-
-    const hitMeshes = runtimes.map((s) => s.group.children[0] as THREE.Mesh);
+    const ndc = new THREE.Vector3();
+    const world = new THREE.Vector3();
 
     const setSize = () => {
       if (disposed) return;
@@ -551,26 +558,66 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
     const ro = new ResizeObserver(setSize);
     ro.observe(wrap);
 
+    /** 屏幕空间就近拾取：避免透明命中球重叠导致点 A 中 B */
     const pickName = (clientX: number, clientY: number): string | null => {
       const rect = renderer.domElement.getBoundingClientRect();
-      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
-      const hits = raycaster.intersectObjects(hitMeshes, false);
-      if (!hits.length) return null;
-      return String(hits[0].object.userData.name || '') || null;
+      if (rect.width <= 0 || rect.height <= 0) return null;
+
+      // 确保世界矩阵是最新的（含 root 自转与浮动）
+      root.updateMatrixWorld(true);
+
+      let bestName: string | null = null;
+      let bestScore = Infinity;
+
+      for (const s of runtimes) {
+        s.group.getWorldPosition(world);
+        ndc.copy(world).project(camera);
+        // 裁剪外 / 相机背后
+        if (ndc.z < -1 || ndc.z > 1 || ndc.x < -1.2 || ndc.x > 1.2 || ndc.y < -1.2 || ndc.y > 1.2) {
+          continue;
+        }
+        const sx = (ndc.x * 0.5 + 0.5) * rect.width + rect.left;
+        const sy = (-ndc.y * 0.5 + 0.5) * rect.height + rect.top;
+        const pixelDist = Math.hypot(clientX - sx, clientY - sy);
+        // 近大远小：允许点标签附近空白也算点中该星
+        const depthScale = 1.15 - Math.min(0.45, Math.max(0, ndc.z) * 0.4);
+        const hitRadius = (34 + s.baseScale * 48) * depthScale;
+        if (pixelDist > hitRadius) continue;
+
+        // 分数：越近光标越好；同等距离优先更靠近相机的星 (ndc.z 更小)
+        const score = pixelDist + (ndc.z + 1) * 18;
+        if (score < bestScore) {
+          bestScore = score;
+          bestName = s.name;
+        }
+      }
+      return bestName;
+    };
+
+    const applyHover = (name: string | null) => {
+      if (name === hoverName) return;
+      hoverName = name;
+      renderer.domElement.style.cursor = name ? 'pointer' : 'grab';
+      for (const s of runtimes) {
+        s.label.element.classList.toggle('is-hover', s.name === name);
+      }
     };
 
     const onPointerDown = (e: PointerEvent) => {
+      if (performance.now() < ignoreCanvasPickUntil) return;
       pointerDown = { x: e.clientX, y: e.clientY };
       controls.autoRotate = false;
     };
     const onPointerUp = (e: PointerEvent) => {
+      if (performance.now() < ignoreCanvasPickUntil) {
+        pointerDown = null;
+        return;
+      }
       if (!pointerDown) return;
       const dx = e.clientX - pointerDown.x;
       const dy = e.clientY - pointerDown.y;
       pointerDown = null;
-      if (Math.hypot(dx, dy) < 7) {
+      if (Math.hypot(dx, dy) < 8) {
         const name = pickName(e.clientX, e.clientY);
         if (!name) onSelectRef.current(null);
         else onSelectRef.current(selectedRef.current === name ? null : name);
@@ -580,20 +627,12 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       }, 2200);
     };
     const onPointerMove = (e: PointerEvent) => {
-      const name = pickName(e.clientX, e.clientY);
-      if (name !== hoverName) {
-        hoverName = name;
-        renderer.domElement.style.cursor = name ? 'pointer' : 'grab';
-        for (const s of runtimes) {
-          s.label.element.classList.toggle('is-hover', s.name === name);
-        }
-      }
+      if (performance.now() < ignoreCanvasPickUntil) return;
+      applyHover(pickName(e.clientX, e.clientY));
     };
     const onPointerLeave = () => {
       pointerDown = null;
-      hoverName = null;
-      renderer.domElement.style.cursor = 'grab';
-      for (const s of runtimes) s.label.element.classList.remove('is-hover');
+      applyHover(null);
     };
 
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
@@ -610,10 +649,12 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       const t = clock.getElapsedTime();
       controls.update();
 
-      // 背景微动
+      // 背景微动；选中时暂停星团自转，避免“点了却飘到别的星”的错觉
       farPoints.rotation.y = t * 0.008;
       nearPoints.rotation.y = -t * 0.014;
-      root.rotation.y = t * 0.012;
+      if (!selectedRef.current) {
+        root.rotation.y = t * 0.012;
+      }
 
       for (const n of nebulaGroup.children) {
         const mesh = n as THREE.Mesh;
@@ -676,6 +717,14 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
         } else {
           coreMat.opacity = 1;
         }
+      }
+
+      // 标签按深度排序，重叠时点到的是更靠前的那颗
+      for (const s of runtimes) {
+        s.group.getWorldPosition(world);
+        ndc.copy(world).project(camera);
+        const z = Math.round((1 - (ndc.z + 1) * 0.5) * 1000);
+        s.label.element.style.zIndex = String(100 + Math.max(0, Math.min(999, z)));
       }
 
       // 选中环与镜头焦点：必须用世界坐标（root 有自转）
