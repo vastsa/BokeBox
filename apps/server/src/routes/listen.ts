@@ -5,6 +5,7 @@ import {
   toPublic,
   withScriptTiming,
 } from '../services/jobStore.js';
+import { getRequestLocale, t } from '../i18n/index.js';
 import {
   getListenRecord,
   listListenRecords,
@@ -43,7 +44,7 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>('/listen/:id', async (req, reply) => {
     const job = await getJob(req.params.id);
     if (!job || job.status !== 'done' || !job.podcast) {
-      return reply.code(404).send({ error: '播客不存在或尚未完成' });
+      return reply.code(404).send({ error: t(getRequestLocale(req), 'listen.notReady') });
     }
     const listen = await getListenRecord(job.id);
     const enriched = await withScriptTiming(job);
@@ -61,7 +62,7 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
   }>('/listen/:id/progress', async (req, reply) => {
     const job = await getJob(req.params.id);
     if (!job || job.status !== 'done') {
-      return reply.code(404).send({ error: '播客不存在' });
+      return reply.code(404).send({ error: t(getRequestLocale(req), 'listen.notFound') });
     }
     const body = req.body || { progressSec: 0, durationSec: 0 };
     const listen = await upsertListenProgress({

@@ -8,6 +8,12 @@ import {
   resolveSession,
 } from '../services/authService.js';
 import {
+  getRequestLocale,
+  sendAppError,
+  t,
+  type Locale,
+} from '../i18n/index.js';
+import {
   getAuthAccount,
   getDefaultAiConfigForSetup,
   isSetupCompleted,
@@ -28,10 +34,8 @@ function errStatus(err: unknown, fallback = 500): number {
   return fallback;
 }
 
-function sendError(reply: FastifyReply, err: unknown) {
-  const status = errStatus(err, 400);
-  const message = err instanceof Error ? err.message : String(err);
-  return reply.code(status).send({ error: message });
+function sendError(reply: FastifyReply, err: unknown, locale: Locale = 'zh-CN') {
+  return sendAppError(reply, locale, err, errStatus(err, 400));
 }
 
 const SESSION_COOKIE = 'pb_session';
@@ -116,7 +120,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         body.confirmPassword !== undefined &&
         body.password !== body.confirmPassword
       ) {
-        return reply.code(400).send({ error: '两次密码不一致' });
+        return reply.code(400).send({ error: t(getRequestLocale(req), 'auth.passwordMismatch') });
       }
       const result = completeSetup({
         username: String(body.username || ''),
@@ -140,7 +144,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         ai: toPublicAiConfig(),
       };
     } catch (err) {
-      return sendError(reply, err);
+      return sendError(reply, err, getRequestLocale(req));
     }
   });
 
@@ -162,7 +166,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           expiresAt: result.session.expiresAt,
         };
       } catch (err) {
-        return sendError(reply, err);
+        return sendError(reply, err, getRequestLocale(req));
       }
     },
   );
@@ -178,7 +182,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   /** 当前用户 */
   app.get('/auth/me', async (req, reply) => {
     const user = getRequestUser(req);
-    if (!user) return reply.code(401).send({ error: '未登录' });
+    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
     const account = getAuthAccount();
     return {
       username: user.username,
@@ -191,36 +195,36 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     Body: { currentPassword?: string; newPassword?: string; confirmPassword?: string };
   }>('/auth/password', async (req, reply) => {
     const user = getRequestUser(req);
-    if (!user) return reply.code(401).send({ error: '未登录' });
+    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
     try {
       const body = req.body || {};
       if (
         body.confirmPassword !== undefined &&
         body.newPassword !== body.confirmPassword
       ) {
-        return reply.code(400).send({ error: '两次新密码不一致' });
+        return reply.code(400).send({ error: t(getRequestLocale(req), 'auth.newPasswordMismatch') });
       }
       changePassword(
         user.username,
         String(body.currentPassword || ''),
         String(body.newPassword || ''),
       );
-      return { ok: true, message: '密码已更新，请重新登录' };
+      return { ok: true, message: t(getRequestLocale(req), 'auth.passwordUpdated') };
     } catch (err) {
-      return sendError(reply, err);
+      return sendError(reply, err, getRequestLocale(req));
     }
   });
 
   /** AI 配置 */
   app.get('/settings/ai', async (req, reply) => {
     const user = getRequestUser(req);
-    if (!user) return reply.code(401).send({ error: '未登录' });
+    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
     return { ai: toPublicAiConfig() };
   });
 
   app.put<{ Body: Partial<AiConfig> }>('/settings/ai', async (req, reply) => {
     const user = getRequestUser(req);
-    if (!user) return reply.code(401).send({ error: '未登录' });
+    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
     try {
       const body = req.body || {};
       const next = setAiConfig({
@@ -235,7 +239,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       });
       return { ai: toPublicAiConfig(next) };
     } catch (err) {
-      return sendError(reply, err);
+      return sendError(reply, err, getRequestLocale(req));
     }
   });
 }
@@ -262,7 +266,7 @@ export function registerAuthGuard(app: FastifyInstance): void {
     // 未初始化时，除公开接口外一律拦截
     if (!isSetupCompleted()) {
       return reply.code(503).send({
-        error: '系统尚未初始化',
+        error: t(getRequestLocale(req), 'auth.setupRequired'),
         code: 'NEEDS_SETUP',
       });
     }
@@ -270,7 +274,7 @@ export function registerAuthGuard(app: FastifyInstance): void {
     const user = getRequestUser(req);
     if (!user) {
       return reply.code(401).send({
-        error: '请先登录',
+        error: t(getRequestLocale(req), 'auth.pleaseLogin'),
         code: 'UNAUTHORIZED',
       });
     }

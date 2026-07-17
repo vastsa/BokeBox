@@ -15,6 +15,7 @@ import {
   type SessionRecord,
 } from './settingsStore.js';
 import type { TtsOptions } from '../types/job.js';
+import { AppError } from '../i18n/index.js';
 
 const SCRYPT_KEYLEN = 64;
 
@@ -54,17 +55,17 @@ export type SetupInput = {
 
 export function validateUsername(username: string): string | null {
   const u = username.trim();
-  if (u.length < 2) return '用户名至少 2 个字符';
-  if (u.length > 32) return '用户名最多 32 个字符';
+  if (u.length < 2) return 'auth.usernameMin';
+  if (u.length > 32) return 'auth.usernameMax';
   if (!/^[\w\u4e00-\u9fff.-]+$/u.test(u)) {
-    return '用户名仅支持中文、字母、数字、_ . -';
+    return 'auth.usernameCharset';
   }
   return null;
 }
 
 export function validatePassword(password: string): string | null {
-  if (password.length < 6) return '密码至少 6 位';
-  if (password.length > 128) return '密码过长';
+  if (password.length < 6) return 'auth.passwordMin';
+  if (password.length > 128) return 'auth.passwordMax';
   return null;
 }
 
@@ -74,19 +75,19 @@ export function completeSetup(input: SetupInput): {
   session: SessionRecord;
 } {
   if (isSetupCompleted()) {
-    throw Object.assign(new Error('系统已初始化，请直接登录'), { statusCode: 409 });
+    throw new AppError('auth.alreadySetup', 409);
   }
 
   const username = input.username.trim();
   const userErr = validateUsername(username);
-  if (userErr) throw Object.assign(new Error(userErr), { statusCode: 400 });
+  if (userErr) throw new AppError(userErr, 400);
 
   const passErr = validatePassword(input.password);
-  if (passErr) throw Object.assign(new Error(passErr), { statusCode: 400 });
+  if (passErr) throw new AppError(passErr, 400);
 
   const apiKey = (input.apiKey || '').trim();
   if (!apiKey) {
-    throw Object.assign(new Error('请填写 API Key'), { statusCode: 400 });
+    throw new AppError('auth.apiKeyRequired', 400);
   }
 
   const now = new Date().toISOString();
@@ -134,19 +135,17 @@ export function login(
   password: string,
 ): { account: { username: string }; session: SessionRecord } {
   if (!isSetupCompleted()) {
-    throw Object.assign(new Error('系统尚未初始化'), { statusCode: 409 });
+    throw new AppError('auth.setupRequired', 409);
   }
   const account = getAuthAccount();
   if (!account) {
-    throw Object.assign(new Error('账号不存在，请重新初始化'), {
-      statusCode: 500,
-    });
+    throw new AppError('auth.accountMissing', 500);
   }
   if (account.username !== username.trim()) {
-    throw Object.assign(new Error('用户名或密码错误'), { statusCode: 401 });
+    throw new AppError('auth.badCredentials', 401);
   }
   if (!verifyPassword(password, account.passwordHash)) {
-    throw Object.assign(new Error('用户名或密码错误'), { statusCode: 401 });
+    throw new AppError('auth.badCredentials', 401);
   }
   const session = createSession(account.username);
   return {
@@ -166,13 +165,13 @@ export function changePassword(
 ): void {
   const account = getAuthAccount();
   if (!account || account.username !== username) {
-    throw Object.assign(new Error('未登录'), { statusCode: 401 });
+    throw new AppError('auth.notLoggedIn', 401);
   }
   if (!verifyPassword(currentPassword, account.passwordHash)) {
-    throw Object.assign(new Error('当前密码不正确'), { statusCode: 400 });
+    throw new AppError('auth.currentPasswordWrong', 400);
   }
   const passErr = validatePassword(newPassword);
-  if (passErr) throw Object.assign(new Error(passErr), { statusCode: 400 });
+  if (passErr) throw new AppError(passErr, 400);
 
   const now = new Date().toISOString();
   setAuthAccount({

@@ -9,7 +9,7 @@ import type {
   TtsOptions,
   TtsSourceMode,
 } from '../types/job';
-import { tOutside } from '../i18n';
+import { getLocale, tOutside } from '../i18n';
 import { clearAuthSession, getToken } from '../lib/auth';
 
 const BASE = import.meta.env.VITE_API_BASE || '/api';
@@ -29,6 +29,12 @@ function authHeaders(extra?: HeadersInit): Headers {
   const token = getToken();
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+  if (!headers.has('Accept-Language')) {
+    headers.set('Accept-Language', getLocale());
+  }
+  if (!headers.has('X-Locale')) {
+    headers.set('X-Locale', getLocale());
   }
   return headers;
 }
@@ -82,6 +88,8 @@ export async function createJob(
     xhr.responseType = 'json';
     const token = getToken();
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Accept-Language', getLocale());
+    xhr.setRequestHeader('X-Locale', getLocale());
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && options.onProgress) {
         options.onProgress(Math.round((e.loaded / e.total) * 100));

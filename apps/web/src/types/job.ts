@@ -128,6 +128,8 @@ export interface Job {
   status: JobStatus;
   progress: number;
   message: string;
+  /** 任务进度文案语言（创建时锁定） */
+  locale?: 'zh-CN' | 'en-US';
   transcript?: string;
   podcast?: PodcastContent;
   tts?: TtsOptions;

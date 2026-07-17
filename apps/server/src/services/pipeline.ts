@@ -11,6 +11,7 @@ import { getJob, updateJob } from './jobStore.js';
 import { pathExists, writeText } from '../utils/fs.js';
 import { jobPaths } from '../utils/paths.js';
 import type { Job, JobStatus, PipelineFromStep, SourceKind } from '../types/job.js';
+import { AppError, isLocale, t, type Locale } from '../i18n/index.js';
 
 const running = new Set<string>();
 
@@ -48,10 +49,14 @@ function kindOf(job: Job): SourceKind {
   return job.sourceKind || 'video';
 }
 
-function kindLabel(kind: SourceKind): string {
-  if (kind === 'audio') return '音频';
-  if (kind === 'text') return '文本';
-  return '视频';
+function kindLabel(locale: Locale, kind: SourceKind): string {
+  if (kind === 'audio') return t(locale, 'kind.audio');
+  if (kind === 'text') return t(locale, 'kind.text');
+  return t(locale, 'kind.video');
+}
+
+function jobLocale(job?: { locale?: string } | null): Locale {
+  return isLocale(job?.locale) ? job.locale : 'zh-CN';
 }
 
 /** 读取文本素材正文：优先 DB transcript，其次源文件 */
@@ -97,13 +102,14 @@ export function buildRetryPatch(
   fromStep: PipelineFromStep,
   tts: Job['tts'],
   scriptPrompt?: Job['scriptPrompt'],
+  locale: Locale = jobLocale(job),
 ): Partial<Job> {
   const start = stepIndex(fromStep);
   const kind = kindOf(job);
   const patch: Partial<Job> = {
     status: 'queued',
     progress: 5,
-    message: retryQueueMessage(fromStep),
+    message: retryQueueMessage(fromStep, locale),
     error: undefined,
     tts,
   };
@@ -158,22 +164,22 @@ export function buildRetryPatch(
   return patch;
 }
 
-function retryQueueMessage(fromStep: PipelineFromStep): string {
+function retryQueueMessage(fromStep: PipelineFromStep, locale: Locale): string {
   switch (fromStep) {
     case 'extract':
-      return '重新入队：从提取音频开始…';
+      return t(locale, 'pipeline.retryExtract');
     case 'transcribe':
-      return '重新入队：复用已有音频，从转写开始…';
+      return t(locale, 'pipeline.retryTranscribe');
     case 'script':
-      return '重新入队：复用转写，从脚本生成开始…';
+      return t(locale, 'pipeline.retryScript');
     case 'cover':
-      return '重新入队：复用脚本，仅重新生成封面…';
+      return t(locale, 'pipeline.retryCover');
     case 'flashcards':
-      return '重新入队：复用脚本，仅重新生成知识闪卡…';
+      return t(locale, 'pipeline.retryFlashcards');
     case 'synthesize':
-      return '重新入队：复用脚本，仅重新合成…';
+      return t(locale, 'pipeline.retrySynthesize');
     default:
-      return '重新入队…';
+      return t(locale, 'pipeline.retryDefault');
   }
 }
 
@@ -191,7 +197,7 @@ export async function assertPipelinePrereqs(
     if (kind !== 'text') {
       const listenPath = job.audioPath || paths.audio;
       if (!(await pathExists(listenPath))) {
-        throw new Error('缺少已提取的源音频，请从「提取音频」开始');
+        throw new AppError('pipeline.needAudio', 400);
       }
     }
   }
@@ -200,13 +206,13 @@ export async function assertPipelinePrereqs(
     const text =
       kind === 'text' ? await loadTextContent(job) : job.transcript?.trim();
     if (!text) {
-      throw new Error('缺少转写文本，请从「转写」或更早步骤开始');
+      throw new AppError('pipeline.needTranscript', 400);
     }
   }
 
   if (start >= 3) {
     if (!job.podcast?.script?.trim()) {
-      throw new Error('缺少播客脚本，请从「生成脚本」或更早步骤开始');
+      throw new AppError('pipeline.needScript', 400);
     }
   }
 }
@@ -232,16 +238,17 @@ export async function runPipeline(
   try {
     let job = await getJob(jobId);
     if (!job) return;
+    let locale = jobLocale(job);
 
     // ── 0. URL 下载识别（无源文件时） ──
     if (job.sourceUrl && !job.videoPath) {
-      await setProgress(jobId, 'queued', 8, '正在下载并识别远程内容…');
+      await setProgress(jobId, 'queued', 8, t(locale, 'pipeline.downloading'));
       const imported = await importUrlContent(job.sourceUrl, jobId);
       await setProgress(
         jobId,
         'queued',
         14,
-        `已识别为${kindLabel(imported.kind)}，准备处理…`,
+        t(locale, 'pipeline.detected', { kind: kindLabel(locale, imported.kind) }),
         {
           videoPath: imported.sourcePath,
           sourceKind: imported.kind,
@@ -269,10 +276,10 @@ export async function runPipeline(
     // ── 文本：跳过抽音频 + ASR ──
     if (kind === 'text') {
       if (start <= 1) {
-        await setProgress(jobId, 'transcribing', 20, '正在读取文本内容…');
+        await setProgress(jobId, 'transcribing', 20, t(locale, 'pipeline.readingText'));
         const text = await loadTextContent(job);
         if (!text || text.length < 20) {
-          throw new Error('文本内容过短或为空，无法生成播客');
+          throw new AppError('pipeline.textTooShort', 400);
         }
         transcript = text;
         await writeText(paths.transcript, text);
@@ -288,13 +295,13 @@ export async function runPipeline(
           listenPath = paths.audio;
         }
 
-        await setProgress(jobId, 'transcribing', 55, '文本已就绪，已跳过语音转写', {
+        await setProgress(jobId, 'transcribing', 55, t(locale, 'pipeline.textReadySkipAsr'), {
           transcript: text,
           audioPath: (await pathExists(paths.audio)) ? paths.audio : undefined,
         });
       } else {
         transcript = (await loadTextContent(job)) || transcript;
-        await setProgress(jobId, 'transcribing', 55, '已跳过转写（复用文本）', {
+        await setProgress(jobId, 'transcribing', 55, t(locale, 'pipeline.skipTranscribeReuseText'), {
           transcript,
         });
       }
@@ -303,14 +310,14 @@ export async function runPipeline(
       if (start <= 0) {
         if (!job.videoPath || !(await pathExists(job.videoPath))) {
           throw new Error(
-            kind === 'audio' ? '音频源文件不存在' : '视频源文件不存在',
+            kind === 'audio' ? t(locale, 'pipeline.audioSourceMissing') : t(locale, 'pipeline.videoSourceMissing'),
           );
         }
         await setProgress(
           jobId,
           'extracting_audio',
           12,
-          kind === 'audio' ? '正在规范化音频…' : '正在从视频提取音频…',
+          kind === 'audio' ? t(locale, 'pipeline.normalizingAudio') : t(locale, 'pipeline.extractingAudio'),
         );
         const extracted = await extractAudio(job.videoPath, jobId);
         listenPath = extracted.listenPath;
@@ -318,7 +325,7 @@ export async function runPipeline(
           jobId,
           'extracting_audio',
           28,
-          kind === 'audio' ? '音频准备完成' : '音频提取完成',
+          kind === 'audio' ? t(locale, 'pipeline.audioReady') : t(locale, 'pipeline.audioExtracted'),
           { audioPath: listenPath },
         );
       } else {
@@ -328,14 +335,14 @@ export async function runPipeline(
             jobId,
             'extracting_audio',
             18,
-            '源音频已有，补齐 ASR 音频…',
+            t(locale, 'pipeline.fillAsrAudio'),
           );
           if (!job.videoPath || !(await pathExists(job.videoPath))) {
-            throw new Error('缺少源媒体，无法补齐 ASR 音频');
+            throw new AppError('pipeline.needMediaForAsr', 400);
           }
           const extracted = await extractAudio(job.videoPath, jobId);
           listenPath = extracted.listenPath;
-          await setProgress(jobId, 'extracting_audio', 28, 'ASR 音频已就绪', {
+          await setProgress(jobId, 'extracting_audio', 28, t(locale, 'pipeline.asrAudioReady'), {
             audioPath: listenPath,
           });
         } else {
@@ -343,7 +350,7 @@ export async function runPipeline(
             jobId,
             'extracting_audio',
             28,
-            '已跳过音频提取（复用已有文件）',
+            t(locale, 'pipeline.skipExtractReuse'),
             { audioPath: listenPath },
           );
         }
@@ -351,7 +358,7 @@ export async function runPipeline(
 
       // ── 2. 转写 ──
       if (start <= 1) {
-        await setProgress(jobId, 'transcribing', 38, '正在将语音转成文字…');
+        await setProgress(jobId, 'transcribing', 38, t(locale, 'pipeline.transcribing'));
         const asrPath = (await pathExists(paths.asr)) ? paths.asr : listenPath;
         const { text, demo: demoAsr } = await transcribeAudio(asrPath, jobId);
         transcript = text;
@@ -359,7 +366,7 @@ export async function runPipeline(
           jobId,
           'transcribing',
           55,
-          demoAsr ? '转写完成（演示模式）' : '转写完成',
+          demoAsr ? t(locale, 'pipeline.transcribeDoneDemo') : t(locale, 'pipeline.transcribeDone'),
           { transcript: text },
         );
       } else {
@@ -367,7 +374,7 @@ export async function runPipeline(
           jobId,
           'transcribing',
           55,
-          '已跳过转写（复用已有文本）',
+          t(locale, 'pipeline.skipTranscribeReuse'),
           { transcript },
         );
       }
@@ -379,9 +386,9 @@ export async function runPipeline(
         transcript = (await getJob(jobId))?.transcript || '';
       }
       if (!transcript.trim()) {
-        throw new Error('转写/文本为空，无法生成播客脚本');
+        throw new AppError('pipeline.emptyTranscriptScript', 400);
       }
-      await setProgress(jobId, 'generating_podcast', 65, '正在总结并生成播客脚本…');
+      await setProgress(jobId, 'generating_podcast', 65, t(locale, 'pipeline.generatingScript'));
       const latest = (await getJob(jobId)) || job;
       const { podcast: generated, demo: demoScript } = await generatePodcast(
         transcript,
@@ -394,7 +401,7 @@ export async function runPipeline(
         jobId,
         'generating_podcast',
         72,
-        demoScript ? '播客脚本已生成（演示模式）' : '播客脚本已生成',
+        demoScript ? t(locale, 'pipeline.scriptDoneDemo') : t(locale, 'pipeline.scriptDone'),
         {
           podcast,
           title: podcast.title,
@@ -405,7 +412,7 @@ export async function runPipeline(
         jobId,
         'generating_podcast',
         72,
-        '已跳过脚本生成（复用已有脚本）',
+        t(locale, 'pipeline.skipScriptReuse'),
         {
           podcast,
           title: podcast?.title || job.title,
@@ -422,7 +429,7 @@ export async function runPipeline(
     // ── 仅封面 ──
     if (fromStep === 'cover') {
       if (!podcast?.title && !podcast?.script?.trim()) {
-        throw new Error('缺少播客脚本，无法生成封面');
+        throw new AppError('pipeline.needScriptCover', 400);
       }
 
       if (hasImageModel()) {
@@ -430,7 +437,7 @@ export async function runPipeline(
           jobId,
           'generating_cover',
           40,
-          '正在生成播客封面…',
+          t(locale, 'pipeline.generatingCover'),
           { podcast, title: podcast?.title || job.title },
         );
         podcast = await maybeGeneratePodcastCover(jobId, podcast!);
@@ -439,8 +446,8 @@ export async function runPipeline(
           'done',
           100,
           podcast.hasCoverImage
-            ? '播客封面已更新'
-            : '封面处理完成（未生成 AI 图）',
+            ? t(locale, 'pipeline.coverUpdated')
+            : t(locale, 'pipeline.coverDoneNoAi'),
           {
             podcast,
             title: podcast.title,
@@ -455,7 +462,7 @@ export async function runPipeline(
           jobId,
           'done',
           100,
-          '未配置图片模型，跳过 AI 封面',
+          t(locale, 'pipeline.skipCoverNoModel'),
           {
             podcast,
             title: podcast?.title || job.title,
@@ -472,13 +479,13 @@ export async function runPipeline(
         transcript = (await getJob(jobId))?.transcript || '';
       }
       if (!transcript.trim()) {
-        throw new Error('转写/文本为空，无法生成知识闪卡');
+        throw new AppError('pipeline.emptyTranscriptCards', 400);
       }
       if (!podcast?.script?.trim()) {
-        throw new Error('缺少播客脚本，无法生成知识闪卡');
+        throw new AppError('pipeline.needScriptCards', 400);
       }
 
-      await setProgress(jobId, 'generating_podcast', 80, '正在生成知识闪卡…');
+      await setProgress(jobId, 'generating_podcast', 80, t(locale, 'pipeline.generatingCards'));
       const latestCards = (await getJob(jobId)) || job;
       const { flashcards, demo: demoCards } = await generateFlashcards({
         jobId,
@@ -492,8 +499,8 @@ export async function runPipeline(
         'done',
         100,
         demoCards
-          ? '知识闪卡已更新（演示模式）'
-          : `知识闪卡已更新（${flashcards.length} 张）`,
+          ? t(locale, 'pipeline.cardsDoneDemo')
+          : t(locale, 'pipeline.cardsDone', { n: flashcards.length }),
         {
           podcast,
           title: podcast.title,
@@ -504,7 +511,7 @@ export async function runPipeline(
     }
 
     if (!podcast?.script?.trim()) {
-      throw new Error('缺少播客脚本，无法合成音频');
+      throw new AppError('pipeline.needScriptTts', 400);
     }
 
     // ── 并发：封面 + 闪卡 + TTS（互不依赖） ──
@@ -524,17 +531,17 @@ export async function runPipeline(
     }
 
     const parallelLabels: string[] = [];
-    if (needCover && hasImageModel()) parallelLabels.push('封面');
-    if (needFlashcards) parallelLabels.push('闪卡');
-    parallelLabels.push('音频');
+    if (needCover && hasImageModel()) parallelLabels.push(t(locale, 'pipeline.parallelLabelCover'));
+    if (needFlashcards) parallelLabels.push(t(locale, 'pipeline.parallelLabelCards'));
+    parallelLabels.push(t(locale, 'pipeline.parallelLabelAudio'));
 
     await setProgress(
       jobId,
       'synthesizing_audio',
       78,
       parallelLabels.length > 1
-        ? `正在并发生成${parallelLabels.join(' / ')}…`
-        : '正在合成播客音频…',
+        ? t(locale, 'pipeline.parallelRunning', { parts: parallelLabels.join(' / ') })
+        : t(locale, 'pipeline.synthesizing'),
       {
         podcast,
         title: podcast.title,
@@ -564,7 +571,7 @@ export async function runPipeline(
     const cardsTask = async () => {
       if (!needFlashcards) return null;
       if (!transcriptSnapshot.trim()) {
-        throw new Error('转写/文本为空，无法生成知识闪卡');
+        throw new AppError('pipeline.emptyTranscriptCards', 400);
       }
       return generateFlashcards({
         jobId,
@@ -609,15 +616,15 @@ export async function runPipeline(
         const { flashcards, demo: demoCards } = cardsSettled.value;
         podcast = { ...podcast, flashcards };
         flashcardNote = demoCards
-          ? ' · 闪卡演示'
-          : ` · 闪卡${flashcards.length}张`;
+          ? t(locale, 'pipeline.cardNoteDemo')
+          : t(locale, 'pipeline.cardNoteCount', { n: flashcards.length });
       } else if (cardsSettled.status === 'rejected') {
         const msg =
           cardsSettled.reason instanceof Error
             ? cardsSettled.reason.message
             : String(cardsSettled.reason);
         console.warn('[pipeline] flashcards failed:', msg);
-        flashcardNote = ` · 闪卡跳过`;
+        flashcardNote = t(locale, 'pipeline.cardNoteSkip');
       }
     }
 
@@ -642,8 +649,8 @@ export async function runPipeline(
     const coverNote =
       needCover && hasImageModel()
         ? podcast.hasCoverImage
-          ? ' · 含封面'
-          : ' · 封面回退'
+          ? t(locale, 'pipeline.coverNoteYes')
+          : t(locale, 'pipeline.coverNoteFallback')
         : '';
 
     await setProgress(
@@ -651,8 +658,13 @@ export async function runPipeline(
       'done',
       100,
       demoTts
-        ? `播客已生成（演示模式 · ${kindLabel(kind)}${coverNote}${flashcardNote}）`
-        : `播客生成完成（${kindLabel(kind)} · TTS: ${mode}${voice ? ' / ' + voice : ''}${coverNote}${flashcardNote}）`,
+        ? t(locale, 'pipeline.doneDemo', { kind: kindLabel(locale, kind), cover: coverNote, cards: flashcardNote })
+        : t(locale, 'pipeline.done', {
+            kind: kindLabel(locale, kind),
+            tts: `${mode}${voice ? ' / ' + voice : ''}`,
+            cover: coverNote,
+            cards: flashcardNote,
+          }),
       {
         podcastAudioPath,
         podcast,
@@ -661,11 +673,17 @@ export async function runPipeline(
       },
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const locale = jobLocale(await getJob(jobId));
+    const message =
+      err instanceof AppError
+        ? t(locale, err.key, err.params)
+        : err instanceof Error
+          ? err.message
+          : String(err);
     await updateJob(jobId, {
       status: 'failed',
       progress: 100,
-      message: '处理失败',
+      message: t(locale, 'pipeline.failed'),
       error: message,
     });
   } finally {

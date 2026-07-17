@@ -31,7 +31,6 @@ import {
   detectSourceKind,
   extractReadableText,
   isValidHttpUrl,
-  kindLabel,
 } from '../services/urlImporter.js';
 import {
   AUDIO_TAG_EXAMPLES,
@@ -76,6 +75,7 @@ import {
   DEFAULT_COVER_PROMPT_TEMPLATE,
   findCoverFile,
 } from '../services/coverGenerator.js';
+import { errorMessage, getRequestLocale, kindLabel as i18nKindLabel, t } from '../i18n/index.js';
 
 /** 本地上传：视频 / 音频 / 文本（与 URL 导入一致） */
 const ALLOWED_EXT = ALLOWED_MEDIA_EXT;
@@ -385,7 +385,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
 
   app.get<{ Params: { id: string } }>('/jobs/:id', async (req, reply) => {
     const job = await getJob(req.params.id);
-    if (!job) return reply.code(404).send({ error: '任务不存在' });
+    if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
     return { job: toPublic(job) };
   });
 
@@ -393,7 +393,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     '/jobs/:id/audio',
     async (req, reply) => {
       const job = await getJob(req.params.id);
-      if (!job) return reply.code(404).send({ error: '任务不存在' });
+      if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
       const paths = jobPaths(job.id);
       const audioPath = job.podcastAudioPath || paths.podcastWav;
       const alt = paths.podcastMp3;
@@ -403,7 +403,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           ? alt
           : job.audioPath;
       if (!finalPath || !(await pathExists(finalPath))) {
-        return reply.code(404).send({ error: '播客音频尚未生成' });
+        return reply.code(404).send({ error: t(getRequestLocale(req), 'job.podcastAudioMissing') });
       }
       const filename = `${(job.podcast?.title || job.title || job.id).replace(/[\\/:*?"<>|]/g, '_')}${path.extname(finalPath)}`;
       return sendMedia(req, reply, finalPath, filename, req.query.download === '1');
@@ -415,7 +415,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     async (req, reply) => {
       const job = await getJob(req.params.id);
       if (!job?.audioPath || !(await pathExists(job.audioPath))) {
-        return reply.code(404).send({ error: '源音频不存在' });
+        return reply.code(404).send({ error: t(getRequestLocale(req), 'job.sourceAudioMissing') });
       }
       return sendMedia(
         req,
@@ -432,7 +432,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     async (req, reply) => {
       const job = await getJob(req.params.id);
       if (!job?.videoPath || !(await pathExists(job.videoPath))) {
-        return reply.code(404).send({ error: '视频不存在' });
+        return reply.code(404).send({ error: t(getRequestLocale(req), 'job.videoMissing') });
       }
       return sendMedia(
         req,
@@ -449,10 +449,10 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     '/jobs/:id/cover',
     async (req, reply) => {
       const job = await getJob(req.params.id);
-      if (!job) return reply.code(404).send({ error: '任务不存在' });
+      if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
       const coverPath = await findCoverFile(job.id);
       if (!coverPath) {
-        return reply.code(404).send({ error: '封面不存在' });
+        return reply.code(404).send({ error: t(getRequestLocale(req), 'job.coverMissing') });
       }
       const filename = `${(job.podcast?.title || job.title || job.id).replace(/[\\/:*?"<>|]/g, '_')}-cover${path.extname(coverPath)}`;
       return sendMedia(
@@ -467,12 +467,12 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
 
   app.get<{ Params: { id: string } }>('/jobs/:id/transcript', async (req, reply) => {
     const job = await getJob(req.params.id);
-    if (!job) return reply.code(404).send({ error: '任务不存在' });
+    if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
     const filePath = jobPaths(job.id).transcript;
     const text =
       job.transcript ||
       ((await pathExists(filePath)) ? await fs.readFile(filePath, 'utf8') : '');
-    if (!text) return reply.code(404).send({ error: '转写不存在' });
+    if (!text) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.transcriptMissing') });
     return { transcript: text };
   });
 
@@ -500,7 +500,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         if (!ALLOWED_EXT.has(ext)) {
           part.file.resume();
           return reply.code(400).send({
-            error: `不支持的文件类型: ${ext || 'unknown'}`,
+            error: t(getRequestLocale(req), 'job.unsupportedType', { ext: ext || 'unknown' }),
             allowed: [...ALLOWED_EXT],
           });
         }
@@ -511,7 +511,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         await pipeline(part.file, createWriteStream(videoPath));
         if (part.file.truncated) {
           await removeIfExists(videoPath);
-          return reply.code(413).send({ error: '文件过大，最大 500MB' });
+          return reply.code(413).send({ error: t(getRequestLocale(req), 'job.fileTooLarge') });
         }
         filePart = {
           filename: part.filename,
@@ -524,7 +524,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     }
 
     if (!filePart || !videoPath || !id) {
-      return reply.code(400).send({ error: '请上传视频 / 音频 / 文本文件' });
+      return reply.code(400).send({ error: t(getRequestLocale(req), 'job.uploadRequired') });
     }
 
     const now = new Date().toISOString();
@@ -554,7 +554,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       const textContent = extractReadableText(raw, filePart.mimetype || ext);
       if (!textContent || textContent.length < 20) {
         await removeIfExists(videoPath);
-        return reply.code(400).send({ error: '文本内容过短或无法提取有效正文' });
+        return reply.code(400).send({ error: t(getRequestLocale(req), 'job.textTooShort') });
       }
       const paths = jobPaths(id);
       finalSourcePath = paths.source('.txt');
@@ -577,7 +577,11 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       size: finalSize,
       status: 'queued',
       progress: 5,
-      message: `已入队（${kindLabel(sourceKind)} · TTS: ${tts.mode}${tts.voice ? ' / ' + tts.voice : ''}）…`,
+      message: t(getRequestLocale(req), 'job.queuedLocal', {
+      kind: i18nKindLabel(getRequestLocale(req), sourceKind),
+      tts: `${tts.mode}${tts.voice ? ' / ' + tts.voice : ''}`,
+    }),
+      locale: getRequestLocale(req),
       videoPath: finalSourcePath,
       sourceKind,
       transcript,
@@ -611,10 +615,10 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
   }>('/jobs/from-url', async (req, reply) => {
     const url = String(req.body?.url || '').trim();
     if (!url) {
-      return reply.code(400).send({ error: '请提供 url' });
+      return reply.code(400).send({ error: t(getRequestLocale(req), 'job.urlRequired') });
     }
     if (!isValidHttpUrl(url)) {
-      return reply.code(400).send({ error: 'url 必须是 http/https 链接' });
+      return reply.code(400).send({ error: t(getRequestLocale(req), 'job.urlInvalid') });
     }
 
     const tts = resolveTtsForJob(
@@ -641,7 +645,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         try {
           return new URL(url).hostname;
         } catch {
-          return 'URL 导入';
+          return t(getRequestLocale(req), 'job.urlImport');
         }
       })();
 
@@ -654,7 +658,10 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       size: 0,
       status: 'queued',
       progress: 3,
-      message: `已入队，准备下载 URL…（TTS: ${tts.mode}${tts.voice ? ' / ' + tts.voice : ''}）`,
+      message: t(getRequestLocale(req), 'job.queuedUrl', {
+      tts: `${tts.mode}${tts.voice ? ' / ' + tts.voice : ''}`,
+    }),
+      locale: getRequestLocale(req),
       videoPath: '',
       sourceUrl: url,
       sourceKind: 'video', // 下载后会被覆盖
@@ -680,7 +687,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     };
   }>('/jobs/:id', async (req, reply) => {
     const job = await getJob(req.params.id);
-    if (!job) return reply.code(404).send({ error: '任务不存在' });
+    if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
     const patch: Partial<Job> = {};
     if (typeof req.body?.published === 'boolean') patch.published = req.body.published;
     if (req.body?.title) patch.title = req.body.title;
@@ -701,9 +708,9 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     };
   }>('/jobs/:id/retry', async (req, reply) => {
     const job = await getJob(req.params.id);
-    if (!job) return reply.code(404).send({ error: '任务不存在' });
+    if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
     if (job.status !== 'failed' && job.status !== 'done') {
-      return reply.code(400).send({ error: '当前状态不可重试' });
+      return reply.code(400).send({ error: t(getRequestLocale(req), 'job.retryNotAllowed') });
     }
 
     const fromStep: PipelineFromStep = isPipelineFromStep(req.body?.fromStep)
@@ -713,8 +720,8 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     try {
       await assertPipelinePrereqs(job, fromStep);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      return reply.code(400).send({ error: message });
+      const locale = getRequestLocale(req);
+      return reply.code(400).send({ error: errorMessage(locale, err) });
     }
 
     const tts = req.body?.tts
@@ -725,15 +732,17 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         ? normalizeScriptPrompt(req.body.scriptPrompt) || undefined
         : job.scriptPrompt;
 
-    await updateJob(
-      job.id,
-      buildRetryPatch(
+    const locale = getRequestLocale(req);
+    await updateJob(job.id, {
+      ...buildRetryPatch(
         job,
         fromStep,
         tts,
         req.body && 'scriptPrompt' in req.body ? scriptPrompt : undefined,
+        locale,
       ),
-    );
+      locale,
+    });
     void runPipeline(job.id, { fromStep });
     const latest = await getJob(job.id);
     return { job: latest ? toPublic(latest) : null };
@@ -744,16 +753,16 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     Body: { tts?: TtsOptions };
   }>('/jobs/:id/resynthesize', async (req, reply) => {
     const job = await getJob(req.params.id);
-    if (!job) return reply.code(404).send({ error: '任务不存在' });
+    if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
     if (!job.podcast?.script || !job.audioPath) {
-      return reply.code(400).send({ error: '缺少脚本或源音频，无法仅重合成' });
+      return reply.code(400).send({ error: t(getRequestLocale(req), 'job.resynthMissing') });
     }
 
     const tts = req.body?.tts ? normalizeTts({ ...job.tts, ...req.body.tts }) : normalizeTts(job.tts);
     await updateJob(job.id, {
       status: 'synthesizing_audio',
       progress: 86,
-      message: '正在按新模式合成播客音频…',
+      message: t(getRequestLocale(req), 'job.resynthRunning'),
       tts,
       error: undefined,
     });
@@ -769,7 +778,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       const updated = await updateJob(job.id, {
         status: 'done',
         progress: 100,
-        message: demo ? '音频已更新（演示模式）' : `音频已更新（TTS: ${mode}${voice ? ' / ' + voice : ''}）`,
+        message: demo ? t(getRequestLocale(req), 'job.resynthDoneDemo') : t(getRequestLocale(req), 'job.resynthDone', { tts: `${mode}${voice ? ' / ' + voice : ''}` }),
         podcastAudioPath: audioPath,
       });
       return { job: updated ? toPublic(updated) : null };
@@ -778,7 +787,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       const updated = await updateJob(job.id, {
         status: 'failed',
         progress: 100,
-        message: '音频重合成失败',
+        message: t(getRequestLocale(req), 'job.resynthFailed'),
         error: message,
       });
       return reply.code(500).send({
@@ -793,23 +802,23 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     '/jobs/:id/flashcards',
     async (req, reply) => {
       const job = await getJob(req.params.id);
-      if (!job) return reply.code(404).send({ error: '任务不存在' });
+      if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
       if (job.status !== 'failed' && job.status !== 'done') {
-        return reply.code(400).send({ error: '任务处理中，暂不可单独生成闪卡' });
+        return reply.code(400).send({ error: t(getRequestLocale(req), 'job.flashcardsBusy') });
       }
 
       const transcript = (job.transcript || '').trim();
       if (!transcript) {
-        return reply.code(400).send({ error: '缺少转写/文本，无法生成知识闪卡' });
+        return reply.code(400).send({ error: t(getRequestLocale(req), 'job.flashcardsNoTranscript') });
       }
       if (!job.podcast) {
-        return reply.code(400).send({ error: '请先生成播客脚本，再生成知识闪卡' });
+        return reply.code(400).send({ error: t(getRequestLocale(req), 'job.flashcardsNoScript') });
       }
 
       await updateJob(job.id, {
         status: 'generating_podcast',
         progress: 74,
-        message: '正在重新生成知识闪卡…',
+        message: t(getRequestLocale(req), 'job.flashcardsRunning'),
         error: undefined,
       });
 
@@ -828,8 +837,8 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           status: 'done',
           progress: 100,
           message: demo
-            ? `知识闪卡已更新（演示模式 · ${flashcards.length} 张）`
-            : `知识闪卡已更新（${flashcards.length} 张）`,
+            ? t(getRequestLocale(req), 'job.flashcardsDoneDemo', { n: flashcards.length })
+            : t(getRequestLocale(req), 'job.flashcardsDone', { n: flashcards.length }),
           podcast,
           title: podcast.title || job.title,
         });
@@ -840,7 +849,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         const updated = await updateJob(job.id, {
           status: 'done',
           progress: 100,
-          message: '知识闪卡生成失败，主内容未改动',
+          message: t(getRequestLocale(req), 'job.flashcardsFailed'),
           error: message,
         });
         return reply.code(500).send({
@@ -853,7 +862,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete<{ Params: { id: string } }>('/jobs/:id', async (req, reply) => {
     const removed = await deleteJob(req.params.id);
-    if (!removed) return reply.code(404).send({ error: '任务不存在' });
+    if (!removed) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
 
     // 整目录删除，覆盖源文件/音频/转写/脚本/播客等全部产物
     await removeDirIfExists(jobPaths(removed.id).dir);
