@@ -3,40 +3,114 @@
  *
  * - register / unregister 可在运行时调用
  * - enabled 状态与注册分离：禁用插件仍保留在表中，但不参与自动匹配
+ * - 支持 builtin / external 元数据与加载失败占位
  */
 import type {
   SourceInput,
   SourcePlugin,
   SourcePluginDescriptor,
+  SourcePluginOrigin,
+  SourcePluginPermission,
+  SourcePluginRegistration,
   SourceRiskLevel,
 } from './types.js';
+import {
+  getSourcePluginEnabledOverride,
+  setSourcePluginEnabledOverride,
+} from './state.js';
 
-const registry = new Map<string, SourcePlugin>();
-/** 显式启用覆盖：undefined 表示跟随 defaultEnabled */
-const enabledOverrides = new Map<string, boolean>();
+const registry = new Map<string, SourcePluginRegistration>();
 
-export function registerSourcePlugin(plugin: SourcePlugin): void {
-  registry.set(plugin.id, plugin);
+export function registerSourcePlugin(
+  plugin: SourcePlugin,
+  meta?: {
+    origin?: SourcePluginOrigin;
+    dirName?: string;
+    dirPath?: string;
+    permissions?: SourcePluginPermission[];
+    apiVersion?: number;
+  },
+): void {
+  registry.set(plugin.id, {
+    plugin,
+    origin: meta?.origin || 'builtin',
+    dirName: meta?.dirName,
+    dirPath: meta?.dirPath,
+    permissions: meta?.permissions,
+    apiVersion: meta?.apiVersion,
+    loadError: undefined,
+    manifestSnapshot: undefined,
+    loadedAt: new Date().toISOString(),
+  });
+}
+
+/** 登记加载失败的外部插件（便于 API 列表展示错误） */
+export function registerSourcePluginFailure(input: {
+  id: string;
+  origin?: SourcePluginOrigin;
+  dirName?: string;
+  dirPath?: string;
+  permissions?: SourcePluginPermission[];
+  apiVersion?: number;
+  loadError: string;
+  manifestSnapshot?: SourcePluginRegistration['manifestSnapshot'];
+}): void {
+  registry.set(input.id, {
+    origin: input.origin || 'external',
+    dirName: input.dirName,
+    dirPath: input.dirPath,
+    permissions: input.permissions,
+    apiVersion: input.apiVersion,
+    loadError: input.loadError,
+    manifestSnapshot: input.manifestSnapshot,
+    loadedAt: new Date().toISOString(),
+  });
 }
 
 export function unregisterSourcePlugin(id: string): boolean {
-  enabledOverrides.delete(id);
   return registry.delete(id);
 }
 
+/** 卸载全部外部插件（重扫前调用） */
+export function unregisterExternalSourcePlugins(): string[] {
+  const removed: string[] = [];
+  for (const [id, reg] of registry.entries()) {
+    if (reg.origin === 'external') {
+      registry.delete(id);
+      removed.push(id);
+    }
+  }
+  return removed;
+}
+
 export function getSourcePlugin(id: string): SourcePlugin | undefined {
+  return registry.get(id)?.plugin;
+}
+
+export function getSourcePluginRegistration(
+  id: string,
+): SourcePluginRegistration | undefined {
   return registry.get(id);
 }
 
 export function listSourcePlugins(): SourcePlugin[] {
+  return [...registry.values()]
+    .map((r) => r.plugin)
+    .filter((p): p is SourcePlugin => Boolean(p));
+}
+
+export function listSourcePluginRegistrations(): SourcePluginRegistration[] {
   return [...registry.values()];
 }
 
 export function isSourcePluginEnabled(id: string): boolean {
-  const plugin = registry.get(id);
-  if (!plugin) return false;
-  if (enabledOverrides.has(id)) return Boolean(enabledOverrides.get(id));
-  return plugin.defaultEnabled;
+  const reg = registry.get(id);
+  if (!reg) return false;
+  const override = getSourcePluginEnabledOverride(id);
+  if (override !== undefined) return override;
+  if (reg.plugin) return reg.plugin.defaultEnabled;
+  // 加载失败的插件默认不启用
+  return Boolean(reg.manifestSnapshot?.defaultEnabled);
 }
 
 /**
@@ -45,33 +119,52 @@ export function isSourcePluginEnabled(id: string): boolean {
  */
 export function setSourcePluginEnabled(id: string, enabled: boolean): boolean {
   if (!registry.has(id)) return false;
-  enabledOverrides.set(id, enabled);
+  setSourcePluginEnabledOverride(id, enabled);
   return true;
 }
 
 /** 清除显式覆盖，回到 defaultEnabled */
 export function resetSourcePluginEnabled(id: string): boolean {
   if (!registry.has(id)) return false;
-  enabledOverrides.delete(id);
+  setSourcePluginEnabledOverride(id, null);
   return true;
 }
 
-export function toSourcePluginDescriptor(plugin: SourcePlugin): SourcePluginDescriptor {
+export function toSourcePluginDescriptor(
+  reg: SourcePluginRegistration,
+): SourcePluginDescriptor {
+  const plugin = reg.plugin;
+  const snap = reg.manifestSnapshot;
+  const id = plugin?.id || snap?.id || 'unknown';
+  const defaultEnabled = plugin
+    ? plugin.defaultEnabled
+    : Boolean(snap?.defaultEnabled);
+
   return {
-    id: plugin.id,
-    name: plugin.name,
-    description: plugin.description,
-    version: plugin.version,
-    riskLevel: plugin.riskLevel,
-    capabilities: [...plugin.capabilities],
-    defaultEnabled: plugin.defaultEnabled,
-    enabled: isSourcePluginEnabled(plugin.id),
-    available: plugin.isAvailable(),
+    id,
+    name: plugin?.name || snap?.name || id,
+    description: plugin?.description || snap?.description || '',
+    version: plugin?.version || snap?.version || '0.0.0',
+    riskLevel: (plugin?.riskLevel ||
+      snap?.riskLevel ||
+      'high') as SourceRiskLevel,
+    capabilities: [
+      ...(plugin?.capabilities || snap?.capabilities || []),
+    ],
+    defaultEnabled,
+    enabled: isSourcePluginEnabled(id),
+    available: plugin ? plugin.isAvailable() && !reg.loadError : false,
+    origin: reg.origin,
+    dirName: reg.dirName,
+    dirPath: reg.dirPath,
+    permissions: reg.permissions || snap?.permissions,
+    apiVersion: reg.apiVersion ?? snap?.apiVersion,
+    loadError: reg.loadError,
   };
 }
 
 export function listSourcePluginDescriptors(): SourcePluginDescriptor[] {
-  return listSourcePlugins().map(toSourcePluginDescriptor);
+  return listSourcePluginRegistrations().map(toSourcePluginDescriptor);
 }
 
 export function listEnabledSourcePlugins(): SourcePlugin[] {
@@ -85,9 +178,14 @@ export function listEnabledSourcePlugins(): SourcePlugin[] {
  */
 export function resolveSourcePlugin(input: SourceInput): SourcePlugin {
   if (input.pluginId) {
-    const explicit = registry.get(input.pluginId);
+    const explicit = registry.get(input.pluginId)?.plugin;
     if (!explicit) {
-      throw new Error(`Source 插件未注册: ${input.pluginId}`);
+      const err = registry.get(input.pluginId)?.loadError;
+      throw new Error(
+        err
+          ? `Source 插件加载失败: ${input.pluginId} (${err})`
+          : `Source 插件未注册: ${input.pluginId}`,
+      );
     }
     if (!isSourcePluginEnabled(explicit.id)) {
       throw new Error(`Source 插件未启用: ${explicit.id}`);
@@ -100,7 +198,8 @@ export function resolveSourcePlugin(input: SourceInput): SourcePlugin {
     .sort((a, b) => riskRank(a.riskLevel) - riskRank(b.riskLevel));
 
   if (!candidates.length) {
-    const kind = input.type === 'url' ? `url=${input.url}` : `file=${input.filePath}`;
+    const kind =
+      input.type === 'url' ? `url=${input.url}` : `file=${input.filePath}`;
     throw new Error(`没有可用的 Source 插件可处理该输入 (${kind})`);
   }
 

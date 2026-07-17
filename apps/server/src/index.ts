@@ -13,6 +13,8 @@ import {
   mcpManageRoutes,
   mcpProtocolRoutes,
 } from './routes/mcp.js';
+import { sourceRoutes } from './routes/sources.js';
+import { refreshExternalSourcePlugins } from './sources/index.js';
 import { JOBS_DIR, ROOT_DIR, SQLITE_DB } from './utils/paths.js';
 import { ensureDir, pathExists } from './utils/fs.js';
 import { hasApiKey, getBaseUrl, getChatModel } from './utils/aiConfig.js';
@@ -38,6 +40,20 @@ async function main() {
   await migrateStorageLayout();
   // 后台自动签发 MCP Token（已初始化时）
   bootstrapMcpToken();
+  // 扫描本地 Source 外部插件（失败不阻断启动）
+  try {
+    const scan = await refreshExternalSourcePlugins();
+    if (scan.loaded.length || scan.failed.length) {
+      console.info(
+        '[sources] external plugins loaded=%s failed=%s dir=%s',
+        scan.loaded.join(',') || '-',
+        scan.failed.map((f) => `${f.dirName}:${f.error}`).join('; ') || '-',
+        scan.pluginsDir,
+      );
+    }
+  } catch (err) {
+    console.warn('[sources] external plugin scan failed:', err);
+  }
 
   const app = Fastify({
     logger: true,
@@ -53,6 +69,7 @@ async function main() {
   registerAuthGuard(app);
   await app.register(jobRoutes, { prefix: '/api' });
   await app.register(listenRoutes, { prefix: '/api' });
+  await app.register(sourceRoutes, { prefix: '/api' });
   await app.register(mcpManageRoutes, { prefix: '/api' });
   // MCP 协议端点挂在根路径 /mcp，便于客户端直接安装
   await app.register(mcpProtocolRoutes);

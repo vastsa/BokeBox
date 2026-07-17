@@ -3,7 +3,7 @@
  *
  * 使用方式：
  * - pipeline: importSource({ type:'url', url, jobId })
- * - 扩展: registerSourcePlugin(myPlugin)
+ * - 扩展: 将插件放入 storage/plugins/source/<dir>/ 后 rescan
  * - 热切换: setSourcePluginEnabled(id, true/false)
  */
 export type {
@@ -13,15 +13,23 @@ export type {
   SourcePlugin,
   SourcePluginContext,
   SourcePluginDescriptor,
+  SourcePluginManifest,
+  SourcePluginOrigin,
+  SourcePluginPermission,
+  SourcePluginRegistration,
   SourceProbe,
   SourceRiskLevel,
 } from './types.js';
 
 export {
   registerSourcePlugin,
+  registerSourcePluginFailure,
   unregisterSourcePlugin,
+  unregisterExternalSourcePlugins,
   getSourcePlugin,
+  getSourcePluginRegistration,
   listSourcePlugins,
+  listSourcePluginRegistrations,
   listEnabledSourcePlugins,
   listSourcePluginDescriptors,
   isSourcePluginEnabled,
@@ -35,9 +43,16 @@ export {
   ensureBuiltinSourcePlugins,
   importSource,
   probeSource,
+  refreshExternalSourcePlugins,
+  listSourcePluginsPublic,
   sourcePluginHost,
   createSourceContext,
 } from './host.js';
+
+export {
+  scanAndLoadExternalSourcePlugins,
+  type SourcePluginScanResult,
+} from './loader.js';
 
 export {
   DIRECT_HTTP_PLUGIN_ID,

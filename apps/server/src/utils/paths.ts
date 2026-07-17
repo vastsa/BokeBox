@@ -13,6 +13,12 @@ export const STORAGE_DIR = path.join(ROOT_DIR, 'storage');
 /** 任务媒体根：每个 job 独占一个子目录 */
 export const JOBS_DIR = path.join(STORAGE_DIR, 'jobs');
 
+/**
+ * 外部 Source 插件目录（仅本地加载，不支持远程安装）
+ * storage/plugins/source/<plugin-dir>/plugin.json + entry
+ */
+export const SOURCE_PLUGINS_DIR = path.join(STORAGE_DIR, 'plugins', 'source');
+
 /** SQLite 主库 */
 export const SQLITE_DB = path.join(STORAGE_DIR, 'app.db');
 
