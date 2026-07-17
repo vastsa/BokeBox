@@ -27,6 +27,10 @@
   <a href="#-get-started">Get started</a>
 </p>
 
+<p align="center">
+  <img src="docs/img/banner_en.webp" alt="BokeBox — Drop videos in. Get podcasts out." width="100%" />
+</p>
+
 ---
 
 ## 🎧 Sound familiar?
@@ -122,7 +126,7 @@ Create, listen, and manage task assets in one private space.
 
 | Home | Player |
 | :---: | :---: |
-| <img src="docs/img/home.png" alt="BokeBox home" /> | <img src="docs/img/lis.png" alt="BokeBox player" /> |
+| <img src="docs/img/home_en.webp" alt="BokeBox home" /> | <img src="docs/img/lis_en.webp" alt="BokeBox player" /> |
 
 You get:
 
