@@ -123,6 +123,32 @@ export function SourcePluginSettings({
     }
   };
 
+  const copyText = async (value: string, okMsg?: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      onMessage?.(okMsg || t('settings.mcpCopied'));
+    } catch {
+      onError?.(t('settings.mcpCopyFailed'));
+    }
+  };
+
+  const installCmd = pluginsDir
+    ? `mkdir -p "${pluginsDir}"\ncp -R examples/source-plugin-echo "${pluginsDir}/echo"`
+    : 'mkdir -p storage/plugins/source\ncp -R examples/source-plugin-echo storage/plugins/source/echo';
+
+  const manifestExample = `{
+  "id": "source.echo",
+  "name": "Echo Test Plugin",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "apiVersion": 1,
+  "description": "Demo source plugin",
+  "riskLevel": "low",
+  "capabilities": ["url"],
+  "defaultEnabled": false,
+  "permissions": []
+}`;
+
   const riskLabel = (level: SourceRiskLevel) => {
     if (level === 'low') return t('settings.sourceRiskLow');
     if (level === 'medium') return t('settings.sourceRiskMedium');
@@ -182,6 +208,97 @@ export function SourcePluginSettings({
               </button>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="settings-card settings-card-wide source-install-help">
+        <div className="settings-block">
+          <div className="settings-block-head">
+            <h3>{t('settings.sourceInstallTitle')}</h3>
+            <p>{t('settings.sourceInstallDesc')}</p>
+          </div>
+
+          <ol className="settings-steps source-install-steps">
+            <li>{t('settings.sourceInstallStep1')}</li>
+            <li>{t('settings.sourceInstallStep2')}</li>
+            <li>{t('settings.sourceInstallStep3')}</li>
+            <li>{t('settings.sourceInstallStep4')}</li>
+          </ol>
+
+          <details className="settings-prompt-details source-install-details">
+            <summary>{t('settings.sourceInstallLayoutTitle')}</summary>
+            <div className="source-install-panel">
+              <p className="settings-inline-hint">
+                {t('settings.sourceInstallLayoutDesc')}
+              </p>
+              <pre className="settings-code-block">{`storage/plugins/source/<plugin-dir>/
+  plugin.json
+  index.js`}</pre>
+            </div>
+          </details>
+
+          <details className="settings-prompt-details source-install-details">
+            <summary>{t('settings.sourceInstallManifestTitle')}</summary>
+            <div className="source-install-panel">
+              <p className="settings-inline-hint">
+                {t('settings.sourceInstallManifestDesc')}
+              </p>
+              <div className="settings-prompt-actions">
+                <button
+                  type="button"
+                  className="nl-btn nl-btn-secondary settings-prompt-copy-btn"
+                  onClick={() =>
+                    void copyText(
+                      manifestExample,
+                      t('settings.sourceInstallCopiedManifest'),
+                    )
+                  }
+                >
+                  {t('settings.sourceInstallCopyManifest')}
+                </button>
+              </div>
+              <pre className="settings-code-block">{manifestExample}</pre>
+            </div>
+          </details>
+
+          <details className="settings-prompt-details source-install-details">
+            <summary>{t('settings.sourceInstallEchoTitle')}</summary>
+            <div className="source-install-panel">
+              <p className="settings-inline-hint">
+                {t('settings.sourceInstallEchoDesc')}
+              </p>
+              <div className="settings-prompt-actions">
+                <button
+                  type="button"
+                  className="nl-btn nl-btn-secondary settings-prompt-copy-btn"
+                  onClick={() =>
+                    void copyText(
+                      installCmd,
+                      t('settings.sourceInstallCopiedCmd'),
+                    )
+                  }
+                >
+                  {t('settings.sourceInstallCopyCmd')}
+                </button>
+              </div>
+              <pre className="settings-code-block">{installCmd}</pre>
+              <p className="settings-inline-hint">
+                {t('settings.sourceInstallEchoUrlHint')}
+              </p>
+            </div>
+          </details>
+
+          <details className="settings-prompt-details source-install-details">
+            <summary>{t('settings.sourceInstallRulesTitle')}</summary>
+            <div className="source-install-panel">
+              <ul className="source-install-rules">
+                <li>{t('settings.sourceInstallRule1')}</li>
+                <li>{t('settings.sourceInstallRule2')}</li>
+                <li>{t('settings.sourceInstallRule3')}</li>
+                <li>{t('settings.sourceInstallRule4')}</li>
+              </ul>
+            </div>
+          </details>
         </div>
       </section>
 
