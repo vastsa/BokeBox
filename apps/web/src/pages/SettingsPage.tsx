@@ -30,10 +30,7 @@ import {
 } from '../i18n';
 import { AppShell } from '../layouts/AppShell';
 import { PROJECT_GITHUB_URL, PROJECT_LICENSE_SPDX } from '../lib/project';
-import {
-  formatSiteTitle,
-  setCachedSiteName,
-} from '../lib/site';
+import { setCachedSiteName } from '../lib/site';
 import {
   buildPublicSiteSeo,
   setCachedSeo,
@@ -555,11 +552,6 @@ export function SettingsPage({ route }: { route: Route }) {
                             />
                           </label>
                         </div>
-                        <p className="settings-field-tip">
-                          {t('settings.siteNamePreview')}：
-                          <strong>{formatSiteTitle(siteName)}</strong>
-                          {!siteName.trim() ? ` · ${t('settings.siteNameEmptyHint')}` : ''}
-                        </p>
                         <div className="settings-card-actions">
                           <span />
                           <button
@@ -590,7 +582,6 @@ export function SettingsPage({ route }: { route: Route }) {
                               spellCheck={false}
                             />
                           </label>
-                          <p className="settings-field-tip">{t('settings.seoTitleHint')}</p>
                           <label className="auth-field settings-field-span">
                             <span>{t('settings.seoDescription')}</span>
                             <textarea
@@ -602,7 +593,6 @@ export function SettingsPage({ route }: { route: Route }) {
                               rows={3}
                             />
                           </label>
-                          <p className="settings-field-tip">{t('settings.seoDescriptionHint')}</p>
                           <label className="auth-field settings-field-span">
                             <span>{t('settings.seoKeywords')}</span>
                             <input
@@ -614,7 +604,6 @@ export function SettingsPage({ route }: { route: Route }) {
                               spellCheck={false}
                             />
                           </label>
-                          <p className="settings-field-tip">{t('settings.seoKeywordsHint')}</p>
                         </div>
                         <div className="settings-seo-preview" aria-label={t('settings.seoPreview')}>
                           <div className="settings-seo-preview-label">{t('settings.seoPreview')}</div>
@@ -625,10 +614,6 @@ export function SettingsPage({ route }: { route: Route }) {
                             {withSeoAttribution(seoDescription || buildPublicSiteSeo({ title: seoTitle }, siteName).title)}
                           </div>
                           <div className="settings-seo-preview-attr">
-                            <span className="settings-oss-badge">{t('settings.seoAttributionLocked')}</span>
-                            <a href={PROJECT_GITHUB_URL} target="_blank" rel="noreferrer noopener">
-                              {PROJECT_GITHUB_URL}
-                            </a>
                             <span className="settings-seo-preview-attr-text">{SITE_ATTRIBUTION}</span>
                           </div>
                         </div>
