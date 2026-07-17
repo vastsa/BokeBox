@@ -6,6 +6,7 @@ import {
   type AiPromptSettings,
 } from '../../api/client';
 import { useI18n } from '../../i18n';
+import { PageLoader } from '../ui/PageLoader';
 
 const KINDS: AiPromptKind[] = [
   'podcastSystem',
@@ -248,7 +249,7 @@ export function GlobalAiPromptSettings({
   );
 
   if (loading) {
-    return <div className="auth-loading">{t('aiPrompt.loading')}</div>;
+    return <PageLoader label={t('aiPrompt.loading')} variant="block" />;
   }
 
   if (error || !map) {

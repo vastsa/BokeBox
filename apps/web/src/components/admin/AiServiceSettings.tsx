@@ -11,6 +11,7 @@ import {
   WHISPER_MODEL_OPTIONS,
 } from '../../lib/providerOptions';
 import { useI18n } from '../../i18n';
+import { PageLoader } from '../ui/PageLoader';
 
 type ServiceKeyForm = {
   baseUrl: string;
@@ -192,7 +193,7 @@ export function AiServiceSettings({
     return (
       <section className="settings-card settings-card-wide">
         <div className="settings-block">
-          <div className="auth-loading">{t('settings.loading')}</div>
+          <PageLoader label={t('settings.loading')} variant="block" />
         </div>
       </section>
     );

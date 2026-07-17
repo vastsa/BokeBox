@@ -11,6 +11,7 @@ import {
   TtsModePicker,
 } from './TtsModePicker';
 import { tOutside, useI18n } from '../../i18n';
+import { PageLoader } from '../ui/PageLoader';
 
 const DEFAULT_TTS: TtsOptions = {
   mode: 'default',
@@ -142,7 +143,7 @@ export function GlobalTtsSettings() {
       </dl>
 
       {loading ? (
-        <div className="auth-loading">{t('tts.loading')}</div>
+        <PageLoader label={t('tts.loading')} variant="block" />
       ) : (
         <>
           <div className="settings-block">

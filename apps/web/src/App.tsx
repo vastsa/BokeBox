@@ -16,6 +16,7 @@ import { SetupPage } from './pages/SetupPage';
 import { useI18n } from './i18n';
 import { PlayerProvider } from './player/PlayerContext';
 import { StarMapLoader } from './components/tags/StarMapLoader';
+import { PageLoader } from './components/ui/PageLoader';
 
 const TagCloudPage = lazy(() =>
   import('./pages/TagCloudPage').then((m) => ({ default: m.TagCloudPage })),
@@ -174,13 +175,7 @@ export default function App() {
 
   let page: ReactNode;
   if (gate === 'checking') {
-    page = (
-      <div className="auth-screen">
-        <div className="auth-card">
-          <div className="auth-loading">{t('app.starting')}</div>
-        </div>
-      </div>
-    );
+    page = <PageLoader label={t('app.starting')} variant="screen" />;
   } else if (gate === 'setup' || route.name === 'setup') {
     page = <SetupPage />;
   } else if (gate === 'login' || route.name === 'login') {

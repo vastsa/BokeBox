@@ -23,6 +23,7 @@ import { ContentLocaleSelect } from '../components/admin/ContentLocaleSelect';
 import { IconRefresh } from '../components/icons';
 import { PageHeader } from '../components/ui/PageHeader';
 import { SettingsToast } from '../components/ui/SettingsToast';
+import { PageLoader } from '../components/ui/PageLoader';
 import { clearAuthSession } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 import {
@@ -518,7 +519,7 @@ export function SettingsPage({ route }: { route: Route }) {
             </div>
 
             {loading ? (
-              <div className="auth-loading">{t('settings.loading')}</div>
+              <PageLoader label={t('settings.loading')} variant="block" />
             ) : (
               <div className="settings-tab-panels">
                 <SettingsPanel id="voice" active={tab === 'voice'}>
@@ -625,9 +626,7 @@ export function SettingsPage({ route }: { route: Route }) {
                           {t('settings.mcpAutoToken')}
                         </p>
                         {mcpLoading && !mcpInstall ? (
-                          <div className="auth-loading">
-                            {t('settings.mcpLoading')}
-                          </div>
+                          <PageLoader label={t('settings.mcpLoading')} variant="block" />
                         ) : (
                           <div className="settings-fields">
                             <label className="auth-field">
