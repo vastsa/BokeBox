@@ -12,6 +12,7 @@ const KEY_AI = 'ai_config';
 const KEY_SESSIONS = 'auth_sessions';
 const KEY_SETUP = 'setup_completed';
 const KEY_GUEST_HOME_PUBLIC = 'guest_home_public';
+const KEY_SITE_NAME = 'site_name';
 
 export type AuthAccount = {
   username: string;
@@ -125,6 +126,66 @@ export function isGuestHomePublic(): boolean {
 export function setGuestHomePublic(enabled: boolean): boolean {
   setSettingRaw(KEY_GUEST_HOME_PUBLIC, enabled ? '1' : '0');
   return enabled;
+}
+
+const SITE_BRAND = 'BokeBox';
+const SITE_TITLE_SUFFIX = ` - ${SITE_BRAND}`;
+const SITE_NAME_MAX = 48;
+
+/** 规范化站点名称（不含品牌后缀） */
+export function normalizeSiteName(raw?: string | null): string {
+  let name = String(raw ?? '').trim().replace(/\s+/g, ' ');
+  // 避免用户手动带上后缀导致重复
+  const stripTokens = [
+    SITE_TITLE_SUFFIX,
+    `-${SITE_BRAND}`,
+    `- ${SITE_BRAND}`,
+    SITE_BRAND,
+  ];
+  let changed = true;
+  while (changed && name) {
+    changed = false;
+    for (const token of stripTokens) {
+      if (name === token) {
+        name = '';
+        changed = true;
+        break;
+      }
+      if (name.endsWith(token)) {
+        name = name.slice(0, -token.length).trim();
+        changed = true;
+        break;
+      }
+    }
+  }
+  if (name.length > SITE_NAME_MAX) name = name.slice(0, SITE_NAME_MAX).trim();
+  return name;
+}
+
+/** 读取站点自定义名称（空表示仅展示 BokeBox） */
+export function getSiteName(): string {
+  return normalizeSiteName(getSettingRaw(KEY_SITE_NAME));
+}
+
+export function setSiteName(raw?: string | null): string {
+  const next = normalizeSiteName(raw);
+  if (!next) {
+    deleteSetting(KEY_SITE_NAME);
+    return '';
+  }
+  setSettingRaw(KEY_SITE_NAME, next);
+  return next;
+}
+
+/** 最终展示名：自定义名 - BokeBox；未设置则为 BokeBox */
+export function formatSiteTitle(siteName?: string | null): string {
+  const name = normalizeSiteName(siteName ?? getSiteName());
+  return name ? `${name}${SITE_TITLE_SUFFIX}` : SITE_BRAND;
+}
+
+export function getSiteBrand(): { siteName: string; siteTitle: string } {
+  const siteName = getSiteName();
+  return { siteName, siteTitle: formatSiteTitle(siteName) };
 }
 
 export function getAuthAccount(): AuthAccount | null {

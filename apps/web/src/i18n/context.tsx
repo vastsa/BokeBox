@@ -21,6 +21,11 @@ import {
   type TranslateParams,
   type Translator,
 } from './translate';
+import {
+  formatDocumentTitle,
+  getCachedSiteName,
+  subscribeSiteName,
+} from '../lib/site';
 
 type I18nContextValue = {
   locale: Locale;
@@ -36,10 +41,26 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => getLocale());
 
   useEffect(() => {
-    return subscribeLocale((next) => {
+    const applyTitle = (loc: Locale, siteName = getCachedSiteName()) => {
+      const tr = createTranslator(loc);
+      document.title = formatDocumentTitle(
+        siteName,
+        tr('app.documentTitle'),
+        tr('app.tagline'),
+      );
+    };
+    applyTitle(getLocale());
+    const unsubLocale = subscribeLocale((next) => {
       setLocaleState(next);
-      document.title = createTranslator(next)('app.documentTitle');
+      applyTitle(next);
     });
+    const unsubSite = subscribeSiteName((siteName) => {
+      applyTitle(getLocale(), siteName);
+    });
+    return () => {
+      unsubLocale();
+      unsubSite();
+    };
   }, []);
 
   const setLocale = useCallback((next: Locale) => {

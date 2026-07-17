@@ -369,6 +369,10 @@ export type SetupStatus = {
   needsSetup: boolean;
   /** 游客是否可浏览首页与收听 */
   guestHomePublic?: boolean;
+  /** 站点自定义名称（不含 - BokeBox） */
+  siteName?: string;
+  /** 最终展示名（含 - BokeBox） */
+  siteTitle?: string;
   ai?: {
     apiKeySet: boolean;
     apiKeyHint: string;
@@ -506,6 +510,8 @@ export async function saveAiSettings(body: {
 
 export type AccessSettings = {
   guestHomePublic: boolean;
+  siteName: string;
+  siteTitle: string;
 };
 
 export async function fetchAccessSettings(): Promise<AccessSettings> {
@@ -513,7 +519,7 @@ export async function fetchAccessSettings(): Promise<AccessSettings> {
 }
 
 export async function saveAccessSettings(
-  body: AccessSettings,
+  body: Partial<AccessSettings> & { siteName?: string | null },
 ): Promise<AccessSettings> {
   return request('/settings/access', {
     method: 'PUT',

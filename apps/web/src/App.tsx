@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { GlobalPlayerBar } from './components/listen/GlobalPlayerBar';
 import { fetchMe, fetchSetupStatus } from './api/client';
 import { clearAuthSession, getToken } from './lib/auth';
+import { setCachedSiteName } from './lib/site';
 import { navigate, parseHash, type Route } from './lib/router';
 import { AdminJobPage } from './pages/AdminJobPage';
 import { AdminUploadPage } from './pages/AdminUploadPage';
@@ -50,6 +51,9 @@ export default function App() {
       try {
         const status = await fetchSetupStatus();
         if (cancelled) return;
+        if (status.siteName !== undefined || status.siteTitle !== undefined) {
+          setCachedSiteName(status.siteName || '');
+        }
         if (!status.initialized) {
           setGate('setup');
           if (route.name !== 'setup') navigate({ name: 'setup' });

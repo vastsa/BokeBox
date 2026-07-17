@@ -4,6 +4,11 @@ import { BrandMascot } from '../components/BrandMark';
 import { OpenSourceMark } from '../components/OpenSourceMark';
 import { useI18n } from '../i18n';
 import { getStoredUsername, setAuthSession } from '../lib/auth';
+import {
+  formatSiteTitle,
+  getCachedSiteName,
+  setCachedSiteName,
+} from '../lib/site';
 import { navigate } from '../lib/router';
 
 export function LoginPage({
@@ -18,6 +23,7 @@ export function LoginPage({
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [guestHomePublic, setGuestHomePublic] = useState(false);
+  const [siteTitle, setSiteTitle] = useState(() => formatSiteTitle(getCachedSiteName()));
 
   useEffect(() => {
     void (async () => {
@@ -28,6 +34,9 @@ export function LoginPage({
           return;
         }
         setGuestHomePublic(Boolean(status.guestHomePublic));
+        const name = status.siteName || '';
+        setCachedSiteName(name);
+        setSiteTitle(status.siteTitle || formatSiteTitle(name));
       } catch {
         // ignore
       } finally {
@@ -71,7 +80,7 @@ export function LoginPage({
         <div className="auth-brand auth-brand-stack">
           <BrandMascot size={96} className="auth-brand-mascot" />
           <div className="auth-brand-copy">
-            <div className="auth-brand-title">BokeBox</div>
+            <div className="auth-brand-title">{siteTitle}</div>
             <div className="auth-brand-sub">{t('auth.brandSub')}</div>
           </div>
         </div>

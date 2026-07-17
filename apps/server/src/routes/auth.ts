@@ -14,12 +14,15 @@ import {
   type Locale,
 } from '../i18n/index.js';
 import {
+  formatSiteTitle,
   getAuthAccount,
   getDefaultAiConfigForSetup,
+  getSiteBrand,
   isGuestHomePublic,
   isSetupCompleted,
   setAiConfig,
   setGuestHomePublic,
+  setSiteName,
   toPublicAiConfig,
   type AiConfig,
 } from '../services/settingsStore.js';
@@ -92,10 +95,13 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   /** 初始化状态：公开 */
   app.get('/setup/status', async () => {
     const initialized = isSetupCompleted();
+    const brand = initialized ? getSiteBrand() : { siteName: '', siteTitle: formatSiteTitle('') };
     return {
       initialized,
       needsSetup: !initialized,
       guestHomePublic: initialized ? isGuestHomePublic() : false,
+      siteName: brand.siteName,
+      siteTitle: brand.siteTitle,
       ai: initialized ? undefined : getDefaultAiConfigForSetup(),
     };
   });

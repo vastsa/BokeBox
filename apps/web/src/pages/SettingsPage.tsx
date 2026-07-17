@@ -30,6 +30,10 @@ import {
 } from '../i18n';
 import { AppShell } from '../layouts/AppShell';
 import { PROJECT_GITHUB_URL, PROJECT_LICENSE_SPDX } from '../lib/project';
+import {
+  formatSiteTitle,
+  setCachedSiteName,
+} from '../lib/site';
 
 type SettingsTab = 'voice' | 'persona' | 'cover' | 'ai' | 'account';
 
@@ -62,7 +66,9 @@ export function SettingsPage({ route }: { route: Route }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [themePref, setThemePref] = useState<ThemePreference>(() => getThemePreference());
   const [guestHomePublic, setGuestHomePublic] = useState(false);
+  const [siteName, setSiteName] = useState('');
   const [savingAccess, setSavingAccess] = useState(false);
+  const [savingSiteName, setSavingSiteName] = useState(false);
 
   const tabs = useMemo(
     () =>
@@ -109,6 +115,8 @@ export function SettingsPage({ route }: { route: Route }) {
       ]);
       setUsername(me.username);
       setGuestHomePublic(Boolean(access.guestHomePublic));
+      setSiteName(String(access.siteName || ''));
+      setCachedSiteName(access.siteName || '');
       setAi(aiCfg);
       setBaseUrl(aiCfg.baseUrl);
       setChatModel(aiCfg.chatModel);
@@ -199,6 +207,7 @@ export function SettingsPage({ route }: { route: Route }) {
     setError(null);
     try {
       const res = await saveAccessSettings({ guestHomePublic: next });
+      if (res.siteName !== undefined) setSiteName(res.siteName || '');
       setGuestHomePublic(Boolean(res.guestHomePublic));
       setMsg(
         res.guestHomePublic
@@ -212,6 +221,23 @@ export function SettingsPage({ route }: { route: Route }) {
       setSavingAccess(false);
     }
   };
+
+  const onSaveSiteName = async () => {
+    setSavingSiteName(true);
+    setMsg(null);
+    setError(null);
+    try {
+      const res = await saveAccessSettings({ siteName });
+      setSiteName(res.siteName || '');
+      setCachedSiteName(res.siteName || '');
+      setMsg(t('settings.siteNameSaved'));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSavingSiteName(false);
+    }
+  };
+
 
   return (
     <AppShell route={route}>
@@ -467,6 +493,42 @@ export function SettingsPage({ route }: { route: Route }) {
                         >
                           {t('auth.logout')}
                         </button>
+                      </div>
+
+                      <div className="settings-block">
+                        <div className="settings-block-head">
+                          <h3>{t('settings.siteName')}</h3>
+                          <p>{t('settings.siteNameDesc')}</p>
+                        </div>
+                        <div className="settings-fields">
+                          <label className="auth-field settings-field-span">
+                            <span>{t('settings.siteName')}</span>
+                            <input
+                              type="text"
+                              value={siteName}
+                              onChange={(e) => setSiteName(e.target.value)}
+                              placeholder={t('settings.siteNamePlaceholder')}
+                              maxLength={48}
+                              spellCheck={false}
+                            />
+                          </label>
+                        </div>
+                        <p className="settings-field-tip">
+                          {t('settings.siteNamePreview')}：
+                          <strong>{formatSiteTitle(siteName)}</strong>
+                          {!siteName.trim() ? ` · ${t('settings.siteNameEmptyHint')}` : ''}
+                        </p>
+                        <div className="settings-card-actions">
+                          <span />
+                          <button
+                            type="button"
+                            className="nl-btn nl-btn-primary"
+                            onClick={() => void onSaveSiteName()}
+                            disabled={savingSiteName}
+                          >
+                            {savingSiteName ? t('common.saving') : t('common.save')}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="settings-block">

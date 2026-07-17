@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { BrandMark } from '../components/BrandMark';
 import {
   IconGitHub,
@@ -11,6 +11,11 @@ import { OpenSourceMark } from '../components/OpenSourceMark';
 import { useI18n } from '../i18n';
 import { PROJECT_GITHUB_URL } from '../lib/project';
 import { getToken } from '../lib/auth';
+import {
+  formatSiteTitle,
+  getCachedSiteName,
+  subscribeSiteName,
+} from '../lib/site';
 import { navigate, type Route } from '../lib/router';
 
 export function AppShell({
@@ -23,8 +28,12 @@ export function AppShell({
   hideBottomNav?: boolean;
 }) {
   const isGuest = !getToken();
+  const [siteName, setSiteName] = useState(() => getCachedSiteName());
+  const siteTitle = formatSiteTitle(siteName);
 
   const { t } = useI18n();
+
+  useEffect(() => subscribeSiteName(setSiteName), []);
   const homeActive =
     route.name === 'home' ||
     route.name === 'listen' ||
@@ -49,7 +58,7 @@ export function AppShell({
             <BrandMark size={32} />
             <span className="text-left">
               <span className="block text-[14.5px] font-semibold leading-none tracking-[-0.02em] text-[var(--text)]">
-                BokeBox
+                {siteTitle}
               </span>
               <span className="mt-0.5 hidden text-[10.5px] text-[var(--text-3)] sm:block">
                 {t('app.tagline')}
