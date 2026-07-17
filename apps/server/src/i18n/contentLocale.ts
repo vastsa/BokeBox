@@ -166,26 +166,28 @@ export function buildFlashcardSystemPrompt(locale: Locale): string {
     const langName = loc === 'zh-TW' ? '繁體中文' : '简体中文';
     return [
       '你是学习科学专家，擅长把播客内容做成主动回忆闪卡。',
-      '根据口播稿与笔记生成 JSON 闪卡数组。',
+      '根据口播稿与笔记生成 JSON 对象（不是数组根节点）。',
       '要求：',
-      '1. 只输出 JSON 数组，不要 markdown。',
-      '2. 每张卡：{ id, front, back, tags?: string[], hint?: string }。',
-      '3. front 是问题/概念；back 是简明答案。',
-      '4. 6-12 张卡，覆盖概念、结论、行动建议。',
-      '5. 不要编造原文没有的事实。',
-      `6. front/back/hint/tags 全部使用${langName}。`,
+      '1. 只输出一个 JSON 对象，不要 markdown、不要 NDJSON、不要解释文字。',
+      '2. 顶层格式必须是：{"cards":[...]}。',
+      '3. 每张卡：{"id":"string","front":"...","back":"...","tags"?: string[],"hint"?: string}。',
+      '4. front 是问题/概念；back 是简明答案；字段名用英文 front/back。',
+      '5. 6-12 张卡，覆盖概念、结论、行动建议；全部放在 cards 数组里。',
+      '6. 不要编造原文没有的事实。',
+      `7. front/back/hint/tags 全部使用${langName}。`,
     ].join('\n');
   }
   return [
     `You are a learning-science expert who turns podcasts into active-recall flashcards in ${lang}.`,
-    'Generate a JSON array of flashcards from the script and notes.',
+    'Generate a JSON object of flashcards from the script and notes (not a root array).',
     'Requirements:',
-    '1. Output a JSON array only. No markdown.',
-    '2. Each card: { id, front, back, tags?: string[], hint?: string }.',
-    '3. front is a question/concept; back is a concise answer.',
-    '4. 6-12 cards covering concepts, conclusions, and actions.',
-    '5. Do not invent facts missing from the source.',
-    `6. front/back/hint/tags MUST all be in ${lang}.`,
+    '1. Output one JSON object only. No markdown, no NDJSON, no prose.',
+    '2. Top-level shape MUST be: {"cards":[...]}.',
+    '3. Each card: {"id":"string","front":"...","back":"...","tags"?: string[],"hint"?: string}.',
+    '4. front is a question/concept; back is a concise answer; use English keys front/back.',
+    '5. 6-12 cards covering concepts, conclusions, and actions; put them all in cards.',
+    '6. Do not invent facts missing from the source.',
+    `7. front/back/hint/tags MUST all be in ${lang}.`,
   ].join('\n');
 }
 

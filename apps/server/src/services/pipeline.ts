@@ -506,10 +506,11 @@ export async function runPipeline(
       if (!transcript.trim()) {
         transcript = (await getJob(jobId))?.transcript || '';
       }
-      if (!transcript.trim()) {
+      // 转写与口播稿任一可用即可（重跑闪卡时更稳）
+      if (!transcript.trim() && !podcast?.script?.trim()) {
         throw new AppError('pipeline.emptyTranscriptCards', 400);
       }
-      if (!podcast?.script?.trim()) {
+      if (!podcast) {
         throw new AppError('pipeline.needScriptCards', 400);
       }
 
@@ -517,7 +518,7 @@ export async function runPipeline(
       const latestCards = (await getJob(jobId)) || job;
       const { flashcards, demo: demoCards } = await generateFlashcards({
         jobId,
-        transcript,
+        transcript: transcript || podcast.script || '',
         sourceTitle: latestCards.originalFilename || latestCards.title,
         podcast,
         locale: contentLocale,
@@ -599,12 +600,13 @@ export async function runPipeline(
 
     const cardsTask = async () => {
       if (!needFlashcards) return null;
-      if (!transcriptSnapshot.trim()) {
+      // 转写为空时仍可用口播稿生成闪卡
+      if (!transcriptSnapshot.trim() && !podcastSnapshot.script?.trim()) {
         throw new AppError('pipeline.emptyTranscriptCards', 400);
       }
       return generateFlashcards({
         jobId,
-        transcript: transcriptSnapshot,
+        transcript: transcriptSnapshot || podcastSnapshot.script || '',
         sourceTitle,
         podcast: podcastSnapshot,
         locale: contentLocale,
