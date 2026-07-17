@@ -248,7 +248,7 @@ POST /api/jobs/from-url
 ]
 ```
 
-支持类型：`string` | `password` | `number` | `boolean` | `select`。
+支持类型：`string` | `password` | `number` | `boolean` | `select` / `textarea`。
 
 在 `fetch` 中读取：
 

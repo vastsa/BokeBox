@@ -334,6 +334,50 @@ export function SourcePluginSettings({
       );
     }
 
+    if (field.type === 'textarea') {
+      return (
+        <label className="source-config-field" key={field.key} htmlFor={id}>
+          <span className="source-config-label-row">
+            <span className="source-config-label">{field.label}</span>
+            <span className="source-config-badge">
+              {field.required
+                ? t('settings.sourceConfigRequired')
+                : t('settings.sourceConfigOptional')}
+            </span>
+          </span>
+          {field.description ? (
+            <span className="source-config-desc">{field.description}</span>
+          ) : null}
+          <textarea
+            id={id}
+            className="nl-input source-config-textarea"
+            value={value}
+            disabled={savingConfigId === plugin.id}
+            rows={6}
+            placeholder={
+              secret
+                ? status?.set
+                  ? t('settings.sourceConfigSecretKeep')
+                  : field.placeholder || ''
+                : field.placeholder || ''
+            }
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(e) => setDraftValue(plugin.id, field.key, e.target.value)}
+          />
+          {secret ? (
+            <span className="source-config-secret-status">
+              {status?.set
+                ? t('settings.sourceConfigSecretSet', {
+                    hint: status.hint ? `· ${status.hint}` : '',
+                  })
+                : t('settings.sourceConfigSecretUnset')}
+            </span>
+          ) : null}
+        </label>
+      );
+    }
+
     const inputType =
       field.type === 'password' || secret
         ? 'password'

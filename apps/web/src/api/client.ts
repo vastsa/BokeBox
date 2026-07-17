@@ -741,7 +741,8 @@ export type SourcePluginConfigFieldType =
   | 'password'
   | 'number'
   | 'boolean'
-  | 'select';
+  | 'select'
+  | 'textarea';
 
 export type SourcePluginConfigValue = string | number | boolean;
 

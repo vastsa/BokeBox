@@ -21,7 +21,8 @@ function isFieldType(v: unknown): v is SourcePluginConfigFieldType {
     v === 'password' ||
     v === 'number' ||
     v === 'boolean' ||
-    v === 'select'
+    v === 'select' ||
+    v === 'textarea'
   );
 }
 
@@ -185,7 +186,7 @@ export function updateSourcePluginConfig(
       continue;
     }
 
-    if (field.type === 'string' || field.type === 'password' || field.type === 'select') {
+    if (field.type === 'string' || field.type === 'password' || field.type === 'select' || field.type === 'textarea') {
       const s = String(coerced);
       if (!s) {
         if (isSecretField(field)) continue;

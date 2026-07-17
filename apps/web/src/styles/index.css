@@ -11149,6 +11149,17 @@ html[data-theme="dark"] .admin-chrome-tabs {
   background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
 }
 
+
+.source-config-textarea {
+  min-height: 120px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 .source-plugin-config-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
