@@ -1,4 +1,10 @@
 import type { ScriptPromptOptions } from '../types/job.js';
+import type { Locale } from '../i18n/types.js';
+import {
+  resolveContentLocale,
+  scriptPromptFieldLabels,
+  scriptPromptSectionTitle,
+} from '../i18n/contentLocale.js';
 
 const FIELDS: Array<{
   key: keyof ScriptPromptOptions;
@@ -102,36 +108,52 @@ export function hasScriptPrompt(
 /** 生成注入 system prompt 的人设段落 */
 export function buildScriptPromptSection(
   prompt?: ScriptPromptOptions | null,
+  locale: Locale | string | null = 'zh-CN',
 ): string {
   const p = normalizeScriptPrompt(prompt);
   if (!p) return '';
+  const loc = resolveContentLocale(locale);
+  const labels = scriptPromptFieldLabels(loc);
+  const lines: string[] = ['', scriptPromptSectionTitle(loc)];
 
-  const lines: string[] = [
-    '',
-    '【口播人设与风格干预】（用户自定义，优先级高于默认设定）',
-  ];
-
-  for (const { key, label } of FIELDS) {
-    const value = p[key];
-    if (value) lines.push(`- ${label}：${value}`);
+  for (const { key, label } of labels) {
+    const value = p[key as keyof ScriptPromptOptions];
+    if (value) {
+      lines.push(loc === 'en-US' ? `- ${label}: ${value}` : `- ${label}：${value}`);
+    }
   }
 
   const maxChars = resolveScriptMaxChars(p);
-  lines.push(
-    '请严格按以上人设撰写 script / hostIntro：',
-    '1. 开场与收尾要体现主播身份与节目辨识度（若有节目名请自然点出）。',
-    '2. 措辞、节奏、称呼符合指定说话风格与语气调性。',
-    '3. 内容面向目标听众，避免不匹配的黑话或腔调。',
-    '4. 口播稿 script 正文字数（去除音频标签后）严格不超过 ' +
-      String(maxChars) +
-      ' 字，目标约 ' +
-      String(Math.round(maxChars * 0.75)) +
-      '-' +
-      String(maxChars) +
-      ' 字，宁短勿超。',
-    '5. 额外要求必须遵守，但不能编造转写稿中不存在的事实。',
-    '6. 仍然必须遵守 MiMo TTS 音频标签控制规则。',
-  );
+  const targetMin = Math.round(maxChars * 0.75);
+  if (loc === 'en-US') {
+    lines.push(
+      'Write script / hostIntro strictly with the persona above:',
+      '1. Opening and closing should reflect host identity and show branding (mention show name naturally if set).',
+      '2. Wording, pacing, and address style must match the specified speaking style and tone.',
+      '3. Target the stated audience; avoid mismatched jargon.',
+      `4. Spoken script length after removing audio tags must be ≤ ${maxChars} characters, ideally ${targetMin}-${maxChars}. Prefer shorter over longer.`,
+      '5. Honor extra requirements without inventing facts absent from the transcript.',
+      '6. Still obey MiMo TTS audio-tag rules (style tags remain Chinese control tokens).',
+      '7. User-facing fields must be written in English.',
+    );
+  } else {
+    lines.push(
+      '请严格按以上人设撰写 script / hostIntro：',
+      '1. 开场与收尾要体现主播身份与节目辨识度（若有节目名请自然点出）。',
+      '2. 措辞、节奏、称呼符合指定说话风格与语气调性。',
+      '3. 内容面向目标听众，避免不匹配的黑话或腔调。',
+      '4. 口播稿 script 正文字数（去除音频标签后）严格不超过 ' +
+        String(maxChars) +
+        ' 字，目标约 ' +
+        String(targetMin) +
+        '-' +
+        String(maxChars) +
+        ' 字，宁短勿超。',
+      '5. 额外要求必须遵守，但不能编造转写稿中不存在的事实。',
+      '6. 仍然必须遵守 MiMo TTS 音频标签控制规则。',
+      '7. 面向用户的字段必须使用中文。',
+    );
+  }
 
   return lines.join('\n');
 }

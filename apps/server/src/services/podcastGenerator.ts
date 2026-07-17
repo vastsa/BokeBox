@@ -8,6 +8,16 @@ import {
   hasScriptPrompt,
   resolveScriptMaxChars,
 } from './scriptPrompt.js';
+import type { Locale } from '../i18n/types.js';
+import {
+  buildPodcastSystemPrompt,
+  buildPodcastUserPrompt,
+  buildRewriteSystemPrompt,
+  buildRewriteUserPrompt,
+  podcastFallbackCopy,
+  resolveContentLocale,
+  spokenCharsPerMinute,
+} from '../i18n/contentLocale.js';
 
 const GRADIENTS = [
   'from-[#7eb0ff] via-[#4f8ef7] to-[#3b7aef]',
@@ -37,24 +47,103 @@ function pickGradient(seed: string): string {
  * - 正文细粒度：`（深呼吸）` `（轻笑）` `（沉默片刻）` `（语速加快）` …
  * - 不支持 user 侧自然语言「风格指令」，只能靠文本内标签
  */
-function buildDemoHostIntro(scriptPrompt?: ScriptPromptOptions): string {
+function buildDemoHostIntro(
+  scriptPrompt?: ScriptPromptOptions,
+  locale: Locale = 'zh-CN',
+): string {
   if (!hasScriptPrompt(scriptPrompt)) {
-    return '主持人将原视频内容重构成一档通勤向精华播客。';
+    return locale === 'en-US'
+      ? 'The host reconstructs the source into a commute-friendly highlight podcast.'
+      : '主持人将原视频内容重构成一档通勤向精华播客。';
   }
-  const name = scriptPrompt?.hostName || '主持人';
+  const name =
+    scriptPrompt?.hostName || (locale === 'en-US' ? 'the host' : '主持人');
   const identity = scriptPrompt?.hostIdentity
-    ? `（${scriptPrompt.hostIdentity}）`
+    ? locale === 'en-US'
+      ? ` (${scriptPrompt.hostIdentity})`
+      : `（${scriptPrompt.hostIdentity}）`
     : '';
-  const show = scriptPrompt?.showName ? `《${scriptPrompt.showName}》` : '本期节目';
-  return `${name}${identity} 以${show}视角，将原视频内容重构成一档通勤向精华播客。`;
+  const show = scriptPrompt?.showName
+    ? locale === 'en-US'
+      ? `"${scriptPrompt.showName}"`
+      : `《${scriptPrompt.showName}》`
+    : locale === 'en-US'
+      ? 'this episode'
+      : '本期节目';
+  return locale === 'en-US'
+    ? `${name}${identity} reframes the source from the ${show} perspective into a commute-friendly highlight podcast.`
+    : `${name}${identity} 以${show}视角，将原视频内容重构成一档通勤向精华播客。`;
 }
 
 function demoPodcast(
   transcript: string,
   sourceTitle: string,
   scriptPrompt?: ScriptPromptOptions,
+  locale: Locale = 'zh-CN',
 ): PodcastContent {
-  const base = sourceTitle.replace(/\.[^.]+$/, '') || '视频精华';
+  const base = sourceTitle.replace(/\.[^.]+$/, '') || (locale === 'en-US' ? 'Source highlights' : '视频精华');
+  if (locale === 'en-US') {
+    const title = `[Podcast] ${base}: From source to a listen-first episode`;
+    const summary =
+      'This episode rewrites the source into about 10 minutes of highlight listening, with key ideas and practical next steps.';
+    const tags = ['video-to-podcast', 'repurposing', 'spoken script', 'personal brand'];
+    const outline = [
+      { title: 'Opening hook', summary: 'Why rewrite the source as a podcast.' },
+      { title: 'Core ideas', summary: 'Three to five memorable points.' },
+      { title: 'Practical advice', summary: 'Actionable next steps for listeners.' },
+      { title: 'Closing note', summary: 'Recap and teaser for next time.' },
+    ];
+    const highlights = transcript
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .slice(0, 6);
+    const script = [
+      '(磁性 沉稳)Hello, welcome to this episode.',
+      `Today we focus on "${base}" and compress the source into a more finishable highlight version.`,
+      '',
+      '（深呼吸）Bottom line first: a good podcast is not a verbatim read of the source. Rebuild the rhythm—hook early, keep only high-value points, end with action.',
+      '',
+      'Part one, positioning.',
+      'Video is great for demos; audio is great for companionship and depth. Turning the source into a podcast covers driving, walking, and chores.',
+      '',
+      'Part two, key takeaways.',
+      ...highlights.map((h) => `- ${h}`),
+      '',
+      '（语速加快）Part three, do this next.',
+      '1. Pull three quote-level insights from your latest source.',
+      '2. Write an 8-12 minute spoken script instead of a full dump.',
+      '3. Use a fixed open/close for show identity.',
+      '',
+      '（轻笑）That’s it for today. If this helped, share it with someone also repurposing content. See you next time.',
+    ].join('\n');
+    const showNotes = [
+      `# ${title}`,
+      '',
+      `> ${summary}`,
+      '',
+      '## Outline',
+      '',
+      ...outline.map((s) => `- **${s.title}**: ${s.summary}`),
+      '',
+      '## Key points',
+      '',
+      ...highlights.map((h) => `- ${h}`),
+      '',
+    ].join('\n');
+    return {
+      title,
+      summary,
+      tags,
+      hostIntro: buildDemoHostIntro(scriptPrompt, locale),
+      outline,
+      script,
+      showNotes,
+      estimatedMinutes: 10,
+      coverGradient: pickGradient(title),
+    };
+  }
+
   const title = `【播客】${base}：从视频到可收听的内容`;
   const summary =
     '本期把原视频内容重构成一档约 10 分钟的精华播客，提炼核心观点并给出行动建议，适合通勤收听。';
@@ -65,14 +154,11 @@ function demoPodcast(
     { title: '实践建议', summary: '给听友可执行的下一步。' },
     { title: '收尾彩蛋', summary: '总结与下期预告。' },
   ];
-
   const highlights = transcript
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
     .slice(0, 6);
-
-  // 演示稿：开头风格标签 + 正文细粒度标签
   const script = [
     '(磁性 沉稳)大家好，欢迎收听本期播客。',
     `今天我们围绕「${base}」展开，把原本的视频内容压缩成一集更容易听完的精华版。`,
@@ -92,7 +178,6 @@ function demoPodcast(
     '',
     '（轻笑）好，今天的内容就到这里。如果你觉得有帮助，欢迎分享给同样在做内容复用的朋友。我们下期见。',
   ].join('\n');
-
   const showNotes = [
     `# ${title}`,
     '',
@@ -107,12 +192,11 @@ function demoPodcast(
     ...highlights.map((h) => `- ${h}`),
     '',
   ].join('\n');
-
   return {
     title,
     summary,
     tags,
-    hostIntro: buildDemoHostIntro(scriptPrompt),
+    hostIntro: buildDemoHostIntro(scriptPrompt, locale),
     outline,
     script,
     showNotes,
@@ -125,45 +209,18 @@ async function llmPodcast(
   transcript: string,
   sourceTitle: string,
   scriptPrompt?: ScriptPromptOptions,
+  locale: Locale = 'zh-CN',
 ): Promise<PodcastContent> {
+  const loc = resolveContentLocale(locale);
   const maxChars = resolveScriptMaxChars(scriptPrompt);
   const targetMin = Math.max(300, Math.round(maxChars * 0.75));
-  const system = [
-    '你是资深中文播客制作人与内容主编，同时精通 MiMo-TTS 音频标签控制。',
-    '请把视频转写稿重构成一集可直接送入 TTS 合成的口播稿。',
-    '要求：',
-    '1. 输出严格 JSON，不要 markdown 代码围栏。',
-    '2. JSON 字段：',
-    '   title, summary, tags(string[]), hostIntro, outline({title,summary}[]),',
-    '   script, showNotes, estimatedMinutes(number)。',
-    '3. title 像播客节目名；summary 80-140 字；tags 3-6 个。',
-    '4. script 必须是适合直接口播的口语化中文，包含开场、分段展开、收尾，',
-    `   正文字数（去除音频标签后）严格控制在 ${targetMin}-${maxChars} 字，绝对不得超过 ${maxChars} 字；`,
-    '   超限属于失败输出。避免“如图所示/点击下方”等视觉依赖表述。',
-    '5. script 必须使用 MiMo TTS「音频标签控制」，规则如下（非常重要）：',
-    '   - 不支持风格指令（不要写旁白式“请用某某语气朗读”的说明句）。',
-    '   - 在全文最开头用半角括号写入 1-2 个整体风格标签，例如：',
-    '     (磁性) 或 (沉稳 温柔) 或 (慵懒) 或 (怅然)。',
-    '     可选风格示例：磁性/沉稳/温柔/慵懒/怅然/深情/欢快/激昂/清亮/甜美。',
-    '   - 在正文关键位置插入细粒度音频标签，使用全角或半角括号均可，例如：',
-    '     （深呼吸）（轻笑）（沉默片刻）（语速加快）（小声）（提高音量）（叹气）（哽咽）。',
-    '   - 细粒度标签类别：',
-    '     · 语速节奏：吸气/深呼吸/叹气/长叹一口气/喘息/屏息/语速加快/沉默片刻',
-    '     · 情绪状态：紧张/激动/疲惫/委屈/震惊/不耐烦',
-    '     · 语音特征：小声/提高音量/气声/沙哑/颤抖',
-    '     · 哭笑表达：轻笑/笑/苦笑/哽咽',
-    '   - 标签要克制自然：整篇约 6-12 处细粒度标签即可，不要句句都标。',
-    '   - 标签只包裹控制词，不把整句正文塞进标签里。',
-    '   - 错误示例：请用磁性声音说… / [用温柔语气]大家好',
-    '   - 正确示例：(磁性 沉稳)大家好，欢迎收听。 （深呼吸）先说结论…… （轻笑）我们下期见。',
-    '6. showNotes 使用 Markdown，含大纲、要点；showNotes 不要写音频标签。',
-    '7. 不要编造转写稿中不存在的事实；可归纳润色。',
-    buildScriptPromptSection(scriptPrompt),
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  const user = [`视频文件名：${sourceTitle}`, '', '转写稿：', transcript].join('\n');
+  const system = buildPodcastSystemPrompt({
+    locale: loc,
+    targetMin,
+    maxChars,
+    personaSection: buildScriptPromptSection(scriptPrompt, loc),
+  });
+  const user = buildPodcastUserPrompt(loc, sourceTitle, transcript);
 
   const res = await aiFetch('/chat/completions', {
     method: 'POST',
@@ -199,7 +256,8 @@ async function llmPodcast(
     throw new Error('播客脚本 JSON 解析失败');
   }
 
-  const title = String(parsed.title || `【播客】${sourceTitle}`).trim();
+  const fallback = podcastFallbackCopy(loc, sourceTitle);
+  const title = String(parsed.title || fallback.title).trim();
   const outline = Array.isArray(parsed.outline)
     ? parsed.outline
         .map((s) => ({
@@ -224,6 +282,7 @@ async function llmPodcast(
       maxChars,
       sourceTitle,
       title,
+      locale: loc,
     });
     if (rewritten) {
       script = rewritten;
@@ -231,7 +290,10 @@ async function llmPodcast(
     }
   }
 
-  const estimatedFromChars = Math.max(1, Math.round(spokenCount / 220));
+  const estimatedFromChars = Math.max(
+    1,
+    Math.round(spokenCount / spokenCharsPerMinute(loc)),
+  );
   const estimatedMinutes =
     Number(parsed.estimatedMinutes) > 0
       ? Math.min(Number(parsed.estimatedMinutes), Math.max(estimatedFromChars, 1))
@@ -239,12 +301,12 @@ async function llmPodcast(
 
   return {
     title,
-    summary: String(parsed.summary || '').trim() || '本期精华播客。',
-    tags: tags.length ? tags : ['视频转播客'],
-    hostIntro: String(parsed.hostIntro || '').trim() || '主持人重构视频精华。',
+    summary: String(parsed.summary || '').trim() || fallback.summary,
+    tags: tags.length ? tags : fallback.tags,
+    hostIntro: String(parsed.hostIntro || '').trim() || fallback.hostIntro,
     outline: outline.length
       ? outline
-      : [{ title: '本期内容', summary: '核心观点与建议' }],
+      : [{ title: fallback.outlineTitle, summary: fallback.outlineSummary }],
     script,
     showNotes:
       String(parsed.showNotes || '').trim() ||
@@ -260,7 +322,9 @@ async function rewriteScriptToLimit(input: {
   maxChars: number;
   sourceTitle: string;
   title: string;
+  locale?: Locale | string | null;
 }): Promise<string | null> {
+  const loc = resolveContentLocale(input.locale);
   const current = countSpokenChars(input.script);
   const res = await aiFetch('/chat/completions', {
     method: 'POST',
@@ -271,26 +335,11 @@ async function rewriteScriptToLimit(input: {
       messages: [
         {
           role: 'system',
-          content: [
-            '你是播客口播编辑。任务：把给定 script 压缩到字数上限内。',
-            '硬性要求：',
-            `1. 去除音频标签后的正文字数必须 ≤ ${input.maxChars} 字（当前约 ${current} 字）。`,
-            '2. 保留开场、核心观点、收尾；删除重复与次要展开。',
-            '3. 保留并合理精简 MiMo TTS 音频标签（开头风格标签 + 若干细粒度标签）。',
-            '4. 不要编造新事实。',
-            '5. 输出严格 JSON：{"script":"..."}，不要 markdown。',
-          ].join('\n'),
+          content: buildRewriteSystemPrompt(loc, input.maxChars, current),
         },
         {
           role: 'user',
-          content: [
-            `节目标题：${input.title}`,
-            `来源：${input.sourceTitle}`,
-            `字数上限：${input.maxChars}`,
-            '',
-            '原 script：',
-            input.script,
-          ].join('\n'),
+          content: buildRewriteUserPrompt(loc, input),
         },
       ],
     }),
@@ -319,12 +368,14 @@ export async function generatePodcast(
   sourceTitle: string,
   jobId: string,
   scriptPrompt?: ScriptPromptOptions,
+  locale?: Locale | string | null,
 ): Promise<{ podcast: PodcastContent; demo: boolean }> {
   const paths = jobPaths(jobId);
+  const loc = resolveContentLocale(locale);
   const demo = !hasApiKey();
   const podcast = demo
-    ? demoPodcast(transcript, sourceTitle, scriptPrompt)
-    : await llmPodcast(transcript, sourceTitle, scriptPrompt);
+    ? demoPodcast(transcript, sourceTitle, scriptPrompt, loc)
+    : await llmPodcast(transcript, sourceTitle, scriptPrompt, loc);
 
   await writeText(paths.script, podcast.script);
   await writeText(paths.showNotes, podcast.showNotes);

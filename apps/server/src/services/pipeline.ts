@@ -395,6 +395,7 @@ export async function runPipeline(
         latest.originalFilename || latest.title,
         jobId,
         latest.scriptPrompt,
+        locale,
       );
       podcast = generated;
       await setProgress(
@@ -492,6 +493,7 @@ export async function runPipeline(
         transcript,
         sourceTitle: latestCards.originalFilename || latestCards.title,
         podcast,
+        locale,
       });
       podcast = { ...podcast, flashcards };
       await setProgress(
@@ -578,6 +580,7 @@ export async function runPipeline(
         transcript: transcriptSnapshot,
         sourceTitle,
         podcast: podcastSnapshot,
+        locale,
       });
     };
 

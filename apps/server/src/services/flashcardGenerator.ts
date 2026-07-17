@@ -2,6 +2,12 @@ import { writeText } from '../utils/fs.js';
 import { jobPaths } from '../utils/paths.js';
 import type { Flashcard, PodcastContent } from '../types/job.js';
 import { aiFetch, getChatModel, hasApiKey } from '../utils/aiConfig.js';
+import type { Locale } from '../i18n/types.js';
+import {
+  buildFlashcardSystemPrompt,
+  buildFlashcardUserContext,
+  resolveContentLocale,
+} from '../i18n/contentLocale.js';
 
 export interface FlashcardGenerateInput {
   jobId: string;
@@ -13,6 +19,8 @@ export interface FlashcardGenerateInput {
     PodcastContent,
     'title' | 'summary' | 'tags' | 'outline' | 'showNotes' | 'script'
   >;
+  /** 内容输出语言（默认中文） */
+  locale?: Locale | string | null;
 }
 
 function stableId(prefix: string, index: number, seed: string): string {
@@ -51,8 +59,12 @@ function demoFlashcards(
   transcript: string,
   sourceTitle: string,
   podcast?: FlashcardGenerateInput['podcast'],
+  locale: Locale = 'zh-CN',
 ): Flashcard[] {
-  const base = (podcast?.title || sourceTitle).replace(/\.[^.]+$/, '') || '本期内容';
+  const loc = resolveContentLocale(locale);
+  const base =
+    (podcast?.title || sourceTitle).replace(/\.[^.]+$/, '') ||
+    (loc === 'en-US' ? 'This episode' : '本期内容');
   const lines = transcript
     .split('\n')
     .map((l) => l.trim())
@@ -60,7 +72,55 @@ function demoFlashcards(
     .slice(0, 6);
 
   const outline = podcast?.outline || [];
-  const cards: Flashcard[] = [
+  const cards: Flashcard[] = [];
+
+  if (loc === 'en-US') {
+    cards.push(
+      {
+        id: stableId(base, 0, 'what'),
+        front: `What core problem does "${base}" try to solve?`,
+        back:
+          podcast?.summary?.trim() ||
+          'Rewrite the source into reviewable flashcards with concepts, conclusions, and actions.',
+        tags: ['overview'],
+      },
+      {
+        id: stableId(base, 1, 'takeaway'),
+        front: 'If you keep only one takeaway, what is it?',
+        back:
+          lines[0] ||
+          'Great content is rebuilt, not copied: focus, retell, and act.',
+        tags: ['conclusion'],
+      },
+    );
+    outline.slice(0, 4).forEach((seg, i) => {
+      cards.push({
+        id: stableId(base, i + 2, seg.title),
+        front: `What is "${seg.title}" about?`,
+        back: seg.summary || '(outline summary missing)',
+        tags: ['outline'],
+      });
+    });
+    lines.slice(0, 4).forEach((line, i) => {
+      cards.push({
+        id: stableId(base, i + 10, line.slice(0, 24)),
+        front: `Key line ${i + 1}: what does this emphasize?`,
+        back: line,
+        tags: ['point'],
+      });
+    });
+    if (cards.length < 6) {
+      cards.push({
+        id: stableId(base, 20, 'action'),
+        front: 'What should you do immediately after listening?',
+        back: 'Retell three points in your own words and write one next action.',
+        tags: ['action'],
+      });
+    }
+    return cards.slice(0, 12);
+  }
+
+  cards.push(
     {
       id: stableId(base, 0, 'what'),
       front: `本期「${base}」核心要解决什么问题？`,
@@ -77,7 +137,7 @@ function demoFlashcards(
         '好内容不是原样搬运，而是重新组织：抓重点、可复述、可行动。',
       tags: ['结论'],
     },
-  ];
+  );
 
   outline.slice(0, 4).forEach((seg, i) => {
     cards.push({
@@ -113,38 +173,24 @@ async function llmFlashcards(
   transcript: string,
   sourceTitle: string,
   podcast?: FlashcardGenerateInput['podcast'],
+  locale: Locale = 'zh-CN',
 ): Promise<Flashcard[]> {
-  const system = [
-    '你是资深知识管理教练与学习设计师，擅长把播客/视频内容做成「知识闪卡」。',
-    '目标：帮助用户主动回忆（active recall），而不是抄摘要。',
-    '要求：',
-    '1. 输出严格 JSON，不要 markdown 代码围栏。',
-    '2. JSON 结构：{ "cards": Flashcard[] }',
-    '3. 每张卡字段：front, back, hint?(可选), tags?(string[], 可选)。',
-    '4. 生成 8-12 张卡，覆盖：核心概念、关键结论、易混对比、可执行行动。',
-    '5. front 用简洁中文问句或概念名（≤40 字）；back 给完整但克制的答案（40-160 字）。',
-    '6. 不要编造原文没有的事实；可归纳润色。',
-    '7. 不要写音频标签；不要输出整段节目笔记。',
-    '8. tags 可选值示例：概念 / 结论 / 对比 / 行动 / 术语 / 案例。',
-  ].join('\n');
-
-  const contextParts = [
-    `素材标题：${sourceTitle}`,
-    podcast?.title ? `节目名：${podcast.title}` : '',
-    podcast?.summary ? `摘要：${podcast.summary}` : '',
-    podcast?.tags?.length ? `标签：${podcast.tags.join('、')}` : '',
-    podcast?.outline?.length
-      ? `大纲：\n${podcast.outline
-          .map((s, i) => `${i + 1}. ${s.title} — ${s.summary}`)
-          .join('\n')}`
-      : '',
-    podcast?.showNotes
-      ? `节目笔记（参考，勿照抄）：\n${podcast.showNotes.slice(0, 2500)}`
-      : '',
-    '',
-    '转写/原文（主依据）：',
-    transcript.slice(0, 12000),
-  ].filter(Boolean);
+  const loc = resolveContentLocale(locale);
+  const system = buildFlashcardSystemPrompt(loc);
+  const outlineText = podcast?.outline?.length
+    ? podcast.outline
+        .map((s, i) => `${i + 1}. ${s.title} — ${s.summary}`)
+        .join('\n')
+    : undefined;
+  const context = buildFlashcardUserContext(loc, {
+    sourceTitle,
+    title: podcast?.title,
+    summary: podcast?.summary,
+    tags: podcast?.tags,
+    outlineText,
+    showNotes: podcast?.showNotes,
+    transcript,
+  });
 
   const res = await aiFetch('/chat/completions', {
     method: 'POST',
@@ -154,7 +200,7 @@ async function llmFlashcards(
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: system },
-        { role: 'user', content: contextParts.join('\n') },
+        { role: 'user', content: context },
       ],
     }),
   });
@@ -194,10 +240,11 @@ export async function generateFlashcards(
     throw new Error('转写/文本为空，无法生成知识闪卡');
   }
 
+  const loc = resolveContentLocale(input.locale);
   const demo = !hasApiKey();
   const flashcards = demo
-    ? demoFlashcards(transcript, sourceTitle, podcast)
-    : await llmFlashcards(transcript, sourceTitle, podcast);
+    ? demoFlashcards(transcript, sourceTitle, podcast, loc)
+    : await llmFlashcards(transcript, sourceTitle, podcast, loc);
 
   const paths = jobPaths(jobId);
   await writeText(paths.flashcards, JSON.stringify({ cards: flashcards }, null, 2));

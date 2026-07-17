@@ -831,6 +831,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           transcript,
           sourceTitle: job.originalFilename || job.title,
           podcast: job.podcast,
+          locale: getRequestLocale(req),
         });
         const podcast = { ...job.podcast, flashcards };
         const updated = await updateJob(job.id, {
