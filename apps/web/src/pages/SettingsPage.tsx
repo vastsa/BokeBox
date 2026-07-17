@@ -677,7 +677,6 @@ export function SettingsPage({ route }: { route: Route }) {
                         <label
                           className={[
                             'upload-switch-row',
-                            guestHomePublic ? 'is-on' : '',
                             savingAccess ? 'is-busy' : '',
                           ]
                             .filter(Boolean)
@@ -691,16 +690,26 @@ export function SettingsPage({ route }: { route: Route }) {
                               {t('settings.guestHomeToggleDesc')}
                             </span>
                           </span>
-                          <input
-                            type="checkbox"
-                            className="upload-switch-input"
-                            checked={guestHomePublic}
-                            disabled={savingAccess}
-                            onChange={(e) =>
-                              void onToggleGuestHome(e.target.checked)
-                            }
-                          />
-                          <span className="upload-switch-ui" aria-hidden />
+                          <span
+                            className={[
+                              'upload-switch',
+                              guestHomePublic ? 'is-on' : '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
+                          >
+                            <i />
+                            <input
+                              type="checkbox"
+                              className="upload-switch-input"
+                              checked={guestHomePublic}
+                              disabled={savingAccess}
+                              onChange={(e) =>
+                                void onToggleGuestHome(e.target.checked)
+                              }
+                              aria-label={t('settings.guestHomeToggle')}
+                            />
+                          </span>
                         </label>
                       </SettingsBlock>
                     </SettingsCard>
