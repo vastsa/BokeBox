@@ -60,8 +60,33 @@ storage/plugins/source/<dir>/
 | POST | `/api/source-plugins/rescan` | 热扫描加载 |
 | PATCH | `/api/source-plugins/:id` | `{ "enabled": true/false }` |
 | POST | `/api/source-plugins/:id/reset` | 清除启停覆盖 |
+| PUT | `/api/source-plugins/:id/config` | `{ "config": { "token": "..." } }` 保存参数 |
+| POST | `/api/source-plugins/:id/config/reset` | 清空该插件参数 |
 
 需登录（走全局 auth guard）。
+
+## 插件参数（token 等）
+
+插件可在 `plugin.json` / 运行时声明 `configSchema`。后台 **设置 → 内容源** 展开「配置参数」填写。
+
+```json
+{
+  "configSchema": [
+    {
+      "key": "token",
+      "label": "API Token",
+      "type": "password",
+      "required": true
+    }
+  ]
+}
+```
+
+- 持久化：`app_settings.source_plugin_config`
+- 敏感字段（`password` / `secret:true`）列表接口不回说明文，只给 `set/hint`
+- 保存时敏感字段空串 = 保留原值；`null` = 删除
+- 运行时：`ctx.config` / `ctx.getConfig('token')`
+- 必填未齐：`configReady=false`，自动匹配与 `importSource` 会拒绝
 
 ## 任务指定插件
 

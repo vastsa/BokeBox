@@ -1,10 +1,12 @@
 /**
  * Source 插件管理 API
  *
- * GET    /source-plugins           列表
- * POST   /source-plugins/rescan    热扫描加载外部插件
- * PATCH  /source-plugins/:id       启用/禁用
- * POST   /source-plugins/:id/reset 恢复 defaultEnabled
+ * GET    /source-plugins                 列表
+ * POST   /source-plugins/rescan          热扫描加载外部插件
+ * PATCH  /source-plugins/:id             启用/禁用
+ * POST   /source-plugins/:id/reset       恢复 defaultEnabled
+ * PUT    /source-plugins/:id/config      保存插件配置
+ * POST   /source-plugins/:id/config/reset 清空插件配置
  */
 import type { FastifyInstance } from 'fastify';
 import {
@@ -14,6 +16,8 @@ import {
   refreshExternalSourcePlugins,
   resetSourcePluginEnabled,
   setSourcePluginEnabled,
+  updateSourcePluginConfigForId,
+  resetSourcePluginConfigForId,
 } from '../sources/index.js';
 import { SOURCE_PLUGINS_DIR } from '../utils/paths.js';
 
@@ -59,7 +63,6 @@ export async function sourceRoutes(app: FastifyInstance): Promise<void> {
       });
     }
 
-    // high 风险启用时仅允许，不阻断（由用户显式操作）
     const ok = setSourcePluginEnabled(id, req.body.enabled);
     if (!ok) {
       return reply.code(404).send({ error: `插件不存在: ${id}` });
@@ -88,6 +91,68 @@ export async function sourceRoutes(app: FastifyInstance): Promise<void> {
         ok: true,
         id,
         enabled: isSourcePluginEnabled(id),
+        plugins: listSourcePluginsPublic(),
+      };
+    },
+  );
+
+  /** 保存插件配置（部分更新；敏感字段空串表示保留） */
+  app.put<{
+    Params: { id: string };
+    Body: { config?: Record<string, unknown> };
+  }>('/source-plugins/:id/config', async (req, reply) => {
+    const id = String(req.params.id || '').trim();
+    if (!id) {
+      return reply.code(400).send({ error: '缺少插件 id' });
+    }
+    const reg = getSourcePluginRegistration(id);
+    if (!reg) {
+      return reply.code(404).send({ error: `插件不存在: ${id}` });
+    }
+    if (!reg.plugin || reg.loadError) {
+      return reply.code(400).send({
+        error: `插件不可用，无法保存配置: ${reg.loadError || '未成功加载'}`,
+      });
+    }
+
+    const schema = reg.configSchema || reg.plugin.configSchema || [];
+    if (!schema.length) {
+      return reply.code(400).send({ error: '该插件未声明可配置参数' });
+    }
+
+    const config = req.body?.config;
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return reply.code(400).send({ error: 'body.config 必须是对象' });
+    }
+
+    try {
+      updateSourcePluginConfigForId(id, config);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return reply.code(400).send({ error: message });
+    }
+
+    return {
+      ok: true,
+      id,
+      plugins: listSourcePluginsPublic(),
+    };
+  });
+
+  app.post<{ Params: { id: string } }>(
+    '/source-plugins/:id/config/reset',
+    async (req, reply) => {
+      const id = String(req.params.id || '').trim();
+      if (!id) {
+        return reply.code(400).send({ error: '缺少插件 id' });
+      }
+      if (!getSourcePluginRegistration(id)) {
+        return reply.code(404).send({ error: `插件不存在: ${id}` });
+      }
+      resetSourcePluginConfigForId(id);
+      return {
+        ok: true,
+        id,
         plugins: listSourcePluginsPublic(),
       };
     },

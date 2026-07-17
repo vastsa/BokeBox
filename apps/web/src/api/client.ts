@@ -736,6 +736,32 @@ export type SourcePluginPermission =
   | 'config'
   | 'cookies';
 
+export type SourcePluginConfigFieldType =
+  | 'string'
+  | 'password'
+  | 'number'
+  | 'boolean'
+  | 'select';
+
+export type SourcePluginConfigValue = string | number | boolean;
+
+export type SourcePluginConfigField = {
+  key: string;
+  label: string;
+  type: SourcePluginConfigFieldType;
+  description?: string;
+  required?: boolean;
+  placeholder?: string;
+  default?: SourcePluginConfigValue;
+  options?: Array<{ value: string; label: string }>;
+  secret?: boolean;
+};
+
+export type SourcePluginConfigFieldStatus = {
+  set: boolean;
+  hint?: string;
+};
+
 export type SourcePluginDescriptor = {
   id: string;
   name: string;
@@ -752,6 +778,10 @@ export type SourcePluginDescriptor = {
   permissions?: SourcePluginPermission[];
   apiVersion?: number;
   loadError?: string;
+  configSchema?: SourcePluginConfigField[];
+  configValues?: Record<string, SourcePluginConfigValue | ''>;
+  configStatus?: Record<string, SourcePluginConfigFieldStatus>;
+  configReady?: boolean;
 };
 
 export type SourcePluginsResponse = {
@@ -793,6 +823,25 @@ export async function resetSourcePluginEnabledApi(
   id: string,
 ): Promise<{ ok: boolean; id: string; enabled: boolean; plugins: SourcePluginDescriptor[] }> {
   return request(`/source-plugins/${encodeURIComponent(id)}/reset`, {
+    method: 'POST',
+  });
+}
+
+export async function saveSourcePluginConfigApi(
+  id: string,
+  config: Record<string, unknown>,
+): Promise<{ ok: boolean; id: string; plugins: SourcePluginDescriptor[] }> {
+  return request(`/source-plugins/${encodeURIComponent(id)}/config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config }),
+  });
+}
+
+export async function resetSourcePluginConfigApi(
+  id: string,
+): Promise<{ ok: boolean; id: string; plugins: SourcePluginDescriptor[] }> {
+  return request(`/source-plugins/${encodeURIComponent(id)}/config/reset`, {
     method: 'POST',
   });
 }

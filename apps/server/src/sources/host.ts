@@ -5,6 +5,7 @@
  */
 import {
   getSourcePlugin,
+  getSourcePluginRegistration,
   listEnabledSourcePlugins,
   listSourcePluginDescriptors,
   listSourcePlugins,
@@ -20,6 +21,11 @@ import {
   scanAndLoadExternalSourcePlugins,
   type SourcePluginScanResult,
 } from './loader.js';
+import {
+  createConfigAccessor,
+  resolveRuntimeConfig,
+  isSourcePluginConfigReady,
+} from './config.js';
 import { jobDir as resolveJobDir, STORAGE_DIR } from '../utils/paths.js';
 import type {
   SourceArtifact,
@@ -42,14 +48,23 @@ export function ensureBuiltinSourcePlugins(): void {
 
 export function createSourceContext(
   input: SourceInput,
-  extra?: Partial<SourcePluginContext>,
+  extra?: Partial<SourcePluginContext> & { pluginId?: string },
 ): SourcePluginContext {
   const jobId = input.jobId;
+  const pluginId = extra?.pluginId || input.pluginId;
+  const reg = pluginId ? getSourcePluginRegistration(pluginId) : undefined;
+  const schema = reg?.configSchema || reg?.plugin?.configSchema;
+  const runtimeConfig =
+    extra?.config ||
+    (pluginId ? resolveRuntimeConfig(pluginId, schema) : {});
+  const accessor = createConfigAccessor(runtimeConfig);
   return {
     jobId,
     jobDir: extra?.jobDir || resolveJobDir(jobId),
     storageDir: extra?.storageDir || STORAGE_DIR,
     signal: extra?.signal,
+    config: accessor.config,
+    getConfig: accessor.getConfig,
   };
 }
 
@@ -82,7 +97,12 @@ export async function importSource(
   if (!plugin.canHandle(input)) {
     throw new Error(`Source 插件无法处理该输入: ${plugin.id}`);
   }
-  const ctx = createSourceContext(input, extra);
+  const reg = getSourcePluginRegistration(plugin.id);
+  const schema = reg?.configSchema || plugin.configSchema;
+  if (!isSourcePluginConfigReady(plugin.id, schema)) {
+    throw new Error(`Source 插件配置未就绪，请先在设置中填写参数: ${plugin.id}`);
+  }
+  const ctx = createSourceContext(input, { ...extra, pluginId: plugin.id });
   return plugin.fetch(input, ctx);
 }
 
@@ -99,7 +119,10 @@ export async function probeSource(
         probe: { handled: plugin.canHandle(input) },
       };
     }
-    const probe = await plugin.probe(input, createSourceContext(input, extra));
+    const probe = await plugin.probe(
+      input,
+      createSourceContext(input, { ...extra, pluginId: plugin.id }),
+    );
     return { plugin, probe };
   } catch {
     return null;

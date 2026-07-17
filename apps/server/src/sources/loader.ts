@@ -28,6 +28,7 @@ import type {
   SourcePluginPermission,
   SourceRiskLevel,
 } from './types.js';
+import { normalizeConfigSchema } from './config.js';
 
 const SUPPORTED_API_VERSION = 1;
 
@@ -92,6 +93,7 @@ function normalizeManifest(raw: unknown, dirName: string): SourcePluginManifest 
   const permissions = Array.isArray(obj.permissions)
     ? obj.permissions.filter(isPermission)
     : undefined;
+  const configSchema = normalizeConfigSchema(obj.configSchema);
 
   return {
     id,
@@ -106,6 +108,7 @@ function normalizeManifest(raw: unknown, dirName: string): SourcePluginManifest 
     defaultEnabled:
       typeof obj.defaultEnabled === 'boolean' ? obj.defaultEnabled : false,
     permissions,
+    configSchema: configSchema.length ? configSchema : undefined,
   };
 }
 
@@ -200,6 +203,7 @@ async function loadOnePluginDir(dirName: string): Promise<{ id: string } | { err
       dirPath,
       permissions: manifest.permissions,
       apiVersion: manifest.apiVersion,
+      configSchema: manifest.configSchema,
     });
 
     return { id: safePlugin.id };
@@ -213,6 +217,7 @@ async function loadOnePluginDir(dirName: string): Promise<{ id: string } | { err
       dirPath,
       permissions: manifest?.permissions,
       apiVersion: manifest?.apiVersion,
+      configSchema: manifest?.configSchema,
       loadError: message,
       manifestSnapshot: manifest,
     });
