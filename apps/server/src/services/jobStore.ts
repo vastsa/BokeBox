@@ -21,6 +21,35 @@ export function toPublic(job: Job): JobPublic {
   };
 }
 
+/** 是否可被游客前台收听（已完成 + 有播客 + 未下架） */
+export function isPubliclyListenable(job: Job): boolean {
+  return (
+    job.status === 'done' &&
+    Boolean(job.podcast) &&
+    job.published !== false
+  );
+}
+
+/**
+ * 游客可见字段：仅保留前台收听所需内容，剥离源文稿 / TTS / 提示词 / 源地址等管理信息
+ */
+export function toGuestPublic(job: Job): JobPublic {
+  const base = toPublic(job);
+  return {
+    ...base,
+    transcript: undefined,
+    tts: undefined,
+    scriptPrompt: undefined,
+    sourceUrl: undefined,
+    error: undefined,
+    message: '',
+    originalFilename: '',
+    hasTranscript: false,
+    hasVideo: false,
+    hasSourceAudio: false,
+  };
+}
+
 /** 把磁盘上的 script-timing.json 合并进 podcast（磁盘优先，不改库） */
 export async function withScriptTiming(job: Job): Promise<Job> {
   if (!job.podcast) return job;

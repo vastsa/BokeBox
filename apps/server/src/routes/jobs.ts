@@ -15,10 +15,12 @@ import {
   createJob,
   deleteJob,
   getJob,
+  isPubliclyListenable,
   listJobs,
   toPublic,
   updateJob,
 } from '../services/jobStore.js';
+import { getRequestUser } from './auth.js';
 import {
   assertPipelinePrereqs,
   buildRetryPatch,
@@ -456,6 +458,10 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     async (req, reply) => {
       const job = await getJob(req.params.id);
       if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
+      // 游客只能拉取已发布播客音频，防止未发布草稿被直链访问
+      if (!getRequestUser(req) && !isPubliclyListenable(job)) {
+        return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
+      }
       const paths = jobPaths(job.id);
       const audioPath = job.podcastAudioPath || paths.podcastWav;
       const alt = paths.podcastMp3;
@@ -512,6 +518,10 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     async (req, reply) => {
       const job = await getJob(req.params.id);
       if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
+      // 游客只能拉取已发布封面
+      if (!getRequestUser(req) && !isPubliclyListenable(job)) {
+        return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
+      }
       const coverPath = await findCoverFile(job.id);
       if (!coverPath) {
         return reply.code(404).send({ error: t(getRequestLocale(req), 'job.coverMissing') });

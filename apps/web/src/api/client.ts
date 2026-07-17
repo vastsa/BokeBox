@@ -47,6 +47,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     const err = data as { error?: string; code?: string };
     if (res.status === 401 && err.code === 'UNAUTHORIZED') {
       clearAuthSession();
+      // 同步清 HttpOnly cookie，避免前端游客、后端仍按登录态返回管理员数据
+      void fetch(`${BASE}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => {});
     }
     throw new ApiError(
       err.error || tOutside('api.requestFailed', { status: res.status }),

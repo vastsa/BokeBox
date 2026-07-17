@@ -311,13 +311,21 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   });
 }
 
-/** 游客开放首页时允许的只读接口（曲库 / 详情 / 媒体） */
+/** 游客开放首页时允许的只读接口（曲库 / 详情 / 已发布媒体） */
 function isGuestHomePublicPath(method: string, url: string): boolean {
   if (!isGuestHomePublic()) return false;
   const m = method.toUpperCase();
   if (m !== 'GET' && m !== 'HEAD') return false;
   if (url === '/api/listen/library') return true;
-  if (/^\/api\/listen\/[^/]+$/.test(url)) return true;
+
+  // 仅开放 listen 详情，排除 history 等管理向路径（防进度/历史泄露）
+  const listenMatch = url.match(/^\/api\/listen\/([^/]+)$/);
+  if (listenMatch) {
+    const id = listenMatch[1];
+    if (id === 'library' || id === 'history' || id === 'progress') return false;
+    return true;
+  }
+
   if (/^\/api\/jobs\/[^/]+\/(audio|cover)$/.test(url)) return true;
   return false;
 }
@@ -331,6 +339,8 @@ export function registerAuthGuard(app: FastifyInstance): void {
     '/api/setup/status',
     '/api/setup',
     '/api/auth/login',
+    // 登出必须可匿名调用，以便清理残留 HttpOnly cookie
+    '/api/auth/logout',
     '/api/health',
   ]);
 

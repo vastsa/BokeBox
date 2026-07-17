@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { GlobalPlayerBar } from './components/listen/GlobalPlayerBar';
-import { fetchMe, fetchSetupStatus } from './api/client';
+import { fetchMe, fetchSetupStatus, logout } from './api/client';
 import { clearAuthSession, getToken } from './lib/auth';
 import { setCachedSiteName } from './lib/site';
 import { setCachedSeo } from './lib/seo';
@@ -109,6 +109,8 @@ export default function App() {
         } catch {
           if (cancelled) return;
           clearAuthSession();
+          // 失效 token 时一并登出服务端 cookie 会话
+          void logout();
           const guestOk = Boolean(status.guestHomePublic);
           const current = parseHash();
           if (guestOk) {
@@ -185,6 +187,9 @@ export default function App() {
     page = (
       <LoginPage
         onGuestBrowse={() => {
+          // 进入游客前清理可能残留的登录态，确保前后端都按游客隔离
+          clearAuthSession();
+          void logout();
           setGate('guest');
           navigate({ name: 'home' });
         }}

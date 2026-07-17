@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import {
   getJob,
+  isPubliclyListenable,
   listPublishedJobs,
+  toGuestPublic,
   toPublic,
   withScriptTiming,
 } from '../services/jobStore.js';
@@ -25,18 +27,26 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
     for (const job of jobs) {
       const enriched = await withScriptTiming(job);
       items.push({
-        job: toPublic(enriched),
+        job: authed ? toPublic(enriched) : toGuestPublic(enriched),
         listen: authed ? recordMap[job.id] || null : null,
       });
     }
     return { items };
   });
 
-  app.get('/listen/history', async () => {
+  app.get('/listen/history', async (req, reply) => {
+    // 收听历史含管理员进度，仅登录可访问
+    if (!getRequestUser(req)) {
+      return reply.code(401).send({
+        error: t(getRequestLocale(req), 'auth.pleaseLogin'),
+        code: 'UNAUTHORIZED',
+      });
+    }
     const records = await listListenRecords();
     const items = [];
     for (const rec of records) {
       const job = await getJob(rec.jobId);
+      // 管理员历史保留未发布已完成条目；仅校验可听内容就绪
       if (!job || job.status !== 'done' || !job.podcast) continue;
       const enriched = await withScriptTiming(job);
       items.push({ job: toPublic(enriched), listen: rec });
@@ -49,11 +59,20 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
     if (!job || job.status !== 'done' || !job.podcast) {
       return reply.code(404).send({ error: t(getRequestLocale(req), 'listen.notReady') });
     }
+
     const authed = Boolean(getRequestUser(req));
+    // 游客只能访问已发布内容；未发布草稿对游客 404
+    if (!authed && !isPubliclyListenable(job)) {
+      return reply.code(404).send({ error: t(getRequestLocale(req), 'listen.notReady') });
+    }
+
     // 游客详情页不返回服务端收听进度
     const listen = authed ? (await getListenRecord(job.id)) || null : null;
     const enriched = await withScriptTiming(job);
-    return { job: toPublic(enriched), listen };
+    return {
+      job: authed ? toPublic(enriched) : toGuestPublic(enriched),
+      listen,
+    };
   });
 
   app.post<{
