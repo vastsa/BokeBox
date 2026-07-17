@@ -57,7 +57,7 @@ export function AppShell({
             </span>
           </button>
 
-          <nav className="hidden items-center gap-0.5 rounded-full border border-[var(--separator)] bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] p-0.5 backdrop-blur md:flex">
+          <nav className="topbar-nav hidden items-center gap-0.5 rounded-full border border-[var(--separator)] bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] p-0.5 backdrop-blur md:flex">
             <TopNavItem
               active={homeActive}
               label={t('nav.home')}
@@ -207,9 +207,9 @@ function TopNavItem({
       type="button"
       onClick={onClick}
       className={[
-        'inline-flex min-h-[30px] items-center gap-1.5 rounded-full px-3 text-[12.5px] font-semibold transition',
+        'topbar-nav-item inline-flex min-h-[30px] items-center gap-1.5 rounded-full px-3 text-[12.5px] font-semibold transition',
         active
-          ? 'bg-[var(--brand-soft)] text-[var(--brand-2)]'
+          ? 'is-active bg-[var(--brand-soft)] text-[var(--brand-2)]'
           : 'text-[var(--text-2)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]',
       ].join(' ')}
     >
@@ -260,8 +260,8 @@ function BottomNavItem({
       type="button"
       onClick={onClick}
       className={[
-        'flex min-h-[46px] flex-col items-center justify-center gap-0.5 rounded-[12px] text-[10.5px] font-semibold transition',
-        active ? 'bg-[var(--brand-soft)] text-[var(--brand-2)]' : 'text-[var(--text-3)]',
+        'bottom-nav-item flex min-h-[46px] flex-col items-center justify-center gap-0.5 rounded-[12px] text-[10.5px] font-semibold transition',
+        active ? 'is-active bg-[var(--brand-soft)] text-[var(--brand-2)]' : 'text-[var(--text-3)]',
       ].join(' ')}
     >
       {icon}

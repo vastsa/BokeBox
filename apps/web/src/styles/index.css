@@ -9281,11 +9281,12 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
   transform: scale(1.05);
 }
 
-/* 星图页：顶栏与底栏用深色半透明 */
+/* 星图页：导航沉浸深色（亮色主题下也不发白） */
 html:has(.tc-page) .topbar {
-  background: rgba(3, 4, 12, 0.62) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(16px);
+  background: rgba(3, 4, 12, 0.72) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
 
 html:has(.tc-page) .topbar .text-\[var\(--text\)\],
@@ -9293,9 +9294,92 @@ html:has(.tc-page) .topbar span.block {
   color: #e8ecf4 !important;
 }
 
+html:has(.tc-page) .topbar .text-\[var\(--text-3\)\] {
+  color: #7f8eaa !important;
+}
+
+/* 桌面顶栏胶囊菜单 */
+html:has(.tc-page) .topbar-nav {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html:has(.tc-page) .topbar-nav-item {
+  color: #9aa6bf !important;
+  background: transparent !important;
+}
+
+html:has(.tc-page) .topbar-nav-item:hover {
+  color: #e8ecf4 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+html:has(.tc-page) .topbar-nav-item.is-active {
+  color: #cfe0ff !important;
+  background: rgba(79, 142, 247, 0.22) !important;
+}
+
+/* 手机顶栏快捷按钮 */
+html:has(.tc-page) .topbar-action-btn {
+  color: #c5d0e4 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html:has(.tc-page) .topbar-action-btn:hover,
+html:has(.tc-page) .topbar-action-btn.is-active {
+  color: #dce8ff !important;
+  background: rgba(79, 142, 247, 0.2) !important;
+  border-color: rgba(143, 184, 255, 0.28) !important;
+}
+
+html:has(.tc-page) .topbar-oss-link {
+  color: #9aa6bf !important;
+}
+
+html:has(.tc-page) .topbar-oss-link:hover {
+  color: #e8ecf4 !important;
+}
+
+/* 底栏菜单 */
 html:has(.tc-page) .bottom-nav {
-  background: rgba(6, 8, 16, 0.9) !important;
-  border-top-color: rgba(255, 255, 255, 0.05);
+  background: rgba(6, 8, 16, 0.94) !important;
+  border-top-color: rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+}
+
+html:has(.tc-page) .bottom-nav-item {
+  color: #7f8eaa !important;
+  background: transparent !important;
+}
+
+html:has(.tc-page) .bottom-nav-item.is-active {
+  color: #cfe0ff !important;
+  background: rgba(79, 142, 247, 0.18) !important;
+}
+
+/* 迷你播放条同步深色，避免亮色块打断星图 */
+html:has(.tc-page) .global-player {
+  background:
+    linear-gradient(180deg, rgba(79, 142, 247, 0.12), transparent 58%),
+    rgba(10, 14, 24, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+}
+
+html:has(.tc-page) .global-player-title {
+  color: #e8ecf4 !important;
+}
+
+html:has(.tc-page) .global-player-time,
+html:has(.tc-page) .global-player .global-rate {
+  color: #8b95a7 !important;
+}
+
+html:has(.tc-page) .global-player .global-ctrl {
+  color: #c5d0e4 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
 }
 
 html:has(.tc-page) .open-source-shell {
