@@ -745,14 +745,6 @@ function isRetryableStatus(status: number): boolean {
   return status === 408 || status === 425 || status === 429 || status >= 500;
 }
 
-function envFlag(name: string, defaultValue: boolean): boolean {
-  const raw = String(process.env[name] ?? '').trim().toLowerCase();
-  if (!raw) return defaultValue;
-  if (['0', 'false', 'off', 'no'].includes(raw)) return false;
-  if (['1', 'true', 'on', 'yes'].includes(raw)) return true;
-  return defaultValue;
-}
-
 /** 识别反爬 / 验证页 / 空壳页 */
 export function detectAntiBot(htmlOrText: string, title?: string | null): string | null {
   const sample = `${title || ''}\n${htmlOrText}`.slice(0, 12000);
@@ -1045,176 +1037,6 @@ async function fetchWithRetry(
   throw new Error(`下载失败: ${lastErr?.message || '未知错误'}`);
 }
 
-interface ReaderResult {
-  title?: string;
-  text: string;
-  finalUrl: string;
-  strategy: string;
-}
-
-/** Jina Reader：绕过多数站点反爬，输出可读 Markdown/文本 */
-async function fetchViaJina(url: string): Promise<ReaderResult> {
-  if (!envFlag('URL_FETCH_JINA', true)) {
-    throw new Error('Jina 通道已关闭（URL_FETCH_JINA=0）');
-  }
-  const endpoint = `https://r.jina.ai/${url}`;
-  const headers: Record<string, string> = {
-    Accept: 'text/plain, text/markdown, */*',
-    'User-Agent': UA_PROFILES[0]!.userAgent,
-    'X-Return-Format': 'markdown',
-    'X-Timeout': '45',
-    'X-Locale': 'zh-CN',
-  };
-  const apiKey = String(process.env.JINA_API_KEY || '').trim();
-  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-
-  const res = await rawFetch(endpoint, headers, { timeoutMs: 90_000 });
-  if (!res.ok) {
-    throw new Error(`Jina HTTP ${res.status}`);
-  }
-  const body = await readBodyWithLimit(res, MAX_TEXT_BYTES);
-  const raw = decodeTextBuffer(body, res.headers.get('content-type') || 'text/plain');
-  if (!raw || raw.trim().length < 20) {
-    throw new Error('Jina 返回为空');
-  }
-  if (detectAntiBot(raw)) {
-    // Jina 有时也会回验证页提示
-    throw new Error(`Jina 仍被拦截：${detectAntiBot(raw)}`);
-  }
-
-  // Jina 常见格式：Title: xxx\nURL Source: ...\nMarkdown Content:\n...
-  let title: string | undefined;
-  const titleMatch =
-    /^(?:Title|标题)\s*[:：]\s*(.+)$/im.exec(raw) ||
-    /^#\s+(.+)$/m.exec(raw);
-  if (titleMatch?.[1]) title = titleMatch[1].trim();
-
-  let text = raw
-    .replace(/^(?:URL Source|来源)\s*[:：].*$/gim, '')
-    .replace(/^(?:Published Time|发布时间)\s*[:：].*$/gim, '')
-    .replace(/^(?:Title|标题)\s*[:：]\s*.*$/gim, '')
-    .replace(/^Markdown Content\s*[:：]?\s*/im, '')
-    .trim();
-
-  // 去掉 markdown 链接噪音但保留文字
-  text = text
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/#{1,6}\s+/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
-  if (title && text && !text.startsWith(title)) {
-    text = `${title}\n\n${text}`;
-  }
-  text = collapseWhitespace(text);
-  if (!isGoodArticleText(text)) {
-    throw new Error('Jina 正文过短');
-  }
-  return { title, text, finalUrl: url, strategy: 'jina' };
-}
-
-/** 备用：通过 Jina HTML 模式拿原文再本地抽取 */
-async function fetchViaJinaHtml(url: string): Promise<ReaderResult> {
-  if (!envFlag('URL_FETCH_JINA', true)) {
-    throw new Error('Jina 通道已关闭');
-  }
-  const endpoint = `https://r.jina.ai/${url}`;
-  const headers: Record<string, string> = {
-    Accept: 'text/html, */*',
-    'User-Agent': UA_PROFILES[0]!.userAgent,
-    'X-Return-Format': 'html',
-    'X-Timeout': '45',
-  };
-  const apiKey = String(process.env.JINA_API_KEY || '').trim();
-  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-
-  const res = await rawFetch(endpoint, headers, { timeoutMs: 90_000 });
-  if (!res.ok) throw new Error(`Jina HTML HTTP ${res.status}`);
-  const body = await readBodyWithLimit(res, MAX_TEXT_BYTES);
-  const html = decodeTextBuffer(body, res.headers.get('content-type') || 'text/html');
-  const article = extractArticleContent(html);
-  if (!isGoodArticleText(article.text)) {
-    throw new Error('Jina HTML 正文过短');
-  }
-  return {
-    title: article.title || undefined,
-    text: article.text,
-    finalUrl: url,
-    strategy: 'jina-html',
-  };
-}
-
-/**
- * 可选 Playwright 渲染（需本机已安装 playwright，不作为硬依赖）。
- * URL_FETCH_PLAYWRIGHT=1 时启用。
- */
-async function fetchViaPlaywright(url: string): Promise<ReaderResult> {
-  if (!envFlag('URL_FETCH_PLAYWRIGHT', false)) {
-    throw new Error('Playwright 通道未启用（URL_FETCH_PLAYWRIGHT=1）');
-  }
-  // 动态加载，避免硬依赖；用 Function 绕过静态模块解析
-  let playwright: any;
-  const dynImport = new Function('m', 'return import(m)') as (m: string) => Promise<any>;
-  try {
-    playwright = await dynImport('playwright');
-  } catch {
-    try {
-      playwright = await dynImport('playwright-core');
-    } catch {
-      throw new Error('未安装 playwright / playwright-core');
-    }
-  }
-
-  const browser = await playwright.chromium.launch({
-    headless: true,
-    args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
-  });
-  try {
-    const context = await browser.newContext({
-      userAgent: UA_PROFILES[0]!.userAgent,
-      locale: 'zh-CN',
-      viewport: { width: 1440, height: 1100 },
-      extraHTTPHeaders: {
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      },
-    });
-    await context.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    });
-    const page = await context.newPage();
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    // 等正文出现 / 网络稍静
-    try {
-      await page.waitForLoadState('networkidle', { timeout: 12_000 });
-    } catch {
-      // ignore
-    }
-    await sleep(800);
-    const html = await page.content();
-    const titleFromPage = (await page.title()) || null;
-    const article = extractArticleContent(html);
-    const title = article.title || titleFromPage;
-    let text = article.text;
-    if (title && text && !text.startsWith(title)) text = `${title}\n\n${text}`;
-    text = collapseWhitespace(text);
-    if (!isGoodArticleText(text)) {
-      throw new Error('Playwright 渲染后正文仍过短');
-    }
-    if (detectAntiBot(html, title)) {
-      throw new Error(`Playwright 仍遇拦截：${detectAntiBot(html, title)}`);
-    }
-    return {
-      title: title || undefined,
-      text,
-      finalUrl: page.url() || url,
-      strategy: 'playwright',
-    };
-  } finally {
-    await browser.close().catch(() => undefined);
-  }
-}
-
 interface ResolvedPage {
   kind: 'text' | 'media-buffer';
   title?: string;
@@ -1227,16 +1049,11 @@ interface ResolvedPage {
 }
 
 /**
- * 网页多通道抓取：
- * 1) 直连 UA 轮换 + Cookie 预热
- * 2) Jina Reader Markdown
- * 3) Jina HTML
- * 4) 可选 Playwright
+ * 网页抓取：直连 UA 轮换 + Cookie 预热
  */
 async function resolveArticlePage(url: string): Promise<ResolvedPage> {
   const errors: string[] = [];
 
-  // 1) 直连
   try {
     const direct = await fetchDirectSmart(url);
     const mimeKind = kindFromMime(direct.headerMime);
@@ -1294,55 +1111,6 @@ async function resolveArticlePage(url: string): Promise<ResolvedPage> {
     }
   } catch (err) {
     errors.push(`direct→${err instanceof Error ? err.message : String(err)}`);
-  }
-
-  // 2) Jina markdown
-  try {
-    const jina = await fetchViaJina(url);
-    return {
-      kind: 'text',
-      title: jina.title,
-      textContent: jina.text,
-      finalUrl: jina.finalUrl,
-      headerMime: 'text/markdown',
-      strategy: jina.strategy,
-    };
-  } catch (err) {
-    errors.push(`jina→${err instanceof Error ? err.message : String(err)}`);
-  }
-
-  // 3) Jina html
-  try {
-    const jinaHtml = await fetchViaJinaHtml(url);
-    return {
-      kind: 'text',
-      title: jinaHtml.title,
-      textContent: jinaHtml.text,
-      finalUrl: jinaHtml.finalUrl,
-      headerMime: 'text/html',
-      strategy: jinaHtml.strategy,
-    };
-  } catch (err) {
-    errors.push(
-      `jina-html→${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
-
-  // 4) Playwright（可选）
-  try {
-    const pw = await fetchViaPlaywright(url);
-    return {
-      kind: 'text',
-      title: pw.title,
-      textContent: pw.text,
-      finalUrl: pw.finalUrl,
-      headerMime: 'text/html',
-      strategy: pw.strategy,
-    };
-  } catch (err) {
-    errors.push(
-      `playwright→${err instanceof Error ? err.message : String(err)}`,
-    );
   }
 
   console.warn('[urlImporter] all strategies failed:', errors.join(' | '));
@@ -1447,7 +1215,7 @@ function looksLikeMediaUrl(url: string): boolean {
 
 /**
  * 从远程 URL 下载内容，识别 video / audio / text，并落盘到任务目录。
- * 网页启用反强反爬多通道：UA 轮换 / Cookie 预热 / Jina / 可选 Playwright。
+ * 网页启用反爬增强：UA 轮换 / Cookie 预热。
  */
 export async function importUrlContent(
   url: string,
@@ -1511,7 +1279,7 @@ export async function importUrlContent(
     }
   }
 
-  // ── 网页 / 未知：反强反爬多通道 ──
+  // ── 网页 / 未知：直连抓取 ──
   const resolved = await resolveArticlePage(requestUrl);
 
   if (resolved.kind === 'media-buffer' && resolved.body) {
