@@ -6,6 +6,7 @@ import { setCachedSiteName } from './lib/site';
 import { setCachedSeo } from './lib/seo';
 import { navigate, parseHash, type Route } from './lib/router';
 import { AdminJobPage } from './pages/AdminJobPage';
+import { AdminPage } from './pages/AdminPage';
 import { AdminUploadPage } from './pages/AdminUploadPage';
 import { ListenHomePage } from './pages/ListenHomePage';
 import { ListenPlayerPage } from './pages/ListenPlayerPage';
@@ -26,7 +27,6 @@ function isGuestAllowedRoute(name: Route['name']): boolean {
   return (
     name === 'home' ||
     name === 'listen' ||
-    name === 'admin' ||
     name === 'player' ||
     name === 'tags'
   );
@@ -191,6 +191,9 @@ export default function App() {
     );
   } else {
     switch (route.name) {
+      case 'admin':
+        page = <AdminPage route={route} />;
+        break;
       case 'create':
       case 'admin-upload':
         page = <AdminUploadPage route={route} />;

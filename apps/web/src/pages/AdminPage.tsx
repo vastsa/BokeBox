@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  coverImageUrl,
   deleteJob,
   fetchJobs,
   retryJob,
   updateJob,
-  coverImageUrl,
 } from '../api/client';
+import { AdminChrome } from '../components/admin/AdminChrome';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
 import {
@@ -16,15 +17,13 @@ import {
   IconTrash,
   IconUpload,
 } from '../components/icons';
-import { EmptyState } from '../components/ui/EmptyState';
 import { CoverArt } from '../components/ui/CoverArt';
+import { EmptyState } from '../components/ui/EmptyState';
 import { formatSize, formatSourceLabel, formatTime } from '../lib/format';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
 import { useI18n } from '../i18n';
-
-// labels resolved via t() at render
 
 const ACTIVE: JobStatus[] = [
   'queued',
@@ -35,12 +34,16 @@ const ACTIVE: JobStatus[] = [
   'synthesizing_audio',
 ];
 
+type FilterKey = 'all' | 'active' | 'published' | 'draft' | 'failed' | 'done';
+
 export function AdminPage({ route }: { route: Route }) {
   const { t } = useI18n();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterKey>('all');
+  const [query, setQuery] = useState('');
 
   const refresh = useCallback(async () => {
     try {
@@ -61,16 +64,48 @@ export function AdminPage({ route }: { route: Route }) {
   useEffect(() => {
     const active = jobs.some((j) => ACTIVE.includes(j.status));
     if (!active) return;
-    const t = window.setInterval(() => void refresh(), 1500);
-    return () => window.clearInterval(t);
+    const timer = window.setInterval(() => void refresh(), 1500);
+    return () => window.clearInterval(timer);
   }, [jobs, refresh]);
 
   const stats = useMemo(() => {
     const activeCount = jobs.filter((j) => ACTIVE.includes(j.status)).length;
     const publishedCount = jobs.filter((j) => j.published).length;
+    const draftCount = jobs.filter((j) => !j.published).length;
     const failedCount = jobs.filter((j) => j.status === 'failed').length;
-    return { activeCount, publishedCount, failedCount };
+    const doneCount = jobs.filter((j) => j.status === 'done').length;
+    return {
+      total: jobs.length,
+      activeCount,
+      publishedCount,
+      draftCount,
+      failedCount,
+      doneCount,
+    };
   }, [jobs]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return jobs.filter((job) => {
+      if (filter === 'active' && !ACTIVE.includes(job.status)) return false;
+      if (filter === 'published' && !job.published) return false;
+      if (filter === 'draft' && job.published) return false;
+      if (filter === 'failed' && job.status !== 'failed') return false;
+      if (filter === 'done' && job.status !== 'done') return false;
+      if (!q) return true;
+      const hay = [
+        job.podcast?.title || '',
+        job.title || '',
+        job.originalFilename || '',
+        job.sourceUrl || '',
+        job.message || '',
+        ...(job.podcast?.tags || []),
+      ]
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [jobs, filter, query]);
 
   const runJobAction = async (id: string, fn: () => Promise<unknown>) => {
     setBusyId(id);
@@ -84,19 +119,23 @@ export function AdminPage({ route }: { route: Route }) {
     }
   };
 
+  const filters: Array<{ key: FilterKey; label: string; count: number }> = [
+    { key: 'all', label: t('admin.all'), count: stats.total },
+    { key: 'active', label: t('admin.processing'), count: stats.activeCount },
+    { key: 'done', label: t('admin.done'), count: stats.doneCount },
+    { key: 'published', label: t('admin.published'), count: stats.publishedCount },
+    { key: 'draft', label: t('admin.draft'), count: stats.draftCount },
+    { key: 'failed', label: t('admin.failed'), count: stats.failedCount },
+  ];
+
   return (
     <AppShell route={route}>
-      <div className="admin-container nl-enter studio-page">
-        {/* 顶栏 */}
-        <header className="studio-head">
-          <div className="studio-head-copy">
-            <div className="page-kicker">Studio Console</div>
-            <h1 className="page-title">{t('admin.title')}</h1>
-            <p className="page-subtitle">
-              {t('admin.subtitle')}
-            </p>
-          </div>
-          <div className="studio-head-actions">
+      <AdminChrome
+        route={route}
+        title={t('admin.title')}
+        subtitle={t('admin.subtitle')}
+        actions={
+          <>
             <button
               type="button"
               className="nl-btn nl-btn-primary"
@@ -107,13 +146,6 @@ export function AdminPage({ route }: { route: Route }) {
             </button>
             <button
               type="button"
-              className="nl-btn nl-btn-secondary"
-              onClick={() => navigate({ name: 'home' })}
-            >
-              {t('nav.home')}
-            </button>
-            <button
-              type="button"
               className="nl-btn nl-btn-ghost studio-icon-btn"
               onClick={() => void refresh()}
               aria-label={t('common.refresh')}
@@ -121,35 +153,64 @@ export function AdminPage({ route }: { route: Route }) {
             >
               <IconRefresh size={15} />
             </button>
-          </div>
-        </header>
-
-        {/* 紧凑指标条 */}
-        <section className="studio-metrics" aria-label={t('admin.metricsAria')}>
-          <MetricPill
+          </>
+        }
+      >
+        <section className="admin-stats" aria-label={t('admin.metricsAria')}>
+          <StatCard
             label={t('admin.all')}
-            value={jobs.length}
+            value={stats.total}
             tone="default"
           />
-          <MetricPill
+          <StatCard
             label={t('admin.processing')}
             value={stats.activeCount}
             tone={stats.activeCount > 0 ? 'brand' : 'default'}
             pulse={stats.activeCount > 0}
           />
-          <MetricPill
+          <StatCard
             label={t('admin.published')}
             value={stats.publishedCount}
             tone={stats.publishedCount > 0 ? 'success' : 'default'}
           />
-          {stats.failedCount > 0 && (
-            <MetricPill
-              label={t('admin.failed')}
-              value={stats.failedCount}
-              tone="danger"
-            />
-          )}
+          <StatCard
+            label={t('admin.failed')}
+            value={stats.failedCount}
+            tone={stats.failedCount > 0 ? 'danger' : 'default'}
+          />
+        </section>
 
+        <section className="admin-toolbar">
+          <div className="admin-filters" role="tablist" aria-label={t('admin.filtersAria')}>
+            {filters.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                role="tab"
+                aria-selected={filter === item.key}
+                className={[
+                  'admin-filter',
+                  filter === item.key ? 'is-active' : '',
+                  item.key === 'failed' && item.count > 0 ? 'is-danger' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onClick={() => setFilter(item.key)}
+              >
+                <span>{item.label}</span>
+                <em>{item.count}</em>
+              </button>
+            ))}
+          </div>
+          <label className="admin-search">
+            <span className="sr-only">{t('admin.search')}</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('admin.searchPlaceholder')}
+            />
+          </label>
         </section>
 
         {error && (
@@ -158,49 +219,56 @@ export function AdminPage({ route }: { route: Route }) {
           </div>
         )}
 
-        {/* 任务库 */}
-        <section className="studio-library">
-          <div className="studio-library-head">
+        <section className="admin-library">
+          <div className="admin-library-head">
             <div>
               <h2>{t('admin.library')}</h2>
               <p>
                 {loading
                   ? t('common.loading')
-                  : jobs.length
-                    ? t('admin.jobCount', { n: jobs.length })
-                     : t('admin.noJobs')}
+                  : filtered.length
+                    ? t('admin.jobCount', { n: filtered.length })
+                    : t('admin.noJobs')}
               </p>
             </div>
-            <button
-              type="button"
-              className="nl-btn nl-btn-secondary"
-              onClick={() => navigate({ name: 'create' })}
-            >
-              <IconUpload size={14} />
-              {t('admin.newJob')}
-            </button>
           </div>
 
           {loading ? (
-            <div className="studio-skel">
-              <div className="nl-shimmer h-20" />
-              <div className="nl-shimmer h-20" />
-              <div className="nl-shimmer h-20" />
+            <div className="admin-skel">
+              <div className="nl-shimmer h-24" />
+              <div className="nl-shimmer h-24" />
+              <div className="nl-shimmer h-24" />
             </div>
-          ) : jobs.length === 0 ? (
-            <div className="studio-empty-wrap">
+          ) : filtered.length === 0 ? (
+            <div className="admin-empty-wrap">
               <EmptyState
                 icon={<IconDashboard size={22} />}
-                title={t('admin.emptyTitle')}
-                description={t('admin.emptyDesc')}
-                actionLabel={t('admin.emptyAction')}
-                onAction={() => navigate({ name: 'create' })}
+                title={
+                  jobs.length === 0
+                    ? t('admin.emptyTitle')
+                    : t('admin.emptyFilterTitle')
+                }
+                description={
+                  jobs.length === 0
+                    ? t('admin.emptyDesc')
+                    : t('admin.emptyFilterDesc')
+                }
+                actionLabel={
+                  jobs.length === 0 ? t('admin.emptyAction') : t('admin.clearFilter')
+                }
+                onAction={() => {
+                  if (jobs.length === 0) navigate({ name: 'create' });
+                  else {
+                    setFilter('all');
+                    setQuery('');
+                  }
+                }}
               />
             </div>
           ) : (
-            <div className="studio-job-list">
-              {jobs.map((job, i) => (
-                <JobRow
+            <div className="admin-job-list">
+              {filtered.map((job, i) => (
+                <JobCard
                   key={job.id}
                   job={job}
                   index={i}
@@ -223,12 +291,12 @@ export function AdminPage({ route }: { route: Route }) {
             </div>
           )}
         </section>
-      </div>
+      </AdminChrome>
     </AppShell>
   );
 }
 
-function MetricPill({
+function StatCard({
   label,
   value,
   tone = 'default',
@@ -240,14 +308,22 @@ function MetricPill({
   pulse?: boolean;
 }) {
   return (
-    <div className={['studio-metric', `is-${tone}`, pulse ? 'is-pulse' : ''].filter(Boolean).join(' ')}>
+    <div
+      className={[
+        'admin-stat',
+        `is-${tone}`,
+        pulse ? 'is-pulse' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <b>{value}</b>
       <span>{label}</span>
     </div>
   );
 }
 
-function JobRow({
+function JobCard({
   job,
   index,
   busy,
@@ -282,45 +358,51 @@ function JobRow({
   return (
     <article
       className={[
-        'studio-job',
+        'admin-job-card',
         active ? 'is-active' : '',
         job.status === 'failed' ? 'is-failed' : '',
         job.status === 'done' ? 'is-done' : '',
       ]
         .filter(Boolean)
         .join(' ')}
-      style={{ ['--stagger' as string]: `${Math.min(index, 8) * 40}ms` }}
+      style={{ ['--stagger' as string]: `${Math.min(index, 8) * 35}ms` }}
     >
-      <button type="button" className="studio-job-main" onClick={onOpen}>
-        <span className="studio-job-cover-wrap" aria-hidden>
+      <button type="button" className="admin-job-main" onClick={onOpen}>
+        <span className="admin-job-cover-wrap" aria-hidden>
           <CoverArt
             seed={job.id}
             preferred={job.podcast?.coverGradient}
-            imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt) : undefined}
+            imageUrl={
+              job.podcast?.hasCoverImage
+                ? coverImageUrl(job.id, job.updatedAt)
+                : undefined
+            }
             title={title}
-            className="studio-job-cover"
+            className="admin-job-cover"
           >
             <IconMic size={16} />
           </CoverArt>
-          {job.published && <i className="studio-job-live" title={t('admin.published')} />}
+          {job.published && (
+            <i className="admin-job-live" title={t('admin.published')} />
+          )}
         </span>
 
-        <div className="studio-job-body">
-          <div className="studio-job-top">
-            <h3 className="studio-job-title">{title}</h3>
-            <div className="studio-job-badges">
+        <div className="admin-job-body">
+          <div className="admin-job-top">
+            <h3 className="admin-job-title">{title}</h3>
+            <div className="admin-job-badges">
               <StatusBadge status={job.status} />
               {job.published ? (
                 <span className="nl-tag nl-tag-success">{t('admin.published')}</span>
               ) : (
-                <span className="nl-tag">{t('admin.unpublished')}</span>
+                <span className="nl-tag">{t('admin.draft')}</span>
               )}
             </div>
           </div>
 
-          <div className="studio-job-sub">
+          <div className="admin-job-sub">
             <span
-              className="studio-source-label truncate"
+              className="admin-source-label"
               title={job.sourceUrl || job.originalFilename}
             >
               {formatSourceLabel(job.sourceUrl || job.originalFilename)}
@@ -331,18 +413,21 @@ function JobRow({
             <span>{formatTime(job.createdAt)}</span>
           </div>
 
-          <div className="studio-job-meta">
-            <div className="studio-job-assets" title={t('admin.assetsTitle', { ready: readyCount })}>
+          <div className="admin-job-meta">
+            <div
+              className="admin-job-assets"
+              title={t('admin.assetsTitle', { ready: readyCount })}
+            >
               {assets.map((a) => (
                 <span
                   key={a.key}
-                  className={['studio-asset', a.ok ? 'is-ok' : ''].join(' ')}
+                  className={['admin-asset', a.ok ? 'is-ok' : ''].join(' ')}
                 >
                   {a.label}
                 </span>
               ))}
             </div>
-            <span className="studio-job-tts">
+            <span className="admin-job-tts">
               <IconSpark size={11} />
               {mode === 'voicedesign' ? t('admin.ttsCustom') : t('admin.ttsDefault')}
               {job.tts?.voice ? ` · ${job.tts.voice}` : ''}
@@ -350,8 +435,8 @@ function JobRow({
           </div>
 
           {showProgress && (
-            <div className="studio-job-progress">
-              <div className="studio-job-progress-row">
+            <div className="admin-job-progress">
+              <div className="admin-job-progress-row">
                 <span className="truncate">
                   {job.message}
                   {job.error ? ` · ${job.error}` : ''}
@@ -366,17 +451,13 @@ function JobRow({
           )}
 
           {!showProgress && job.message && (
-            <p className="studio-job-msg">{job.message}</p>
+            <p className="admin-job-msg">{job.message}</p>
           )}
         </div>
       </button>
 
-      <div className="studio-job-actions">
-        <button
-          type="button"
-          className="nl-btn nl-btn-primary"
-          onClick={onOpen}
-        >
+      <div className="admin-job-actions">
+        <button type="button" className="nl-btn nl-btn-primary" onClick={onOpen}>
           {t('common.details')}
         </button>
         <button
@@ -413,4 +494,3 @@ function JobRow({
     </article>
   );
 }
-

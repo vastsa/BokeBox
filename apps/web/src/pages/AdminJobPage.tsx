@@ -19,7 +19,6 @@ import { ScriptFollow } from '../components/listen/ScriptFollow';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
 import {
-  IconBack,
   IconDownload,
   IconMic,
   IconRefresh,
@@ -34,6 +33,7 @@ import { CoverArt } from '../components/ui/CoverArt';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus, PipelineFromStep } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
+import { AdminChrome } from '../components/admin/AdminChrome';
 import {
   ContentLocaleSelect,
   contentLocaleLabel,
@@ -259,9 +259,9 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
             <button
               type="button"
               className="nl-btn nl-btn-primary mt-4"
-              onClick={() => navigate({ name: 'home' })}
+              onClick={() => navigate({ name: 'admin' })}
             >
-              {t('common.backHome')}
+              {t('admin.backToLibrary')}
             </button>
           </div>
         </div>
@@ -303,7 +303,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
     try {
       await fn();
       if (kind === 'delete') {
-        navigate({ name: 'home' });
+        navigate({ name: 'admin' });
         return;
       }
       await refresh();
@@ -317,16 +317,12 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
 
   return (
     <AppShell route={route}>
+      <AdminChrome
+        route={route}
+        title={title}
+        subtitle={t('admin.jobDetailSub')}
+      >
       <div className="admin-container nl-enter jd-page">
-        <button
-          type="button"
-          onClick={() => navigate({ name: 'home' })}
-          className="jd-back"
-        >
-          <IconBack size={16} />
-          {t('common.backHome')}
-        </button>
-
         {/* 顶栏信息 */}
         <header className="jd-hero">
           <CoverArt
@@ -916,6 +912,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
           </aside>
         </div>
       </div>
+      </AdminChrome>
     </AppShell>
   );
 }

@@ -41,13 +41,14 @@ export function AppShell({
   const homeActive =
     route.name === 'home' ||
     route.name === 'listen' ||
-    route.name === 'admin' ||
-    route.name === 'player' ||
-    route.name === 'job' ||
-    route.name === 'admin-job';
+    route.name === 'player';
   const tagsActive = route.name === 'tags';
   const createActive =
-    route.name === 'create' || route.name === 'admin-upload';
+    route.name === 'create' ||
+    route.name === 'admin-upload' ||
+    route.name === 'admin' ||
+    route.name === 'job' ||
+    route.name === 'admin-job';
   const settingsActive = route.name === 'settings';
 
   return (
@@ -88,7 +89,7 @@ export function AppShell({
               <TopNavItem
                 active={createActive}
                 label={t('nav.create')}
-                onClick={() => navigate({ name: 'create' })}
+                onClick={() => navigate({ name: 'admin' })}
                 icon={<IconUpload size={14} />}
               />
             )}
@@ -125,7 +126,7 @@ export function AppShell({
                 <TopActionButton
                   active={createActive}
                   label={t('nav.create')}
-                  onClick={() => navigate({ name: 'create' })}
+                  onClick={() => navigate({ name: 'admin' })}
                   icon={<IconUpload size={15} />}
                 />
               )}
@@ -176,7 +177,7 @@ export function AppShell({
               <BottomNavItem
                 active={createActive}
                 label={t('nav.create')}
-                onClick={() => navigate({ name: 'create' })}
+                onClick={() => navigate({ name: 'admin' })}
                 icon={<IconUpload size={18} />}
               />
             )}

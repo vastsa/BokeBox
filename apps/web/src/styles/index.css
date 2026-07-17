@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Soft Sky Azure — 对齐 NotLoss 小程序 v8 */
 @theme {
   --font-sans: "Inter", "Noto Sans SC", ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", sans-serif;
@@ -9457,4 +9469,543 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
 }
 .settings-seo-preview-attr-text {
   opacity: 0.9;
+}
+
+/* ========== Admin Console v2 · 制作台 ========== */
+.admin-console {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3_5);
+  padding-bottom: var(--space-8);
+}
+
+.admin-chrome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-chrome-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2_5);
+  flex-wrap: wrap;
+}
+
+.admin-chrome-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0_5);
+  padding: var(--space-0_5);
+  border-radius: var(--radius-full);
+  border: var(--bw-1) solid var(--separator);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.admin-chrome-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.admin-chrome-tab:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.admin-chrome-tab.is-active {
+  color: var(--brand-2);
+  background: var(--brand-soft);
+}
+
+.admin-chrome-back {
+  border: 0;
+  background: transparent;
+  color: var(--brand-2);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+.admin-chrome-back:hover {
+  background: var(--brand-soft);
+}
+
+.admin-console-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3_5);
+  min-width: 0;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2_5);
+}
+
+@media (max-width: 720px) {
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.admin-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-3_5);
+  border-radius: var(--radius-lg);
+  border: var(--bw-1) solid var(--separator);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.admin-stat b {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.admin-stat span {
+  font-size: var(--fs-sm-plus);
+  color: var(--text-3);
+  font-weight: var(--fw-medium);
+}
+
+.admin-stat.is-brand {
+  border-color: color-mix(in srgb, var(--brand) 22%, transparent);
+  background: color-mix(in srgb, var(--brand-soft) 55%, var(--surface));
+}
+.admin-stat.is-brand b,
+.admin-stat.is-brand span { color: var(--brand-2); }
+
+.admin-stat.is-success {
+  border-color: color-mix(in srgb, var(--success) 20%, transparent);
+  background: color-mix(in srgb, var(--success-soft) 50%, var(--surface));
+}
+.admin-stat.is-success b,
+.admin-stat.is-success span { color: var(--success); }
+
+.admin-stat.is-danger {
+  border-color: color-mix(in srgb, var(--danger) 18%, transparent);
+  background: color-mix(in srgb, var(--danger-soft) 45%, var(--surface));
+}
+.admin-stat.is-danger b,
+.admin-stat.is-danger span { color: var(--danger); }
+
+.admin-stat.is-pulse {
+  animation: studio-pulse 1.6s var(--ease) infinite;
+}
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2_5);
+}
+
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1_5);
+  min-width: 0;
+}
+
+.admin-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  min-height: 32px;
+  padding: 0 var(--space-2_5);
+  border-radius: var(--radius-full);
+  border: var(--bw-1) solid var(--separator);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.admin-filter em {
+  font-style: normal;
+  min-width: 1.25rem;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  text-align: center;
+}
+
+.admin-filter:hover {
+  color: var(--text);
+  border-color: var(--separator-strong);
+}
+
+.admin-filter.is-active {
+  color: var(--brand-2);
+  border-color: color-mix(in srgb, var(--brand) 28%, transparent);
+  background: var(--brand-soft);
+}
+
+.admin-filter.is-active em {
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+  color: var(--brand-2);
+}
+
+.admin-filter.is-danger.is-active {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 28%, transparent);
+  background: var(--danger-soft);
+}
+
+.admin-filter.is-danger.is-active em {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.admin-search {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.admin-search input {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: var(--bw-1) solid var(--separator);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-base);
+  outline: none;
+}
+
+.admin-search input:focus {
+  border-color: color-mix(in srgb, var(--brand) 45%, transparent);
+  box-shadow: 0 0 0 3px var(--brand-ring);
+}
+
+.admin-library {
+  border: var(--bw-1) solid var(--separator);
+  border-radius: var(--radius-2xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.admin-library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3_5) var(--space-4) var(--space-3);
+  border-bottom: var(--space-px) solid var(--separator);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--brand-soft) 32%, transparent), transparent);
+}
+
+.admin-library-head h2 {
+  margin: 0;
+  font-size: var(--fs-lg-plus);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text);
+}
+
+.admin-library-head p {
+  margin: var(--space-0_5) 0 0;
+  font-size: var(--fs-base);
+  color: var(--text-3);
+}
+
+.admin-skel,
+.admin-empty-wrap {
+  padding: var(--space-4);
+}
+
+.admin-skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2_5);
+}
+
+.admin-job-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2_5);
+}
+
+.admin-job-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2_5);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: var(--bw-1) solid var(--separator);
+  background: color-mix(in srgb, var(--surface-2) 35%, var(--surface));
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+  animation: enter-up 0.34s var(--ease) both;
+  animation-delay: var(--stagger, 0ms);
+}
+
+@media (min-width: 900px) {
+  .admin-job-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+.admin-job-card:hover {
+  border-color: var(--separator-strong);
+  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+}
+
+.admin-job-card.is-active {
+  border-color: color-mix(in srgb, var(--brand) 24%, transparent);
+  background: color-mix(in srgb, var(--brand-soft) 40%, var(--surface));
+}
+
+.admin-job-card.is-failed {
+  border-color: color-mix(in srgb, var(--danger) 18%, transparent);
+  background: color-mix(in srgb, var(--danger-soft) 35%, var(--surface));
+}
+
+.admin-job-main {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.admin-job-cover-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.admin-job-cover {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-inv);
+  box-shadow:
+    inset 0 0 0 1px var(--white-a16),
+    0 6px 14px var(--black-a12);
+}
+
+.admin-job-live {
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--success);
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 18%, transparent);
+}
+
+.admin-job-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.admin-job-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2_5);
+}
+
+.admin-job-title {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.admin-job-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.admin-job-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-sm-plus);
+  color: var(--text-3);
+  line-height: 1.35;
+}
+
+.admin-job-sub .dot { opacity: 0.55; }
+
+.admin-source-label {
+  display: inline-block;
+  max-width: min(48vw, 260px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-0_5);
+}
+
+.admin-job-assets {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.admin-asset {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 var(--space-1_5);
+  border-radius: var(--radius-full);
+  border: var(--bw-1) solid var(--separator);
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+
+.admin-asset.is-ok {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 22%, transparent);
+  background: color-mix(in srgb, var(--success-soft) 55%, var(--surface));
+}
+
+.admin-job-tts {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: var(--fs-sm-plus);
+}
+
+.admin-job-progress {
+  margin-top: var(--space-1_5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.admin-job-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--fs-sm-plus);
+  color: var(--text-2);
+}
+
+.admin-job-progress-row .truncate {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-job-msg {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-sm-plus);
+  color: var(--text-3);
+  line-height: 1.4;
+}
+
+.admin-job-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1_5);
+  justify-content: flex-end;
+}
+
+.admin-job-actions .nl-btn {
+  min-height: var(--control-lg);
+}
+
+.admin-upload-panel {
+  min-width: 0;
+}
+
+/* job detail inside admin console: tighten top spacing */
+.admin-console .jd-page {
+  margin-top: 0;
+}
+
+.admin-console .jd-hero {
+  margin-top: 0;
+}
+
+html[data-theme="dark"] .admin-stat,
+html[data-theme="dark"] .admin-library,
+html[data-theme="dark"] .admin-job-card,
+html[data-theme="dark"] .admin-filter,
+html[data-theme="dark"] .admin-search input,
+html[data-theme="dark"] .admin-chrome-tabs {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
 }

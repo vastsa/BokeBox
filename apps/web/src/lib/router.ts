@@ -24,6 +24,9 @@ export function parseHash(): Route {
     return { name: 'tags' };
   }
   if (path === '/create' || path === '/upload') return { name: 'create' };
+  if (path === '/studio' || path === '/admin' || path === '/jobs') {
+    return { name: 'admin' };
+  }
 
   if (path === '/' || path === '/home' || path === '/listen') {
     return { name: 'home' };
@@ -43,7 +46,7 @@ export function parseHash(): Route {
   }
 
   // 旧后台路径兼容
-  if (path === '/admin') return { name: 'home' };
+  if (path === '/admin') return { name: 'admin' };
   if (path === '/admin/upload') return { name: 'create' };
   if (path.startsWith('/admin/jobs/')) {
     const id = path.slice('/admin/jobs/'.length).split('/')[0];
@@ -57,8 +60,9 @@ export function toHash(route: Route): string {
   switch (route.name) {
     case 'home':
     case 'listen':
-    case 'admin':
       return '#/home';
+    case 'admin':
+      return '#/studio';
     case 'tags':
       return '#/tags';
     case 'player':
