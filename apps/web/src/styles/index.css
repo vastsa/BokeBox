@@ -8868,8 +8868,9 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
     radial-gradient(35% 28% at 20% 30%, rgba(79, 142, 247, 0.16), transparent 70%),
     radial-gradient(30% 24% at 80% 65%, rgba(124, 92, 255, 0.14), transparent 70%),
     radial-gradient(28% 22% at 55% 80%, rgba(47, 214, 207, 0.1), transparent 70%);
-  filter: blur(8px);
-  animation: tu-aurora-shift 14s ease-in-out infinite alternate;
+  /* 去掉实时 blur，改用更软的径向渐变，显著降合成开销 */
+  animation: tu-aurora-shift 18s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 @keyframes tu-aurora-shift {
@@ -8986,7 +8987,7 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
   border-radius: 16px;
   border: 1px solid rgba(143, 184, 255, 0.12);
   background: linear-gradient(135deg, rgba(12, 18, 34, 0.55), rgba(6, 8, 18, 0.28));
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
 }
 

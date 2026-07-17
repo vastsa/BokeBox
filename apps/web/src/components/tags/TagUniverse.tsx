@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import type { LibraryItem } from '../../types/job';
 import { hashSeed } from '../../lib/format';
@@ -34,20 +30,76 @@ type StarRuntime = {
   phase: number;
   color: THREE.Color;
   count: number;
+  /** 上一帧交互态，避免每帧改 material */
+  visual: 'idle' | 'hover' | 'active';
+  lastDim: number;
 };
 
 const BG = 0x03040c;
+const ZERO = new THREE.Vector3(0, 0, 0);
+const WHITE = new THREE.Color(1, 1, 1);
+
+type Quality = {
+  dpr: number;
+  farStars: number;
+  nearStars: number;
+  nebulae: number;
+  antialias: boolean;
+  animateIdle: boolean;
+  labelSortEvery: number;
+};
+
+function detectQuality(): Quality {
+  const cores = navigator.hardwareConcurrency || 4;
+  const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory || 4;
+  const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+  const mobile = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+  const low = saveData || mobile || cores <= 4 || mem <= 4;
+  const mid = !low && (cores <= 6 || mem <= 6);
+
+  if (low) {
+    return {
+      dpr: 1,
+      farStars: 420,
+      nearStars: 80,
+      nebulae: 2,
+      antialias: false,
+      animateIdle: false,
+      labelSortEvery: 10,
+    };
+  }
+  if (mid) {
+    return {
+      dpr: Math.min(window.devicePixelRatio || 1, 1.25),
+      farStars: 700,
+      nearStars: 120,
+      nebulae: 3,
+      antialias: false,
+      animateIdle: true,
+      labelSortEvery: 6,
+    };
+  }
+  return {
+    dpr: Math.min(window.devicePixelRatio || 1, 1.5),
+    farStars: 1000,
+    nearStars: 160,
+    nebulae: 3,
+    antialias: true,
+    animateIdle: true,
+    labelSortEvery: 5,
+  };
+}
 
 function colorForTag(name: string): THREE.Color {
   const h = hashSeed(name);
   const palette = [
-    [0.58, 0.78, 0.68], // brand blue
-    [0.52, 0.72, 0.66], // cyan
-    [0.72, 0.62, 0.72], // violet
-    [0.88, 0.58, 0.7], // rose
-    [0.48, 0.55, 0.7], // teal
-    [0.08, 0.7, 0.72], // warm
-    [0.62, 0.48, 0.78], // indigo
+    [0.58, 0.78, 0.68],
+    [0.52, 0.72, 0.66],
+    [0.72, 0.62, 0.72],
+    [0.88, 0.58, 0.7],
+    [0.48, 0.55, 0.7],
+    [0.08, 0.7, 0.72],
+    [0.62, 0.48, 0.78],
   ] as const;
   const [hh, s, l] = palette[h % palette.length];
   const c = new THREE.Color();
@@ -69,10 +121,7 @@ function fibSphere(i: number, n: number, radius: number): THREE.Vector3 {
   );
 }
 
-function makeRadialTexture(
-  stops: Array<[number, string]>,
-  size = 256,
-): THREE.CanvasTexture {
+function makeRadialTexture(stops: Array<[number, string]>, size = 128): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -88,55 +137,44 @@ function makeRadialTexture(
 }
 
 function makeSpikeTexture(): THREE.CanvasTexture {
-  const size = 256;
+  const size = 128;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d')!;
-  ctx.clearRect(0, 0, size, size);
   const cx = size / 2;
   const cy = size / 2;
-
   const drawRay = (angle: number, len: number, width: number, alpha: number) => {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
     const grad = ctx.createLinearGradient(0, -len, 0, len);
-    grad.addColorStop(0, `rgba(255,255,255,0)`);
-    grad.addColorStop(0.45, `rgba(255,255,255,${alpha * 0.15})`);
+    grad.addColorStop(0, 'rgba(255,255,255,0)');
     grad.addColorStop(0.5, `rgba(255,255,255,${alpha})`);
-    grad.addColorStop(0.55, `rgba(255,255,255,${alpha * 0.15})`);
-    grad.addColorStop(1, `rgba(255,255,255,0)`);
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = grad;
     ctx.fillRect(-width / 2, -len, width, len * 2);
     ctx.restore();
   };
-
-  // 十字炫光
-  drawRay(0, 120, 3.2, 0.9);
-  drawRay(Math.PI / 2, 120, 3.2, 0.9);
-  drawRay(Math.PI / 4, 70, 1.8, 0.35);
-  drawRay(-Math.PI / 4, 70, 1.8, 0.35);
-
-  // 中心光核
-  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, 28);
-  core.addColorStop(0, 'rgba(255,255,255,0.95)');
-  core.addColorStop(0.4, 'rgba(255,255,255,0.35)');
+  drawRay(0, 58, 2.2, 0.85);
+  drawRay(Math.PI / 2, 58, 2.2, 0.85);
+  drawRay(Math.PI / 4, 34, 1.2, 0.3);
+  drawRay(-Math.PI / 4, 34, 1.2, 0.3);
+  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, 16);
+  core.addColorStop(0, 'rgba(255,255,255,0.9)');
   core.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = core;
   ctx.beginPath();
-  ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 16, 0, Math.PI * 2);
   ctx.fill();
-
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
-function makeStarfield(count: number, rMin: number, rMax: number, size: number) {
+function makeStarfield(count: number, rMin: number, rMax: number) {
   const pos = new Float32Array(count * 3);
   const col = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
   for (let i = 0; i < count; i += 1) {
     const r = rMin + Math.random() * (rMax - rMin);
     const phi = Math.acos(2 * Math.random() - 1);
@@ -144,32 +182,27 @@ function makeStarfield(count: number, rMin: number, rMax: number, size: number) 
     pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
     pos[i * 3 + 1] = r * Math.cos(phi) * 0.72;
     pos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-
     const roll = Math.random();
-    if (roll > 0.82) {
-      // 暖白
+    if (roll > 0.8) {
       col[i * 3] = 1;
-      col[i * 3 + 1] = 0.9 + Math.random() * 0.08;
-      col[i * 3 + 2] = 0.72 + Math.random() * 0.15;
-    } else if (roll > 0.55) {
-      // 冷蓝
-      col[i * 3] = 0.65 + Math.random() * 0.2;
-      col[i * 3 + 1] = 0.78 + Math.random() * 0.15;
+      col[i * 3 + 1] = 0.9;
+      col[i * 3 + 2] = 0.75;
+    } else if (roll > 0.5) {
+      col[i * 3] = 0.7;
+      col[i * 3 + 1] = 0.82;
       col[i * 3 + 2] = 1;
     } else {
-      col[i * 3] = 0.85 + Math.random() * 0.15;
-      col[i * 3 + 1] = 0.88 + Math.random() * 0.12;
-      col[i * 3 + 2] = 0.95 + Math.random() * 0.05;
+      col[i * 3] = 0.9;
+      col[i * 3 + 1] = 0.92;
+      col[i * 3 + 2] = 0.98;
     }
-    sizes[i] = size * (0.45 + Math.random() * 1.2);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  return { geo, sizes };
+  return geo;
 }
 
-/** 基于共现关系构建星座连线 */
 function buildLinks(tags: TagStar[], positions: THREE.Vector3[]): number[] {
   const pairs: Array<[number, number, number]> = [];
   for (let i = 0; i < tags.length; i += 1) {
@@ -185,7 +218,7 @@ function buildLinks(tags: TagStar[], positions: THREE.Vector3[]): number[] {
     }
   }
   pairs.sort((a, b) => b[2] - a[2]);
-  const maxLinks = Math.min(pairs.length, Math.max(4, Math.floor(tags.length * 1.35)));
+  const maxLinks = Math.min(pairs.length, Math.max(3, Math.floor(tags.length * 1.1)));
   const out: number[] = [];
   for (let k = 0; k < maxLinks; k += 1) {
     const [i, j] = pairs[k];
@@ -201,13 +234,55 @@ function buildLinks(tags: TagStar[], positions: THREE.Vector3[]): number[] {
   return out;
 }
 
+function setStarVisual(s: StarRuntime, mode: 'idle' | 'hover' | 'active', dim: number) {
+  if (s.visual === mode && Math.abs(s.lastDim - dim) < 0.001) return;
+  s.lastDim = dim;
+  const coreMat = s.core.material as THREE.MeshBasicMaterial;
+  const haloMat = s.halo.material as THREE.MeshBasicMaterial;
+  const spikeMat = s.spike.material as THREE.MeshBasicMaterial;
+  const sc =
+    s.baseScale *
+    (mode === 'active' ? 2.0 : mode === 'hover' ? 1.25 : 1);
+
+  s.core.scale.setScalar(sc * (mode === 'active' ? 0.7 : 0.55));
+  s.halo.scale.setScalar(sc * (mode === 'active' ? 11 : mode === 'hover' ? 8.2 : 7.2));
+  s.spike.scale.setScalar(sc * (mode === 'active' ? 22 : mode === 'hover' ? 14 : 11));
+
+  if (mode === 'active') {
+    coreMat.color.copy(WHITE);
+    haloMat.color.copy(s.color).lerp(WHITE, 0.3);
+    spikeMat.color.copy(s.color).lerp(WHITE, 0.2);
+    coreMat.opacity = 1;
+    haloMat.opacity = 1;
+    spikeMat.opacity = 0.92;
+    s.spike.visible = true;
+  } else if (mode === 'hover') {
+    coreMat.color.copy(WHITE);
+    haloMat.color.copy(s.color);
+    spikeMat.color.copy(s.color);
+    coreMat.opacity = 1;
+    haloMat.opacity = 0.95;
+    spikeMat.opacity = 0.48;
+    s.spike.visible = true;
+  } else {
+    coreMat.color.copy(WHITE);
+    haloMat.color.copy(s.color);
+    spikeMat.color.copy(s.color);
+    coreMat.opacity = 0.55 + 0.45 * dim;
+    haloMat.opacity = (0.75) * dim;
+    spikeMat.opacity = (0.16 + (s.count > 1 ? 0.12 : 0)) * dim;
+    // 低占用：非强调星隐藏十字炫光 draw call
+    s.spike.visible = dim > 0.7 && s.count > 1;
+  }
+  s.visual = mode;
+}
+
 export function TagUniverse({ tags, selected, onSelect, className }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const onSelectRef = useRef(onSelect);
   const selectedRef = useRef(selected);
   const starsRef = useRef<StarRuntime[]>([]);
-  const focusTargetRef = useRef(new THREE.Vector3());
-  const focusActiveRef = useRef(false);
+  const hoverRef = useRef<string | null>(null);
 
   const tagKey = useMemo(
     () => tags.map((t) => `${t.name}:${t.count}`).join('|'),
@@ -220,18 +295,9 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
 
   useEffect(() => {
     selectedRef.current = selected;
-    let found: StarRuntime | null = null;
     for (const s of starsRef.current) {
       const active = Boolean(selected && s.name === selected);
       s.label.element.classList.toggle('is-focus', active);
-      s.group.userData.active = active;
-      if (active) found = s;
-    }
-    if (found) {
-      focusTargetRef.current.copy(found.basePos);
-      focusActiveRef.current = true;
-    } else {
-      focusActiveRef.current = false;
     }
   }, [selected]);
 
@@ -240,22 +306,27 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
     if (!wrap) return;
 
     let disposed = false;
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(BG, 0.012);
+    let ignoreCanvasPickUntil = 0;
+    const quality = detectQuality();
 
-    const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 220);
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(BG, 0.014);
+
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 160);
     camera.position.set(0.6, 1.8, 15.5);
 
     const renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: quality.antialias,
       alpha: false,
       powerPreference: 'high-performance',
+      stencil: false,
+      depth: true,
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(quality.dpr);
     renderer.setClearColor(BG, 1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    // 去掉 ACES + Bloom：这是卡顿主因
+    renderer.toneMapping = THREE.NoToneMapping;
     wrap.appendChild(renderer.domElement);
     renderer.domElement.className = 'tu-canvas';
 
@@ -263,41 +334,45 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
     labelRenderer.domElement.className = 'tu-labels';
     wrap.appendChild(labelRenderer.domElement);
 
-    // Bloom 合成
-    const composer = new EffectComposer(renderer);
-    const renderPass = new RenderPass(scene, camera);
-    composer.addPass(renderPass);
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.42, 0.72);
-    composer.addPass(bloomPass);
-    const outputPass = new OutputPass();
-    composer.addPass(outputPass);
-
-    // 标签点击后短时间内忽略 canvas 拾取，防止“点 A 选中 B”
-    let ignoreCanvasPickUntil = 0;
-
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.048;
+    controls.dampingFactor = 0.06;
     controls.rotateSpeed = 0.48;
     controls.zoomSpeed = 0.75;
     controls.minDistance = 6;
-    controls.maxDistance = 34;
+    controls.maxDistance = 32;
     controls.enablePan = false;
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.28;
-    controls.target.set(0, 0, 0);
+    controls.target.copy(ZERO);
 
-    // 多层星尘
-    const dustTex = makeRadialTexture([
-      [0, 'rgba(255,255,255,1)'],
-      [0.2, 'rgba(255,255,255,0.65)'],
-      [0.55, 'rgba(255,255,255,0.12)'],
-      [1, 'rgba(255,255,255,0)'],
-    ], 64);
+    const dustTex = makeRadialTexture(
+      [
+        [0, 'rgba(255,255,255,1)'],
+        [0.25, 'rgba(255,255,255,0.5)'],
+        [0.65, 'rgba(255,255,255,0.08)'],
+        [1, 'rgba(255,255,255,0)'],
+      ],
+      64,
+    );
 
-    const farStars = makeStarfield(2600, 22, 70, 0.055);
+    const farGeo = makeStarfield(quality.farStars, 22, 64);
     const farMat = new THREE.PointsMaterial({
-      size: 0.06,
+      size: 0.07,
+      map: dustTex,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+    });
+    const farPoints = new THREE.Points(farGeo, farMat);
+    scene.add(farPoints);
+
+    const nearGeo = makeStarfield(quality.nearStars, 10, 26);
+    const nearMat = new THREE.PointsMaterial({
+      size: 0.12,
       map: dustTex,
       vertexColors: true,
       transparent: true,
@@ -306,72 +381,51 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
-    const farPoints = new THREE.Points(farStars.geo, farMat);
-    scene.add(farPoints);
-
-    const nearStars = makeStarfield(420, 10, 28, 0.1);
-    const nearMat = new THREE.PointsMaterial({
-      size: 0.12,
-      map: dustTex,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.95,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      sizeAttenuation: true,
-    });
-    const nearPoints = new THREE.Points(nearStars.geo, nearMat);
+    const nearPoints = new THREE.Points(nearGeo, nearMat);
     scene.add(nearPoints);
 
-    // 星云团
     const nebulaGroup = new THREE.Group();
     scene.add(nebulaGroup);
-    const nebulaTex = makeRadialTexture([
-      [0, 'rgba(255,255,255,0.55)'],
-      [0.25, 'rgba(255,255,255,0.22)'],
-      [0.6, 'rgba(255,255,255,0.05)'],
-      [1, 'rgba(255,255,255,0)'],
-    ], 256);
-    const nebulaColors = [0x4f8ef7, 0x7c5cff, 0x2fd6cf, 0xf472b6, 0x38bdf8];
-    for (let i = 0; i < 5; i += 1) {
+    const nebulaTex = makeRadialTexture(
+      [
+        [0, 'rgba(255,255,255,0.5)'],
+        [0.35, 'rgba(255,255,255,0.14)'],
+        [1, 'rgba(255,255,255,0)'],
+      ],
+      128,
+    );
+    const nebulaColors = [0x4f8ef7, 0x7c5cff, 0x2fd6cf];
+    for (let i = 0; i < quality.nebulae; i += 1) {
       const mat = new THREE.MeshBasicMaterial({
         map: nebulaTex,
         color: nebulaColors[i % nebulaColors.length],
         transparent: true,
-        opacity: 0.14 + (i % 3) * 0.03,
+        opacity: 0.13,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
-      const ang = (i / 5) * Math.PI * 2;
-      const rad = 6 + (i % 3) * 2.2;
-      mesh.position.set(Math.cos(ang) * rad, (i - 2) * 1.4, Math.sin(ang) * rad * 0.7);
-      mesh.scale.setScalar(8 + (i % 3) * 3);
+      const ang = (i / Math.max(quality.nebulae, 1)) * Math.PI * 2;
+      const rad = 7 + (i % 3) * 1.8;
+      mesh.position.set(Math.cos(ang) * rad, (i - 1) * 1.2, Math.sin(ang) * rad * 0.7);
+      mesh.scale.setScalar(9 + (i % 2) * 2);
       mesh.userData.phase = i * 1.3;
       nebulaGroup.add(mesh);
     }
 
-    // 外围暗球罩，增强景深
-    const dome = new THREE.Mesh(
-      new THREE.SphereGeometry(90, 32, 32),
-      new THREE.MeshBasicMaterial({
-        color: 0x050714,
-        side: THREE.BackSide,
-        transparent: true,
-        opacity: 0.9,
-      }),
+    const glowTex = makeRadialTexture(
+      [
+        [0, 'rgba(255,255,255,1)'],
+        [0.15, 'rgba(255,255,255,0.8)'],
+        [0.4, 'rgba(255,255,255,0.22)'],
+        [0.75, 'rgba(255,255,255,0.05)'],
+        [1, 'rgba(255,255,255,0)'],
+      ],
+      128,
     );
-    scene.add(dome);
-
-    const glowTex = makeRadialTexture([
-      [0, 'rgba(255,255,255,1)'],
-      [0.12, 'rgba(255,255,255,0.85)'],
-      [0.35, 'rgba(255,255,255,0.28)'],
-      [0.7, 'rgba(255,255,255,0.06)'],
-      [1, 'rgba(255,255,255,0)'],
-    ]);
     const spikeTex = makeSpikeTexture();
-    const coreGeo = new THREE.SphereGeometry(1, 28, 28);
+    // 低面数内核
+    const coreGeo = new THREE.SphereGeometry(1, 12, 12);
     const planeGeo = new THREE.PlaneGeometry(1, 1);
 
     const root = new THREE.Group();
@@ -390,58 +444,47 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       const group = new THREE.Group();
       group.position.copy(positions[i]);
       group.userData.name = tag.name;
-      group.userData.active = selectedRef.current === tag.name;
 
-      const coreMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(1, 1, 1),
-        transparent: true,
-        opacity: 0.98,
-      });
-      // 内核偏白，外层吃主题色
-      const core = new THREE.Mesh(coreGeo, coreMat);
-      core.scale.setScalar(baseScale * 0.55);
-      core.userData.name = tag.name;
-
-      const haloMat = new THREE.MeshBasicMaterial({
-        map: glowTex,
-        color,
-        transparent: true,
-        opacity: 0.9,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      const halo = new THREE.Mesh(planeGeo, haloMat);
-      halo.scale.setScalar(baseScale * 7.5);
-      halo.userData.name = tag.name;
-
-      const spikeMat = new THREE.MeshBasicMaterial({
-        map: spikeTex,
-        color,
-        transparent: true,
-        opacity: 0.22 + weight * 0.35,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      const spike = new THREE.Mesh(planeGeo, spikeMat);
-      spike.scale.setScalar(baseScale * (10 + weight * 8));
-      spike.userData.name = tag.name;
-
-      // 命中用透明大球
-      const hit = new THREE.Mesh(
+      const core = new THREE.Mesh(
         coreGeo,
         new THREE.MeshBasicMaterial({
+          color: WHITE,
           transparent: true,
-          opacity: 0,
-          depthWrite: false,
+          opacity: 0.98,
         }),
       );
-      hit.scale.setScalar(baseScale * 2.6);
-      hit.userData.name = tag.name;
+      core.scale.setScalar(baseScale * 0.55);
+
+      const halo = new THREE.Mesh(
+        planeGeo,
+        new THREE.MeshBasicMaterial({
+          map: glowTex,
+          color,
+          transparent: true,
+          opacity: 0.86,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+      );
+      halo.scale.setScalar(baseScale * 7.2);
+
+      const spike = new THREE.Mesh(
+        planeGeo,
+        new THREE.MeshBasicMaterial({
+          map: spikeTex,
+          color,
+          transparent: true,
+          opacity: 0.2 + weight * 0.25,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+      );
+      spike.scale.setScalar(baseScale * 11);
+      spike.visible = tag.count > 1;
 
       const el = document.createElement('button');
       el.type = 'button';
-      el.className =
-        'tu-label' + (group.userData.active ? ' is-focus' : '');
+      el.className = 'tu-label' + (selectedRef.current === tag.name ? ' is-focus' : '');
       const dot = document.createElement('span');
       dot.className = 'tu-label-dot';
       const text = document.createElement('span');
@@ -454,7 +497,6 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       el.style.setProperty('--star', `#${color.getHexString()}`);
       el.dataset.tagName = tag.name;
       el.addEventListener('pointerdown', (ev) => {
-        // 避免事件落到 canvas 再拾取到别的星
         ev.stopPropagation();
         ignoreCanvasPickUntil = performance.now() + 500;
       });
@@ -465,17 +507,17 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
         const next = selectedRef.current === tag.name ? null : tag.name;
         onSelectRef.current(next);
       });
+
       const label = new CSS2DObject(el);
       label.position.set(0, baseScale * 1.8, 0);
 
-      group.add(hit);
       group.add(core);
       group.add(halo);
       group.add(spike);
       group.add(label);
       root.add(group);
 
-      runtimes.push({
+      const runtime: StarRuntime = {
         name: tag.name,
         group,
         core,
@@ -487,23 +529,23 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
         phase: (hashSeed(tag.name) % 360) * (Math.PI / 180),
         color,
         count: tag.count,
-      });
+        visual: 'idle',
+        lastDim: 1,
+      };
+      setStarVisual(runtime, 'idle', 1);
+      runtimes.push(runtime);
     });
     starsRef.current = runtimes;
 
-    // 星座连线
     const linkPositions = buildLinks(tags, positions);
     let linkLines: THREE.LineSegments | null = null;
     if (linkPositions.length) {
       const linkGeo = new THREE.BufferGeometry();
-      linkGeo.setAttribute(
-        'position',
-        new THREE.Float32BufferAttribute(linkPositions, 3),
-      );
+      linkGeo.setAttribute('position', new THREE.Float32BufferAttribute(linkPositions, 3));
       const linkMat = new THREE.LineBasicMaterial({
         color: 0x8fb8ff,
         transparent: true,
-        opacity: 0.18,
+        opacity: 0.16,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       });
@@ -511,7 +553,7 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       root.add(linkLines);
     }
 
-    // 选中光环：挂在场景中，每帧用星点世界坐标对齐
+    // 单环选中指示
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0xb7d4ff,
       transparent: true,
@@ -520,28 +562,16 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.84, 72), ringMat);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.84, 48), ringMat);
     ring.visible = false;
-    ring.renderOrder = 3;
     scene.add(ring);
 
-    const ringMat2 = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    const ring2 = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.02, 72), ringMat2);
-    ring2.visible = false;
-    ring2.renderOrder = 3;
-    scene.add(ring2);
-
-    let pointerDown: { x: number; y: number } | null = null;
-    let hoverName: string | null = null;
     const ndc = new THREE.Vector3();
     const world = new THREE.Vector3();
+    const tmp = new THREE.Vector3();
+    const desired = new THREE.Vector3();
+    const camOffset = new THREE.Vector3();
+    let pointerDown: { x: number; y: number } | null = null;
 
     const setSize = () => {
       if (disposed) return;
@@ -551,40 +581,28 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       camera.updateProjectionMatrix();
       renderer.setSize(w, h, false);
       labelRenderer.setSize(w, h);
-      composer.setSize(w, h);
-      bloomPass.setSize(w, h);
     };
     setSize();
     const ro = new ResizeObserver(setSize);
     ro.observe(wrap);
 
-    /** 屏幕空间就近拾取：避免透明命中球重叠导致点 A 中 B */
     const pickName = (clientX: number, clientY: number): string | null => {
       const rect = renderer.domElement.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return null;
-
-      // 确保世界矩阵是最新的（含 root 自转与浮动）
       root.updateMatrixWorld(true);
 
       let bestName: string | null = null;
       let bestScore = Infinity;
-
       for (const s of runtimes) {
         s.group.getWorldPosition(world);
         ndc.copy(world).project(camera);
-        // 裁剪外 / 相机背后
-        if (ndc.z < -1 || ndc.z > 1 || ndc.x < -1.2 || ndc.x > 1.2 || ndc.y < -1.2 || ndc.y > 1.2) {
-          continue;
-        }
+        if (ndc.z < -1 || ndc.z > 1 || Math.abs(ndc.x) > 1.25 || Math.abs(ndc.y) > 1.25) continue;
         const sx = (ndc.x * 0.5 + 0.5) * rect.width + rect.left;
         const sy = (-ndc.y * 0.5 + 0.5) * rect.height + rect.top;
         const pixelDist = Math.hypot(clientX - sx, clientY - sy);
-        // 近大远小：允许点标签附近空白也算点中该星
-        const depthScale = 1.15 - Math.min(0.45, Math.max(0, ndc.z) * 0.4);
+        const depthScale = 1.12 - Math.min(0.4, Math.max(0, ndc.z) * 0.35);
         const hitRadius = (34 + s.baseScale * 48) * depthScale;
         if (pixelDist > hitRadius) continue;
-
-        // 分数：越近光标越好；同等距离优先更靠近相机的星 (ndc.z 更小)
         const score = pixelDist + (ndc.z + 1) * 18;
         if (score < bestScore) {
           bestScore = score;
@@ -595,8 +613,8 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
     };
 
     const applyHover = (name: string | null) => {
-      if (name === hoverName) return;
-      hoverName = name;
+      if (name === hoverRef.current) return;
+      hoverRef.current = name;
       renderer.domElement.style.cursor = name ? 'pointer' : 'grab';
       for (const s of runtimes) {
         s.label.element.classList.toggle('is-hover', s.name === name);
@@ -624,10 +642,12 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       }
       window.setTimeout(() => {
         if (!disposed && !selectedRef.current) controls.autoRotate = true;
-      }, 2200);
+      }, 1800);
     };
     const onPointerMove = (e: PointerEvent) => {
       if (performance.now() < ignoreCanvasPickUntil) return;
+      // 拖拽中不刷 hover，减拾取开销
+      if (pointerDown) return;
       applyHover(pickName(e.clientX, e.clientY));
     };
     const onPointerLeave = () => {
@@ -640,142 +660,143 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
     renderer.domElement.addEventListener('pointermove', onPointerMove);
     renderer.domElement.addEventListener('pointerleave', onPointerLeave);
 
-    const clock = new THREE.Clock();
     let raf = 0;
-    const tmp = new THREE.Vector3();
+    let frame = 0;
+    let last = performance.now();
+    let rootAngle = 0;
+    const clockStart = performance.now();
 
-    const tick = () => {
+    const tick = (now: number) => {
       if (disposed) return;
-      const t = clock.getElapsedTime();
+      raf = requestAnimationFrame(tick);
+
+      // 页面隐藏时停更
+      if (document.hidden) return;
+
+      // 简单帧率保护：掉帧时跳过部分装饰更新
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      frame += 1;
+      const t = (now - clockStart) / 1000;
+      const heavyFrame = frame % 2 === 0; // 半频更新装饰
+
       controls.update();
 
-      // 背景微动；选中时暂停星团自转，避免“点了却飘到别的星”的错觉
-      farPoints.rotation.y = t * 0.008;
-      nearPoints.rotation.y = -t * 0.014;
+      if (heavyFrame) {
+        farPoints.rotation.y = t * 0.008;
+        nearPoints.rotation.y = -t * 0.014;
+      }
+
       if (!selectedRef.current) {
-        root.rotation.y = t * 0.012;
+        rootAngle += dt * 0.12;
+        root.rotation.y = rootAngle;
       }
 
-      for (const n of nebulaGroup.children) {
-        const mesh = n as THREE.Mesh;
-        mesh.quaternion.copy(camera.quaternion);
-        const phase = Number(mesh.userData.phase || 0);
-        const mat = mesh.material as THREE.MeshBasicMaterial;
-        mat.opacity = 0.1 + (Math.sin(t * 0.35 + phase) * 0.5 + 0.5) * 0.08;
-        mesh.position.y += Math.sin(t * 0.2 + phase) * 0.0015;
+      if (heavyFrame) {
+        for (const n of nebulaGroup.children) {
+          const mesh = n as THREE.Mesh;
+          mesh.quaternion.copy(camera.quaternion);
+          const phase = Number(mesh.userData.phase || 0);
+          const mat = mesh.material as THREE.MeshBasicMaterial;
+          mat.opacity = 0.1 + (Math.sin(t * 0.35 + phase) * 0.5 + 0.5) * 0.07;
+        }
       }
 
+      const selectedName = selectedRef.current;
+      const hoverName = hoverRef.current;
       let activeStar: StarRuntime | null = null;
+
       for (const s of runtimes) {
-        // 以 selectedRef 为准，避免 userData 不同步
-        const active = Boolean(selectedRef.current && s.name === selectedRef.current);
-        s.group.userData.active = active;
-        const hover = !active && s.label.element.classList.contains('is-hover');
+        const active = Boolean(selectedName && s.name === selectedName);
+        const hover = !active && hoverName === s.name;
         if (active) activeStar = s;
 
-        const floatY = Math.sin(t * 1.1 + s.phase) * 0.08;
-        const floatX = Math.cos(t * 0.7 + s.phase) * 0.04;
-        s.group.position.set(
-          s.basePos.x + floatX,
-          s.basePos.y + floatY,
-          s.basePos.z,
-        );
+        // 浮动：仅中高质量，或当前交互星
+        if (quality.animateIdle || active || hover) {
+          const floatY = Math.sin(t * 1.1 + s.phase) * (active ? 0.08 : 0.05);
+          const floatX = Math.cos(t * 0.7 + s.phase) * (active ? 0.04 : 0.025);
+          s.group.position.set(
+            s.basePos.x + floatX,
+            s.basePos.y + floatY,
+            s.basePos.z,
+          );
+        }
 
-        const pulse = 1 + Math.sin(t * 1.6 + s.phase) * (active ? 0.12 : 0.07);
-        const boost = active ? 2.05 : hover ? 1.28 : 1;
-        const sc = s.baseScale * pulse * boost;
-        s.core.scale.setScalar(sc * (active ? 0.72 : 0.55));
-        s.halo.scale.setScalar(sc * (active ? 12.5 : 7.5));
-        s.spike.scale.setScalar(sc * (active ? 26 : hover ? 15 : 12));
-        s.halo.quaternion.copy(camera.quaternion);
-        s.spike.quaternion.copy(camera.quaternion);
-        s.spike.rotation.z = t * (active ? 0.45 : 0.15) + s.phase;
+        const mode: 'idle' | 'hover' | 'active' = active ? 'active' : hover ? 'hover' : 'idle';
+        const dim = selectedName && !active ? 0.42 : 1;
+        setStarVisual(s, mode, dim);
 
-        const coreMat = s.core.material as THREE.MeshBasicMaterial;
-        const haloMat = s.halo.material as THREE.MeshBasicMaterial;
-        const spikeMat = s.spike.material as THREE.MeshBasicMaterial;
+        // billboard：仅交互星每帧，其余半频
+        if (active || hover || heavyFrame) {
+          s.halo.quaternion.copy(camera.quaternion);
+          if (s.spike.visible) {
+            s.spike.quaternion.copy(camera.quaternion);
+            if (active) s.spike.rotation.z = t * 0.4 + s.phase;
+          }
+        }
+
         if (active) {
-          coreMat.color.setRGB(1, 1, 1);
-          haloMat.color.copy(s.color).lerp(new THREE.Color(1, 1, 1), 0.35);
-          spikeMat.color.copy(s.color).lerp(new THREE.Color(1, 1, 1), 0.25);
-          haloMat.opacity = 1;
-          spikeMat.opacity = 0.95;
-        } else {
-          coreMat.color.setRGB(1, 1, 1);
-          haloMat.color.copy(s.color);
-          spikeMat.color.copy(s.color);
-          haloMat.opacity = hover ? 0.95 : 0.72 + Math.sin(t * 1.3 + s.phase) * 0.1;
-          spikeMat.opacity = hover ? 0.5 : 0.18 + (s.count / maxCount) * 0.25;
-        }
-
-        // 非选中星点略微压暗，突出当前星
-        const dim = selectedRef.current && !active ? 0.42 : 1;
-        if (!active) {
-          haloMat.opacity *= dim;
-          spikeMat.opacity *= dim;
-          coreMat.opacity = 0.55 + 0.45 * dim;
-        } else {
-          coreMat.opacity = 1;
+          const pulse = 1 + Math.sin(t * 2.2 + s.phase) * 0.08;
+          s.halo.scale.setScalar(s.baseScale * 2.0 * 11 * pulse);
         }
       }
 
-      // 标签按深度排序，重叠时点到的是更靠前的那颗
-      for (const s of runtimes) {
-        s.group.getWorldPosition(world);
-        ndc.copy(world).project(camera);
-        const z = Math.round((1 - (ndc.z + 1) * 0.5) * 1000);
-        s.label.element.style.zIndex = String(100 + Math.max(0, Math.min(999, z)));
+      // 标签深度排序降频
+      if (frame % quality.labelSortEvery === 0) {
+        root.updateMatrixWorld(true);
+        for (const s of runtimes) {
+          s.group.getWorldPosition(world);
+          ndc.copy(world).project(camera);
+          const z = Math.round((1 - (ndc.z + 1) * 0.5) * 1000);
+          s.label.element.style.zIndex = String(100 + Math.max(0, Math.min(999, z)));
+        }
       }
 
-      // 选中环与镜头焦点：必须用世界坐标（root 有自转）
       if (activeStar) {
         activeStar.group.getWorldPosition(tmp);
         ring.visible = true;
-        ring2.visible = true;
         ring.position.copy(tmp);
-        ring2.position.copy(tmp);
         ring.quaternion.copy(camera.quaternion);
-        ring2.quaternion.copy(camera.quaternion);
-        const beat = 1 + Math.sin(t * 2.8) * 0.1;
-        const base = Math.max(0.55, activeStar.baseScale * 4.8);
-        ring.scale.setScalar(base * beat);
-        ring2.scale.setScalar(base * 1.28 * (1 + Math.sin(t * 2.1 + 1.2) * 0.08));
-        ringMat.opacity = 0.85;
-        ringMat2.opacity = 0.35 + Math.sin(t * 3.2) * 0.12;
-        ring.rotation.z = t * 0.6;
-        ring2.rotation.z = -t * 0.35;
+        const beat = 1 + Math.sin(t * 2.6) * 0.08;
+        ring.scale.setScalar(Math.max(0.55, activeStar.baseScale * 4.8) * beat);
+        ringMat.opacity = 0.82;
+        ring.rotation.z = t * 0.5;
 
-        controls.target.lerp(tmp, 0.04);
-        const desired = tmp.clone().add(
-          camera.position.clone().sub(controls.target).normalize().multiplyScalar(9.5),
-        );
-        // 初次选中时保证相机不塌缩
-        if (desired.lengthSq() > 0.01) {
-          camera.position.lerp(desired, 0.025);
-        }
+        controls.target.lerp(tmp, 0.045);
+        camOffset.copy(camera.position).sub(controls.target).normalize().multiplyScalar(9.5);
+        desired.copy(tmp).add(camOffset);
+        camera.position.lerp(desired, 0.03);
         controls.autoRotate = false;
-      } else {
+      } else if (ring.visible) {
         ring.visible = false;
-        ring2.visible = false;
         ringMat.opacity = 0;
-        ringMat2.opacity = 0;
-        controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.02);
+        controls.target.lerp(ZERO, 0.025);
       }
 
-      if (linkLines) {
+      if (linkLines && heavyFrame) {
         const mat = linkLines.material as THREE.LineBasicMaterial;
-        mat.opacity = 0.12 + Math.sin(t * 0.8) * 0.04;
+        mat.opacity = 0.12 + Math.sin(t * 0.8) * 0.03;
       }
 
-      composer.render();
-      labelRenderer.render(scene, camera);
-      raf = requestAnimationFrame(tick);
+      renderer.render(scene, camera);
+      // 标签半频刷新也够用（交互帧全量）
+      if (activeStar || hoverName || frame % 2 === 0) {
+        labelRenderer.render(scene, camera);
+      }
     };
     raf = requestAnimationFrame(tick);
+
+    const onVisibility = () => {
+      if (!document.hidden && !disposed) {
+        last = performance.now();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       disposed = true;
       cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibility);
       ro.disconnect();
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       renderer.domElement.removeEventListener('pointerup', onPointerUp);
@@ -783,9 +804,12 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
       controls.dispose();
       starsRef.current = [];
-      composer.dispose();
       scene.traverse((obj) => {
-        if (obj instanceof THREE.Mesh || obj instanceof THREE.Points || obj instanceof THREE.LineSegments) {
+        if (
+          obj instanceof THREE.Mesh ||
+          obj instanceof THREE.Points ||
+          obj instanceof THREE.LineSegments
+        ) {
           obj.geometry?.dispose?.();
           const m = obj.material as THREE.Material | THREE.Material[];
           if (Array.isArray(m)) m.forEach((x) => x.dispose());
