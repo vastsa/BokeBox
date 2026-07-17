@@ -373,6 +373,8 @@ export type SetupStatus = {
   siteName?: string;
   /** 最终展示名（含 - BokeBox） */
   siteTitle?: string;
+  /** 公开 SEO（已含出处） */
+  seo?: PublicSiteSeo;
   ai?: {
     apiKeySet: boolean;
     apiKeyHint: string;
@@ -508,10 +510,26 @@ export async function saveAiSettings(body: {
   return data.ai;
 }
 
+export type SiteSeoInput = {
+  title: string;
+  description: string;
+  keywords: string;
+};
+
+export type PublicSiteSeo = {
+  title: string;
+  description: string;
+  keywords: string;
+  github: string;
+  attribution: string;
+};
+
 export type AccessSettings = {
   guestHomePublic: boolean;
   siteName: string;
   siteTitle: string;
+  seo: PublicSiteSeo;
+  seoInput: SiteSeoInput;
 };
 
 export async function fetchAccessSettings(): Promise<AccessSettings> {
@@ -519,7 +537,11 @@ export async function fetchAccessSettings(): Promise<AccessSettings> {
 }
 
 export async function saveAccessSettings(
-  body: Partial<AccessSettings> & { siteName?: string | null },
+  body: {
+    guestHomePublic?: boolean;
+    siteName?: string | null;
+    seo?: Partial<SiteSeoInput> | null;
+  },
 ): Promise<AccessSettings> {
   return request('/settings/access', {
     method: 'PUT',

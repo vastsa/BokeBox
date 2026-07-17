@@ -13,6 +13,7 @@ const KEY_SESSIONS = 'auth_sessions';
 const KEY_SETUP = 'setup_completed';
 const KEY_GUEST_HOME_PUBLIC = 'guest_home_public';
 const KEY_SITE_NAME = 'site_name';
+const KEY_SITE_SEO = 'site_seo';
 
 export type AuthAccount = {
   username: string;
@@ -186,6 +187,160 @@ export function formatSiteTitle(siteName?: string | null): string {
 export function getSiteBrand(): { siteName: string; siteTitle: string } {
   const siteName = getSiteName();
   return { siteName, siteTitle: formatSiteTitle(siteName) };
+}
+
+/** 用户可编辑的 SEO 原文（不含强制出处） */
+export type SiteSeoInput = {
+  /** 自定义 SEO 标题；空则回落站点标题 */
+  title: string;
+  /** 自定义描述；保存/输出时强制附加出处 */
+  description: string;
+  /** 关键词，逗号分隔 */
+  keywords: string;
+};
+
+/** 对外公开 SEO（已拼接出处） */
+export type PublicSiteSeo = {
+  title: string;
+  description: string;
+  keywords: string;
+  github: string;
+  attribution: string;
+};
+
+export const SITE_GITHUB_URL = 'https://github.com/vastsa/BokeBox/';
+export const SITE_ATTRIBUTION = `Powered by BokeBox · ${SITE_GITHUB_URL}`;
+
+const SEO_TITLE_MAX = 80;
+const SEO_DESC_MAX = 300;
+const SEO_KEYWORDS_MAX = 200;
+
+function clip(s: string, max: number): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max).trim();
+}
+
+export function normalizeSeoTitle(raw?: string | null): string {
+  // 与站点名相同策略：去掉用户手写的品牌后缀，输出时再统一追加
+  return clip(normalizeSiteName(raw), SEO_TITLE_MAX);
+}
+
+export function normalizeSeoDescription(raw?: string | null): string {
+  let text = String(raw ?? '').trim().replace(/\s+/g, ' ');
+  // 去掉已有出处片段，避免重复叠加
+  text = text
+    .replace(/\s*[·|｜]\s*Powered by BokeBox(?:\s*[·|｜]\s*https?:\/\/github\.com\/vastsa\/BokeBox\/?)?/gi, '')
+    .replace(/\s*Powered by BokeBox(?:\s*[·|｜]\s*https?:\/\/github\.com\/vastsa\/BokeBox\/?)?/gi, '')
+    .replace(/\s*https?:\/\/github\.com\/vastsa\/BokeBox\/?/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return clip(text, SEO_DESC_MAX);
+}
+
+export function normalizeSeoKeywords(raw?: string | null): string {
+  const parts = String(raw ?? '')
+    .split(/[,，、]/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  // 去重保序
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const p of parts) {
+    const key = p.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+  return clip(out.join(', '), SEO_KEYWORDS_MAX);
+}
+
+/** 描述强制保留出处（含 GitHub） */
+export function withSeoAttribution(description?: string | null): string {
+  const base = normalizeSeoDescription(description);
+  if (!base) return SITE_ATTRIBUTION;
+  return `${base} · ${SITE_ATTRIBUTION}`;
+}
+
+export function getSiteSeoInput(): SiteSeoInput {
+  const stored = parseJson<Partial<SiteSeoInput>>(getSettingRaw(KEY_SITE_SEO));
+  return {
+    title: normalizeSeoTitle(stored?.title),
+    description: normalizeSeoDescription(stored?.description),
+    keywords: normalizeSeoKeywords(stored?.keywords),
+  };
+}
+
+export function setSiteSeo(input?: Partial<SiteSeoInput> | null): SiteSeoInput {
+  const prev = getSiteSeoInput();
+  const next: SiteSeoInput = {
+    title:
+      input && 'title' in (input as object)
+        ? normalizeSeoTitle(input?.title)
+        : prev.title,
+    description:
+      input && 'description' in (input as object)
+        ? normalizeSeoDescription(input?.description)
+        : prev.description,
+    keywords:
+      input && 'keywords' in (input as object)
+        ? normalizeSeoKeywords(input?.keywords)
+        : prev.keywords,
+  };
+  if (!next.title && !next.description && !next.keywords) {
+    deleteSetting(KEY_SITE_SEO);
+    return { title: '', description: '', keywords: '' };
+  }
+  setSettingRaw(KEY_SITE_SEO, JSON.stringify(next));
+  return next;
+}
+
+/** 最终 SEO 标题：自定义标题优先，否则站点标题；均保证 - BokeBox */
+export function buildSeoTitle(input?: SiteSeoInput | null, siteTitle?: string): string {
+  const seo = input ?? getSiteSeoInput();
+  if (seo.title) return formatSiteTitle(seo.title);
+  return siteTitle || formatSiteTitle(getSiteName());
+}
+
+export function buildPublicSiteSeo(input?: SiteSeoInput | null): PublicSiteSeo {
+  const seo = input ?? getSiteSeoInput();
+  const title = buildSeoTitle(seo);
+  // 默认描述：站点标题 + 固定出处
+  const description = seo.description
+    ? withSeoAttribution(seo.description)
+    : withSeoAttribution(title === SITE_BRAND ? 'AI private podcast box' : title);
+  // 关键词始终包含 BokeBox
+  let keywords = seo.keywords;
+  if (!/(^|,\s*)bokebox(,|$)/i.test(keywords)) {
+    keywords = keywords ? `${keywords}, BokeBox` : 'BokeBox';
+  }
+  return {
+    title,
+    description,
+    keywords,
+    github: SITE_GITHUB_URL,
+    attribution: SITE_ATTRIBUTION,
+  };
+}
+
+export type PublicSiteProfile = {
+  guestHomePublic: boolean;
+  siteName: string;
+  siteTitle: string;
+  seo: PublicSiteSeo;
+  /** 设置页编辑用原文 */
+  seoInput: SiteSeoInput;
+};
+
+export function getPublicSiteProfile(includeInput = true): PublicSiteProfile {
+  const brand = getSiteBrand();
+  const seoInput = getSiteSeoInput();
+  return {
+    guestHomePublic: isGuestHomePublic(),
+    siteName: brand.siteName,
+    siteTitle: brand.siteTitle,
+    seo: buildPublicSiteSeo(seoInput),
+    seoInput: includeInput ? seoInput : { title: '', description: '', keywords: '' },
+  };
 }
 
 export function getAuthAccount(): AuthAccount | null {

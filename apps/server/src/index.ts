@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -12,6 +13,8 @@ import { ensureDir, pathExists } from './utils/fs.js';
 import { hasApiKey, getBaseUrl, getChatModel } from './utils/aiConfig.js';
 import { initDatabase } from './db/sqlite.js';
 import { migrateStorageLayout } from './services/storageMigrator.js';
+import { buildPublicSiteSeo } from './services/settingsStore.js';
+import { injectSeoIntoHtml } from './utils/seoHtml.js';
 
 loadEnv({ path: path.join(ROOT_DIR, '.env') });
 
@@ -47,12 +50,30 @@ async function main() {
   const webDist = path.resolve(__dirname, '../../web/dist');
   if (await pathExists(webDist)) {
     const { default: fastifyStatic } = await import('@fastify/static');
-    await app.register(fastifyStatic, { root: webDist, prefix: '/' });
-    app.setNotFoundHandler((req, reply) => {
+    const indexHtmlPath = path.join(webDist, 'index.html');
+
+    const sendSeoIndex = async (reply: import('fastify').FastifyReply) => {
+      const raw = await fs.readFile(indexHtmlPath, 'utf8');
+      const html = injectSeoIntoHtml(raw, buildPublicSiteSeo());
+      return reply.type('text/html; charset=utf-8').send(html);
+    };
+
+    // 根路径直接吐带 SEO 的 index
+    app.get('/', async (_req, reply) => sendSeoIndex(reply));
+    app.get('/index.html', async (_req, reply) => sendSeoIndex(reply));
+
+    await app.register(fastifyStatic, {
+      root: webDist,
+      prefix: '/',
+      // 根路径已自定义
+      wildcard: false,
+    });
+    app.setNotFoundHandler(async (req, reply) => {
       if (req.url.startsWith('/api')) {
         return reply.code(404).send({ error: 'Not Found' });
       }
-      return reply.sendFile('index.html');
+      // SPA fallback：同样注入 SEO
+      return sendSeoIndex(reply);
     });
   }
 

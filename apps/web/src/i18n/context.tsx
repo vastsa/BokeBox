@@ -26,6 +26,7 @@ import {
   getCachedSiteName,
   subscribeSiteName,
 } from '../lib/site';
+import { getCachedSeo, subscribeSeo } from '../lib/seo';
 
 type I18nContextValue = {
   locale: Locale;
@@ -43,6 +44,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const applyTitle = (loc: Locale, siteName = getCachedSiteName()) => {
       const tr = createTranslator(loc);
+      const seo = getCachedSeo();
+      // 有自定义 SEO 标题时优先；否则回落站点名规则
+      if (seo?.title) {
+        document.title = seo.title;
+        return;
+      }
       document.title = formatDocumentTitle(
         siteName,
         tr('app.documentTitle'),
@@ -57,9 +64,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     const unsubSite = subscribeSiteName((siteName) => {
       applyTitle(getLocale(), siteName);
     });
+    const unsubSeo = subscribeSeo(() => {
+      applyTitle(getLocale());
+    });
     return () => {
       unsubLocale();
       unsubSite();
+      unsubSeo();
     };
   }, []);
 

@@ -34,6 +34,12 @@ import {
   formatSiteTitle,
   setCachedSiteName,
 } from '../lib/site';
+import {
+  buildPublicSiteSeo,
+  setCachedSeo,
+  SITE_ATTRIBUTION,
+  withSeoAttribution,
+} from '../lib/seo';
 
 type SettingsTab = 'voice' | 'persona' | 'cover' | 'ai' | 'account';
 
@@ -67,8 +73,12 @@ export function SettingsPage({ route }: { route: Route }) {
   const [themePref, setThemePref] = useState<ThemePreference>(() => getThemePreference());
   const [guestHomePublic, setGuestHomePublic] = useState(false);
   const [siteName, setSiteName] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
   const [savingAccess, setSavingAccess] = useState(false);
   const [savingSiteName, setSavingSiteName] = useState(false);
+  const [savingSeo, setSavingSeo] = useState(false);
 
   const tabs = useMemo(
     () =>
@@ -117,6 +127,11 @@ export function SettingsPage({ route }: { route: Route }) {
       setGuestHomePublic(Boolean(access.guestHomePublic));
       setSiteName(String(access.siteName || ''));
       setCachedSiteName(access.siteName || '');
+      const input = access.seoInput || { title: '', description: '', keywords: '' };
+      setSeoTitle(input.title || '');
+      setSeoDescription(input.description || '');
+      setSeoKeywords(input.keywords || '');
+      if (access.seo) setCachedSeo(access.seo);
       setAi(aiCfg);
       setBaseUrl(aiCfg.baseUrl);
       setChatModel(aiCfg.chatModel);
@@ -230,6 +245,7 @@ export function SettingsPage({ route }: { route: Route }) {
       const res = await saveAccessSettings({ siteName });
       setSiteName(res.siteName || '');
       setCachedSiteName(res.siteName || '');
+      if (res.seo) setCachedSeo(res.seo);
       setMsg(t('settings.siteNameSaved'));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -237,6 +253,32 @@ export function SettingsPage({ route }: { route: Route }) {
       setSavingSiteName(false);
     }
   };
+
+  const onSaveSeo = async () => {
+    setSavingSeo(true);
+    setMsg(null);
+    setError(null);
+    try {
+      const res = await saveAccessSettings({
+        seo: {
+          title: seoTitle,
+          description: seoDescription,
+          keywords: seoKeywords,
+        },
+      });
+      const input = res.seoInput || { title: '', description: '', keywords: '' };
+      setSeoTitle(input.title || '');
+      setSeoDescription(input.description || '');
+      setSeoKeywords(input.keywords || '');
+      if (res.seo) setCachedSeo(res.seo);
+      setMsg(t('settings.seoSaved'));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSavingSeo(false);
+    }
+  };
+
 
 
   return (
@@ -527,6 +569,78 @@ export function SettingsPage({ route }: { route: Route }) {
                             disabled={savingSiteName}
                           >
                             {savingSiteName ? t('common.saving') : t('common.save')}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="settings-block">
+                        <div className="settings-block-head">
+                          <h3>{t('settings.seo')}</h3>
+                          <p>{t('settings.seoDesc')}</p>
+                        </div>
+                        <div className="settings-fields">
+                          <label className="auth-field settings-field-span">
+                            <span>{t('settings.seoTitle')}</span>
+                            <input
+                              type="text"
+                              value={seoTitle}
+                              onChange={(e) => setSeoTitle(e.target.value)}
+                              placeholder={t('settings.seoTitlePlaceholder')}
+                              maxLength={80}
+                              spellCheck={false}
+                            />
+                          </label>
+                          <p className="settings-field-tip">{t('settings.seoTitleHint')}</p>
+                          <label className="auth-field settings-field-span">
+                            <span>{t('settings.seoDescription')}</span>
+                            <textarea
+                              className="nl-textarea"
+                              value={seoDescription}
+                              onChange={(e) => setSeoDescription(e.target.value)}
+                              placeholder={t('settings.seoDescriptionPlaceholder')}
+                              maxLength={300}
+                              rows={3}
+                            />
+                          </label>
+                          <p className="settings-field-tip">{t('settings.seoDescriptionHint')}</p>
+                          <label className="auth-field settings-field-span">
+                            <span>{t('settings.seoKeywords')}</span>
+                            <input
+                              type="text"
+                              value={seoKeywords}
+                              onChange={(e) => setSeoKeywords(e.target.value)}
+                              placeholder={t('settings.seoKeywordsPlaceholder')}
+                              maxLength={200}
+                              spellCheck={false}
+                            />
+                          </label>
+                          <p className="settings-field-tip">{t('settings.seoKeywordsHint')}</p>
+                        </div>
+                        <div className="settings-seo-preview" aria-label={t('settings.seoPreview')}>
+                          <div className="settings-seo-preview-label">{t('settings.seoPreview')}</div>
+                          <div className="settings-seo-preview-title">
+                            {buildPublicSiteSeo({ title: seoTitle, description: seoDescription, keywords: seoKeywords }, siteName).title}
+                          </div>
+                          <div className="settings-seo-preview-desc">
+                            {withSeoAttribution(seoDescription || buildPublicSiteSeo({ title: seoTitle }, siteName).title)}
+                          </div>
+                          <div className="settings-seo-preview-attr">
+                            <span className="settings-oss-badge">{t('settings.seoAttributionLocked')}</span>
+                            <a href={PROJECT_GITHUB_URL} target="_blank" rel="noreferrer noopener">
+                              {PROJECT_GITHUB_URL}
+                            </a>
+                            <span className="settings-seo-preview-attr-text">{SITE_ATTRIBUTION}</span>
+                          </div>
+                        </div>
+                        <div className="settings-card-actions">
+                          <span />
+                          <button
+                            type="button"
+                            className="nl-btn nl-btn-primary"
+                            onClick={() => void onSaveSeo()}
+                            disabled={savingSeo}
+                          >
+                            {savingSeo ? t('common.saving') : t('common.save')}
                           </button>
                         </div>
                       </div>

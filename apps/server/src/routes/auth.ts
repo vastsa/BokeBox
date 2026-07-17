@@ -14,17 +14,21 @@ import {
   type Locale,
 } from '../i18n/index.js';
 import {
+  buildPublicSiteSeo,
   formatSiteTitle,
   getAuthAccount,
   getDefaultAiConfigForSetup,
+  getPublicSiteProfile,
   getSiteBrand,
   isGuestHomePublic,
   isSetupCompleted,
   setAiConfig,
   setGuestHomePublic,
   setSiteName,
+  setSiteSeo,
   toPublicAiConfig,
   type AiConfig,
+  type SiteSeoInput,
 } from '../services/settingsStore.js';
 
 function errStatus(err: unknown, fallback = 500): number {
@@ -95,13 +99,21 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   /** 初始化状态：公开 */
   app.get('/setup/status', async () => {
     const initialized = isSetupCompleted();
-    const brand = initialized ? getSiteBrand() : { siteName: '', siteTitle: formatSiteTitle('') };
+    const profile = initialized
+      ? getPublicSiteProfile(false)
+      : {
+          guestHomePublic: false,
+          siteName: '',
+          siteTitle: formatSiteTitle(''),
+          seo: buildPublicSiteSeo({ title: '', description: '', keywords: '' }),
+        };
     return {
       initialized,
       needsSetup: !initialized,
-      guestHomePublic: initialized ? isGuestHomePublic() : false,
-      siteName: brand.siteName,
-      siteTitle: brand.siteTitle,
+      guestHomePublic: profile.guestHomePublic,
+      siteName: profile.siteName,
+      siteTitle: profile.siteTitle,
+      seo: profile.seo,
       ai: initialized ? undefined : getDefaultAiConfigForSetup(),
     };
   });
@@ -255,22 +267,48 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  /** 站点访问：游客是否可见首页（挂在现有设置体系，不新增管理模块） */
+  /** 站点访问 / 品牌 / SEO（挂在现有设置体系，不新增管理模块） */
   app.get('/settings/access', async (req, reply) => {
     const user = getRequestUser(req);
     if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
-    return { guestHomePublic: isGuestHomePublic() };
+    const profile = getPublicSiteProfile(true);
+    return {
+      guestHomePublic: profile.guestHomePublic,
+      siteName: profile.siteName,
+      siteTitle: profile.siteTitle,
+      seo: profile.seo,
+      seoInput: profile.seoInput,
+    };
   });
 
-  app.put<{ Body: { guestHomePublic?: boolean } }>(
-    '/settings/access',
-    async (req, reply) => {
-      const user = getRequestUser(req);
-      if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
-      const enabled = Boolean(req.body?.guestHomePublic);
-      return { guestHomePublic: setGuestHomePublic(enabled) };
-    },
-  );
+  app.put<{
+    Body: {
+      guestHomePublic?: boolean;
+      siteName?: string | null;
+      seo?: Partial<SiteSeoInput> | null;
+    };
+  }>('/settings/access', async (req, reply) => {
+    const user = getRequestUser(req);
+    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
+    const body = req.body || {};
+    if (typeof body.guestHomePublic === 'boolean') {
+      setGuestHomePublic(body.guestHomePublic);
+    }
+    if (body.siteName !== undefined) {
+      setSiteName(body.siteName);
+    }
+    if (body.seo !== undefined) {
+      setSiteSeo(body.seo);
+    }
+    const profile = getPublicSiteProfile(true);
+    return {
+      guestHomePublic: profile.guestHomePublic,
+      siteName: profile.siteName,
+      siteTitle: profile.siteTitle,
+      seo: profile.seo,
+      seoInput: profile.seoInput,
+    };
+  });
 }
 
 /** 游客开放首页时允许的只读接口（曲库 / 详情 / 媒体） */
