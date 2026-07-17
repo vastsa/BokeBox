@@ -2,225 +2,229 @@
   <img src="apps/web/public/favicon.svg" width="96" height="96" alt="BokeBox" />
 </p>
 
-<h1 align="center">BokeBox · 播匣</h1>
+<h1 align="center">BokeBox</h1>
 
 <p align="center">
-  <b>视频进匣，AI 成播</b><br/>
-  <sub>把长视频变成能听完的私人播客 —— 人设、音色、风格，全都由你定</sub>
+  <b>Drop videos in. Get podcasts out.</b><br/>
+  <sub>Turn long videos into private podcasts you can actually finish — host persona, voice, and style, all yours.</sub>
 </p>
 
 <p align="center">
-  <a href="#-30-秒看懂"><img src="https://img.shields.io/badge/AI-生成口播-7C5CFF?style=flat-square" alt="AI" /></a>
-  <a href="#-它解决什么问题"><img src="https://img.shields.io/badge/私人-单用户部署-0EA5E9?style=flat-square" alt="Private" /></a>
-  <a href="#-开始使用"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square" alt="MIT" /></a>
+  <b>English</b> · <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
-  <a href="#-30-秒看懂">了解产品</a> ·
-  <a href="#-谁适合用">适合谁</a> ·
-  <a href="#-界面一览">界面</a> ·
-  <a href="#-开始使用">开始使用</a>
+  <a href="#-30-second-pitch"><img src="https://img.shields.io/badge/AI-Spoken%20Scripts-7C5CFF?style=flat-square" alt="AI" /></a>
+  <a href="#-problems-it-solves"><img src="https://img.shields.io/badge/Private-Single%20user-0EA5E9?style=flat-square" alt="Private" /></a>
+  <a href="#-get-started"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square" alt="MIT" /></a>
+</p>
+
+<p align="center">
+  <a href="#-30-second-pitch">Product</a> ·
+  <a href="#-who-its-for">Who it's for</a> ·
+  <a href="#-ui-glimpse">UI</a> ·
+  <a href="#-get-started">Get started</a>
 </p>
 
 ---
 
-## 🎧 你是不是也有过这些时刻？
+## 🎧 Sound familiar?
 
-- 收藏了 2 小时的技术分享 / 产品发布会，**永远找不到时间看完**
-- 通勤、洗碗、散步时想学点东西，手机里却只有短视频噪音
-- 想做一档「只给自己听」的节目，又不想对着麦克风录到深夜
-- 听过 AI 播客 demo，结果声音假、人设死板，听两分钟就关掉
+- You saved a 2-hour tech talk / product keynote and **never found time to watch it**
+- On commutes, chores, or walks, you want to learn — but your phone only offers short-video noise
+- You want a show **just for yourself**, without recording into a mic at midnight
+- You tried AI podcast demos: fake voices, rigid personas, and you quit after two minutes
 
-**BokeBox 就是为这些时刻准备的。**
+**BokeBox is built for those moments.**
 
-把视频、链接或文稿丢进匣子，它会帮你：
+Drop a video, link, or draft into the box. It will:
 
-1. 听懂内容  
-2. 写成口播稿  
-3. 用你指定的声音说出来  
-4. 变成一档随时可听的私人播客  
+1. Understand the content  
+2. Rewrite it as a spoken script  
+3. Speak it in the voice you choose  
+4. Turn it into a private podcast you can play anytime  
 
 ---
 
-## ⚡ 30 秒看懂
+## ⚡ 30-second pitch
 
 ```text
-  你丢进去的                    BokeBox 交还给你的
- ─────────────                 ─────────────────
-  会议录像                      有节奏的口播节目
-  课程回放          ──AI──▶     可自定义的主播人设
-  深度长文                      预置 / 描述定制音色
-  任意链接                      封面 · 闪卡 · 听播进度
+  What you put in                    What BokeBox gives back
+ ─────────────────                  ──────────────────────
+  Meeting recordings                 Rhythmic spoken episodes
+  Course replays         ──AI──▶     Custom host personas
+  Long-form articles                 Preset / described voices
+  Any link                           Cover · flashcards · progress
 ```
 
-**一句话：**  
-不是又一个「视频转音频」工具，而是一台 **只属于你的 AI 播客工作室**。
+**In one line:**  
+Not another “video-to-audio” converter — a **personal AI podcast studio that belongs only to you**.
 
 ---
 
-## ✨ 为什么值得 Star
+## ✨ Why star it
 
-| 你在意的 | BokeBox 怎么做 |
+| What you care about | How BokeBox does it |
 | --- | --- |
-| **真的能听完** | 不是干巴巴朗读字幕，而是 AI 重写为口播结构：有开场、有重点、有收尾 |
-| **听起来像「有人在讲」** | 支持自然口播音色 + 语气标签（停顿、轻笑、语速变化……） |
-| **人设你说了算** | 主播是谁、对谁讲、什么风格、节目叫什么 —— 全局默认或单集临时改 |
-| **知识不会听完就忘** | 自动提炼知识闪卡，方便回看重点 |
-| **数据在你自己手里** | 单用户私有部署，任务与进度落本地，不做公域内容社交 |
+| **You can actually finish it** | Not dry subtitle reading — AI rewrites into spoken structure: open, highlights, close |
+| **Sounds like a person talking** | Natural podcast voices + delivery tags (pauses, light laughs, pace shifts…) |
+| **You own the persona** | Who the host is, who they talk to, style, show name — global defaults or per-episode |
+| **Knowledge sticks** | Auto-extracted flashcards so key points are easy to review |
+| **Your data stays yours** | Single-user private deploy; tasks and progress stay local — no public social feed |
 
-如果你也相信：
+If you believe:
 
-> 好内容值得被「听」第二次，而且应该用你喜欢的方式被讲述。
+> Great content deserves a second listen — told the way *you* like.
 
-那就给 BokeBox 一个 ⭐ 吧 —— 让更多人看见「私人 AI 播客」这件事。
-
----
-
-## 🎯 它解决什么问题
-
-### 从「看不完」到「听得进」
-
-长视频信息密度高，但占用的是「眼睛时间」。  
-BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能消化。
-
-### 从「机器念稿」到「有人设的节目」
-
-你可以设定：
-
-- 主播怎么称呼自己  
-- 像产品经理、老师，还是朋友聊天  
-- 节目名、语气调性、开场收尾习惯  
-- 用哪一副声音说话（或用文字描述出你想要的音色）
-
-**AI 负责生成，你负责审美与风格。**
-
-### 从「听过就忘」到「带走闪卡」
-
-每期不只给你音频，还会整理知识闪卡与节目笔记，让一耳朵内容变成可复习资产。
+Give BokeBox a ⭐ and help more people discover private AI podcasts.
 
 ---
 
-## 👤 谁适合用
+## 🎯 Problems it solves
 
-- **终身学习者**：课程、访谈、发布会太多，只想用碎片时间听重点  
-- **创作者 / 研究者**：先把素材听消化，再决定写什么、剪什么  
-- **一人公司 / 独立开发者**：把周会、播客、长文统一收成自己的「信息广播」  
-- **注重隐私的人**：内容不出自己的机器，不为平台算法打工  
+### From “never finished watching” to “easy to listen through”
 
-不适合：想做公域播客平台、多租户 SaaS、或纯在线协作编辑的团队（BokeBox 刻意做小、做私、做深）。
+Long videos are dense, but they burn **eye time**.  
+BokeBox turns them into **ear time**: commute, chores, bedtime — still productive.
+
+### From “robot reading a script” to “a show with a persona”
+
+You can set:
+
+- How the host introduces themselves  
+- PM, teacher, or friend-chat vibe  
+- Show name, tone, opening/closing habits  
+- Which voice to use (or describe the timbre you want)
+
+**AI generates. You direct taste and style.**
+
+### From “heard and forgotten” to “take flashcards with you”
+
+Each episode ships audio plus knowledge cards and notes — one listen becomes reviewable assets.
 
 ---
 
-## 🖼 界面一览
+## 👤 Who it's for
 
-制作、听播、任务资产，都在同一个私有空间里完成。
+- **Lifelong learners**: too many courses, interviews, and keynotes — want highlights in spare time  
+- **Creators / researchers**: digest source material by ear before writing or editing  
+- **Solo founders / indie hackers**: fold meetings, podcasts, and essays into one personal “info radio”  
+- **Privacy-minded users**: content stays on your machine, not platform algorithms  
 
-| 首页 | 播放页 |
+Not a fit if you want a public podcast platform, multi-tenant SaaS, or live collaborative editing. BokeBox is intentionally small, private, and deep.
+
+---
+
+## 🖼 UI glimpse
+
+Create, listen, and manage task assets in one private space.
+
+| Home | Player |
 | :---: | :---: |
-| <img src="docs/img/home.png" alt="BokeBox 桌面" /> | <img src="docs/img/lis.png" alt="BokeBox 播放" /> |
+| <img src="docs/img/home.png" alt="BokeBox home" /> | <img src="docs/img/lis.png" alt="BokeBox player" /> |
 
-你将拥有：
+You get:
 
-- **首页播客库** —— 做好的节目与进行中的任务一眼可见  
-- **一键制作页** —— 上传视频 / 粘贴链接，顺手配好人设与音色  
-- **任务详情** —— 转写、脚本、音频、封面、闪卡全链路可回看  
-- **沉浸播放器** —— 进度记忆、倍速、睡眠定时，听感完整  
-
----
-
-## 🪄 使用体感
-
-1. **丢进去**  
-   本地视频、网页链接，或已有文稿。
-
-2. **设一下（可选）**  
-   沿用你的全局人设，或给这一集单独定调。
-
-3. **去忙别的**  
-   转写 → 写稿 → 配音 → 封面 / 闪卡，后台自动跑完。
-
-4. **戴上耳机**  
-   打开播放页，像听一档真正为你制作的节目。
+- **Home library** — finished shows and in-progress jobs at a glance  
+- **One-click create** — upload video / paste link, set persona & voice  
+- **Task detail** — transcript, script, audio, cover, flashcards end-to-end  
+- **Immersive player** — progress memory, speed, sleep timer  
 
 ---
 
-## 🚀 开始使用
+## 🪄 How it feels
 
-> 三步开箱。更细的部署与模型说明见下方「附录」。
+1. **Drop it in**  
+   Local video, web link, or existing draft.
+
+2. **Tune it (optional)**  
+   Keep global persona, or set this episode’s tone.
+
+3. **Go do something else**  
+   Transcribe → script → voice → cover / cards — runs in the background.
+
+4. **Put headphones on**  
+   Open the player. Feels like a show made for you.
+
+---
+
+## 🚀 Get started
+
+> Three steps to ship. Deeper deploy & model notes are in the appendix.
 
 ```bash
 git clone https://github.com/xzulab/BokeBox.git
 cd bokebox
-cp .env.example .env   # 填入你的 API Key
-./start.sh             # 打开 http://localhost:5173
+cp .env.example .env   # add your API keys
+./start.sh             # open http://localhost:5173
 ```
 
-首次进入会引导你完成 **账号初始化** 与模型配置。  
-之后，你的第一期私人播客，只差一条视频。
+First launch walks you through **account setup** and model config.  
+After that, your first private episode is one video away.
 
-**Docker 用户：**
+**Docker:**
 
 ```bash
 cp .env.example .env
 ./start.sh docker
-# 访问 http://localhost:8787
+# open http://localhost:8787
 ```
 
 ---
 
-## 💬 一句话安利（可转发）
+## 💬 One-liner (shareable)
 
-> BokeBox（播匣）：把看不完的视频，变成听得进的私人播客。AI 生成口播，人设和音色都能自定义，数据只留在你自己的机器上。
+> BokeBox: turn videos you’ll never finish watching into private podcasts you’ll actually listen to. AI spoken scripts, custom persona & voice, data stays on your machine.
 
-如果这个方向戳中你：
+If that resonates:
 
-1. ⭐ **Star** 本仓库，让更多人看见  
-2. 提交 Issue，说说你最想听「哪种内容被播客化」  
-3. PR 欢迎 —— 尤其是体验、文案、更多声音与模型适配  
-
----
-
-## 🛤 我们想把匣子装得更好
-
-- 更自然的多集节目与「续听」体验  
-- 更丰富的音色与提供方选择  
-- 订阅导出（例如 RSS），接到你已有的听播软件  
-- 桌面端更轻的一键封装  
-
-你的 Star、Issue 和 PR，就是路线图的投票。
+1. ⭐ **Star** the repo so more people see it  
+2. Open an Issue — what content do you most want “podcast-ified”?  
+3. PRs welcome — UX, copy, more voices & model adapters especially  
 
 ---
 
-## ❤️ 写在最后
+## 🛤 Roadmap vibes
 
-大多数工具在帮你「更快地生产内容」。  
-BokeBox 更在意帮你 **更好地消化内容**。
+- Better multi-episode / “continue listening” flows  
+- Richer voices and providers  
+- Subscription export (e.g. RSS) into apps you already use  
+- Lighter one-click desktop packaging  
 
-在信息过载的时代，能被你听完的，才算真正属于你。
+Your stars, issues, and PRs are roadmap votes.
 
-**视频进匣，AI 成播。**  
-欢迎把 BokeBox 收进你的工具箱 —— 并点一颗 Star，让这件事被更多人看见。
+---
+
+## ❤️ Closing note
+
+Most tools help you **produce content faster**.  
+BokeBox cares more about helping you **digest content better**.
+
+In an age of overload, what you can finish listening to is what truly becomes yours.
+
+**Drop videos in. Get podcasts out.**  
+Add BokeBox to your toolkit — and drop a Star so more people find it.
 
 ---
 
 <details>
-<summary><b>附录：给想动手部署的你</b></summary>
+<summary><b>Appendix: for people who want to deploy</b></summary>
 
-### 环境
+### Requirements
 
 - Node.js ≥ 22.5 · pnpm 9.x  
-- 可用的 OpenAI 兼容 API（Chat / ASR / TTS，图片模型可选）
+- OpenAI-compatible API (Chat / ASR / TTS; image model optional)
 
-### 常用命令
+### Common commands
 
-| 命令 | 说明 |
+| Command | Description |
 | --- | --- |
-| `./start.sh` | 本地开发（前端 5173 + 后端 8787） |
-| `./start.sh prod` | 构建后单端口运行 |
-| `./start.sh docker` | Docker Compose 启动 |
-| `./start.sh docker:down` | 停止容器 |
+| `./start.sh` | Local dev (web 5173 + API 8787) |
+| `./start.sh prod` | Build and run on a single port |
+| `./start.sh docker` | Docker Compose up |
+| `./start.sh docker:down` | Stop containers |
 
-### 配置要点（`.env`）
+### Config highlights (`.env`)
 
 ```bash
 OPENAI_API_KEY=sk-your-key
@@ -231,22 +235,22 @@ OPENAI_TTS_MODEL=mimo-v2.5-tts
 OPENAI_TTS_DEFAULT_VOICE=冰糖
 ```
 
-完整变量见 `.env.example`。CI/CD 与镜像发布见 [`docs/ci-cd.md`](docs/ci-cd.md)。
+Full variables: `.env.example`. CI/CD & image publish: [`docs/ci-cd.md`](docs/ci-cd.md).
 
-### 流水线（简图）
+### Pipeline (sketch)
 
 ```text
-上传 → 提取音频 → ASR 转写 → 总结口播稿
-     → 并行：封面 / 闪卡 / TTS → 听播库
+Upload → extract audio → ASR → spoken script
+      → parallel: cover / flashcards / TTS → library
 ```
 
-### 技术栈（不重要，但有人问）
+### Stack (if you ask)
 
 React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
 ### License
 
-[MIT](LICENSE) —— 自由使用、修改与分发。
+[MIT](LICENSE) — free to use, modify, and distribute.
 
 </details>
 
@@ -254,5 +258,5 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
 <p align="center">
   <b>BokeBox</b><br/>
-  <sub>私人 AI 播客匣 · MIT License</sub>
+  <sub>Private AI podcast box · MIT License</sub>
 </p>
