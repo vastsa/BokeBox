@@ -8296,6 +8296,24 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
 }
 
 
+/* Setup · 内容语言 */
+
+.setup-content-locale {
+  margin-top: var(--space-2);
+  padding: var(--space-3) 0 0;
+  border-top: var(--space-px) solid var(--separator-soft);
+  gap: var(--space-2_5);
+}
+.setup-content-locale.settings-block {
+  padding-inline: 0;
+}
+.setup-content-locale .settings-block-head h3 {
+  font-size: var(--fs-md-plus);
+}
+.setup-content-locale .theme-pref-grid {
+  margin-top: var(--space-1);
+}
+
 /* Setup · 全局音色步骤 */
 
 .setup-image-model {

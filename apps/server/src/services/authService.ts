@@ -15,7 +15,7 @@ import {
   type SessionRecord,
 } from './settingsStore.js';
 import type { TtsOptions } from '../types/job.js';
-import { AppError } from '../i18n/index.js';
+import { AppError, isLocale } from '../i18n/index.js';
 
 const SCRYPT_KEYLEN = 64;
 
@@ -51,6 +51,8 @@ export type SetupInput = {
   defaultVoice?: string;
   /** 全局音色（初始化时写入，制作默认使用） */
   tts?: Partial<TtsOptions> | null;
+  /** 内容生成语言 */
+  contentLocale?: string | null;
 };
 
 export function validateUsername(username: string): string | null {
@@ -119,6 +121,9 @@ export function completeSetup(input: SetupInput): {
       globalTts.mode === 'default'
         ? globalTts.voice || input.defaultVoice
         : input.defaultVoice || globalTts.voice,
+    contentLocale: isLocale(input.contentLocale)
+      ? input.contentLocale
+      : undefined,
   };
   setAiConfig(aiPatch);
   markSetupCompleted();

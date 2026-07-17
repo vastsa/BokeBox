@@ -111,6 +111,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       voiceDesignModel?: string;
       imageModel?: string;
       defaultVoice?: string;
+      contentLocale?: string;
       tts?: import('../types/job.js').TtsOptions | null;
     };
   }>('/setup', async (req, reply) => {
@@ -133,6 +134,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         voiceDesignModel: body.voiceDesignModel,
         imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,
+        contentLocale: body.contentLocale,
         tts: body.tts,
       });
       setSessionCookie(reply, result.session.token, result.session.expiresAt);
@@ -236,6 +238,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         voiceDesignModel: body.voiceDesignModel,
         imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,
+        contentLocale: body.contentLocale as import('../i18n/types.js').Locale | undefined,
       });
       return { ai: toPublicAiConfig(next) };
     } catch (err) {

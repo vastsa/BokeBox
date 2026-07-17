@@ -76,6 +76,7 @@ import {
   findCoverFile,
 } from '../services/coverGenerator.js';
 import { errorMessage, getRequestLocale, kindLabel as i18nKindLabel, t } from '../i18n/index.js';
+import { getContentLocale } from '../services/settingsStore.js';
 
 /** 本地上传：视频 / 音频 / 文本（与 URL 导入一致） */
 const ALLOWED_EXT = ALLOWED_MEDIA_EXT;
@@ -581,7 +582,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       kind: i18nKindLabel(getRequestLocale(req), sourceKind),
       tts: `${tts.mode}${tts.voice ? ' / ' + tts.voice : ''}`,
     }),
-      locale: getRequestLocale(req),
+      locale: getContentLocale(),
       videoPath: finalSourcePath,
       sourceKind,
       transcript,
@@ -661,7 +662,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       message: t(getRequestLocale(req), 'job.queuedUrl', {
       tts: `${tts.mode}${tts.voice ? ' / ' + tts.voice : ''}`,
     }),
-      locale: getRequestLocale(req),
+      locale: getContentLocale(),
       videoPath: '',
       sourceUrl: url,
       sourceKind: 'video', // 下载后会被覆盖
@@ -732,7 +733,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         ? normalizeScriptPrompt(req.body.scriptPrompt) || undefined
         : job.scriptPrompt;
 
-    const locale = getRequestLocale(req);
+    const locale = getContentLocale();
     await updateJob(job.id, {
       ...buildRetryPatch(
         job,
@@ -831,7 +832,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           transcript,
           sourceTitle: job.originalFilename || job.title,
           podcast: job.podcast,
-          locale: getRequestLocale(req),
+          locale: job.locale || getContentLocale(),
         });
         const podcast = { ...job.podcast, flashcards };
         const updated = await updateJob(job.id, {

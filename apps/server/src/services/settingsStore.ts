@@ -1,5 +1,7 @@
 import { getDb } from '../db/sqlite.js';
 import type { ScriptPromptOptions, TtsOptions } from '../types/job.js';
+import type { Locale } from '../i18n/types.js';
+import { isLocale } from '../i18n/index.js';
 import { normalizeScriptPrompt } from './scriptPrompt.js';
 
 const KEY_SCRIPT_PROMPT = 'script_prompt';
@@ -28,6 +30,8 @@ export type AiConfig = {
   /** 图片生成模型；空字符串表示不生成 AI 封面 */
   imageModel: string;
   defaultVoice: string;
+  /** 内容生成与 AI 提示词默认语言 */
+  contentLocale: Locale;
 };
 
 export type PublicAiConfig = {
@@ -42,6 +46,7 @@ export type PublicAiConfig = {
   /** 图片生成模型；空表示关闭 AI 封面 */
   imageModel: string;
   defaultVoice: string;
+  contentLocale: Locale;
 };
 
 export type SessionRecord = {
@@ -60,6 +65,7 @@ const DEFAULT_AI: AiConfig = {
   voiceDesignModel: 'mimo-v2.5-tts-voicedesign',
   imageModel: '',
   defaultVoice: '冰糖',
+  contentLocale: 'zh-CN',
 };
 
 function getSettingRaw(key: string): string | null {
@@ -150,6 +156,9 @@ export function getAiConfig(): AiConfig {
       stored?.defaultVoice?.trim() ||
       process.env.OPENAI_TTS_DEFAULT_VOICE ||
       DEFAULT_AI.defaultVoice,
+    contentLocale: isLocale(stored?.contentLocale)
+      ? stored!.contentLocale!
+      : DEFAULT_AI.contentLocale,
   };
 }
 
@@ -195,6 +204,10 @@ export function setAiConfig(patch: Partial<AiConfig>): AiConfig {
       patch.defaultVoice !== undefined
         ? String(patch.defaultVoice).trim() || current.defaultVoice
         : current.defaultVoice,
+    contentLocale:
+      patch.contentLocale !== undefined && isLocale(patch.contentLocale)
+        ? patch.contentLocale
+        : current.contentLocale,
   };
   // 空字符串 apiKey 表示不覆盖（编辑场景）
   if (patch.apiKey === '') {
@@ -223,6 +236,7 @@ export function toPublicAiConfig(cfg?: AiConfig): PublicAiConfig {
     voiceDesignModel: c.voiceDesignModel,
     imageModel: c.imageModel || '',
     defaultVoice: c.defaultVoice,
+    contentLocale: c.contentLocale || 'zh-CN',
   };
 }
 
@@ -241,6 +255,7 @@ export function getDefaultAiConfigForSetup(): PublicAiConfig & {
       voiceDesignModel: c.voiceDesignModel || DEFAULT_AI.voiceDesignModel,
       imageModel: c.imageModel || DEFAULT_AI.imageModel,
       defaultVoice: c.defaultVoice || DEFAULT_AI.defaultVoice,
+      contentLocale: c.contentLocale || DEFAULT_AI.contentLocale,
     },
   };
 }
@@ -447,4 +462,15 @@ function cryptoRandomToken(): string {
   // Node 全局 crypto
   globalThis.crypto.getRandomValues(bytes);
   return Buffer.from(bytes).toString('base64url');
+}
+
+
+/** 全局内容生成语言（口播脚本 / 闪卡 / 提示词） */
+export function getContentLocale(): Locale {
+  return getAiConfig().contentLocale || 'zh-CN';
+}
+
+export function setContentLocale(locale: Locale): Locale {
+  const next = setAiConfig({ contentLocale: locale });
+  return next.contentLocale;
 }

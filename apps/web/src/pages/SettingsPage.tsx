@@ -44,6 +44,7 @@ export function SettingsPage({ route }: { route: Route }) {
   const [voiceDesignModel, setVoiceDesignModel] = useState('');
   const [imageModel, setImageModel] = useState('');
   const [defaultVoice, setDefaultVoice] = useState('');
+  const [contentLocale, setContentLocale] = useState<Locale>('zh-CN');
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -98,6 +99,9 @@ export function SettingsPage({ route }: { route: Route }) {
       setVoiceDesignModel(aiCfg.voiceDesignModel);
       setImageModel(aiCfg.imageModel || '');
       setDefaultVoice(aiCfg.defaultVoice);
+      setContentLocale(
+        aiCfg.contentLocale === 'en-US' ? 'en-US' : 'zh-CN',
+      );
       setApiKey('');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -129,9 +133,13 @@ export function SettingsPage({ route }: { route: Route }) {
         voiceDesignModel: voiceDesignModel.trim(),
         imageModel: imageModel.trim(),
         defaultVoice: defaultVoice.trim(),
+        contentLocale,
       });
       setAi(next);
       setImageModel(next.imageModel || '');
+      setContentLocale(
+        next.contentLocale === 'en-US' ? 'en-US' : 'zh-CN',
+      );
       setApiKey('');
       setMsg(t('settings.aiSaved'));
     } catch (e) {
@@ -301,6 +309,48 @@ export function SettingsPage({ route }: { route: Route }) {
                               spellCheck={false}
                             />
                           </label>
+                        </div>
+                      </div>
+
+                      <div className="settings-block">
+                        <div className="settings-block-head">
+                          <h3>{t('settings.contentLanguage')}</h3>
+                          <p>{t('settings.contentLanguageDesc')}</p>
+                        </div>
+                        <div
+                          className="theme-pref-grid"
+                          role="radiogroup"
+                          aria-label={t('settings.contentLanguageAria')}
+                        >
+                          {locales.map((id) => {
+                            const active = contentLocale === id;
+                            const item = meta[id];
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                role="radio"
+                                aria-checked={active}
+                                className={[
+                                  'theme-pref-card',
+                                  active ? 'is-active' : '',
+                                ].join(' ')}
+                                onClick={() => setContentLocale(id)}
+                              >
+                                <span
+                                  className="theme-pref-swatch lang-pref-swatch"
+                                  data-tone={id}
+                                  aria-hidden
+                                >
+                                  {item.short}
+                                </span>
+                                <span className="theme-pref-copy">
+                                  <strong>{item.nativeLabel}</strong>
+                                  <em>{item.label}</em>
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 

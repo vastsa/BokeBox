@@ -364,6 +364,7 @@ export type SetupStatus = {
     voiceDesignModel: string;
     imageModel: string;
     defaultVoice: string;
+    contentLocale: string;
     suggested: {
       baseUrl: string;
       chatModel: string;
@@ -372,6 +373,7 @@ export type SetupStatus = {
       voiceDesignModel: string;
       imageModel: string;
       defaultVoice: string;
+      contentLocale: string;
     };
   };
 };
@@ -386,6 +388,8 @@ export type PublicAiConfig = {
   voiceDesignModel: string;
   imageModel: string;
   defaultVoice: string;
+  /** 内容生成 / AI 提示词默认语言 */
+  contentLocale: string;
 };
 
 export async function fetchSetupStatus(): Promise<SetupStatus> {
@@ -404,6 +408,7 @@ export async function completeSetup(body: {
   voiceDesignModel?: string;
   imageModel?: string;
   defaultVoice?: string;
+  contentLocale?: string;
   tts?: TtsOptions | null;
 }): Promise<{ ok: boolean; username: string; token: string; expiresAt: string }> {
   return request('/setup', {
@@ -462,6 +467,7 @@ export async function saveAiSettings(body: {
   voiceDesignModel?: string;
   imageModel?: string;
   defaultVoice?: string;
+  contentLocale?: string;
 }): Promise<PublicAiConfig> {
   const data = await request<{ ai: PublicAiConfig }>('/settings/ai', {
     method: 'PUT',

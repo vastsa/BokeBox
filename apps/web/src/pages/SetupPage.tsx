@@ -9,7 +9,7 @@ import { DEFAULT_GLOBAL_TTS, summarizeTts } from '../components/admin/GlobalTtsS
 import { IconCheck, IconHeadphones, IconMic, IconSpark } from '../components/icons';
 import { setAuthSession } from '../lib/auth';
 import { navigate } from '../lib/router';
-import { useI18n } from '../i18n';
+import { useI18n, type Locale } from '../i18n';
 import type { TtsOptions } from '../types/job';
 
 type Step = 1 | 2 | 3 | 4;
@@ -25,7 +25,7 @@ const DEFAULTS = {
 };
 
 export function SetupPage() {
-  const { t } = useI18n();
+  const { t, locales, meta, setLocale } = useI18n();
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -48,6 +48,7 @@ export function SetupPage() {
     ...DEFAULT_GLOBAL_TTS,
     voice: DEFAULTS.defaultVoice,
   });
+  const [contentLocale, setContentLocale] = useState<Locale>('zh-CN');
 
   useEffect(() => {
     void (async () => {
@@ -71,6 +72,15 @@ export function SetupPage() {
             mode: 'default',
             voice,
           }));
+          const cl = s.contentLocale || status.ai?.contentLocale || 'zh-CN';
+          if (cl === 'zh-CN' || cl === 'en-US') {
+            setContentLocale(cl);
+          }
+        } else if (
+          status.ai?.contentLocale === 'zh-CN'
+          || status.ai?.contentLocale === 'en-US'
+        ) {
+          setContentLocale(status.ai.contentLocale);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -153,6 +163,7 @@ export function SetupPage() {
         voiceDesignModel: voiceDesignModel.trim(),
         imageModel: imageModel.trim(),
         defaultVoice,
+        contentLocale,
         tts,
       });
       setAuthSession(res.token, res.username);
@@ -250,6 +261,49 @@ export function SetupPage() {
                 placeholder={t('setup.confirmPlaceholder')}
               />
             </label>
+
+            <div className="settings-block setup-content-locale">
+              <div className="settings-block-head">
+                <h3>{t('setup.contentLocale')}</h3>
+                <p>{t('setup.contentLocaleDesc')}</p>
+              </div>
+              <div
+                className="theme-pref-grid"
+                role="radiogroup"
+                aria-label={t('setup.contentLocaleAria')}
+              >
+                {locales.map((id) => {
+                  const active = contentLocale === id;
+                  const item = meta[id];
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={['theme-pref-card', active ? 'is-active' : ''].join(' ')}
+                      onClick={() => {
+                        setContentLocale(id);
+                        // 初始化时同步界面语言，减少首次体验割裂
+                        setLocale(id);
+                      }}
+                    >
+                      <span
+                        className="theme-pref-swatch lang-pref-swatch"
+                        data-tone={id}
+                        aria-hidden
+                      >
+                        {item.short}
+                      </span>
+                      <span className="theme-pref-copy">
+                        <strong>{item.nativeLabel}</strong>
+                        <em>{item.label}</em>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
