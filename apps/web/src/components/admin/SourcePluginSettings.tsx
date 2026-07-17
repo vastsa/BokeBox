@@ -16,7 +16,11 @@ function riskClass(level: SourceRiskLevel): string {
 }
 
 /**
- * Source 插件管理：列表、风险标识、启停、热扫描
+ * Source 插件管理：单卡片列表布局
+ * - 顶部工具条：标题 + 刷新/扫描
+ * - 插件行：名称/说明 + 开关
+ * - 内置插件不展示「内置/低风险」
+ * - 仅当启停被手动覆盖时显示「恢复默认」
  */
 export function SourcePluginSettings({
   onMessage,
@@ -75,9 +79,7 @@ export function SourcePluginSettings({
       setPluginsDir(res.scan?.pluginsDir || pluginsDir);
       const loaded = res.scan?.loaded?.length || 0;
       const failed = res.scan?.failed?.length || 0;
-      onMessage?.(
-        t('settings.sourceRescanDone', { loaded, failed }),
-      );
+      onMessage?.(t('settings.sourceRescanDone', { loaded, failed }));
     } catch (err) {
       onError?.(err instanceof Error ? err.message : String(err));
     } finally {
@@ -129,190 +131,132 @@ export function SourcePluginSettings({
     return t('settings.sourceRiskHigh');
   };
 
-  const originLabel = (origin: SourcePluginDescriptor['origin']) =>
-    origin === 'builtin'
-      ? t('settings.sourceOriginBuiltin')
-      : t('settings.sourceOriginExternal');
-
   return (
-    <div className="settings-stack source-plugin-settings">
-      <section className="settings-card settings-card-wide">
-        <div className="settings-block">
-          <div className="settings-block-head">
-            <h3>{t('settings.sourceHubTitle')}</h3>
-            <p>{t('settings.sourceHubDesc')}</p>
-          </div>
-
-          <p className="settings-inline-hint">{t('settings.sourceRiskNote')}</p>
-
-          <div className="settings-fields">
-            <label className="auth-field">
-              <span>{t('settings.sourcePluginsDir')}</span>
-              <input
-                type="text"
-                readOnly
-                value={pluginsDir || '—'}
-                spellCheck={false}
-              />
-            </label>
-          </div>
-
-          <div className="settings-card-actions">
-            <span />
-            <div className="settings-card-actions-right">
-              <button
-                type="button"
-                className="nl-btn nl-btn-secondary"
-                onClick={() => void load()}
-                disabled={loading || rescanning}
-              >
-                {t('common.refresh')}
-              </button>
-              <button
-                type="button"
-                className="nl-btn nl-btn-primary"
-                onClick={() => void onRescan()}
-                disabled={loading || rescanning}
-              >
-                {rescanning
-                  ? t('settings.sourceRescanning')
-                  : t('settings.sourceRescan')}
-              </button>
-            </div>
-          </div>
+    <section className="settings-card settings-card-wide source-plugin-settings">
+      <div className="source-settings-head">
+        <div className="source-settings-head-copy">
+          <h3>{t('settings.sourceHubTitle')}</h3>
+          <p>{t('settings.sourceHubDesc')}</p>
         </div>
-      </section>
+        <div className="source-settings-head-actions">
+          <button
+            type="button"
+            className="nl-btn nl-btn-secondary"
+            onClick={() => void load()}
+            disabled={loading || rescanning}
+          >
+            {t('common.refresh')}
+          </button>
+          <button
+            type="button"
+            className="nl-btn nl-btn-primary"
+            onClick={() => void onRescan()}
+            disabled={loading || rescanning}
+          >
+            {rescanning
+              ? t('settings.sourceRescanning')
+              : t('settings.sourceRescan')}
+          </button>
+        </div>
+      </div>
+
+      {pluginsDir ? (
+        <div className="source-settings-dir" title={pluginsDir}>
+          <span className="source-settings-dir-label">
+            {t('settings.sourcePluginsDir')}
+          </span>
+          <code className="source-settings-dir-path">{pluginsDir}</code>
+        </div>
+      ) : null}
 
       {loading ? (
-        <div className="auth-loading">{t('settings.sourceLoading')}</div>
+        <div className="source-settings-loading">{t('settings.sourceLoading')}</div>
       ) : sorted.length === 0 ? (
-        <section className="settings-card settings-card-wide">
-          <div className="settings-block">
-            <p className="settings-inline-hint">{t('settings.sourceEmpty')}</p>
-          </div>
-        </section>
+        <div className="source-settings-empty">{t('settings.sourceEmpty')}</div>
       ) : (
-        sorted.map((plugin) => {
-          const busy = busyId === plugin.id;
-          const toggleDisabled =
-            busy || Boolean(plugin.loadError) || !plugin.available;
-          return (
-            <section
-              key={plugin.id}
-              className={[
-                'settings-card',
-                'settings-card-wide',
-                'source-plugin-card',
-                plugin.loadError ? 'is-error' : '',
-                plugin.enabled ? 'is-enabled' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              <div className="settings-block">
-                <div className="source-plugin-card-head">
-                  <div className="source-plugin-card-titles">
-                    <div className="source-plugin-card-title-row">
-                      <h3>{plugin.name}</h3>
-                      <span className="source-plugin-id">{plugin.id}</span>
+        <ul className="source-plugin-list" aria-label={t('settings.sourceHubTitle')}>
+          {sorted.map((plugin) => {
+            const busy = busyId === plugin.id;
+            const toggleDisabled =
+              busy || Boolean(plugin.loadError) || !plugin.available;
+            const customized = plugin.enabled !== plugin.defaultEnabled;
+            const showExternalMeta = plugin.origin !== 'builtin';
+
+            return (
+              <li
+                key={plugin.id}
+                className={[
+                  'source-plugin-row',
+                  plugin.enabled ? 'is-on' : '',
+                  plugin.loadError ? 'is-error' : '',
+                  !plugin.available ? 'is-unavailable' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                <div className="source-plugin-row-main">
+                  <div className="source-plugin-row-copy">
+                    <div className="source-plugin-row-title">
+                      <strong>{plugin.name}</strong>
+                      {showExternalMeta ? (
+                        <span
+                          className={`source-risk-dot ${riskClass(plugin.riskLevel)}`}
+                          title={riskLabel(plugin.riskLevel)}
+                        >
+                          {riskLabel(plugin.riskLevel)}
+                        </span>
+                      ) : null}
                     </div>
-                    <p>{plugin.description || t('settings.sourceNoDesc')}</p>
+                    <p className="source-plugin-row-desc">
+                      {plugin.description || t('settings.sourceNoDesc')}
+                    </p>
+                    {plugin.loadError ? (
+                      <p className="source-plugin-row-error" role="alert">
+                        {plugin.loadError}
+                      </p>
+                    ) : null}
                   </div>
 
-                  <label
-                    className={[
-                      'upload-switch-row',
-                      'source-plugin-switch',
-                      busy ? 'is-busy' : '',
-                      toggleDisabled ? 'is-locked' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    <span className="upload-switch-copy">
-                      <span className="title">
-                        {plugin.enabled
-                          ? t('settings.sourceStateOn')
-                          : t('settings.sourceStateOff')}
-                      </span>
-                      <span className="desc">
-                        {plugin.defaultEnabled
-                          ? t('settings.sourceDefaultOn')
-                          : t('settings.sourceDefaultOff')}
-                      </span>
-                    </span>
-                    <span
+                  <div className="source-plugin-row-controls">
+                    {customized && !plugin.loadError ? (
+                      <button
+                        type="button"
+                        className="source-plugin-reset"
+                        disabled={busy}
+                        onClick={() => void onReset(plugin)}
+                      >
+                        {t('settings.sourceResetBtn')}
+                      </button>
+                    ) : null}
+
+                    <label
                       className={[
-                        'upload-switch',
+                        'source-switch',
                         plugin.enabled ? 'is-on' : '',
+                        toggleDisabled ? 'is-disabled' : '',
+                        busy ? 'is-busy' : '',
                       ]
                         .filter(Boolean)
                         .join(' ')}
                     >
-                      <i />
                       <input
                         type="checkbox"
-                        className="upload-switch-input"
                         checked={plugin.enabled}
                         disabled={toggleDisabled}
-                        onChange={(e) =>
-                          void onToggle(plugin, e.target.checked)
-                        }
+                        onChange={(e) => void onToggle(plugin, e.target.checked)}
                         aria-label={t('settings.sourceToggleAria', {
                           name: plugin.name,
                         })}
                       />
-                    </span>
-                  </label>
+                      <i aria-hidden />
+                    </label>
+                  </div>
                 </div>
-
-                {plugin.origin !== 'builtin' || !plugin.available || plugin.loadError ? (
-                  <div className="source-plugin-meta">
-                    {plugin.origin === 'builtin' ? null : (
-                      <>
-                        <span className={`source-risk-badge ${riskClass(plugin.riskLevel)}`}>
-                          {riskLabel(plugin.riskLevel)}
-                        </span>
-                        <span className="source-meta-chip">
-                          {originLabel(plugin.origin)}
-                        </span>
-                      </>
-                    )}
-                    {!plugin.available ? (
-                      <span className="source-meta-chip is-bad">
-                        {t('settings.sourceUnavailable')}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-
-
-
-
-                {plugin.loadError ? (
-                  <p className="source-plugin-error" role="alert">
-                    {t('settings.sourceLoadError')}: {plugin.loadError}
-                  </p>
-                ) : null}
-
-                {plugin.loadError ? null : (
-                  <div className="settings-card-actions">
-                    <span />
-                    <button
-                      type="button"
-                      className="nl-btn nl-btn-ghost"
-                      disabled={busy}
-                      onClick={() => void onReset(plugin)}
-                    >
-                      {t('settings.sourceResetBtn')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </section>
-          );
-        })
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </div>
+    </section>
   );
 }
