@@ -308,6 +308,50 @@ export async function saveCoverPromptSettings(body: {
   });
 }
 
+
+export type AiPromptKind = 'podcastSystem' | 'rewriteSystem' | 'flashcardSystem';
+
+export type AiPromptVariable = {
+  key: string;
+  label: string;
+  sample: string;
+};
+
+export type AiPromptSettings = {
+  kind: AiPromptKind;
+  template: string;
+  stored: string;
+  defaultTemplate: string;
+  isCustom: boolean;
+  variables: AiPromptVariable[];
+};
+
+export async function fetchAllAiPromptSettings(): Promise<
+  Record<AiPromptKind, AiPromptSettings>
+> {
+  const data = await request<{ prompts: Record<AiPromptKind, AiPromptSettings> }>(
+    '/settings/ai-prompts',
+  );
+  return data.prompts;
+}
+
+export async function fetchAiPromptSettings(
+  kind: AiPromptKind,
+): Promise<AiPromptSettings> {
+  return request(`/settings/ai-prompts/${kind}`);
+}
+
+export async function saveAiPromptSettings(
+  kind: AiPromptKind,
+  body: { template?: string | null; reset?: boolean },
+): Promise<AiPromptSettings> {
+  return request(`/settings/ai-prompts/${kind}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 export async function fetchTtsSettings(): Promise<{ tts: TtsOptions }> {
   return request('/settings/tts');
 }

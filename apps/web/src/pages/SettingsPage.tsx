@@ -9,6 +9,7 @@ import {
   saveAiSettings,
   type PublicAiConfig,
 } from '../api/client';
+import { GlobalAiPromptSettings } from '../components/admin/GlobalAiPromptSettings';
 import { GlobalCoverPromptSettings } from '../components/admin/GlobalCoverPromptSettings';
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
 import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
@@ -36,7 +37,7 @@ import {
   setCachedSeo,
 } from '../lib/seo';
 
-type SettingsTab = 'voice' | 'persona' | 'cover' | 'ai' | 'site' | 'account';
+type SettingsTab = 'voice' | 'persona' | 'cover' | 'prompts' | 'ai' | 'site' | 'account';
 
 function SettingsPanel({
   id,
@@ -156,6 +157,11 @@ export function SettingsPage({ route }: { route: Route }) {
             id: 'cover' as const,
             label: t('settings.tabCover'),
             desc: t('settings.tabCoverDesc'),
+          },
+          {
+            id: 'prompts' as const,
+            label: t('settings.tabPrompts'),
+            desc: t('settings.tabPromptsDesc'),
           },
           {
             id: 'ai' as const,
@@ -435,6 +441,10 @@ export function SettingsPage({ route }: { route: Route }) {
 
                 <SettingsPanel id="cover" active={tab === 'cover'}>
                   <GlobalCoverPromptSettings />
+                </SettingsPanel>
+
+                <SettingsPanel id="prompts" active={tab === 'prompts'}>
+                  <GlobalAiPromptSettings />
                 </SettingsPanel>
 
                 <SettingsPanel id="ai" active={tab === 'ai'}>

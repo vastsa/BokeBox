@@ -4,10 +4,10 @@ import type { Flashcard, PodcastContent } from '../types/job.js';
 import { aiFetch, getChatModel, hasApiKey } from '../utils/aiConfig.js';
 import type { Locale } from '../i18n/types.js';
 import {
-  buildFlashcardSystemPrompt,
   buildFlashcardUserContext,
   resolveContentLocale,
 } from '../i18n/contentLocale.js';
+import { resolveFlashcardSystemPrompt } from './aiPromptTemplates.js';
 
 export interface FlashcardGenerateInput {
   jobId: string;
@@ -176,7 +176,7 @@ async function llmFlashcards(
   locale: Locale = 'zh-CN',
 ): Promise<Flashcard[]> {
   const loc = resolveContentLocale(locale);
-  const system = buildFlashcardSystemPrompt(loc);
+  const system = resolveFlashcardSystemPrompt(loc);
   const outlineText = podcast?.outline?.length
     ? podcast.outline
         .map((s, i) => `${i + 1}. ${s.title} — ${s.summary}`)

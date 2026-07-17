@@ -76,6 +76,12 @@ import {
   findCoverFile,
 } from '../services/coverGenerator.js';
 import {
+  getAllAiPromptBundles,
+  getAiPromptBundle,
+  saveAiPromptTemplate,
+  type AiPromptKind,
+} from '../services/aiPromptTemplates.js';
+import {
   errorMessage,
   getRequestLocale,
   isContentLocale,
@@ -386,6 +392,45 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       };
     },
   );
+
+
+  // ── AI 系统提示词（口播 / 改写 / 闪卡） ──
+  app.get('/settings/ai-prompts', async () => {
+    return { prompts: getAllAiPromptBundles() };
+  });
+
+  app.get<{ Params: { kind: string } }>(
+    '/settings/ai-prompts/:kind',
+    async (req, reply) => {
+      const kind = req.params.kind as AiPromptKind;
+      if (
+        kind !== 'podcastSystem' &&
+        kind !== 'rewriteSystem' &&
+        kind !== 'flashcardSystem'
+      ) {
+        return reply.code(400).send({ error: 'unknown prompt kind' });
+      }
+      return getAiPromptBundle(kind);
+    },
+  );
+
+  app.put<{
+    Params: { kind: string };
+    Body: { template?: string | null; reset?: boolean };
+  }>('/settings/ai-prompts/:kind', async (req, reply) => {
+    const kind = req.params.kind as AiPromptKind;
+    if (
+      kind !== 'podcastSystem' &&
+      kind !== 'rewriteSystem' &&
+      kind !== 'flashcardSystem'
+    ) {
+      return reply.code(400).send({ error: 'unknown prompt kind' });
+    }
+    return saveAiPromptTemplate(kind, {
+      template: req.body?.template,
+      reset: req.body?.reset,
+    });
+  });
 
   app.put<{ Body: { tts?: TtsOptions | null } }>(
     '/settings/tts',

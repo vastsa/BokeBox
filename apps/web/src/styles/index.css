@@ -7651,6 +7651,16 @@ html[data-theme="dark"] .script-prompt-mode-tab.is-active {
   letter-spacing: var(--tracking-snug);
   color: var(--text);
 }
+.settings-panel-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-3_5);
+  border-radius: var(--radius-md);
+  border: var(--bw-1) solid var(--separator);
+  background: color-mix(in srgb, var(--surface-2) 75%, var(--surface));
+  font-size: var(--fs-base-plus);
+  line-height: var(--lh-relaxed);
+  color: var(--text-2);
+}
 .settings-panel-intro p {
   margin: var(--space-1_25) 0 0;
   max-width: var(--prose-max-lg);
@@ -8057,7 +8067,17 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
     font-size: var(--fs-xl);
   }
 
-  .settings-panel-intro p {
+  .settings-panel-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-3_5);
+  border-radius: var(--radius-md);
+  border: var(--bw-1) solid var(--separator);
+  background: color-mix(in srgb, var(--surface-2) 75%, var(--surface));
+  font-size: var(--fs-base-plus);
+  line-height: var(--lh-relaxed);
+  color: var(--text-2);
+}
+.settings-panel-intro p {
     font-size: var(--fs-base-plus);
   }
 

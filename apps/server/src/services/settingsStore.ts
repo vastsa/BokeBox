@@ -6,6 +6,9 @@ import { normalizeScriptPrompt } from './scriptPrompt.js';
 
 const KEY_SCRIPT_PROMPT = 'script_prompt';
 const KEY_COVER_PROMPT = 'cover_prompt';
+const KEY_PODCAST_SYSTEM_PROMPT = 'podcast_system_prompt';
+const KEY_REWRITE_SYSTEM_PROMPT = 'rewrite_system_prompt';
+const KEY_FLASHCARD_SYSTEM_PROMPT = 'flashcard_system_prompt';
 const KEY_TTS_OPTIONS = 'tts_options';
 const KEY_AUTH = 'auth_account';
 const KEY_AI = 'ai_config';
@@ -701,6 +704,40 @@ export function setCoverPromptTemplate(
     return '';
   }
   setSettingRaw(KEY_COVER_PROMPT, next);
+  return next;
+}
+
+
+export type AiPromptKind = 'podcastSystem' | 'rewriteSystem' | 'flashcardSystem';
+
+const AI_PROMPT_KEYS: Record<AiPromptKind, string> = {
+  podcastSystem: KEY_PODCAST_SYSTEM_PROMPT,
+  rewriteSystem: KEY_REWRITE_SYSTEM_PROMPT,
+  flashcardSystem: KEY_FLASHCARD_SYSTEM_PROMPT,
+};
+
+/** 读取 AI 系统提示词原文（空表示使用代码内多语言默认） */
+export function getAiPromptTemplateStored(kind: AiPromptKind): string {
+  const raw = getSettingRaw(AI_PROMPT_KEYS[kind]);
+  if (!raw) return '';
+  return String(raw).trim();
+}
+
+/**
+ * 保存 AI 系统提示词。
+ * 传空 / null → 删除配置，回落系统默认。
+ */
+export function setAiPromptTemplateStored(
+  kind: AiPromptKind,
+  template?: string | null,
+): string {
+  const key = AI_PROMPT_KEYS[kind];
+  const next = template == null ? '' : String(template).trim();
+  if (!next) {
+    deleteSetting(key);
+    return '';
+  }
+  setSettingRaw(key, next);
   return next;
 }
 

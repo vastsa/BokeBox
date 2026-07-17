@@ -8,13 +8,15 @@ import {
   hasScriptPrompt,
   resolveScriptMaxChars,
 } from './scriptPrompt.js';
+import {
+  resolvePodcastSystemPrompt,
+  resolveRewriteSystemPrompt,
+} from './aiPromptTemplates.js';
 import type { Locale } from '../i18n/types.js';
 import {
-  buildPodcastSystemPrompt,
   buildPodcastUserPrompt,
-  demoHostName,
-  buildRewriteSystemPrompt,
   buildRewriteUserPrompt,
+  demoHostName,
   podcastFallbackCopy,
   resolveContentLocale,
   spokenCharsPerMinute,
@@ -215,7 +217,7 @@ async function llmPodcast(
   const loc = resolveContentLocale(locale);
   const maxChars = resolveScriptMaxChars(scriptPrompt);
   const targetMin = Math.max(300, Math.round(maxChars * 0.75));
-  const system = buildPodcastSystemPrompt({
+  const system = resolvePodcastSystemPrompt({
     locale: loc,
     targetMin,
     maxChars,
@@ -336,7 +338,7 @@ async function rewriteScriptToLimit(input: {
       messages: [
         {
           role: 'system',
-          content: buildRewriteSystemPrompt(loc, input.maxChars, current),
+          content: resolveRewriteSystemPrompt(loc, input.maxChars, current),
         },
         {
           role: 'user',
