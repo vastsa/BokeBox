@@ -7,6 +7,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { IconClose, IconPause, IconPlay, IconStars } from '../components/icons';
 import { AppShell } from '../layouts/AppShell';
 import { useI18n } from '../i18n';
+import { getToken } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 import { mergeListenRecord, bestResumeSec } from '../player/listenProgress';
 import { usePlayer } from '../player/PlayerContext';
@@ -50,10 +51,12 @@ export function TagCloudPage({ route }: { route: Route }) {
   const refresh = useCallback(async () => {
     try {
       const lib = await fetchLibrary();
+      const authed = Boolean(getToken());
       setLibrary(
         lib.map((it) => ({
           ...it,
-          listen: mergeListenRecord(it.job.id, it.listen),
+          // 游客只合并本地进度
+          listen: mergeListenRecord(it.job.id, authed ? it.listen : null),
         })),
       );
       setError(null);

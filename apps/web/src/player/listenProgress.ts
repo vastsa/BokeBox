@@ -1,8 +1,13 @@
 import type { ListenRecord } from '../types/job';
 import { reportProgress } from '../api/client';
+import { getToken } from '../lib/auth';
 
-const STORAGE_KEY = 'pb:listen-progress:v1';
-const LAST_TRACK_KEY = 'pb:last-track:v1';
+/** 管理员本地进度（与历史版本兼容） */
+const ADMIN_STORAGE_KEY = 'pb:listen-progress:v1';
+/** 游客独立本地进度，避免与管理员互相污染 */
+const GUEST_STORAGE_KEY = 'pb:listen-progress:guest:v1';
+const ADMIN_LAST_TRACK_KEY = 'pb:last-track:v1';
+const GUEST_LAST_TRACK_KEY = 'pb:last-track:guest:v1';
 
 export type LocalListenProgress = {
   jobId: string;
@@ -26,6 +31,19 @@ export type LastTrackSnapshot = {
   updatedAt: number;
 };
 
+/** 无 token 视为游客：进度只走浏览器，不读写服务端 */
+export function isGuestListener(): boolean {
+  return !getToken();
+}
+
+function progressStorageKey(): string {
+  return isGuestListener() ? GUEST_STORAGE_KEY : ADMIN_STORAGE_KEY;
+}
+
+function lastTrackStorageKey(): string {
+  return isGuestListener() ? GUEST_LAST_TRACK_KEY : ADMIN_LAST_TRACK_KEY;
+}
+
 function canUseStorage(): boolean {
   try {
     return typeof localStorage !== 'undefined';
@@ -37,7 +55,7 @@ function canUseStorage(): boolean {
 function readMap(): Record<string, LocalListenProgress> {
   if (!canUseStorage()) return {};
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(progressStorageKey());
     if (!raw) return {};
     const parsed = JSON.parse(raw) as Record<string, LocalListenProgress>;
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -49,7 +67,7 @@ function readMap(): Record<string, LocalListenProgress> {
 function writeMap(map: Record<string, LocalListenProgress>): void {
   if (!canUseStorage()) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    localStorage.setItem(progressStorageKey(), JSON.stringify(map));
   } catch {
     // quota / private mode
   }
@@ -111,6 +129,20 @@ export function mergeListenRecord(
   server: ListenRecord | null | undefined,
 ): ListenRecord | null {
   const local = getLocalProgress(jobId);
+
+  // 游客：只信浏览器本地，忽略服务端（管理员）进度
+  if (isGuestListener()) {
+    if (!local) return null;
+    return {
+      jobId,
+      progressSec: local.progressSec,
+      durationSec: local.durationSec,
+      completed: local.completed,
+      lastListenedAt: new Date(local.updatedAt).toISOString(),
+      playCount: local.playCount || 0,
+    };
+  }
+
   if (!server && !local) return null;
   if (!local) return server || null;
   if (!server) {
@@ -130,7 +162,7 @@ export function mergeListenRecord(
     (local.progressSec > server.progressSec + 1 && !server.completed);
 
   if (!useLocal) {
-    // 服务端更新：回写本地，保持浏览器侧也有
+    // 服务端更新：仅管理员回写本地
     saveLocalProgress({
       jobId,
       progressSec: server.progressSec,
@@ -158,9 +190,10 @@ export function bestResumeSec(
   jobId: string,
   server?: { progressSec?: number; durationSec?: number; completed?: boolean; lastListenedAt?: string } | null,
 ): number | undefined {
-  const merged = mergeListenRecord(
-    jobId,
-    server
+  // 游客续播不参考服务端进度
+  const serverInput = isGuestListener()
+    ? null
+    : server
       ? {
           jobId,
           progressSec: server.progressSec || 0,
@@ -169,8 +202,9 @@ export function bestResumeSec(
           lastListenedAt: server.lastListenedAt || new Date(0).toISOString(),
           playCount: 0,
         }
-      : null,
-  );
+      : null;
+
+  const merged = mergeListenRecord(jobId, serverInput);
   if (!merged || merged.completed) return undefined;
   if (merged.progressSec <= 3) return undefined;
   if (merged.durationSec > 0 && merged.progressSec >= merged.durationSec - 1.5) {
@@ -182,7 +216,7 @@ export function bestResumeSec(
 export function saveLastTrack(snapshot: LastTrackSnapshot): void {
   if (!canUseStorage()) return;
   try {
-    localStorage.setItem(LAST_TRACK_KEY, JSON.stringify(snapshot));
+    localStorage.setItem(lastTrackStorageKey(), JSON.stringify(snapshot));
   } catch {
     // ignore
   }
@@ -191,7 +225,7 @@ export function saveLastTrack(snapshot: LastTrackSnapshot): void {
 export function getLastTrack(): LastTrackSnapshot | null {
   if (!canUseStorage()) return null;
   try {
-    const raw = localStorage.getItem(LAST_TRACK_KEY);
+    const raw = localStorage.getItem(lastTrackStorageKey());
     if (!raw) return null;
     return JSON.parse(raw) as LastTrackSnapshot;
   } catch {
@@ -202,13 +236,13 @@ export function getLastTrack(): LastTrackSnapshot | null {
 export function clearLastTrack(): void {
   if (!canUseStorage()) return;
   try {
-    localStorage.removeItem(LAST_TRACK_KEY);
+    localStorage.removeItem(lastTrackStorageKey());
   } catch {
     // ignore
   }
 }
 
-/** 写本地 + 异步同步服务端（失败不影响本地） */
+/** 写本地；管理员再异步同步服务端，游客只落浏览器 */
 export function persistProgress(input: {
   jobId: string;
   progressSec: number;
@@ -217,6 +251,12 @@ export function persistProgress(input: {
   incrementPlay?: boolean;
 }): LocalListenProgress {
   const local = saveLocalProgress(input);
+
+  // 游客进度仅浏览器，绝不写入服务端（避免影响管理员）
+  if (isGuestListener()) {
+    return local;
+  }
+
   void reportProgress(input.jobId, {
     progressSec: local.progressSec,
     durationSec: local.durationSec,

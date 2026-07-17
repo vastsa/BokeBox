@@ -129,12 +129,12 @@ export function ListenHomePage({ route }: { route: Route }) {
     try {
       const authed = Boolean(getToken());
       if (!authed) {
-        // 游客：仅拉曲库，进度用本地记录
+        // 游客：仅拉曲库，进度只用浏览器本地，绝不合并服务端管理员进度
         const lib = await fetchLibrary();
         setLibrary(
           lib.map((it) => ({
             ...it,
-            listen: mergeListenRecord(it.job.id, it.listen),
+            listen: mergeListenRecord(it.job.id, null),
           })),
         );
         setJobs([]);

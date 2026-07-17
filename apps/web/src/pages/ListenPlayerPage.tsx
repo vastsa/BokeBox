@@ -23,6 +23,7 @@ import {
 } from '../components/icons';
 import { CoverArt } from '../components/ui/CoverArt';
 import { coverGradientFor, formatDuration } from '../lib/format';
+import { getToken } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 import { usePlayer } from '../player/PlayerContext';
 import type { LibraryItem } from '../types/job';
@@ -78,9 +79,10 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   useEffect(() => {
     void fetchListenItem(id)
       .then((data) => {
+        const serverListen = getToken() ? data.listen : null;
         const merged = {
           ...data,
-          listen: mergeListenRecord(data.job.id, data.listen),
+          listen: mergeListenRecord(data.job.id, serverListen),
         };
         setItem(merged);
         setError(null);
