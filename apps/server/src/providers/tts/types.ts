@@ -57,6 +57,11 @@ export interface TtsChunkResult {
 export interface TtsProvider {
   readonly id: ProviderId;
   readonly meta: TtsProviderMeta;
+  /**
+   * 为 true 时：用户明确选择该源且当前不可用，resolve 仍返回自身，
+   * 由 synthesizeChunk 抛出明确错误。
+   */
+  readonly strictAvailability?: boolean;
   isAvailable(): boolean;
   /** 合成单段文本（门面负责切段/拼接/落盘） */
   synthesizeChunk(input: TtsChunkInput): Promise<TtsChunkResult>;

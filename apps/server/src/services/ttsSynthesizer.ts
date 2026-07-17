@@ -111,7 +111,7 @@ export async function synthesizePodcastAudio(options: {
   const mp3Fallback = paths.podcastMp3;
 
   // 演示提供方：复用源音频或静音占位
-  if (provider.id === 'demo' || !provider.isAvailable()) {
+  if (provider.id === 'demo') {
     try {
       await copyFile(options.sourceAudioPath, mp3Fallback);
     } catch {
@@ -134,6 +134,12 @@ export async function synthesizePodcastAudio(options: {
       provider: 'demo',
       scriptTiming: timing.lines,
     };
+  }
+
+  if (!provider.isAvailable()) {
+    throw new Error(
+      `TTS 提供方「${provider.meta.name || provider.id}」当前不可用，请检查配置或网络`,
+    );
   }
 
   const maxChars = Math.max(80, provider.meta.maxCharsPerRequest || 500);

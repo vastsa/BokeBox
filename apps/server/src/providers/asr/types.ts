@@ -22,6 +22,11 @@ export interface AsrProvider {
   readonly name: string;
   readonly description: string;
   readonly suggestedModel?: string;
+  /**
+   * 为 true 时：用户明确选择该源且当前不可用，resolve 仍返回自身，
+   * 由 transcribe 抛出安装/配置提示，避免静默切到 demo。
+   */
+  readonly strictAvailability?: boolean;
   isAvailable(): boolean;
   transcribe(input: AsrTranscribeInput): Promise<AsrTranscribeResult>;
 }

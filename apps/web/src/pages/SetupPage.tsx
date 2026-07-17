@@ -338,10 +338,12 @@ export function SetupPage() {
                     setAsrProvider(id);
                     if (id === 'openai') setAsrModel('whisper-1');
                     if (id === 'mimo') setAsrModel('mimo-v2.5-asr');
+                    if (id === 'local-whisper') setAsrModel('base');
                   }}
                 >
                   <option value="mimo">MiMo ASR</option>
                   <option value="openai">OpenAI 兼容 ASR</option>
+                  <option value="local-whisper">本地 Whisper</option>
                 </select>
               </label>
               <label className="auth-field">
@@ -368,10 +370,19 @@ export function SetupPage() {
                         voice: '冰糖',
                       }));
                     }
+                    if (id === 'edge') {
+                      setTtsModel('edge-neural');
+                      setTts((prev) => ({
+                        ...prev,
+                        mode: 'default',
+                        voice: 'zh-CN-XiaoxiaoNeural',
+                      }));
+                    }
                   }}
                 >
                   <option value="mimo">MiMo TTS</option>
                   <option value="openai">OpenAI 兼容 TTS</option>
+                  <option value="edge">Edge TTS（免费）</option>
                 </select>
               </label>
               <label className="auth-field">

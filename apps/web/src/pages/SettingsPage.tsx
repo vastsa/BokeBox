@@ -646,6 +646,9 @@ export function SettingsPage({ route }: { route: Route }) {
                                 const meta = (ai?.asrProviders || []).find((p) => p.id === id);
                                 const suggested = meta?.suggestedModels?.asr;
                                 if (suggested) setAsrModel(suggested);
+                                else if (id === 'local-whisper') setAsrModel('base');
+                                else if (id === 'openai') setAsrModel('whisper-1');
+                                else if (id === 'mimo') setAsrModel('mimo-v2.5-asr');
                               }}
                             >
                               {(ai?.asrProviders?.length
@@ -653,6 +656,7 @@ export function SettingsPage({ route }: { route: Route }) {
                                 : [
                                     { id: 'mimo', name: 'MiMo ASR', description: '' },
                                     { id: 'openai', name: 'OpenAI 兼容 ASR', description: '' },
+                                    { id: 'local-whisper', name: '本地 Whisper', description: '' },
                                   ]
                               ).map((p) => (
                                 <option key={p.id} value={p.id}>
@@ -671,8 +675,14 @@ export function SettingsPage({ route }: { route: Route }) {
                                 const meta = (ai?.ttsProviders || []).find((p) => p.id === id);
                                 const suggested = meta?.suggestedModels?.tts;
                                 if (suggested) setTtsModel(suggested);
+                                else if (id === 'edge') setTtsModel('edge-neural');
+                                else if (id === 'openai') setTtsModel('tts-1');
+                                else if (id === 'mimo') setTtsModel('mimo-v2.5-tts');
                                 const voice = meta?.suggestedModels?.defaultVoice;
                                 if (voice) setDefaultVoice(voice);
+                                else if (id === 'edge') setDefaultVoice('zh-CN-XiaoxiaoNeural');
+                                else if (id === 'openai') setDefaultVoice('alloy');
+                                else if (id === 'mimo') setDefaultVoice('冰糖');
                                 const vd = meta?.suggestedModels?.voiceDesign;
                                 if (vd) setVoiceDesignModel(vd);
                               }}
@@ -682,6 +692,7 @@ export function SettingsPage({ route }: { route: Route }) {
                                 : [
                                     { id: 'mimo', name: 'MiMo TTS', description: '' },
                                     { id: 'openai', name: 'OpenAI 兼容 TTS', description: '' },
+                                    { id: 'edge', name: 'Edge TTS', description: '' },
                                   ]
                               ).map((p) => (
                                 <option key={p.id} value={p.id}>
