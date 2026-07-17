@@ -211,6 +211,17 @@ export type PublicSiteSeo = {
 export const SITE_GITHUB_URL = 'https://github.com/vastsa/BokeBox/';
 export const SITE_ATTRIBUTION = `Powered by BokeBox · ${SITE_GITHUB_URL}`;
 
+/** 未自定义时的默认 SEO 标题（站点名与自定义标题皆空时使用） */
+export const DEFAULT_SEO_TITLE = 'BokeBox · 私人播客';
+
+/** 未自定义时的默认 SEO 原文（不含 Powered by 出处） */
+export const DEFAULT_SITE_SEO_INPUT: SiteSeoInput = {
+  title: '',
+  description:
+    '把看不完的视频，变成听得进的私人播客。AI 生成口播，人设与音色可自定义，数据只留在你自己的机器上。',
+  keywords: 'BokeBox, 播客, AI播客, 私人播客, 视频转播客, 开源',
+};
+
 const SEO_TITLE_MAX = 80;
 const SEO_DESC_MAX = 300;
 const SEO_KEYWORDS_MAX = 200;
@@ -294,22 +305,25 @@ export function setSiteSeo(input?: Partial<SiteSeoInput> | null): SiteSeoInput {
   return next;
 }
 
-/** 最终 SEO 标题：自定义标题优先，否则站点标题；均保证 - BokeBox */
+/** 最终 SEO 标题：自定义标题 > 站点标题 > 默认标题；有自定义名时保证 - BokeBox */
 export function buildSeoTitle(input?: SiteSeoInput | null, siteTitle?: string): string {
   const seo = input ?? getSiteSeoInput();
   if (seo.title) return formatSiteTitle(seo.title);
-  return siteTitle || formatSiteTitle(getSiteName());
+  if (siteTitle) return siteTitle;
+  const name = getSiteName();
+  if (name) return formatSiteTitle(name);
+  return DEFAULT_SEO_TITLE;
 }
 
 export function buildPublicSiteSeo(input?: SiteSeoInput | null): PublicSiteSeo {
   const seo = input ?? getSiteSeoInput();
   const title = buildSeoTitle(seo);
-  // 默认描述：站点标题 + 固定出处
-  const description = seo.description
-    ? withSeoAttribution(seo.description)
-    : withSeoAttribution(title === SITE_BRAND ? 'AI private podcast box' : title);
-  // 关键词始终包含 BokeBox
-  let keywords = seo.keywords;
+  // 描述：自定义 > 默认产品文案，再强制附加出处
+  const description = withSeoAttribution(
+    seo.description || DEFAULT_SITE_SEO_INPUT.description,
+  );
+  // 关键词：自定义 > 默认；始终包含 BokeBox
+  let keywords = seo.keywords || DEFAULT_SITE_SEO_INPUT.keywords;
   if (!/(^|,\s*)bokebox(,|$)/i.test(keywords)) {
     keywords = keywords ? `${keywords}, BokeBox` : 'BokeBox';
   }

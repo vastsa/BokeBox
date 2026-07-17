@@ -25,6 +25,17 @@ export type PublicSiteSeo = {
 
 export const SITE_ATTRIBUTION = `Powered by ${PROJECT_NAME} · ${PROJECT_GITHUB_URL}`;
 
+/** 未自定义时的默认 SEO 标题 */
+export const DEFAULT_SEO_TITLE = 'BokeBox · 私人播客';
+
+/** 未自定义时的默认 SEO 原文（不含 Powered by） */
+export const DEFAULT_SITE_SEO_INPUT: SiteSeoInput = {
+  title: '',
+  description:
+    '把看不完的视频，变成听得进的私人播客。AI 生成口播，人设与音色可自定义，数据只留在你自己的机器上。',
+  keywords: 'BokeBox, 播客, AI播客, 私人播客, 视频转播客, 开源',
+};
+
 const SEO_CACHE_KEY = 'pb:site-seo';
 type SeoListener = (seo: PublicSiteSeo) => void;
 const listeners = new Set<SeoListener>();
@@ -84,15 +95,18 @@ export function buildPublicSiteSeo(
   siteName = getCachedSiteName(),
 ): PublicSiteSeo {
   const titleRaw = normalizeSeoTitle(input?.title);
+  const name = normalizeSiteName(siteName);
   const title = titleRaw
     ? formatSiteTitle(titleRaw)
-    : formatSiteTitle(siteName);
-  const description = input?.description
-    ? withSeoAttribution(input.description)
-    : withSeoAttribution(
-        title === PROJECT_NAME ? 'AI private podcast box' : title,
-      );
-  let keywords = normalizeSeoKeywords(input?.keywords);
+    : name
+      ? formatSiteTitle(name)
+      : DEFAULT_SEO_TITLE;
+  const description = withSeoAttribution(
+    input?.description || DEFAULT_SITE_SEO_INPUT.description,
+  );
+  let keywords = normalizeSeoKeywords(
+    input?.keywords || DEFAULT_SITE_SEO_INPUT.keywords,
+  );
   if (!/(^|,\s*)bokebox(,|$)/i.test(keywords)) {
     keywords = keywords ? `${keywords}, BokeBox` : 'BokeBox';
   }
@@ -118,8 +132,8 @@ export function getCachedSeo(): PublicSiteSeo {
       ),
       github: PROJECT_GITHUB_URL,
       attribution: SITE_ATTRIBUTION,
-      title: parsed.title || formatSiteTitle(getCachedSiteName()),
-      keywords: parsed.keywords || 'BokeBox',
+      title: parsed.title || (getCachedSiteName() ? formatSiteTitle(getCachedSiteName()) : DEFAULT_SEO_TITLE),
+      keywords: parsed.keywords || DEFAULT_SITE_SEO_INPUT.keywords,
     };
   } catch {
     return buildPublicSiteSeo();
@@ -128,9 +142,9 @@ export function getCachedSeo(): PublicSiteSeo {
 
 export function setCachedSeo(seo: PublicSiteSeo): PublicSiteSeo {
   const next: PublicSiteSeo = {
-    title: seo.title || formatSiteTitle(getCachedSiteName()),
-    description: withSeoAttribution(seo.description),
-    keywords: seo.keywords || 'BokeBox',
+    title: seo.title || (getCachedSiteName() ? formatSiteTitle(getCachedSiteName()) : DEFAULT_SEO_TITLE),
+    description: withSeoAttribution(seo.description || DEFAULT_SITE_SEO_INPUT.description),
+    keywords: seo.keywords || DEFAULT_SITE_SEO_INPUT.keywords,
     github: PROJECT_GITHUB_URL,
     attribution: SITE_ATTRIBUTION,
   };
