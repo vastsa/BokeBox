@@ -1,0 +1,12 @@
+{
+  "id": "source.echo",
+  "name": "Echo Text Plugin",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "apiVersion": 1,
+  "description": "演示用外部 Source 插件：把 URL 记为文本 artifact，不发起真实抓取",
+  "riskLevel": "low",
+  "capabilities": ["url"],
+  "defaultEnabled": false,
+  "permissions": []
+}

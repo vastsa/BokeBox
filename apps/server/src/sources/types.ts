@@ -12,6 +12,17 @@ export type SourceRiskLevel = 'low' | 'medium' | 'high';
 /** 插件能力标签 */
 export type SourceCapability = 'url' | 'file' | 'webpage' | 'media';
 
+/** 插件来源：内置代码 vs 本地目录外部插件 */
+export type SourcePluginOrigin = 'builtin' | 'external';
+
+/** 插件声明的权限（宿主可展示；当前阶段仅作声明与校验清单） */
+export type SourcePluginPermission =
+  | 'network'
+  | 'fs:job-dir'
+  | 'process:spawn'
+  | 'config'
+  | 'cookies';
+
 /** 统一输入：当前阶段以 URL 为主，预留 file 扩展 */
 export type SourceInput =
   | {
@@ -65,6 +76,10 @@ export interface SourceProbe {
 
 export interface SourcePluginContext {
   jobId: string;
+  /** 当前任务工作目录（storage/jobs/{jobId}），供外部插件落盘 */
+  jobDir: string;
+  /** 统一存储根（storage/） */
+  storageDir: string;
   /** 任务工作目录等扩展位 */
   signal?: AbortSignal;
 }
@@ -91,6 +106,22 @@ export interface SourcePlugin {
   fetch(input: SourceInput, ctx: SourcePluginContext): Promise<SourceArtifact>;
 }
 
+/** plugin.json 清单（外部插件必填） */
+export interface SourcePluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  /** 相对插件目录的入口文件，如 index.js */
+  entry: string;
+  /** 宿主 API 版本，当前为 1 */
+  apiVersion: number;
+  description?: string;
+  riskLevel?: SourceRiskLevel;
+  capabilities?: SourceCapability[];
+  defaultEnabled?: boolean;
+  permissions?: SourcePluginPermission[];
+}
+
 export interface SourcePluginDescriptor {
   id: string;
   name: string;
@@ -102,4 +133,27 @@ export interface SourcePluginDescriptor {
   /** 配置层是否启用（未配置时回落 defaultEnabled） */
   enabled: boolean;
   available: boolean;
+  origin: SourcePluginOrigin;
+  /** 外部插件目录名 */
+  dirName?: string;
+  /** 外部插件绝对路径 */
+  dirPath?: string;
+  permissions?: SourcePluginPermission[];
+  apiVersion?: number;
+  /** 加载失败原因（仍会出现在列表中便于排查） */
+  loadError?: string;
+}
+
+/** 注册表内部元数据 */
+export interface SourcePluginRegistration {
+  plugin?: SourcePlugin;
+  origin: SourcePluginOrigin;
+  dirName?: string;
+  dirPath?: string;
+  permissions?: SourcePluginPermission[];
+  apiVersion?: number;
+  loadError?: string;
+  /** 加载失败时用于展示的清单快照 */
+  manifestSnapshot?: Partial<SourcePluginManifest>;
+  loadedAt?: string;
 }

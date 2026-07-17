@@ -30,3 +30,10 @@ coverage
 storage/screenshots/
 
 *.tsbuildinfo
+
+# Source 外部插件安装目录（用户本地放置，不入库）
+storage/plugins/**
+!storage/plugins/
+!storage/plugins/source/
+!storage/plugins/source/.gitkeep
+apps/server/storage/
