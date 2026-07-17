@@ -15,6 +15,7 @@ import {
 import type { ScriptPromptOptions } from '../../types/job';
 import { ScriptPromptForm } from './ScriptPromptForm';
 import { useI18n } from '../../i18n';
+import { PageLoader } from '../ui/PageLoader';
 
 /** 设置页：全局口播人设编辑 */
 export function GlobalScriptPromptSettings() {
@@ -111,7 +112,7 @@ export function GlobalScriptPromptSettings() {
       </dl>
 
       {loading ? (
-        <div className="auth-loading">{t('scriptPrompt.loading')}</div>
+        <PageLoader label={t('scriptPrompt.loading')} variant="block" />
       ) : (
         <>
           <div className="settings-block">

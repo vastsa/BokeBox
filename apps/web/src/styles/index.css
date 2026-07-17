@@ -7524,6 +7524,217 @@ html[data-theme="dark"] .script-prompt-mode-tab.is-active {
   font-size: var(--fs-base);
   line-height: var(--lh-snug);
 }
+/* PageLoader · 全局页面加载态 */
+.pb-loader-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: var(--space-7) var(--space-5);
+}
+
+.pb-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  text-align: center;
+}
+
+.pb-loader--block {
+  gap: 12px;
+  padding: var(--space-6) var(--space-3);
+  min-height: 140px;
+}
+
+.pb-loader-visual {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.pb-loader--block .pb-loader-visual {
+  width: 72px;
+  height: 72px;
+}
+
+.pb-loader-orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  box-sizing: border-box;
+  will-change: transform;
+}
+
+.pb-loader-orbit--outer {
+  inset: 0;
+  border-color: color-mix(in srgb, var(--brand) 12%, transparent);
+  border-top-color: color-mix(in srgb, var(--brand) 88%, white);
+  border-right-color: color-mix(in srgb, var(--brand-3) 42%, transparent);
+  animation: pb-loader-spin 1.85s linear infinite;
+}
+
+.pb-loader-orbit--mid {
+  inset: 11px;
+  border-color: color-mix(in srgb, var(--brand-2) 10%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--brand-2) 72%, white);
+  border-left-color: color-mix(in srgb, var(--brand-3) 28%, transparent);
+  animation: pb-loader-spin-rev 1.35s linear infinite;
+}
+
+.pb-loader-orbit--inner {
+  inset: 22px;
+  border-color: color-mix(in srgb, var(--brand) 6%, transparent);
+  border-top-color: color-mix(in srgb, var(--brand-3) 55%, transparent);
+  animation: pb-loader-spin 1.05s linear infinite;
+}
+
+.pb-loader--block .pb-loader-orbit--mid { inset: 9px; }
+.pb-loader--block .pb-loader-orbit--inner { inset: 18px; }
+
+.pb-loader-core {
+  position: relative;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--white) 88%, transparent), transparent 58%),
+    color-mix(in srgb, var(--surface) 92%, var(--brand-soft));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--brand) 14%, transparent),
+    0 10px 28px color-mix(in srgb, var(--brand) 18%, transparent),
+    0 0 24px color-mix(in srgb, var(--brand-3) 22%, transparent);
+  animation: pb-loader-pulse 1.55s ease-in-out infinite;
+  overflow: hidden;
+}
+
+.pb-loader--block .pb-loader-core {
+  width: 36px;
+  height: 36px;
+  border-radius: calc(var(--radius-md) - 2px);
+}
+
+.pb-loader-core .brand-logo,
+.pb-loader-core .brand-mark-img,
+.pb-loader-core img {
+  width: 28px !important;
+  height: 28px !important;
+  max-width: none;
+  object-fit: contain;
+}
+
+.pb-loader--block .pb-loader-core img {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+.pb-loader-dot-core {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--brand-grad);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--brand) 45%, transparent);
+}
+
+.pb-loader-spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand-3) 80%, white);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--brand) 55%, transparent);
+  animation: pb-loader-twinkle 1.7s ease-in-out infinite;
+}
+
+.pb-loader-spark.s1 { top: 8px; right: 14px; animation-delay: 0s; }
+.pb-loader-spark.s2 { bottom: 12px; left: 10px; width: 3px; height: 3px; animation-delay: 0.35s; }
+.pb-loader-spark.s3 { top: 28px; left: 4px; width: 2.5px; height: 2.5px; animation-delay: 0.7s; }
+
+.pb-loader-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.pb-loader-label {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.02em;
+  line-height: var(--lh-snug);
+}
+
+.pb-loader-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 8px;
+}
+
+.pb-loader-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand) 70%, var(--text-3));
+  animation: pb-loader-dot 1.15s ease-in-out infinite;
+}
+
+.pb-loader-dots i:nth-child(2) { animation-delay: 0.15s; }
+.pb-loader-dots i:nth-child(3) { animation-delay: 0.3s; }
+
+.pb-loader-brand-name {
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--brand) 55%, var(--text-3));
+  opacity: 0.85;
+}
+
+@keyframes pb-loader-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pb-loader-spin-rev {
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes pb-loader-pulse {
+  0%, 100% { transform: scale(0.96); }
+  50% { transform: scale(1.04); }
+}
+
+@keyframes pb-loader-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes pb-loader-dot {
+  0%, 80%, 100% { opacity: 0.28; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pb-loader-orbit,
+  .pb-loader-core,
+  .pb-loader-spark,
+  .pb-loader-dots i {
+    animation: none;
+  }
+}
+
+/* 兼容旧类名：纯文本加载态也给一点呼吸感 */
 .auth-loading {
   text-align: center;
   color: var(--text-3);

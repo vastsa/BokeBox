@@ -7,6 +7,7 @@ import {
 import { TtsModePicker } from '../components/admin/TtsModePicker';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from '../components/admin/GlobalTtsSettings';
 import { BrandMascot } from '../components/BrandMark';
+import { PageLoader } from '../components/ui/PageLoader';
 import { IconCheck, IconMic, IconSpark } from '../components/icons';
 import { OpenSourceMark } from '../components/OpenSourceMark';
 import { setAuthSession } from '../lib/auth';
@@ -199,13 +200,7 @@ export function SetupPage() {
   };
 
   if (loading) {
-    return (
-      <div className="auth-screen">
-        <div className="auth-card">
-          <div className="auth-loading">{t('setup.checking')}</div>
-        </div>
-      </div>
-    );
+    return <PageLoader label={t('setup.checking')} variant="screen" />;
   }
 
   return (

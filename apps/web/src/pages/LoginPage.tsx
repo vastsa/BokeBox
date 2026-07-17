@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchSetupStatus, login } from '../api/client';
 import { BrandMascot } from '../components/BrandMark';
+import { PageLoader } from '../components/ui/PageLoader';
 import { OpenSourceMark } from '../components/OpenSourceMark';
 import { useI18n } from '../i18n';
 import { getStoredUsername, setAuthSession } from '../lib/auth';
@@ -65,13 +66,7 @@ export function LoginPage({
   };
 
   if (checking) {
-    return (
-      <div className="auth-screen">
-        <div className="auth-card">
-          <div className="auth-loading">{t('auth.loading')}</div>
-        </div>
-      </div>
-    );
+    return <PageLoader label={t('auth.loading')} variant="screen" />;
   }
 
   return (

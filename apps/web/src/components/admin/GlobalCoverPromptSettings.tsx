@@ -5,6 +5,7 @@ import {
   type CoverPromptSettings,
 } from '../../api/client';
 import { useI18n } from '../../i18n';
+import { PageLoader } from '../ui/PageLoader';
 
 /** 设置页：全局封面提示词模板 */
 export function GlobalCoverPromptSettings() {
@@ -78,7 +79,7 @@ export function GlobalCoverPromptSettings() {
   };
 
   if (loading) {
-    return <div className="auth-loading">{t('coverPrompt.loading')}</div>;
+    return <PageLoader label={t('coverPrompt.loading')} variant="block" />;
   }
 
   return (
