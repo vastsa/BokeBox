@@ -566,6 +566,8 @@ html {
   /* 防止子元素横向撑出视口（不设 overflow-x，避免打断 sticky） */
   width: 100%;
   max-width: 100%;
+  /* 禁止双击缩放；星图画布单独设 touch-action: none */
+  touch-action: manipulation;
 }
 html[data-theme="dark"] {
   color-scheme: dark;
@@ -9096,6 +9098,7 @@ html[data-route="tags"] main {
   width: 100%;
   height: 100%;
   cursor: grab;
+  /* 星图独占：允许 OrbitControls 双指/捏合缩放，不受页面禁缩放影响 */
   touch-action: none;
 }
 
