@@ -133,21 +133,8 @@ export function SourcePluginSettings({
   };
 
   const installCmd = pluginsDir
-    ? `mkdir -p "${pluginsDir}"\ncp -R examples/source-plugin-echo "${pluginsDir}/echo"`
-    : 'mkdir -p storage/plugins/source\ncp -R examples/source-plugin-echo storage/plugins/source/echo';
-
-  const manifestExample = `{
-  "id": "source.echo",
-  "name": "Echo Test Plugin",
-  "version": "0.1.0",
-  "entry": "index.js",
-  "apiVersion": 1,
-  "description": "Demo source plugin",
-  "riskLevel": "low",
-  "capabilities": ["url"],
-  "defaultEnabled": false,
-  "permissions": []
-}`;
+    ? `cp -R examples/source-plugin-echo "${pluginsDir}/echo"`
+    : 'cp -R examples/source-plugin-echo storage/plugins/source/echo';
 
   const riskLabel = (level: SourceRiskLevel) => {
     if (level === 'low') return t('settings.sourceRiskLow');
@@ -208,64 +195,12 @@ export function SourcePluginSettings({
               </button>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="settings-card settings-card-wide source-install-help">
-        <div className="settings-block">
-          <div className="settings-block-head">
-            <h3>{t('settings.sourceInstallTitle')}</h3>
-            <p>{t('settings.sourceInstallDesc')}</p>
-          </div>
-
-          <ol className="settings-steps source-install-steps">
-            <li>{t('settings.sourceInstallStep1')}</li>
-            <li>{t('settings.sourceInstallStep2')}</li>
-            <li>{t('settings.sourceInstallStep3')}</li>
-            <li>{t('settings.sourceInstallStep4')}</li>
-          </ol>
 
           <details className="settings-prompt-details source-install-details">
-            <summary>{t('settings.sourceInstallLayoutTitle')}</summary>
+            <summary>{t('settings.sourceInstallTitle')}</summary>
             <div className="source-install-panel">
               <p className="settings-inline-hint">
-                {t('settings.sourceInstallLayoutDesc')}
-              </p>
-              <pre className="settings-code-block">{`storage/plugins/source/<plugin-dir>/
-  plugin.json
-  index.js`}</pre>
-            </div>
-          </details>
-
-          <details className="settings-prompt-details source-install-details">
-            <summary>{t('settings.sourceInstallManifestTitle')}</summary>
-            <div className="source-install-panel">
-              <p className="settings-inline-hint">
-                {t('settings.sourceInstallManifestDesc')}
-              </p>
-              <div className="settings-prompt-actions">
-                <button
-                  type="button"
-                  className="nl-btn nl-btn-secondary settings-prompt-copy-btn"
-                  onClick={() =>
-                    void copyText(
-                      manifestExample,
-                      t('settings.sourceInstallCopiedManifest'),
-                    )
-                  }
-                >
-                  {t('settings.sourceInstallCopyManifest')}
-                </button>
-              </div>
-              <pre className="settings-code-block">{manifestExample}</pre>
-            </div>
-          </details>
-
-          <details className="settings-prompt-details source-install-details">
-            <summary>{t('settings.sourceInstallEchoTitle')}</summary>
-            <div className="source-install-panel">
-              <p className="settings-inline-hint">
-                {t('settings.sourceInstallEchoDesc')}
+                {t('settings.sourceInstallSimple')}
               </p>
               <div className="settings-prompt-actions">
                 <button
@@ -282,21 +217,6 @@ export function SourcePluginSettings({
                 </button>
               </div>
               <pre className="settings-code-block">{installCmd}</pre>
-              <p className="settings-inline-hint">
-                {t('settings.sourceInstallEchoUrlHint')}
-              </p>
-            </div>
-          </details>
-
-          <details className="settings-prompt-details source-install-details">
-            <summary>{t('settings.sourceInstallRulesTitle')}</summary>
-            <div className="source-install-panel">
-              <ul className="source-install-rules">
-                <li>{t('settings.sourceInstallRule1')}</li>
-                <li>{t('settings.sourceInstallRule2')}</li>
-                <li>{t('settings.sourceInstallRule3')}</li>
-                <li>{t('settings.sourceInstallRule4')}</li>
-              </ul>
             </div>
           </details>
         </div>
@@ -409,31 +329,8 @@ export function SourcePluginSettings({
                   </span>
                 </div>
 
-                {plugin.capabilities?.length ? (
-                  <div className="source-plugin-tags">
-                    {plugin.capabilities.map((cap) => (
-                      <span key={cap} className="source-meta-chip">
-                        {cap}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
 
-                {plugin.permissions?.length ? (
-                  <div className="source-plugin-tags">
-                    {plugin.permissions.map((perm) => (
-                      <span key={perm} className="source-meta-chip is-perm">
-                        {perm}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
 
-                {plugin.dirPath ? (
-                  <p className="settings-inline-hint source-plugin-path">
-                    {plugin.dirPath}
-                  </p>
-                ) : null}
 
                 {plugin.loadError ? (
                   <p className="source-plugin-error" role="alert">
@@ -441,21 +338,19 @@ export function SourcePluginSettings({
                   </p>
                 ) : null}
 
-                <div className="settings-card-actions">
-                  <span className="settings-card-hint">
-                    {plugin.origin === 'external'
-                      ? t('settings.sourceExternalHint')
-                      : t('settings.sourceBuiltinHint')}
-                  </span>
-                  <button
-                    type="button"
-                    className="nl-btn nl-btn-ghost"
-                    disabled={busy}
-                    onClick={() => void onReset(plugin)}
-                  >
-                    {t('settings.sourceResetBtn')}
-                  </button>
-                </div>
+                {plugin.loadError ? null : (
+                  <div className="settings-card-actions">
+                    <span />
+                    <button
+                      type="button"
+                      className="nl-btn nl-btn-ghost"
+                      disabled={busy}
+                      onClick={() => void onReset(plugin)}
+                    >
+                      {t('settings.sourceResetBtn')}
+                    </button>
+                  </div>
+                )}
               </div>
             </section>
           );
