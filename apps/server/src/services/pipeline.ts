@@ -6,7 +6,8 @@ import { maybeGeneratePodcastCover } from './coverGenerator.js';
 import { hasImageModel } from '../utils/aiConfig.js';
 import { generateFlashcards } from './flashcardGenerator.js';
 import { synthesizePodcastAudio } from './ttsSynthesizer.js';
-import { importUrlContent, isPlaceholderTitle } from './urlImporter.js';
+import { isPlaceholderTitle } from './urlImporter.js';
+import { importSource } from '../sources/index.js';
 import { getJob, updateJob } from './jobStore.js';
 import { pathExists, writeText } from '../utils/fs.js';
 import { jobPaths } from '../utils/paths.js';
@@ -263,23 +264,28 @@ export async function runPipeline(
     // ── 0. URL 下载识别（无源文件时） ──
     if (job.sourceUrl && !job.videoPath) {
       await setProgress(jobId, 'queued', 8, t(locale, 'pipeline.downloading'));
-      const imported = await importUrlContent(job.sourceUrl, jobId);
+      // 经 Source 插件宿主导入（当前默认 direct-http；后续可热插拔其他源）
+      const artifact = await importSource({
+        type: 'url',
+        url: job.sourceUrl,
+        jobId,
+      });
       await setProgress(
         jobId,
         'queued',
         14,
-        t(locale, 'pipeline.detected', { kind: kindLabel(locale, imported.kind) }),
+        t(locale, 'pipeline.detected', { kind: kindLabel(locale, artifact.kind) }),
         {
-          videoPath: imported.sourcePath,
-          sourceKind: imported.kind,
-          mimeType: imported.mimeType,
-          size: imported.size,
-          originalFilename: imported.filename,
+          videoPath: artifact.localPath,
+          sourceKind: artifact.kind,
+          mimeType: artifact.mimeType,
+          size: artifact.size,
+          originalFilename: artifact.filename,
           // 占位标题（hostname / 原 URL）优先用网页真实标题
           title: isPlaceholderTitle(job.title)
-            ? imported.title || imported.filename
-            : job.title || imported.title || imported.filename,
-          transcript: imported.textContent,
+            ? artifact.title || artifact.filename
+            : job.title || artifact.title || artifact.filename,
+          transcript: artifact.textContent,
         },
       );
       job = (await getJob(jobId))!;

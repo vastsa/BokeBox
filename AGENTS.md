@@ -56,3 +56,22 @@
 - 不提交密钥、`.env`、数据库、任务媒体、大体积截图
 - 不使用 `--no-verify` 绕过钩子（除非用户明确要求且理由充分）
 - 不 force push 到 main/master
+
+## Git Worktree 开发约定（强制）
+
+功能开发、重构、实验性改动 **必须在独立 git worktree + 分支** 中进行，完成并验证后再合并回主工作区。
+
+### 必须遵守
+
+- 不要在主工作区 `main` 上直接堆长期功能开发
+- 每个任务使用独立 worktree，例如：
+  - `git worktree add -b feat/<name> ../person-boke-<name> main`
+- 在 worktree 内完成实现、自检、提交
+- 确认可工作后再合并回主仓对应分支
+- 合并后清理 worktree：`git worktree remove <path>`
+
+### 禁止
+
+- 在主工作区与多个任务改动混杂推进
+- 未验证就直接在 main 上大范围修改
+

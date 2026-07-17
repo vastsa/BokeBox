@@ -1,3 +1,11 @@
+/**
+ * URL 内容获取实现（direct-http 插件底层）
+ *
+ * 注意：pipeline 请优先通过 `sources.importSource` 接入，
+ * 不要在新代码中直接依赖本模块的 importUrlContent。
+ * 本文件保留媒体/网页抓取细节与工具函数（detectSourceKind 等）。
+ */
+
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
