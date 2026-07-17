@@ -140,6 +140,8 @@ export interface Job {
   sourceKind?: SourceKind;
   /** 远程导入地址 */
   sourceUrl?: string;
+  /** 指定 Source 插件 id；缺省自动匹配 */
+  sourcePluginId?: string;
   hasVideo?: boolean;
   hasSourceAudio?: boolean;
   hasPodcastAudio?: boolean;

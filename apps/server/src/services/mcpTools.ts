@@ -25,6 +25,12 @@ import {
 } from './settingsStore.js';
 import { normalizeScriptPrompt } from './scriptPrompt.js';
 import { isValidHttpUrl } from './urlImporter.js';
+import {
+  ensureBuiltinSourcePlugins,
+  getSourcePluginRegistration,
+  isSourcePluginEnabled,
+  refreshExternalSourcePlugins,
+} from '../sources/index.js';
 import { jobPaths } from '../utils/paths.js';
 import { ensureDir, removeDirIfExists } from '../utils/fs.js';
 import { deleteListenRecord } from './listenStore.js';
@@ -177,7 +183,11 @@ export function listMcpTools(): McpToolDefinition[] {
       inputSchema: {
         type: 'object',
         properties: {
-          url: { type: 'string', description: 'http(s) 资源地址' },
+          url: { type: 'string', description: 'http(s) 资源地址（指定插件时也可为插件可处理的其它 scheme）' },
+          pluginId: {
+            type: 'string',
+            description: '可选：指定 Source 插件 id；缺省自动匹配',
+          },
           title: { type: 'string', description: '可选标题' },
           published: {
             type: 'boolean',
@@ -350,7 +360,40 @@ async function toolGetJob(args: Record<string, unknown>) {
 async function toolCreateFromUrl(args: Record<string, unknown>) {
   const url = String(args.url || '').trim();
   if (!url) return errText('缺少参数 url');
-  if (!isValidHttpUrl(url)) return errText('url 不是有效的 http(s) 地址');
+
+  const pluginId = String(args.pluginId || '').trim() || undefined;
+  ensureBuiltinSourcePlugins();
+  if (pluginId) {
+    let reg = getSourcePluginRegistration(pluginId);
+    if (!reg) {
+      await refreshExternalSourcePlugins();
+      reg = getSourcePluginRegistration(pluginId);
+    }
+    if (!reg) return errText(`Source 插件不存在: ${pluginId}`);
+    if (!reg.plugin || reg.loadError) {
+      return errText(
+        `Source 插件不可用: ${pluginId}${reg.loadError ? ` (${reg.loadError})` : ''}`,
+      );
+    }
+    if (!isSourcePluginEnabled(pluginId)) {
+      return errText(`Source 插件未启用: ${pluginId}`);
+    }
+    if (!reg.plugin.isAvailable()) {
+      return errText(`Source 插件不可用: ${pluginId}`);
+    }
+    if (
+      !reg.plugin.canHandle({
+        type: 'url',
+        url,
+        jobId: 'validate',
+        pluginId,
+      })
+    ) {
+      return errText(`所选 Source 插件无法处理该链接: ${pluginId}`);
+    }
+  } else if (!isValidHttpUrl(url)) {
+    return errText('url 不是有效的 http(s) 地址');
+  }
 
   const tts = resolveTts();
   const scriptPrompt = resolveScriptPrompt();
@@ -379,6 +422,7 @@ async function toolCreateFromUrl(args: Record<string, unknown>) {
     locale: resolveLocale(args.locale),
     videoPath: '',
     sourceUrl: url,
+    sourcePluginId: pluginId,
     sourceKind: 'video',
     tts,
     scriptPrompt,

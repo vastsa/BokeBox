@@ -152,6 +152,8 @@ export async function createJobFromUrl(
     scriptPrompt?: ScriptPromptOptions;
     scriptPromptMode?: ScriptPromptMode;
     locale?: string;
+    /** 指定 Source 插件；缺省自动匹配 */
+    pluginId?: string;
   } = {},
 ): Promise<Job> {
   const ttsSourceMode = options.ttsSourceMode || 'global';
@@ -160,6 +162,7 @@ export async function createJobFromUrl(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       url,
+      pluginId: options.pluginId || undefined,
       ttsSourceMode,
       tts: ttsSourceMode === 'custom' ? options.tts : undefined,
       published: options.published,

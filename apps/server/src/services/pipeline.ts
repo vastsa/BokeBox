@@ -269,6 +269,7 @@ export async function runPipeline(
         type: 'url',
         url: job.sourceUrl,
         jobId,
+        pluginId: job.sourcePluginId,
       });
       await setProgress(
         jobId,

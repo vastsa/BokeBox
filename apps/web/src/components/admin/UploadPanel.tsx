@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createJob, createJobFromUrl, fetchAiSettings } from '../../api/client';
+import {
+  createJob,
+  createJobFromUrl,
+  fetchAiSettings,
+  fetchSourcePlugins,
+  type SourcePluginDescriptor,
+} from '../../api/client';
 import { formatSize, formatSourceLabel } from '../../lib/format';
 import {
   emptyScriptPrompt,
@@ -54,6 +60,10 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
 
   const [sourceMode, setSourceMode] = useState<SourceMode>('file');
   const [sourceUrl, setSourceUrl] = useState('');
+  /** 空字符串 = 自动匹配 */
+  const [sourcePluginId, setSourcePluginId] = useState('');
+  const [sourcePlugins, setSourcePlugins] = useState<SourcePluginDescriptor[]>([]);
+  const [sourcePluginsLoading, setSourcePluginsLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -111,6 +121,39 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
       cancelled = true;
     };
   }, []);
+
+
+  useEffect(() => {
+    if (sourceMode !== 'url') return;
+    let cancelled = false;
+    setSourcePluginsLoading(true);
+    void fetchSourcePlugins()
+      .then((res) => {
+        if (cancelled) return;
+        const list = (res.plugins || []).filter(
+          (p) =>
+            p.enabled &&
+            p.available &&
+            !p.loadError &&
+            p.capabilities.includes('url'),
+        );
+        setSourcePlugins(list);
+        // 已选插件若失效则回退自动
+        setSourcePluginId((prev) =>
+          prev && list.some((p) => p.id === prev) ? prev : '',
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSourcePlugins([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSourcePluginsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceMode]);
 
   const updateTts = useCallback((next: TtsOptions) => {
     ttsRef.current = next;
@@ -186,7 +229,8 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
       setError(t('upload.errUrlEmpty'));
       return;
     }
-    if (!/^https?:\/\//i.test(url)) {
+    // 自动匹配仍要求 http(s)；指定插件时由插件 canHandle 决定
+    if (!sourcePluginId && !/^https?:\/\//i.test(url)) {
       setError(t('upload.errUrlScheme'));
       return;
     }
@@ -196,6 +240,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
     const currentPublished = publishedRef.current;
     const currentPromptMode = scriptPromptModeRef.current;
     const currentPrompt = scriptPromptRef.current;
+    const currentPluginId = sourcePluginId.trim() || undefined;
 
     setError(null);
     setFileName(url);
@@ -212,6 +257,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
         scriptPrompt:
           currentPromptMode === 'custom' ? currentPrompt : undefined,
         locale: contentLocaleRef.current,
+        pluginId: currentPluginId,
       });
       setProgress(100);
       onCreated(job);
@@ -220,7 +266,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
     } finally {
       setUploading(false);
     }
-  }, [onCreated, sourceUrl]);
+  }, [onCreated, sourcePluginId, sourceUrl, t]);
 
   const openPicker = () => {
     if (!uploading) inputRef.current?.click();
@@ -348,7 +394,8 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             <label className="upload-url-field">
               <span className="label">{t('upload.contentUrl')}</span>
               <input
-                type="url"
+                type="text"
+                inputMode="url"
                 className="nl-input"
                 placeholder={t('upload.urlPlaceholder')}
                 value={sourceUrl}
@@ -363,8 +410,33 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               />
             </label>
 
+            <label className="upload-url-field">
+              <span className="label">{t('upload.sourcePlugin')}</span>
+              <select
+                className="nl-input upload-source-plugin-select"
+                value={sourcePluginId}
+                disabled={uploading || sourcePluginsLoading}
+                onChange={(e) => setSourcePluginId(e.target.value)}
+                aria-label={t('upload.sourcePlugin')}
+              >
+                <option value="">{t('upload.sourcePluginAuto')}</option>
+                {sourcePlugins.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {p.origin === 'builtin' ? ' · builtin' : ''}
+                    {p.riskLevel === 'high' ? ' · high' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <p className="upload-url-hint">
-              {t('upload.urlHint')}
+              {sourcePluginsLoading
+                ? t('upload.sourcePluginLoading')
+                : sourcePlugins.length === 0
+                  ? t('upload.sourcePluginUnavailable')
+                  : t('upload.sourcePluginHint')}
+              {!sourcePluginId ? ` ${t('upload.urlHint')}` : ''}
             </p>
 
             <button
