@@ -13,7 +13,7 @@ export const mimoAsrProvider: AsrProvider = {
   description: '小米 MiMo：chat/completions + input_audio（默认）',
   suggestedModel: 'mimo-v2.5-asr',
   isAvailable() {
-    return hasApiKey();
+    return hasApiKey('asr');
   },
   async transcribe(input: AsrTranscribeInput): Promise<AsrTranscribeResult> {
     const model = input.model?.trim() || getAsrModel();
@@ -25,27 +25,31 @@ export const mimoAsrProvider: AsrProvider = {
       'mp3';
     const format = ext === 'mpeg' ? 'mp3' : ext;
 
-    const res = await aiFetch('/chat/completions', {
-      method: 'POST',
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'input_audio',
-                input_audio: {
-                  data: b64,
-                  format,
+    const res = await aiFetch(
+      '/chat/completions',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_audio',
+                  input_audio: {
+                    data: b64,
+                    format,
+                  },
                 },
-              },
-            ],
-          },
-        ],
-        temperature: 0,
-      }),
-    });
+              ],
+            },
+          ],
+          temperature: 0,
+        }),
+      },
+      'asr',
+    );
 
     if (!res.ok) {
       const body = await res.text();

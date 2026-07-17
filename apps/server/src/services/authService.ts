@@ -51,6 +51,14 @@ export type SetupInput = {
   ttsProvider?: string;
   whisperBin?: string;
   whisperLang?: string;
+  llmBaseUrl?: string;
+  llmApiKey?: string;
+  asrBaseUrl?: string;
+  asrApiKey?: string;
+  ttsBaseUrl?: string;
+  ttsApiKey?: string;
+  imageBaseUrl?: string;
+  imageApiKey?: string;
   voiceDesignModel?: string;
   imageModel?: string;
   defaultVoice?: string;
@@ -122,6 +130,14 @@ export function completeSetup(input: SetupInput): {
     ttsProvider: input.ttsProvider,
     whisperBin: input.whisperBin,
     whisperLang: input.whisperLang,
+    llmBaseUrl: input.llmBaseUrl,
+    llmApiKey: input.llmApiKey,
+    asrBaseUrl: input.asrBaseUrl,
+    asrApiKey: input.asrApiKey,
+    ttsBaseUrl: input.ttsBaseUrl,
+    ttsApiKey: input.ttsApiKey,
+    imageBaseUrl: input.imageBaseUrl,
+    imageApiKey: input.imageApiKey,
     voiceDesignModel: input.voiceDesignModel,
     imageModel: input.imageModel,
     defaultVoice:

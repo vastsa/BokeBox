@@ -55,7 +55,7 @@ export const openaiTtsProvider: TtsProvider = {
     },
   },
   isAvailable() {
-    return hasApiKey();
+    return hasApiKey('tts');
   },
   async synthesizeChunk(input: TtsChunkInput): Promise<TtsChunkResult> {
     const model = input.model?.trim() || getTtsModel() || 'tts-1';
@@ -69,15 +69,19 @@ export const openaiTtsProvider: TtsProvider = {
       throw new Error('OpenAI TTS 文本为空');
     }
 
-    const res = await aiFetch('/audio/speech', {
-      method: 'POST',
-      body: JSON.stringify({
-        model,
-        input: text,
-        voice,
-        response_format: 'wav',
-      }),
-    });
+    const res = await aiFetch(
+      '/audio/speech',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          model,
+          input: text,
+          voice,
+          response_format: 'wav',
+        }),
+      },
+      'tts',
+    );
 
     if (!res.ok) {
       const errText = await res.text();

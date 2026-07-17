@@ -10654,3 +10654,36 @@ html[data-theme="dark"] .admin-chrome-tabs {
 .settings-code-block-tall {
   max-height: 420px;
 }
+
+
+/* AI 服务分卡片设置 */
+.ai-service-settings {
+  gap: var(--space-4);
+}
+.ai-service-card-head {
+  margin-bottom: var(--space-3);
+}
+.ai-service-card-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, var(--surface));
+  margin-bottom: var(--space-1_5);
+}
+.ai-service-card-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+}
+.ai-service-card-desc {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-base);
+  color: var(--text-3);
+  line-height: 1.5;
+}

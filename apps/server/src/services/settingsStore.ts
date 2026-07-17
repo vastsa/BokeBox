@@ -27,7 +27,9 @@ export type AuthAccount = {
 };
 
 export type AiConfig = {
+  /** 全局默认 API Key（各服务未单独配置时回落） */
   apiKey: string;
+  /** 全局默认 Base URL */
   baseUrl: string;
   chatModel: string;
   asrModel: string;
@@ -55,34 +57,57 @@ export type AiConfig = {
    * 本地 Whisper 语言提示，如 zh / en；空则自动检测
    */
   whisperLang: string;
+  /** 以下为空字符串时继承全局 baseUrl / apiKey */
+  llmBaseUrl: string;
+  llmApiKey: string;
+  asrBaseUrl: string;
+  asrApiKey: string;
+  ttsBaseUrl: string;
+  ttsApiKey: string;
+  imageBaseUrl: string;
+  imageApiKey: string;
+};
+
+export type PublicServiceEndpoint = {
+  /** 服务专属 Base URL；空表示继承全局 */
+  baseUrl: string;
+  apiKeySet: boolean;
+  apiKeyHint: string;
+  model: string;
 };
 
 export type PublicAiConfig = {
+  /** 全局默认连接 */
   apiKeySet: boolean;
-  /** 脱敏后的 key 尾号，未设置时为空 */
   apiKeyHint: string;
   baseUrl: string;
+  /** @deprecated 兼容旧前端：等同 llm.model */
   chatModel: string;
   asrModel: string;
   ttsModel: string;
   voiceDesignModel: string;
-  /** 图片生成模型；空表示关闭 AI 封面 */
   imageModel: string;
   defaultVoice: string;
   contentLocale: Locale;
-  /** 可选内容语言（来自注册中心，便于前端扩展展示） */
   contentLocales: LocaleMeta[];
-  /** 可选界面语言 */
   uiLocales: LocaleMeta[];
-  /** ASR 提供方 id */
   asrProvider: string;
-  /** TTS 提供方 id */
   ttsProvider: string;
-  /** 本地 Whisper 可执行文件路径 */
   whisperBin: string;
-  /** 本地 Whisper 语言提示 */
   whisperLang: string;
-  /** 可选 ASR 提供方清单 */
+  /** 分功能配置 */
+  llm: PublicServiceEndpoint;
+  asr: PublicServiceEndpoint & {
+    provider: string;
+    whisperBin: string;
+    whisperLang: string;
+  };
+  tts: PublicServiceEndpoint & {
+    provider: string;
+    voiceDesignModel: string;
+    defaultVoice: string;
+  };
+  image: PublicServiceEndpoint;
   asrProviders?: Array<{
     id: string;
     name: string;
@@ -90,7 +115,6 @@ export type PublicAiConfig = {
     available: boolean;
     suggestedModels?: Record<string, string>;
   }>;
-  /** 可选 TTS 提供方清单 */
   ttsProviders?: Array<{
     id: string;
     name: string;
@@ -121,6 +145,14 @@ const DEFAULT_AI: AiConfig = {
   ttsProvider: 'mimo',
   whisperBin: '',
   whisperLang: '',
+  llmBaseUrl: '',
+  llmApiKey: '',
+  asrBaseUrl: '',
+  asrApiKey: '',
+  ttsBaseUrl: '',
+  ttsApiKey: '',
+  imageBaseUrl: '',
+  imageApiKey: '',
 };
 
 function getSettingRaw(key: string): string | null {
@@ -473,6 +505,14 @@ export function getAiConfig(): AiConfig {
     contentLocale: isContentLocale(stored?.contentLocale)
       ? stored!.contentLocale!
       : DEFAULT_AI.contentLocale,
+    llmBaseUrl: String(stored?.llmBaseUrl || '').trim(),
+    llmApiKey: String(stored?.llmApiKey || '').trim(),
+    asrBaseUrl: String(stored?.asrBaseUrl || '').trim(),
+    asrApiKey: String(stored?.asrApiKey || '').trim(),
+    ttsBaseUrl: String(stored?.ttsBaseUrl || '').trim(),
+    ttsApiKey: String(stored?.ttsApiKey || '').trim(),
+    imageBaseUrl: String(stored?.imageBaseUrl || '').trim(),
+    imageApiKey: String(stored?.imageApiKey || '').trim(),
   };
 }
 
@@ -539,8 +579,41 @@ export function setAiConfig(patch: Partial<AiConfig>): AiConfig {
       patch.contentLocale !== undefined && isContentLocale(patch.contentLocale)
         ? patch.contentLocale
         : current.contentLocale,
+    // 服务专属端点：允许空字符串表示「继承全局」
+    llmBaseUrl:
+      patch.llmBaseUrl !== undefined
+        ? String(patch.llmBaseUrl).trim()
+        : current.llmBaseUrl,
+    llmApiKey:
+      patch.llmApiKey !== undefined
+        ? String(patch.llmApiKey).trim()
+        : current.llmApiKey,
+    asrBaseUrl:
+      patch.asrBaseUrl !== undefined
+        ? String(patch.asrBaseUrl).trim()
+        : current.asrBaseUrl,
+    asrApiKey:
+      patch.asrApiKey !== undefined
+        ? String(patch.asrApiKey).trim()
+        : current.asrApiKey,
+    ttsBaseUrl:
+      patch.ttsBaseUrl !== undefined
+        ? String(patch.ttsBaseUrl).trim()
+        : current.ttsBaseUrl,
+    ttsApiKey:
+      patch.ttsApiKey !== undefined
+        ? String(patch.ttsApiKey).trim()
+        : current.ttsApiKey,
+    imageBaseUrl:
+      patch.imageBaseUrl !== undefined
+        ? String(patch.imageBaseUrl).trim()
+        : current.imageBaseUrl,
+    imageApiKey:
+      patch.imageApiKey !== undefined
+        ? String(patch.imageApiKey).trim()
+        : current.imageApiKey,
   };
-  // 空字符串 apiKey 表示不覆盖（编辑场景）
+  // 空字符串 apiKey 表示不覆盖（编辑场景）；服务级 key 空字符串 = 继承全局，允许写入
   if (patch.apiKey === '') {
     next.apiKey = current.apiKey;
   }
@@ -553,6 +626,19 @@ export function maskApiKey(apiKey?: string): string {
   if (!key) return '';
   if (key.length <= 8) return '••••';
   return `${key.slice(0, 3)}••••${key.slice(-4)}`;
+}
+
+function publicEndpoint(
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+): PublicServiceEndpoint {
+  return {
+    baseUrl: (baseUrl || '').trim(),
+    apiKeySet: Boolean((apiKey || '').trim()),
+    apiKeyHint: maskApiKey(apiKey),
+    model: model || '',
+  };
 }
 
 export function toPublicAiConfig(cfg?: AiConfig): PublicAiConfig {
@@ -574,6 +660,20 @@ export function toPublicAiConfig(cfg?: AiConfig): PublicAiConfig {
     ttsProvider: c.ttsProvider || DEFAULT_AI.ttsProvider,
     whisperBin: c.whisperBin || '',
     whisperLang: c.whisperLang || '',
+    llm: publicEndpoint(c.llmBaseUrl, c.llmApiKey, c.chatModel),
+    asr: {
+      ...publicEndpoint(c.asrBaseUrl, c.asrApiKey, c.asrModel),
+      provider: c.asrProvider || DEFAULT_AI.asrProvider,
+      whisperBin: c.whisperBin || '',
+      whisperLang: c.whisperLang || '',
+    },
+    tts: {
+      ...publicEndpoint(c.ttsBaseUrl, c.ttsApiKey, c.ttsModel),
+      provider: c.ttsProvider || DEFAULT_AI.ttsProvider,
+      voiceDesignModel: c.voiceDesignModel,
+      defaultVoice: c.defaultVoice,
+    },
+    image: publicEndpoint(c.imageBaseUrl, c.imageApiKey, c.imageModel || ''),
   };
 }
 
@@ -615,6 +715,14 @@ export function getDefaultAiConfigForSetup(): PublicAiConfig & {
       ttsProvider: c.ttsProvider || DEFAULT_AI.ttsProvider,
       whisperBin: c.whisperBin || DEFAULT_AI.whisperBin,
       whisperLang: c.whisperLang || DEFAULT_AI.whisperLang,
+      llmBaseUrl: c.llmBaseUrl || '',
+      llmApiKey: '',
+      asrBaseUrl: c.asrBaseUrl || '',
+      asrApiKey: '',
+      ttsBaseUrl: c.ttsBaseUrl || '',
+      ttsApiKey: '',
+      imageBaseUrl: c.imageBaseUrl || '',
+      imageApiKey: '',
     },
   };
 }

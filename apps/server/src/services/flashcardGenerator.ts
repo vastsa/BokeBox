@@ -241,7 +241,7 @@ export async function generateFlashcards(
   }
 
   const loc = resolveContentLocale(input.locale);
-  const demo = !hasApiKey();
+  const demo = !hasApiKey('llm');
   const flashcards = demo
     ? demoFlashcards(transcript, sourceTitle, podcast, loc)
     : await llmFlashcards(transcript, sourceTitle, podcast, loc);

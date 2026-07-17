@@ -144,6 +144,14 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       ttsProvider?: string;
       whisperBin?: string;
       whisperLang?: string;
+      llmBaseUrl?: string;
+      llmApiKey?: string;
+      asrBaseUrl?: string;
+      asrApiKey?: string;
+      ttsBaseUrl?: string;
+      ttsApiKey?: string;
+      imageBaseUrl?: string;
+      imageApiKey?: string;
       voiceDesignModel?: string;
       imageModel?: string;
       defaultVoice?: string;
@@ -171,6 +179,14 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         ttsProvider: body.ttsProvider,
         whisperBin: body.whisperBin,
         whisperLang: body.whisperLang,
+        llmBaseUrl: body.llmBaseUrl,
+        llmApiKey: body.llmApiKey,
+        asrBaseUrl: body.asrBaseUrl,
+        asrApiKey: body.asrApiKey,
+        ttsBaseUrl: body.ttsBaseUrl,
+        ttsApiKey: body.ttsApiKey,
+        imageBaseUrl: body.imageBaseUrl,
+        imageApiKey: body.imageApiKey,
         voiceDesignModel: body.voiceDesignModel,
         imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,
@@ -279,6 +295,14 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         ttsProvider: body.ttsProvider,
         whisperBin: body.whisperBin,
         whisperLang: body.whisperLang,
+        llmBaseUrl: body.llmBaseUrl,
+        llmApiKey: body.llmApiKey,
+        asrBaseUrl: body.asrBaseUrl,
+        asrApiKey: body.asrApiKey,
+        ttsBaseUrl: body.ttsBaseUrl,
+        ttsApiKey: body.ttsApiKey,
+        imageBaseUrl: body.imageBaseUrl,
+        imageApiKey: body.imageApiKey,
         voiceDesignModel: body.voiceDesignModel,
         imageModel: body.imageModel,
         defaultVoice: body.defaultVoice,

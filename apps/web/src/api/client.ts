@@ -471,6 +471,13 @@ export type ProviderOptionDto = {
   suggestedModels?: Record<string, string>;
 };
 
+export type PublicServiceEndpoint = {
+  baseUrl: string;
+  apiKeySet: boolean;
+  apiKeyHint: string;
+  model: string;
+};
+
 export type PublicAiConfig = {
   apiKeySet: boolean;
   apiKeyHint: string;
@@ -481,19 +488,25 @@ export type PublicAiConfig = {
   voiceDesignModel: string;
   imageModel: string;
   defaultVoice: string;
-  /** 内容生成 / AI 提示词默认语言 */
   contentLocale: string;
-  /** 服务端注册的可选语言（扩展入口） */
   contentLocales?: LocaleMetaDto[];
   uiLocales?: LocaleMetaDto[];
-  /** ASR 提供方 id：mimo | openai | local-whisper | ... */
   asrProvider: string;
-  /** TTS 提供方 id：mimo | openai | edge | ... */
   ttsProvider: string;
-  /** 本地 Whisper 可执行文件路径 */
   whisperBin: string;
-  /** 本地 Whisper 语言提示 */
   whisperLang: string;
+  llm: PublicServiceEndpoint;
+  asr: PublicServiceEndpoint & {
+    provider: string;
+    whisperBin: string;
+    whisperLang: string;
+  };
+  tts: PublicServiceEndpoint & {
+    provider: string;
+    voiceDesignModel: string;
+    defaultVoice: string;
+  };
+  image: PublicServiceEndpoint;
   asrProviders?: ProviderOptionDto[];
   ttsProviders?: ProviderOptionDto[];
 };
@@ -582,6 +595,14 @@ export async function saveAiSettings(body: {
   imageModel?: string;
   defaultVoice?: string;
   contentLocale?: string;
+  llmBaseUrl?: string;
+  llmApiKey?: string;
+  asrBaseUrl?: string;
+  asrApiKey?: string;
+  ttsBaseUrl?: string;
+  ttsApiKey?: string;
+  imageBaseUrl?: string;
+  imageApiKey?: string;
 }): Promise<PublicAiConfig> {
   const data = await request<{ ai: PublicAiConfig }>('/settings/ai', {
     method: 'PUT',

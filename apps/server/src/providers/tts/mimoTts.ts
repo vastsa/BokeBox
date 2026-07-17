@@ -195,7 +195,7 @@ export const mimoTtsProvider: TtsProvider = {
     },
   },
   isAvailable() {
-    return hasApiKey();
+    return hasApiKey('tts');
   },
   async synthesizeChunk(input: TtsChunkInput): Promise<TtsChunkResult> {
     const built = buildMimoTtsBody(input.text, input.tts, {
@@ -204,14 +204,18 @@ export const mimoTtsProvider: TtsProvider = {
       voiceDesignModel: input.voiceDesignModel,
     });
 
-    const res = await aiFetch('/chat/completions', {
-      method: 'POST',
-      body: JSON.stringify({
-        model: built.model,
-        messages: built.messages,
-        audio: built.audio,
-      }),
-    });
+    const res = await aiFetch(
+      '/chat/completions',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          model: built.model,
+          messages: built.messages,
+          audio: built.audio,
+        }),
+      },
+      'tts',
+    );
 
     if (!res.ok) {
       const errText = await res.text();

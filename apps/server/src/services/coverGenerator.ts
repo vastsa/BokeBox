@@ -309,7 +309,7 @@ async function requestCoverImage(input: {
   return aiFetch('/images/generations', {
     method: 'POST',
     body: JSON.stringify(body),
-  });
+  }, 'image');
 }
 
 /**
@@ -320,7 +320,7 @@ export async function generatePodcastCover(
   jobId: string,
   podcast: PodcastContent,
 ): Promise<boolean> {
-  if (!hasApiKey() || !hasImageModel()) return false;
+  if (!hasApiKey('image') || !hasImageModel()) return false;
 
   const model = getImageModel();
   // 同任务标题作弱稳定种子，重跑仍有一定随机感（再叠一层 random）
@@ -426,7 +426,7 @@ export async function maybeGeneratePodcastCover(
   jobId: string,
   podcast: PodcastContent,
 ): Promise<PodcastContent> {
-  if (!hasImageModel() || !hasApiKey()) {
+  if (!hasImageModel() || !hasApiKey('image')) {
     return { ...podcast, hasCoverImage: false };
   }
 

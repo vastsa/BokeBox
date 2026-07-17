@@ -376,7 +376,7 @@ export async function generatePodcast(
   const paths = jobPaths(jobId);
   const loc = resolveContentLocale(locale);
   console.info(`[podcast] job=${jobId} contentLocale=${loc}`);
-  const demo = !hasApiKey();
+  const demo = !hasApiKey('llm');
   const podcast = demo
     ? demoPodcast(transcript, sourceTitle, scriptPrompt, loc)
     : await llmPodcast(transcript, sourceTitle, scriptPrompt, loc);

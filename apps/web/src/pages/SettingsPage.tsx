@@ -10,11 +10,11 @@ import {
   regenerateMcpToken,
   saveAccessSettings,
   saveAiSettings,
-  saveTtsSettings,
   type McpInstallBundle,
   type McpStatus,
   type PublicAiConfig,
 } from '../api/client';
+import { AiServiceSettings } from '../components/admin/AiServiceSettings';
 import { GlobalPromptSettings } from '../components/admin/GlobalPromptSettings';
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
 import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
@@ -37,11 +37,6 @@ import {
 import { AppShell } from '../layouts/AppShell';
 import { PROJECT_GITHUB_URL, PROJECT_LICENSE_SPDX } from '../lib/project';
 import { setCachedSiteName } from '../lib/site';
-import {
-  EDGE_VOICE_OPTIONS,
-  WHISPER_LANG_OPTIONS,
-  WHISPER_MODEL_OPTIONS,
-} from '../lib/providerOptions';
 import {
   buildPublicSiteSeo,
   setCachedSeo,
@@ -115,25 +110,13 @@ export function SettingsPage({ route }: { route: Route }) {
   const { t, locale, setLocale, locales, meta } = useI18n();
   const [tab, setTab] = useState<SettingsTab>('voice');
   const [username, setUsername] = useState('');
-  const [ai, setAi] = useState<PublicAiConfig | null>(null);
+  const [, setAi] = useState<PublicAiConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingAi, setSavingAi] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [apiKey, setApiKey] = useState('');
-  const [baseUrl, setBaseUrl] = useState('');
-  const [chatModel, setChatModel] = useState('');
-  const [asrModel, setAsrModel] = useState('');
-  const [asrProvider, setAsrProvider] = useState('mimo');
-  const [ttsModel, setTtsModel] = useState('');
-  const [ttsProvider, setTtsProvider] = useState('mimo');
-  const [whisperBin, setWhisperBin] = useState('');
-  const [whisperLang, setWhisperLang] = useState('');
-  const [voiceDesignModel, setVoiceDesignModel] = useState('');
-  const [imageModel, setImageModel] = useState('');
-  const [defaultVoice, setDefaultVoice] = useState('');
   const [contentLocale, setContentLocale] = useState<Locale>('zh-CN');
   const [contentLocaleOptions, setContentLocaleOptions] = useState<
     Array<{ code: string; nativeLabel: string; label: string; short?: string }>
@@ -260,20 +243,8 @@ export function SettingsPage({ route }: { route: Route }) {
       setSeoKeywords(input.keywords || '');
       if (access.seo) setCachedSeo(access.seo);
       setAi(aiCfg);
-      setBaseUrl(aiCfg.baseUrl);
-      setChatModel(aiCfg.chatModel);
-      setAsrModel(aiCfg.asrModel);
-      setAsrProvider(aiCfg.asrProvider || 'mimo');
-      setTtsModel(aiCfg.ttsModel);
-      setTtsProvider(aiCfg.ttsProvider || 'mimo');
-      setWhisperBin(aiCfg.whisperBin || '');
-      setWhisperLang(aiCfg.whisperLang || '');
-      setVoiceDesignModel(aiCfg.voiceDesignModel);
-      setImageModel(aiCfg.imageModel || '');
-      setDefaultVoice(aiCfg.defaultVoice);
       setContentLocale(resolveContentLocale(aiCfg.contentLocale));
       setContentLocaleOptions(aiCfg.contentLocales || []);
-      setApiKey('');
       if (mcp) {
         setMcpStatus(mcp);
         setMcpBaseUrl(mcp.baseUrl || '');
@@ -313,43 +284,15 @@ export function SettingsPage({ route }: { route: Route }) {
     setError(null);
   }, [tab]);
 
-  const onSaveAi = async () => {
+  const onSaveAiLocaleOnly = async () => {
     setSavingAi(true);
     setMsg(null);
     setError(null);
     try {
-      const next = await saveAiSettings({
-        apiKey: apiKey.trim() || undefined,
-        baseUrl: baseUrl.trim(),
-        chatModel: chatModel.trim(),
-        asrModel: asrModel.trim(),
-        asrProvider: asrProvider.trim() || 'mimo',
-        ttsModel: ttsModel.trim(),
-        ttsProvider: ttsProvider.trim() || 'mimo',
-        whisperBin: whisperBin.trim(),
-        whisperLang: whisperLang.trim(),
-        voiceDesignModel: voiceDesignModel.trim(),
-        imageModel: imageModel.trim(),
-        defaultVoice: defaultVoice.trim(),
-        contentLocale,
-      });
+      const next = await saveAiSettings({ contentLocale });
       setAi(next);
-      setImageModel(next.imageModel || '');
       setContentLocale(resolveContentLocale(next.contentLocale));
       if (next.contentLocales) setContentLocaleOptions(next.contentLocales);
-      setApiKey('');
-      // 同步默认音色到全局口播音色（Edge / OpenAI / MiMo 共用）
-      try {
-        const voice = defaultVoice.trim();
-        if (voice) {
-          await saveTtsSettings({
-            mode: 'default',
-            voice,
-          });
-        }
-      } catch {
-        // ignore
-      }
       setMsg(t('settings.aiSaved'));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -357,7 +300,6 @@ export function SettingsPage({ route }: { route: Route }) {
       setSavingAi(false);
     }
   };
-
 
   const copyText = async (value: string, okMsg?: string) => {
     try {
@@ -583,46 +525,6 @@ export function SettingsPage({ route }: { route: Route }) {
                   <div className="settings-stack">
                     <SettingsCard>
                       <SettingsBlock
-                        title={t('settings.connection')}
-                        desc={t('settings.connectionDesc')}
-                      >
-                        <div className="settings-fields">
-                          <label className="auth-field">
-                            <span>
-                              API Key
-                              <em className="settings-field-meta">
-                                {ai?.apiKeySet
-                                  ? t('settings.apiKeySet')
-                                  : t('settings.apiKeyUnset')}
-                              </em>
-                            </span>
-                            <input
-                              type="password"
-                              value={apiKey}
-                              onChange={(e) => setApiKey(e.target.value)}
-                              placeholder={
-                                ai?.apiKeySet
-                                  ? t('settings.apiKeyOverride')
-                                  : t('settings.apiKeyRequired')
-                              }
-                              autoComplete="off"
-                            />
-                          </label>
-                          <label className="auth-field">
-                            <span>Base URL</span>
-                            <input
-                              value={baseUrl}
-                              onChange={(e) => setBaseUrl(e.target.value)}
-                              spellCheck={false}
-                              autoComplete="off"
-                            />
-                          </label>
-                        </div>
-                      </SettingsBlock>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
                         title={t('settings.contentLanguage')}
                         desc={t('settings.contentLanguageDesc')}
                       >
@@ -633,226 +535,23 @@ export function SettingsPage({ route }: { route: Route }) {
                           aria-label={t('settings.contentLanguageAria')}
                           onChange={setContentLocale}
                         />
-                      </SettingsBlock>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.models')}
-                        desc={t('settings.modelsDesc')}
-                      >
-                        <div className="settings-fields settings-fields-2">
-                          <label className="auth-field">
-                            <span>{t('settings.chatModel')}</span>
-                            <input
-                              value={chatModel}
-                              onChange={(e) => setChatModel(e.target.value)}
-                              spellCheck={false}
-                            />
-                          </label>
-                          <label className="auth-field">
-                            <span>{t('settings.asrProvider')}</span>
-                            <select
-                              value={asrProvider}
-                              onChange={(e) => {
-                                const id = e.target.value;
-                                setAsrProvider(id);
-                                const meta = (ai?.asrProviders || []).find((p) => p.id === id);
-                                const suggested = meta?.suggestedModels?.asr;
-                                if (suggested) setAsrModel(suggested);
-                                else if (id === 'local-whisper') setAsrModel('base');
-                                else if (id === 'openai') setAsrModel('whisper-1');
-                                else if (id === 'mimo') setAsrModel('mimo-v2.5-asr');
-                              }}
-                            >
-                              {(ai?.asrProviders?.length
-                                ? ai.asrProviders
-                                : [
-                                    { id: 'mimo', name: 'MiMo ASR', description: '' },
-                                    { id: 'openai', name: 'OpenAI 兼容 ASR', description: '' },
-                                    { id: 'local-whisper', name: '本地 Whisper', description: '' },
-                                  ]
-                              ).map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="auth-field">
-                            <span>{t('settings.ttsProvider')}</span>
-                            <select
-                              value={ttsProvider}
-                              onChange={(e) => {
-                                const id = e.target.value;
-                                setTtsProvider(id);
-                                const meta = (ai?.ttsProviders || []).find((p) => p.id === id);
-                                const suggested = meta?.suggestedModels?.tts;
-                                if (suggested) setTtsModel(suggested);
-                                else if (id === 'edge') setTtsModel('edge-neural');
-                                else if (id === 'openai') setTtsModel('tts-1');
-                                else if (id === 'mimo') setTtsModel('mimo-v2.5-tts');
-                                const voice = meta?.suggestedModels?.defaultVoice;
-                                if (voice) setDefaultVoice(voice);
-                                else if (id === 'edge') setDefaultVoice('zh-CN-XiaoxiaoNeural');
-                                else if (id === 'openai') setDefaultVoice('alloy');
-                                else if (id === 'mimo') setDefaultVoice('冰糖');
-                                const vd = meta?.suggestedModels?.voiceDesign;
-                                if (vd) setVoiceDesignModel(vd);
-                              }}
-                            >
-                              {(ai?.ttsProviders?.length
-                                ? ai.ttsProviders
-                                : [
-                                    { id: 'mimo', name: 'MiMo TTS', description: '' },
-                                    { id: 'openai', name: 'OpenAI 兼容 TTS', description: '' },
-                                    { id: 'edge', name: 'Edge TTS', description: '' },
-                                  ]
-                              ).map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="auth-field">
-                            <span>{t('settings.asrModel')}</span>
-                            <input
-                              value={asrModel}
-                              onChange={(e) => setAsrModel(e.target.value)}
-                              list={
-                                asrProvider === 'local-whisper'
-                                  ? 'whisper-model-options'
-                                  : undefined
-                              }
-                              placeholder={
-                                asrProvider === 'local-whisper'
-                                  ? 'base / small / ggml 模型路径'
-                                  : undefined
-                              }
-                              spellCheck={false}
-                            />
-                            {asrProvider === 'local-whisper' && (
-                              <datalist id="whisper-model-options">
-                                {WHISPER_MODEL_OPTIONS.map((m) => (
-                                  <option key={m} value={m} />
-                                ))}
-                              </datalist>
-                            )}
-                          </label>
-                          {asrProvider === 'local-whisper' && (
-                            <>
-                              <label className="auth-field auth-field-span2">
-                                <span>{t('settings.whisperBin')}</span>
-                                <input
-                                  value={whisperBin}
-                                  onChange={(e) => setWhisperBin(e.target.value)}
-                                  placeholder={t('settings.whisperBinPlaceholder')}
-                                  spellCheck={false}
-                                />
-                              </label>
-                              <label className="auth-field">
-                                <span>{t('settings.whisperLang')}</span>
-                                <select
-                                  value={whisperLang}
-                                  onChange={(e) => setWhisperLang(e.target.value)}
-                                >
-                                  {WHISPER_LANG_OPTIONS.map((opt) => (
-                                    <option key={opt.id || 'auto'} value={opt.id}>
-                                      {opt.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
-                              <p className="settings-field-tip auth-field-span2">
-                                {t('settings.whisperHint')}
-                              </p>
-                            </>
-                          )}
-                          <label className="auth-field">
-                            <span>{t('settings.ttsModel')}</span>
-                            <input
-                              value={ttsModel}
-                              onChange={(e) => setTtsModel(e.target.value)}
-                              spellCheck={false}
-                            />
-                          </label>
-                          <label className="auth-field">
-                            <span>{t('settings.voiceDesignModel')}</span>
-                            <input
-                              value={voiceDesignModel}
-                              onChange={(e) =>
-                                setVoiceDesignModel(e.target.value)
-                              }
-                              spellCheck={false}
-                            />
-                          </label>
-                          <label className="auth-field">
-                            <span>{t('settings.imageModel')}</span>
-                            <input
-                              value={imageModel}
-                              onChange={(e) => setImageModel(e.target.value)}
-                              placeholder={t('settings.imagePlaceholder')}
-                              spellCheck={false}
-                            />
-                          </label>
-                          <label className="auth-field">
-                            <span>
-                              {ttsProvider === 'edge'
-                                ? t('settings.edgeVoice')
-                                : t('settings.defaultVoiceId')}
-                            </span>
-                            {ttsProvider === 'edge' ? (
-                              <select
-                                value={defaultVoice}
-                                onChange={(e) => setDefaultVoice(e.target.value)}
-                              >
-                                {EDGE_VOICE_OPTIONS.map((v) => (
-                                  <option key={v.id} value={v.id}>
-                                    {v.name} · {v.language}
-                                  </option>
-                                ))}
-                                {!EDGE_VOICE_OPTIONS.some((v) => v.id === defaultVoice) &&
-                                defaultVoice ? (
-                                  <option value={defaultVoice}>{defaultVoice}</option>
-                                ) : null}
-                              </select>
-                            ) : (
-                              <input
-                                value={defaultVoice}
-                                onChange={(e) => setDefaultVoice(e.target.value)}
-                                placeholder={t('settings.defaultVoicePlaceholder')}
-                                spellCheck={false}
-                              />
-                            )}
-                          </label>
-                          {ttsProvider === 'edge' && (
-                            <p className="settings-field-tip auth-field-span2">
-                              {t('settings.edgeHint')}
-                            </p>
-                          )}
+                        <div className="settings-card-actions" style={{ marginTop: 12 }}>
+                          <button
+                            type="button"
+                            className="nl-btn nl-btn-primary"
+                            onClick={() => void onSaveAiLocaleOnly()}
+                            disabled={savingAi}
+                          >
+                            {savingAi ? t('common.saving') : t('common.save')}
+                          </button>
                         </div>
-                        <p className="settings-field-tip">
-                          {t('settings.imageHintPrefix')}
-                          <code>/images/generations</code>{' '}
-                          {t('settings.imageHintSuffix')}
-                        </p>
                       </SettingsBlock>
-
-                      <div className="settings-card-actions">
-                        <span className="settings-card-hint">
-                          {t('settings.adminOnly')}
-                        </span>
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-primary"
-                          onClick={() => void onSaveAi()}
-                          disabled={savingAi}
-                        >
-                          {savingAi ? t('common.saving') : t('common.save')}
-                        </button>
-                      </div>
                     </SettingsCard>
+
+                    <AiServiceSettings
+                      onMessage={setMsg}
+                      onError={setError}
+                    />
                   </div>
                 </SettingsPanel>
 

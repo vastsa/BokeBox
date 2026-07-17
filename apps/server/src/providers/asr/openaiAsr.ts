@@ -34,7 +34,7 @@ export const openaiAsrProvider: AsrProvider = {
   description: 'OpenAI /audio/transcriptions（Whisper 等兼容协议）',
   suggestedModel: 'whisper-1',
   isAvailable() {
-    return hasApiKey();
+    return hasApiKey('asr');
   },
   async transcribe(input: AsrTranscribeInput): Promise<AsrTranscribeResult> {
     const model = input.model?.trim() || getAsrModel() || 'whisper-1';
@@ -60,7 +60,7 @@ export const openaiAsrProvider: AsrProvider = {
     const res = await aiFetch('/audio/transcriptions', {
       method: 'POST',
       body: form,
-    });
+    }, 'asr');
 
     if (!res.ok) {
       const body = await res.text();
