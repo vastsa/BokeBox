@@ -85,15 +85,20 @@ export function GlobalCoverPromptSettings() {
     <section className="settings-card settings-card-wide">
       <div className="settings-block">
         <div className="settings-block-head">
-          <h3>{t('coverPrompt.title')}</h3>
-          <p>
-            {t('coverPrompt.desc')}
-            {data?.isCustom ? (
-              <em className="settings-field-meta"> {t('coverPrompt.custom')}</em>
-            ) : (
-              <em className="settings-field-meta"> {t('coverPrompt.systemDefault')}</em>
-            )}
-          </p>
+          <div className="settings-block-head-row">
+            <h3>{t('coverPrompt.title')}</h3>
+            <span
+              className={[
+                'settings-status-pill',
+                data?.isCustom ? 'is-custom' : 'is-default',
+              ].join(' ')}
+            >
+              {data?.isCustom
+                ? t('coverPrompt.custom')
+                : t('coverPrompt.systemDefault')}
+            </span>
+          </div>
+          <p>{t('coverPrompt.desc')}</p>
         </div>
 
         <label className="auth-field">
@@ -105,7 +110,7 @@ export function GlobalCoverPromptSettings() {
               setDraft(e.target.value);
               setHint(null);
             }}
-            rows={18}
+            rows={12}
             spellCheck={false}
             placeholder={t('coverPrompt.placeholder')}
           />

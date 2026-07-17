@@ -8696,6 +8696,114 @@ html[data-theme="dark"] .theme-pref-card.is-active .theme-pref-copy strong {
 }
 
 /* ===== Cover prompt settings ===== */
+/* ── Settings · 提示词中心 ── */
+.settings-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: var(--bw-1) solid var(--separator);
+  background: color-mix(in srgb, var(--surface-2) 88%, var(--surface));
+}
+.settings-subtab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  min-height: var(--control-2xl);
+  padding: 0 var(--space-3);
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: var(--fs-base-plus);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-normal);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.settings-subtab:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+.settings-subtab.is-active {
+  color: var(--text);
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--black) 8%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--text) 6%, transparent);
+}
+html[data-theme="dark"] .settings-subtab.is-active {
+  background: color-mix(in srgb, var(--surface) 92%, var(--brand-soft));
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--black) 35%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--brand) 22%, transparent);
+  color: var(--brand-3);
+}
+
+.prompt-hub-body {
+  min-width: 0;
+  animation: settings-tab-in 0.14s ease;
+}
+
+.settings-status-pill {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.settings-status-pill.is-default {
+  color: var(--text-3);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+.settings-status-pill.is-custom {
+  color: var(--brand-2);
+  background: var(--brand-soft);
+  border: var(--bw-1) solid var(--brand-ring);
+}
+
+/* 提示词编辑区：变量横排更紧凑 */
+.prompt-hub .cover-prompt-vars-list {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-1_5) var(--space-2);
+}
+.prompt-hub .cover-prompt-textarea {
+  min-height: var(--size-220);
+}
+.prompt-hub .settings-block-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.prompt-hub .settings-block-head-row h3 {
+  margin: 0;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .settings-subtabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
+    padding: 3px;
+  }
+  .settings-subtab {
+    justify-content: center;
+    padding: 0 var(--space-1);
+    font-size: var(--fs-sm);
+    min-height: var(--control-xl);
+  }
+}
+
 .cover-prompt-textarea {
   width: 100%;
   min-height: var(--size-280);

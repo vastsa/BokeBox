@@ -15,8 +15,7 @@ import {
   type McpStatus,
   type PublicAiConfig,
 } from '../api/client';
-import { GlobalAiPromptSettings } from '../components/admin/GlobalAiPromptSettings';
-import { GlobalCoverPromptSettings } from '../components/admin/GlobalCoverPromptSettings';
+import { GlobalPromptSettings } from '../components/admin/GlobalPromptSettings';
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
 import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
 import { ContentLocaleSelect } from '../components/admin/ContentLocaleSelect';
@@ -48,7 +47,7 @@ import {
   setCachedSeo,
 } from '../lib/seo';
 
-type SettingsTab = 'voice' | 'persona' | 'cover' | 'prompts' | 'ai' | 'mcp' | 'site' | 'account';
+type SettingsTab = 'voice' | 'persona' | 'prompts' | 'ai' | 'mcp' | 'site' | 'account';
 
 function SettingsPanel({
   id,
@@ -177,11 +176,6 @@ export function SettingsPage({ route }: { route: Route }) {
             id: 'persona' as const,
             label: t('settings.tabPersona'),
             desc: t('settings.tabPersonaDesc'),
-          },
-          {
-            id: 'cover' as const,
-            label: t('settings.tabCover'),
-            desc: t('settings.tabCoverDesc'),
           },
           {
             id: 'prompts' as const,
@@ -581,12 +575,8 @@ export function SettingsPage({ route }: { route: Route }) {
                   <GlobalScriptPromptSettings />
                 </SettingsPanel>
 
-                <SettingsPanel id="cover" active={tab === 'cover'}>
-                  <GlobalCoverPromptSettings />
-                </SettingsPanel>
-
                 <SettingsPanel id="prompts" active={tab === 'prompts'}>
-                  <GlobalAiPromptSettings />
+                  <GlobalPromptSettings />
                 </SettingsPanel>
 
                 <SettingsPanel id="ai" active={tab === 'ai'}>

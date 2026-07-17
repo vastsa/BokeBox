@@ -90,18 +90,20 @@ function AiPromptEditor({
     <section className="settings-card settings-card-wide">
       <div className="settings-block">
         <div className="settings-block-head">
-          <h3>{t(kindTitleKey(kind))}</h3>
-          <p>
-            {t(kindDescKey(kind))}
-            {data.isCustom ? (
-              <em className="settings-field-meta"> {t('aiPrompt.custom')}</em>
-            ) : (
-              <em className="settings-field-meta">
-                {' '}
-                {t('aiPrompt.systemDefault')}
-              </em>
-            )}
-          </p>
+          <div className="settings-block-head-row">
+            <h3>{t(kindTitleKey(kind))}</h3>
+            <span
+              className={[
+                'settings-status-pill',
+                data.isCustom ? 'is-custom' : 'is-default',
+              ].join(' ')}
+            >
+              {data.isCustom
+                ? t('aiPrompt.custom')
+                : t('aiPrompt.systemDefault')}
+            </span>
+          </div>
+          <p>{t(kindDescKey(kind))}</p>
         </div>
 
         <label className="auth-field">
@@ -113,7 +115,7 @@ function AiPromptEditor({
               setDraft(e.target.value);
               setHint(null);
             }}
-            rows={14}
+            rows={12}
             spellCheck={false}
             placeholder={t('aiPrompt.placeholder')}
           />
@@ -191,14 +193,28 @@ function AiPromptEditor({
   );
 }
 
-/** 设置页：口播 / 改写 / 闪卡系统提示词 */
-export function GlobalAiPromptSettings() {
+/** 设置页：口播 / 改写 / 闪卡系统提示词（单编辑器 + 可选分段） */
+export function GlobalAiPromptSettings({
+  lockedKind,
+  hideNote = false,
+}: {
+  /** 由外层锁定某一类时，不展示内部分段 */
+  lockedKind?: AiPromptKind;
+  hideNote?: boolean;
+} = {}) {
   const { t } = useI18n();
   const [map, setMap] = useState<Record<AiPromptKind, AiPromptSettings> | null>(
     null,
   );
+  const [kind, setKind] = useState<AiPromptKind>(
+    lockedKind || 'podcastSystem',
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (lockedKind) setKind(lockedKind);
+  }, [lockedKind]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -216,6 +232,20 @@ export function GlobalAiPromptSettings() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const kindItems = useMemo(
+    () =>
+      KINDS.map((id) => ({
+        id,
+        label:
+          id === 'podcastSystem'
+            ? t('settings.promptNavPodcast')
+            : id === 'rewriteSystem'
+              ? t('settings.promptNavRewrite')
+              : t('settings.promptNavFlashcard'),
+      })),
+    [t],
+  );
 
   if (loading) {
     return <div className="auth-loading">{t('aiPrompt.loading')}</div>;
@@ -238,19 +268,48 @@ export function GlobalAiPromptSettings() {
     );
   }
 
+  const active = lockedKind || kind;
+
   return (
     <div className="settings-stack">
-      <p className="settings-panel-note">{t('aiPrompt.globalNote')}</p>
-      {KINDS.map((kind) => (
-        <AiPromptEditor
-          key={kind}
-          kind={kind}
-          data={map[kind]}
-          onSaved={(next) =>
-            setMap((prev) => (prev ? { ...prev, [kind]: next } : prev))
-          }
-        />
-      ))}
+      {!hideNote ? (
+        <p className="settings-panel-note">{t('aiPrompt.globalNote')}</p>
+      ) : null}
+
+      {!lockedKind ? (
+        <div
+          className="settings-subtabs"
+          role="tablist"
+          aria-label={t('settings.tabPrompts')}
+        >
+          {kindItems.map((item) => {
+            const selected = active === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                className={['settings-subtab', selected ? 'is-active' : '']
+                  .filter(Boolean)
+                  .join(' ')}
+                onClick={() => setKind(item.id)}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      <AiPromptEditor
+        key={active}
+        kind={active}
+        data={map[active]}
+        onSaved={(next) =>
+          setMap((prev) => (prev ? { ...prev, [active]: next } : prev))
+        }
+      />
     </div>
   );
 }
