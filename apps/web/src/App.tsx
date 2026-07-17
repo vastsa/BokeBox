@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { GlobalPlayerBar } from './components/listen/GlobalPlayerBar';
 import { fetchMe, fetchSetupStatus } from './api/client';
 import { clearAuthSession, getToken } from './lib/auth';
@@ -12,6 +12,10 @@ import { SettingsPage } from './pages/SettingsPage';
 import { SetupPage } from './pages/SetupPage';
 import { useI18n } from './i18n';
 import { PlayerProvider } from './player/PlayerContext';
+
+const TagCloudPage = lazy(() =>
+  import('./pages/TagCloudPage').then((m) => ({ default: m.TagCloudPage })),
+);
 
 type Gate = 'checking' | 'setup' | 'login' | 'app';
 
@@ -114,6 +118,13 @@ export default function App() {
         break;
       case 'player':
         page = <ListenPlayerPage id={route.id} route={route} />;
+        break;
+      case 'tags':
+        page = (
+          <Suspense fallback={<div className="tc-page" />}>
+            <TagCloudPage route={route} />
+          </Suspense>
+        );
         break;
       case 'settings':
         page = <SettingsPage route={route} />;

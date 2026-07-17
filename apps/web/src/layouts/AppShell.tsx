@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import { BrandMark } from '../components/BrandMark';
 import {
+  IconGitHub,
   IconLibrary,
   IconSpark,
+  IconStars,
   IconUpload,
 } from '../components/icons';
 import { OpenSourceMark } from '../components/OpenSourceMark';
@@ -27,6 +29,7 @@ export function AppShell({
     route.name === 'player' ||
     route.name === 'job' ||
     route.name === 'admin-job';
+  const tagsActive = route.name === 'tags';
   const createActive =
     route.name === 'create' || route.name === 'admin-upload';
   const settingsActive = route.name === 'settings';
@@ -59,6 +62,12 @@ export function AppShell({
               icon={<IconLibrary size={14} />}
             />
             <TopNavItem
+              active={tagsActive}
+              label={t('nav.tags')}
+              onClick={() => navigate({ name: 'tags' })}
+              icon={<IconStars size={14} />}
+            />
+            <TopNavItem
               active={createActive}
               label={t('nav.create')}
               onClick={() => navigate({ name: 'create' })}
@@ -74,14 +83,14 @@ export function AppShell({
 
           <div className="topbar-end">
             <a
-              className="topbar-oss-link hidden sm:inline-flex"
+              className="topbar-oss-link"
               href={PROJECT_GITHUB_URL}
               target="_blank"
               rel="noreferrer noopener"
               title={t('app.openSourceHint')}
+              aria-label={`${t('app.openSourceBadge')} · ${t('app.github')}`}
             >
-              <span className="topbar-oss-badge">{t('app.openSourceBadge')}</span>
-              <span>GitHub</span>
+              <IconGitHub size={18} className="topbar-oss-icon" />
             </a>
             <div className="topbar-actions md:hidden">
               <TopActionButton
@@ -105,12 +114,18 @@ export function AppShell({
 
       {!hideBottomNav && (
         <nav className="bottom-nav" aria-label={t('nav.main')}>
-          <div className="mx-auto grid max-w-sm grid-cols-3 gap-0.5">
+          <div className="mx-auto grid max-w-md grid-cols-4 gap-0.5">
             <BottomNavItem
               active={homeActive}
               label={t('nav.home')}
               onClick={() => navigate({ name: 'home' })}
               icon={<IconLibrary size={18} />}
+            />
+            <BottomNavItem
+              active={tagsActive}
+              label={t('nav.tags')}
+              onClick={() => navigate({ name: 'tags' })}
+              icon={<IconStars size={18} />}
             />
             <BottomNavItem
               active={createActive}

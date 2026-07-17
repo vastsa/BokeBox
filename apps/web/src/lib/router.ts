@@ -1,5 +1,6 @@
 export type Route =
   | { name: 'home' }
+  | { name: 'tags' }
   | { name: 'player'; id: string }
   | { name: 'create' }
   | { name: 'job'; id: string }
@@ -19,6 +20,9 @@ export function parseHash(): Route {
   if (path === '/setup') return { name: 'setup' };
   if (path === '/login') return { name: 'login' };
   if (path === '/settings') return { name: 'settings' };
+  if (path === '/tags' || path === '/tagcloud' || path === '/stars') {
+    return { name: 'tags' };
+  }
   if (path === '/create' || path === '/upload') return { name: 'create' };
 
   if (path === '/' || path === '/home' || path === '/listen') {
@@ -55,6 +59,8 @@ export function toHash(route: Route): string {
     case 'listen':
     case 'admin':
       return '#/home';
+    case 'tags':
+      return '#/tags';
     case 'player':
       return `#/play/${route.id}`;
     case 'create':

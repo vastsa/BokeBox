@@ -12,12 +12,14 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
-    "react-plock": "^3.6.1"
+    "react-plock": "^3.6.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.10",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/three": "^0.185.1",
     "@vitejs/plugin-react": "^4.5.2",
     "tailwindcss": "^4.1.10",
     "typescript": "^5.8.3",

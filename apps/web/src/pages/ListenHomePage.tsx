@@ -73,8 +73,7 @@ function itemSummary(item: LibraryItem, t: Translator): string {
 }
 
 function itemMinutes(item: LibraryItem, t: Translator): string {
-  const mins = item.job.podcast?.estimatedMinutes;
-  if (mins && mins > 0) return t('common.minutes', { n: mins });
+  // 预估分钟不准，仅展示真实收听时长（有记录时）
   if (item.listen?.durationSec) return formatDuration(item.listen.durationSec);
   return t('app.podcast');
 }

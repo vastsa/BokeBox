@@ -314,10 +314,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   const title = job.podcast?.title || job.title;
   const tags = job.podcast?.tags || [];
   const artist =
-    tags.slice(0, 2).join(' · ') ||
-    (job.podcast?.estimatedMinutes
-      ? t('common.aboutMinutes', { n: job.podcast.estimatedMinutes })
-       : t('app.privatePodcast'));
+    tags.slice(0, 2).join(' · ') || t('app.privatePodcast');
   const hasScript = Boolean(job.podcast?.script);
   const sleepActive = sleep.kind !== 'off';
   const sleepLabel =
@@ -429,11 +426,8 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
                 {title}
               </h1>
               <p className="qq-song-artist">{artist}</p>
-              {(tags.length > 0 || job.podcast?.estimatedMinutes) && (
+              {tags.length > 0 && (
                 <div className="qq-song-chips">
-                  {job.podcast?.estimatedMinutes ? (
-                    <span className="qq-chip">{t('common.aboutMinutes', { n: job.podcast.estimatedMinutes })}</span>
-                  ) : null}
                   {tags.slice(0, 3).map((t) => (
                     <span key={t} className="qq-chip">
                       {t}
