@@ -11,6 +11,7 @@ const KEY_AUTH = 'auth_account';
 const KEY_AI = 'ai_config';
 const KEY_SESSIONS = 'auth_sessions';
 const KEY_SETUP = 'setup_completed';
+const KEY_GUEST_HOME_PUBLIC = 'guest_home_public';
 
 export type AuthAccount = {
   username: string;
@@ -114,6 +115,16 @@ export function isSetupCompleted(): boolean {
 
 export function markSetupCompleted(): void {
   setSettingRaw(KEY_SETUP, '1');
+}
+
+/** 游客是否可浏览首页（曲库）与收听详情 */
+export function isGuestHomePublic(): boolean {
+  return getSettingRaw(KEY_GUEST_HOME_PUBLIC) === '1';
+}
+
+export function setGuestHomePublic(enabled: boolean): boolean {
+  setSettingRaw(KEY_GUEST_HOME_PUBLIC, enabled ? '1' : '0');
+  return enabled;
 }
 
 export function getAuthAccount(): AuthAccount | null {

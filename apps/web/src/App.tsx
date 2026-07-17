@@ -17,7 +17,18 @@ const TagCloudPage = lazy(() =>
   import('./pages/TagCloudPage').then((m) => ({ default: m.TagCloudPage })),
 );
 
-type Gate = 'checking' | 'setup' | 'login' | 'app';
+type Gate = 'checking' | 'setup' | 'login' | 'guest' | 'app';
+
+/** 游客模式下可访问的浏览路由（不含制作 / 设置） */
+function isGuestAllowedRoute(name: Route['name']): boolean {
+  return (
+    name === 'home' ||
+    name === 'listen' ||
+    name === 'admin' ||
+    name === 'player' ||
+    name === 'tags'
+  );
+}
 
 export default function App() {
   const { t } = useI18n();
@@ -47,8 +58,24 @@ export default function App() {
 
         const token = getToken();
         if (!token) {
+          const guestOk = Boolean(status.guestHomePublic);
+          const current = parseHash();
+          if (guestOk) {
+            // 开放游客首页：默认游客浏览；仅明确访问登录页时进入登录
+            if (current.name === 'login') {
+              setGate('login');
+              return;
+            }
+            if (!isGuestAllowedRoute(current.name)) {
+              setGate('guest');
+              navigate({ name: 'home' });
+              return;
+            }
+            setGate('guest');
+            return;
+          }
           setGate('login');
-          if (route.name !== 'login') navigate({ name: 'login' });
+          if (current.name !== 'login') navigate({ name: 'login' });
           return;
         }
 
@@ -62,8 +89,23 @@ export default function App() {
         } catch {
           if (cancelled) return;
           clearAuthSession();
+          const guestOk = Boolean(status.guestHomePublic);
+          const current = parseHash();
+          if (guestOk) {
+            if (current.name === 'login') {
+              setGate('login');
+              return;
+            }
+            if (!isGuestAllowedRoute(current.name)) {
+              setGate('guest');
+              navigate({ name: 'home' });
+              return;
+            }
+            setGate('guest');
+            return;
+          }
           setGate('login');
-          if (route.name !== 'login') navigate({ name: 'login' });
+          if (current.name !== 'login') navigate({ name: 'login' });
         }
       } catch {
         if (cancelled) return;
@@ -79,13 +121,28 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 已进入 app 后，若手动跳到 setup/login 则纠正
+  // 路由与 gate 对齐：游客只开放浏览页；管理页强制登录
   useEffect(() => {
     if (gate === 'setup' && route.name !== 'setup') {
       navigate({ name: 'setup' });
-    } else if (gate === 'login' && route.name !== 'login') {
+      return;
+    }
+    if (gate === 'login' && route.name !== 'login') {
       navigate({ name: 'login' });
-    } else if (
+      return;
+    }
+    if (gate === 'guest') {
+      if (route.name === 'setup') {
+        navigate({ name: 'home' });
+        return;
+      }
+      if (route.name === 'login') return;
+      if (!isGuestAllowedRoute(route.name)) {
+        navigate({ name: 'login' });
+      }
+      return;
+    }
+    if (
       gate === 'app' &&
       (route.name === 'setup' || route.name === 'login')
     ) {
@@ -105,7 +162,14 @@ export default function App() {
   } else if (gate === 'setup' || route.name === 'setup') {
     page = <SetupPage />;
   } else if (gate === 'login' || route.name === 'login') {
-    page = <LoginPage />;
+    page = (
+      <LoginPage
+        onGuestBrowse={() => {
+          setGate('guest');
+          navigate({ name: 'home' });
+        }}
+      />
+    );
   } else {
     switch (route.name) {
       case 'create':
@@ -139,7 +203,7 @@ export default function App() {
   }
 
   const showPlayer =
-    gate === 'app' &&
+    (gate === 'app' || gate === 'guest') &&
     route.name !== 'setup' &&
     route.name !== 'login' &&
     route.name !== 'player';

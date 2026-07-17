@@ -10,6 +10,7 @@ import {
 import { OpenSourceMark } from '../components/OpenSourceMark';
 import { useI18n } from '../i18n';
 import { PROJECT_GITHUB_URL } from '../lib/project';
+import { getToken } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 
 export function AppShell({
@@ -21,6 +22,8 @@ export function AppShell({
   children: ReactNode;
   hideBottomNav?: boolean;
 }) {
+  const isGuest = !getToken();
+
   const { t } = useI18n();
   const homeActive =
     route.name === 'home' ||
@@ -67,18 +70,29 @@ export function AppShell({
               onClick={() => navigate({ name: 'tags' })}
               icon={<IconStars size={14} />}
             />
-            <TopNavItem
-              active={createActive}
-              label={t('nav.create')}
-              onClick={() => navigate({ name: 'create' })}
-              icon={<IconUpload size={14} />}
-            />
-            <TopNavItem
-              active={settingsActive}
-              label={t('nav.settings')}
-              onClick={() => navigate({ name: 'settings' })}
-              icon={<IconSpark size={14} />}
-            />
+            {!isGuest && (
+              <TopNavItem
+                active={createActive}
+                label={t('nav.create')}
+                onClick={() => navigate({ name: 'create' })}
+                icon={<IconUpload size={14} />}
+              />
+            )}
+            {!isGuest ? (
+              <TopNavItem
+                active={settingsActive}
+                label={t('nav.settings')}
+                onClick={() => navigate({ name: 'settings' })}
+                icon={<IconSpark size={14} />}
+              />
+            ) : (
+              <TopNavItem
+                active={false}
+                label={t('auth.login')}
+                onClick={() => navigate({ name: 'login' })}
+                icon={<IconSpark size={14} />}
+              />
+            )}
           </nav>
 
           <div className="topbar-end">
@@ -93,18 +107,29 @@ export function AppShell({
               <IconGitHub size={18} className="topbar-oss-icon" />
             </a>
             <div className="topbar-actions md:hidden">
-              <TopActionButton
-                active={createActive}
-                label={t('nav.create')}
-                onClick={() => navigate({ name: 'create' })}
-                icon={<IconUpload size={15} />}
-              />
-              <TopActionButton
-                active={settingsActive}
-                label={t('nav.settings')}
-                onClick={() => navigate({ name: 'settings' })}
-                icon={<IconSpark size={15} />}
-              />
+              {!isGuest && (
+                <TopActionButton
+                  active={createActive}
+                  label={t('nav.create')}
+                  onClick={() => navigate({ name: 'create' })}
+                  icon={<IconUpload size={15} />}
+                />
+              )}
+              {!isGuest ? (
+                <TopActionButton
+                  active={settingsActive}
+                  label={t('nav.settings')}
+                  onClick={() => navigate({ name: 'settings' })}
+                  icon={<IconSpark size={15} />}
+                />
+              ) : (
+                <TopActionButton
+                  active={false}
+                  label={t('auth.login')}
+                  onClick={() => navigate({ name: 'login' })}
+                  icon={<IconSpark size={15} />}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -114,7 +139,12 @@ export function AppShell({
 
       {!hideBottomNav && (
         <nav className="bottom-nav" aria-label={t('nav.main')}>
-          <div className="mx-auto grid max-w-md grid-cols-4 gap-0.5">
+          <div
+            className={[
+              'mx-auto grid max-w-md gap-0.5',
+              isGuest ? 'grid-cols-3' : 'grid-cols-4',
+            ].join(' ')}
+          >
             <BottomNavItem
               active={homeActive}
               label={t('nav.home')}
@@ -127,18 +157,29 @@ export function AppShell({
               onClick={() => navigate({ name: 'tags' })}
               icon={<IconStars size={18} />}
             />
-            <BottomNavItem
-              active={createActive}
-              label={t('nav.create')}
-              onClick={() => navigate({ name: 'create' })}
-              icon={<IconUpload size={18} />}
-            />
-            <BottomNavItem
-              active={settingsActive}
-              label={t('nav.settings')}
-              onClick={() => navigate({ name: 'settings' })}
-              icon={<IconSpark size={18} />}
-            />
+            {!isGuest && (
+              <BottomNavItem
+                active={createActive}
+                label={t('nav.create')}
+                onClick={() => navigate({ name: 'create' })}
+                icon={<IconUpload size={18} />}
+              />
+            )}
+            {!isGuest ? (
+              <BottomNavItem
+                active={settingsActive}
+                label={t('nav.settings')}
+                onClick={() => navigate({ name: 'settings' })}
+                icon={<IconSpark size={18} />}
+              />
+            ) : (
+              <BottomNavItem
+                active={false}
+                label={t('auth.login')}
+                onClick={() => navigate({ name: 'login' })}
+                icon={<IconSpark size={18} />}
+              />
+            )}
           </div>
         </nav>
       )}

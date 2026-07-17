@@ -21,6 +21,7 @@ import {
   hashSeed,
   listenProgressPct,
 } from '../lib/format';
+import { getToken } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus, LibraryItem } from '../types/job';
 import { useI18n, type Translator } from '../i18n';
@@ -126,6 +127,21 @@ export function ListenHomePage({ route }: { route: Route }) {
 
   const refresh = useCallback(async () => {
     try {
+      const authed = Boolean(getToken());
+      if (!authed) {
+        // 游客：仅拉曲库，进度用本地记录
+        const lib = await fetchLibrary();
+        setLibrary(
+          lib.map((it) => ({
+            ...it,
+            listen: mergeListenRecord(it.job.id, it.listen),
+          })),
+        );
+        setJobs([]);
+        setError(null);
+        return;
+      }
+
       const [lib, his, allJobs] = await Promise.all([
         fetchLibrary(),
         fetchHistory(),

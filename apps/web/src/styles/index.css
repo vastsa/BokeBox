@@ -8715,6 +8715,11 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
 .open-source-mark-license {
   font-variant-numeric: tabular-nums;
 }
+.auth-guest-btn {
+  width: 100%;
+  margin-top: 10px;
+}
+
 .auth-open-source {
   margin-top: var(--space-4);
   padding-top: var(--space-3);

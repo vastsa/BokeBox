@@ -6,13 +6,18 @@ import { useI18n } from '../i18n';
 import { getStoredUsername, setAuthSession } from '../lib/auth';
 import { navigate } from '../lib/router';
 
-export function LoginPage() {
+export function LoginPage({
+  onGuestBrowse,
+}: {
+  onGuestBrowse?: () => void;
+} = {}) {
   const { t } = useI18n();
   const [username, setUsername] = useState(getStoredUsername() || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [guestHomePublic, setGuestHomePublic] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -22,6 +27,7 @@ export function LoginPage() {
           navigate({ name: 'setup' });
           return;
         }
+        setGuestHomePublic(Boolean(status.guestHomePublic));
       } catch {
         // ignore
       } finally {
@@ -107,6 +113,16 @@ export function LoginPage() {
             {loading ? t('auth.loggingIn') : t('auth.login')}
           </button>
         </div>
+
+        {guestHomePublic && (
+          <button
+            type="button"
+            className="nl-btn nl-btn-secondary auth-guest-btn"
+            onClick={() => onGuestBrowse?.()}
+          >
+            {t('auth.browseAsGuest')}
+          </button>
+        )}
 
         <OpenSourceMark className="auth-open-source" />
       </form>

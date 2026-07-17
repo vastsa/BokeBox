@@ -16,8 +16,10 @@ import {
 import {
   getAuthAccount,
   getDefaultAiConfigForSetup,
+  isGuestHomePublic,
   isSetupCompleted,
   setAiConfig,
+  setGuestHomePublic,
   toPublicAiConfig,
   type AiConfig,
 } from '../services/settingsStore.js';
@@ -93,6 +95,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     return {
       initialized,
       needsSetup: !initialized,
+      guestHomePublic: initialized ? isGuestHomePublic() : false,
       ai: initialized ? undefined : getDefaultAiConfigForSetup(),
     };
   });
@@ -245,11 +248,39 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return sendError(reply, err, getRequestLocale(req));
     }
   });
+
+  /** 站点访问：游客是否可见首页（挂在现有设置体系，不新增管理模块） */
+  app.get('/settings/access', async (req, reply) => {
+    const user = getRequestUser(req);
+    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
+    return { guestHomePublic: isGuestHomePublic() };
+  });
+
+  app.put<{ Body: { guestHomePublic?: boolean } }>(
+    '/settings/access',
+    async (req, reply) => {
+      const user = getRequestUser(req);
+      if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
+      const enabled = Boolean(req.body?.guestHomePublic);
+      return { guestHomePublic: setGuestHomePublic(enabled) };
+    },
+  );
+}
+
+/** 游客开放首页时允许的只读接口（曲库 / 详情 / 媒体） */
+function isGuestHomePublicPath(method: string, url: string): boolean {
+  if (!isGuestHomePublic()) return false;
+  const m = method.toUpperCase();
+  if (m !== 'GET' && m !== 'HEAD') return false;
+  if (url === '/api/listen/library') return true;
+  if (/^\/api\/listen\/[^/]+$/.test(url)) return true;
+  if (/^\/api\/jobs\/[^/]+\/(audio|cover)$/.test(url)) return true;
+  return false;
 }
 
 /**
- * 全局鉴权钩子：未初始化仅允许 setup；已初始化需登录
- * 公开路径白名单
+ * 全局鉴权钩子：未初始化仅允许 setup；已初始化默认需登录
+ * 可选：开放游客首页只读接口
  */
 export function registerAuthGuard(app: FastifyInstance): void {
   const publicExact = new Set([
@@ -276,6 +307,7 @@ export function registerAuthGuard(app: FastifyInstance): void {
 
     const user = getRequestUser(req);
     if (!user) {
+      if (isGuestHomePublicPath(req.method, url)) return;
       return reply.code(401).send({
         error: t(getRequestLocale(req), 'auth.pleaseLogin'),
         code: 'UNAUTHORIZED',

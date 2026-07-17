@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   changePassword,
+  fetchAccessSettings,
   fetchAiSettings,
   fetchMe,
   logout,
+  saveAccessSettings,
   saveAiSettings,
   type PublicAiConfig,
 } from '../api/client';
@@ -59,6 +61,8 @@ export function SettingsPage({ route }: { route: Route }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [themePref, setThemePref] = useState<ThemePreference>(() => getThemePreference());
+  const [guestHomePublic, setGuestHomePublic] = useState(false);
+  const [savingAccess, setSavingAccess] = useState(false);
 
   const tabs = useMemo(
     () =>
@@ -98,8 +102,13 @@ export function SettingsPage({ route }: { route: Route }) {
     setLoading(true);
     setError(null);
     try {
-      const [me, aiCfg] = await Promise.all([fetchMe(), fetchAiSettings()]);
+      const [me, aiCfg, access] = await Promise.all([
+        fetchMe(),
+        fetchAiSettings(),
+        fetchAccessSettings(),
+      ]);
       setUsername(me.username);
+      setGuestHomePublic(Boolean(access.guestHomePublic));
       setAi(aiCfg);
       setBaseUrl(aiCfg.baseUrl);
       setChatModel(aiCfg.chatModel);
@@ -180,6 +189,28 @@ export function SettingsPage({ route }: { route: Route }) {
     await logout();
     clearAuthSession();
     navigate({ name: 'login' });
+  };
+
+  const onToggleGuestHome = async (next: boolean) => {
+    const prev = guestHomePublic;
+    setGuestHomePublic(next);
+    setSavingAccess(true);
+    setMsg(null);
+    setError(null);
+    try {
+      const res = await saveAccessSettings({ guestHomePublic: next });
+      setGuestHomePublic(Boolean(res.guestHomePublic));
+      setMsg(
+        res.guestHomePublic
+          ? t('settings.guestHomeEnabled')
+          : t('settings.guestHomeDisabled'),
+      );
+    } catch (e) {
+      setGuestHomePublic(prev);
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSavingAccess(false);
+    }
   };
 
   return (
@@ -436,6 +467,40 @@ export function SettingsPage({ route }: { route: Route }) {
                         >
                           {t('auth.logout')}
                         </button>
+                      </div>
+
+                      <div className="settings-block">
+                        <div className="settings-block-head">
+                          <h3>{t('settings.guestHome')}</h3>
+                          <p>{t('settings.guestHomeDesc')}</p>
+                        </div>
+                        <label
+                          className={[
+                            'upload-switch-row',
+                            savingAccess ? 'is-locked' : '',
+                          ].join(' ')}
+                        >
+                          <div className="upload-switch-copy">
+                            <div className="title">{t('settings.guestHomeToggle')}</div>
+                            <div className="desc">{t('settings.guestHomeToggleDesc')}</div>
+                          </div>
+                          <span
+                            className={[
+                              'upload-switch',
+                              guestHomePublic ? 'is-on' : '',
+                            ].join(' ')}
+                          >
+                            <i />
+                            <input
+                              type="checkbox"
+                              className="upload-switch-input"
+                              checked={guestHomePublic}
+                              disabled={savingAccess}
+                              onChange={(e) => void onToggleGuestHome(e.target.checked)}
+                              aria-label={t('settings.guestHomeToggle')}
+                            />
+                          </span>
+                        </label>
                       </div>
 
                       <div className="settings-block">

@@ -367,6 +367,8 @@ export function coverImageUrl(id: string, cacheKey?: string): string {
 export type SetupStatus = {
   initialized: boolean;
   needsSetup: boolean;
+  /** 游客是否可浏览首页与收听 */
+  guestHomePublic?: boolean;
   ai?: {
     apiKeySet: boolean;
     apiKeyHint: string;
@@ -500,4 +502,22 @@ export async function saveAiSettings(body: {
     body: JSON.stringify(body),
   });
   return data.ai;
+}
+
+export type AccessSettings = {
+  guestHomePublic: boolean;
+};
+
+export async function fetchAccessSettings(): Promise<AccessSettings> {
+  return request('/settings/access');
+}
+
+export async function saveAccessSettings(
+  body: AccessSettings,
+): Promise<AccessSettings> {
+  return request('/settings/access', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
