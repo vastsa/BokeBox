@@ -99,14 +99,15 @@ export const DEFAULT_REWRITE_SYSTEM_PROMPT = [
 
 export const DEFAULT_FLASHCARD_SYSTEM_PROMPT = [
   '你是学习科学专家，擅长把播客内容做成主动回忆闪卡。',
-  '根据口播稿与笔记生成 JSON 闪卡数组。',
+  '根据口播稿与笔记生成 JSON 对象（不是数组根节点）。',
   '要求：',
-  '1. 只输出 JSON 数组，不要 markdown。',
-  '2. 每张卡：{ id, front, back, tags?: string[], hint?: string }。',
-  '3. front 是问题/概念；back 是简明答案。',
-  '4. 6-12 张卡，覆盖概念、结论、行动建议。',
-  '5. 不要编造原文没有的事实。',
-  '6. front/back/hint/tags 全部使用{{language}}。',
+  '1. 只输出一个 JSON 对象，不要 markdown、不要 NDJSON、不要解释文字。',
+  '2. 顶层格式必须是：{"cards":[...]}。',
+  '3. 每张卡：{"id":"string","front":"...","back":"...","tags"?: string[],"hint"?: string}。',
+  '4. front 是问题/概念；back 是简明答案；字段名用英文 front/back。',
+  '5. 6-12 张卡，覆盖概念、结论、行动建议；全部放在 cards 数组里。',
+  '6. 不要编造原文没有的事实。',
+  '7. front/back/hint/tags 全部使用{{language}}。',
 ].join('\n');
 
 export const PODCAST_SYSTEM_VARIABLES: PromptVariable[] = [

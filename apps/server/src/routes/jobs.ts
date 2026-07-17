@@ -967,7 +967,8 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const transcript = (job.transcript || '').trim();
-      if (!transcript) {
+      const script = (job.podcast?.script || '').trim();
+      if (!transcript && !script) {
         return reply.code(400).send({ error: t(getRequestLocale(req), 'job.flashcardsNoTranscript') });
       }
       if (!job.podcast) {
@@ -987,7 +988,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         );
         const { flashcards, demo } = await generateFlashcards({
           jobId: job.id,
-          transcript,
+          transcript: transcript || script,
           sourceTitle: job.originalFilename || job.title,
           podcast: job.podcast,
           locale: resolveJobLocale(job.locale),
