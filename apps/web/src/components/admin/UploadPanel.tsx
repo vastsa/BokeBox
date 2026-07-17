@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createJob, createJobFromUrl } from '../../api/client';
+import { createJob, createJobFromUrl, fetchAiSettings } from '../../api/client';
 import { formatSize, formatSourceLabel } from '../../lib/format';
 import {
   emptyScriptPrompt,
@@ -26,7 +26,7 @@ import {
 } from './ScriptPromptPicker';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from './GlobalTtsSettings';
 import { loadGlobalTts, TtsPicker } from './TtsPicker';
-import { useI18n } from '../../i18n';
+import { useI18n, type Locale } from '../../i18n';
 
 const ACCEPT = [
   // 视频
@@ -60,6 +60,10 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const [globalTts, setGlobalTts] = useState<TtsOptions>(DEFAULT_GLOBAL_TTS);
   const [ttsReady, setTtsReady] = useState(false);
   const [published, setPublished] = useState(true);
+  const [contentLocale, setContentLocale] = useState<Locale>('zh-CN');
+  const [globalContentLocale, setGlobalContentLocale] =
+    useState<Locale>('zh-CN');
+  const [contentLocaleReady, setContentLocaleReady] = useState(false);
   const [scriptPromptMode, setScriptPromptMode] =
     useState<ScriptPromptMode>('global');
   const [scriptPrompt, setScriptPrompt] =
@@ -71,21 +75,30 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
 
   const scriptPromptModeRef = useRef<ScriptPromptMode>('global');
   const scriptPromptRef = useRef<ScriptPromptOptions>(emptyScriptPrompt());
+  const contentLocaleRef = useRef<Locale>('zh-CN');
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([loadGlobalScriptPrompt(), loadGlobalTts()]).then(
-      ([prompt, ttsCfg]) => {
-        if (cancelled) return;
-        setGlobalScriptPrompt(prompt);
-        setScriptPromptReady(true);
-        setGlobalTts(ttsCfg);
-        // 自定义草稿默认从全局复制，便于微调
-        ttsRef.current = ttsCfg;
-        setTts(ttsCfg);
-        setTtsReady(true);
-      },
-    );
+    void Promise.all([
+      loadGlobalScriptPrompt(),
+      loadGlobalTts(),
+      fetchAiSettings().catch(() => null),
+    ]).then(([prompt, ttsCfg, ai]) => {
+      if (cancelled) return;
+      setGlobalScriptPrompt(prompt);
+      setScriptPromptReady(true);
+      setGlobalTts(ttsCfg);
+      // 自定义草稿默认从全局复制，便于微调
+      ttsRef.current = ttsCfg;
+      setTts(ttsCfg);
+      setTtsReady(true);
+      const cl: Locale =
+        ai?.contentLocale === 'en-US' ? 'en-US' : 'zh-CN';
+      setGlobalContentLocale(cl);
+      contentLocaleRef.current = cl;
+      setContentLocale(cl);
+      setContentLocaleReady(true);
+    });
     return () => {
       cancelled = true;
     };
@@ -104,6 +117,11 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const updatePublished = useCallback((next: boolean) => {
     publishedRef.current = next;
     setPublished(next);
+  }, []);
+
+  const updateContentLocale = useCallback((next: Locale) => {
+    contentLocaleRef.current = next;
+    setContentLocale(next);
   }, []);
 
   const updateScriptPromptMode = useCallback((next: ScriptPromptMode) => {
@@ -139,6 +157,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
           scriptPromptMode: currentPromptMode,
           scriptPrompt:
             currentPromptMode === 'custom' ? currentPrompt : undefined,
+          locale: contentLocaleRef.current,
           onProgress: setProgress,
         });
         onCreated(job);
@@ -184,6 +203,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
         scriptPromptMode: currentPromptMode,
         scriptPrompt:
           currentPromptMode === 'custom' ? currentPrompt : undefined,
+        locale: contentLocaleRef.current,
       });
       setProgress(100);
       onCreated(job);
@@ -211,6 +231,12 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   );
   const promptModeLabel =
     scriptPromptMode === 'global' ? t('common.global') : t('common.thisTime');
+  const contentLocaleLabel =
+    contentLocale === 'en-US' ? t('upload.localeEn') : t('upload.localeZh');
+  const contentLocaleHint =
+    contentLocale === globalContentLocale
+      ? t('upload.localeGlobal')
+      : t('upload.localeCustom');
 
   return (
     <div className="upload-studio">
@@ -363,6 +389,8 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                   <span className="dot">·</span>
                   {ttsSummary}
                   <span className="dot">·</span>
+                  {contentLocaleLabel}
+                  <span className="dot">·</span>
                   {published ? t('upload.publishOn') : t('upload.publishOff')}
                 </div>
               </div>
@@ -432,6 +460,45 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               />
             </span>
           </label>
+
+          <div className="upload-locale-row">
+            <div className="upload-locale-head">
+              <span className="title">{t('upload.contentLocale')}</span>
+              <span className="desc">
+                {contentLocaleReady
+                  ? contentLocaleHint
+                  : t('upload.localeLoading')}
+              </span>
+            </div>
+            <div
+              className="upload-locale-grid"
+              role="radiogroup"
+              aria-label={t('upload.contentLocaleAria')}
+            >
+              {([
+                { id: 'zh-CN' as const, short: t('upload.localeZhShort'), label: t('upload.localeZh') },
+                { id: 'en-US' as const, short: t('upload.localeEnShort'), label: t('upload.localeEn') },
+              ]).map((item) => {
+                const active = contentLocale === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    className={['upload-locale-card', active ? 'is-active' : ''].join(' ')}
+                    disabled={uploading || !contentLocaleReady}
+                    onClick={() => updateContentLocale(item.id)}
+                  >
+                    <span className="upload-locale-short" aria-hidden>
+                      {item.short}
+                    </span>
+                    <span className="upload-locale-label">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="upload-option-chips" role="group" aria-label={t('upload.advancedAria')}>
             <button

@@ -138,7 +138,7 @@ export interface Job {
   status: JobStatus;
   progress: number;
   message: string;
-  /** 任务进度文案语言（创建时锁定） */
+  /** 任务内容语言：口播/闪卡/提示词 + 进度文案（创建时可指定，默认全局 contentLocale） */
   locale?: 'zh-CN' | 'en-US';
   /**
    * 源媒体路径：

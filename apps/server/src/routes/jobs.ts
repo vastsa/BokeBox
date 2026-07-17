@@ -75,8 +75,23 @@ import {
   DEFAULT_COVER_PROMPT_TEMPLATE,
   findCoverFile,
 } from '../services/coverGenerator.js';
-import { errorMessage, getRequestLocale, kindLabel as i18nKindLabel, t } from '../i18n/index.js';
+import {
+  errorMessage,
+  getRequestLocale,
+  isLocale,
+  kindLabel as i18nKindLabel,
+  t,
+  type Locale,
+} from '../i18n/index.js';
 import { getContentLocale } from '../services/settingsStore.js';
+
+/** 任务内容语言：请求指定优先，否则回落全局 contentLocale */
+function resolveJobLocale(raw: unknown): Locale {
+  if (isLocale(raw)) return raw;
+  const s = String(raw ?? '').trim();
+  if (isLocale(s)) return s;
+  return getContentLocale();
+}
 
 /** 本地上传：视频 / 音频 / 文本（与 URL 导入一致） */
 const ALLOWED_EXT = ALLOWED_MEDIA_EXT;
@@ -582,7 +597,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       kind: i18nKindLabel(getRequestLocale(req), sourceKind),
       tts: `${tts.mode}${tts.voice ? ' / ' + tts.voice : ''}`,
     }),
-      locale: getContentLocale(),
+      locale: resolveJobLocale(fields.locale),
       videoPath: finalSourcePath,
       sourceKind,
       transcript,
@@ -612,6 +627,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       title?: string;
       scriptPrompt?: ScriptPromptOptions;
       scriptPromptMode?: 'global' | 'custom';
+      locale?: string;
     };
   }>('/jobs/from-url', async (req, reply) => {
     const url = String(req.body?.url || '').trim();
@@ -662,7 +678,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       message: t(getRequestLocale(req), 'job.queuedUrl', {
       tts: `${tts.mode}${tts.voice ? ' / ' + tts.voice : ''}`,
     }),
-      locale: getContentLocale(),
+      locale: resolveJobLocale(req.body?.locale),
       videoPath: '',
       sourceUrl: url,
       sourceKind: 'video', // 下载后会被覆盖
@@ -685,6 +701,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       title?: string;
       tts?: TtsOptions;
       scriptPrompt?: ScriptPromptOptions | null;
+      locale?: string;
     };
   }>('/jobs/:id', async (req, reply) => {
     const job = await getJob(req.params.id);
@@ -696,6 +713,9 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     if (req.body && 'scriptPrompt' in req.body) {
       patch.scriptPrompt = normalizeScriptPrompt(req.body.scriptPrompt) || undefined;
     }
+    if (req.body && 'locale' in req.body && req.body.locale != null && req.body.locale !== '') {
+      patch.locale = resolveJobLocale(req.body.locale);
+    }
     const updated = await updateJob(job.id, patch);
     return { job: updated ? toPublic(updated) : null };
   });
@@ -706,6 +726,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       tts?: TtsOptions;
       fromStep?: PipelineFromStep;
       scriptPrompt?: ScriptPromptOptions | null;
+      locale?: string;
     };
   }>('/jobs/:id/retry', async (req, reply) => {
     const job = await getJob(req.params.id);
@@ -733,7 +754,11 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         ? normalizeScriptPrompt(req.body.scriptPrompt) || undefined
         : job.scriptPrompt;
 
-    const locale = getContentLocale();
+    // 重跑：请求 locale > 任务已有 locale > 全局 contentLocale
+    const locale =
+      req.body && 'locale' in req.body && req.body.locale
+        ? resolveJobLocale(req.body.locale)
+        : resolveJobLocale(job.locale);
     await updateJob(job.id, {
       ...buildRetryPatch(
         job,
@@ -832,7 +857,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           transcript,
           sourceTitle: job.originalFilename || job.title,
           podcast: job.podcast,
-          locale: job.locale || getContentLocale(),
+          locale: resolveJobLocale(job.locale),
         });
         const podcast = { ...job.podcast, flashcards };
         const updated = await updateJob(job.id, {

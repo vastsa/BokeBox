@@ -8148,6 +8148,81 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
 .upload-switch-row-compact .upload-switch-copy .title {
   font-size: var(--fs-md-plus);
 }
+.upload-locale-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2_5) 0 var(--space-1);
+}
+.upload-locale-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1_5) var(--space-2);
+}
+.upload-locale-head .title {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+}
+.upload-locale-head .desc {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+.upload-locale-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+.upload-locale-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-5xl);
+  padding: 0 var(--space-2_5);
+  border-radius: var(--radius-md);
+  border: var(--bw-1) solid var(--separator);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.upload-locale-card:hover:not(:disabled) {
+  border-color: var(--accent-soft);
+  color: var(--text);
+}
+.upload-locale-card.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft-bg, color-mix(in srgb, var(--accent) 10%, var(--surface)));
+  color: var(--text);
+}
+.upload-locale-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.upload-locale-short {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 1.6rem;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-2xs);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-extrabold);
+  color: var(--text-2);
+}
+.upload-locale-card.is-active .upload-locale-short {
+  background: var(--accent);
+  color: #fff;
+}
+.upload-locale-label {
+  font-size: var(--fs-base-plus);
+  font-weight: var(--fw-bold);
+}
+
 .upload-option-chips {
   display: grid;
   grid-template-columns: 1fr;

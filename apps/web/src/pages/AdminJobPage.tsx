@@ -34,7 +34,7 @@ import { CoverArt } from '../components/ui/CoverArt';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus, PipelineFromStep } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
-import { useI18n } from '../i18n';
+import { useI18n, type Locale } from '../i18n';
 
 type ContentTab = 'script' | 'notes' | 'flashcards' | 'transcript' | 'source';
 
@@ -162,6 +162,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState<'publish' | 'retry' | 'delete' | 'flashcards' | null>(null);
   const [fromStep, setFromStep] = useState<PipelineFromStep>('extract');
+  const [jobContentLocale, setJobContentLocale] = useState<Locale>('zh-CN');
   const [tab, setTab] = useState<ContentTab>('script');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [followScript, setFollowScript] = useState(false);
@@ -215,6 +216,12 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
     if (ACTIVE_STATUSES.includes(job.status)) return;
     setFromStep(pickDefaultFromStep(job));
   }, [job?.id, job?.status]);
+
+  // 同步任务内容语言选择
+  useEffect(() => {
+    if (!job) return;
+    setJobContentLocale(job.locale === 'en-US' ? 'en-US' : 'zh-CN');
+  }, [job?.id, job?.locale]);
 
   // 资产变化导致当前起点不可用时，自动回落
   useEffect(() => {
@@ -731,6 +738,16 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
 
             <section className="jd-panel">
               <div className="jd-side-head">
+                <h2 className="jd-side-title">{t('job.contentLocale')}</h2>
+                <span className="nl-chip">
+                  {job.locale === 'en-US' ? t('job.localeEn') : t('job.localeZh')}
+                </span>
+              </div>
+              <p className="jd-hint jd-hint-top">{t('job.contentLocaleHint')}</p>
+            </section>
+
+            <section className="jd-panel">
+              <div className="jd-side-head">
                 <h2 className="jd-side-title">{t('job.ttsConfig')}</h2>
                 <span className="nl-chip">{t('common.readonly')}</span>
               </div>
@@ -751,6 +768,23 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                 <p className="jd-hint jd-hint-top">
                   {t('job.reprocessHint')}
                 </p>
+
+                <label className="jd-select-field">
+                  <span className="jd-select-label">{t('job.contentLocale')}</span>
+                  <select
+                    className="jd-select"
+                    value={jobContentLocale}
+                    disabled={active || Boolean(busy)}
+                    aria-label={t('job.contentLocaleAria')}
+                    onChange={(e) =>
+                      setJobContentLocale(e.target.value as Locale)
+                    }
+                  >
+                    <option value="zh-CN">{t('job.localeZh')}</option>
+                    <option value="en-US">{t('job.localeEn')}</option>
+                  </select>
+                </label>
+                <p className="jd-select-desc">{t('job.contentLocaleRerunHint')}</p>
 
                 <label className="jd-select-field">
                   <span className="jd-select-label">{t('job.fromStep')}</span>
@@ -789,7 +823,11 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                   disabled={!canRerun || !selectedStepOk || busy === 'retry'}
                   onClick={() =>
                     void runAction('retry', () =>
-                      retryJob(job.id, { tts: job.tts, fromStep }),
+                      retryJob(job.id, {
+                        tts: job.tts,
+                        fromStep,
+                        locale: jobContentLocale,
+                      }),
                     )
                   }
                 >

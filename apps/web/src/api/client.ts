@@ -79,6 +79,8 @@ export async function createJob(
     published?: boolean;
     scriptPrompt?: ScriptPromptOptions;
     scriptPromptMode?: ScriptPromptMode;
+    /** 任务内容语言；不传则服务端用全局 contentLocale */
+    locale?: string;
     onProgress?: (pct: number) => void;
   } = {},
 ): Promise<Job> {
@@ -127,6 +129,9 @@ export async function createJob(
     if (options.scriptPrompt) {
       form.append('scriptPrompt', JSON.stringify(options.scriptPrompt));
     }
+    if (options.locale) {
+      form.append('locale', options.locale);
+    }
     form.append('file', file);
     xhr.send(form);
   });
@@ -141,6 +146,7 @@ export async function createJobFromUrl(
     title?: string;
     scriptPrompt?: ScriptPromptOptions;
     scriptPromptMode?: ScriptPromptMode;
+    locale?: string;
   } = {},
 ): Promise<Job> {
   const ttsSourceMode = options.ttsSourceMode || 'global';
@@ -155,6 +161,7 @@ export async function createJobFromUrl(
       title: options.title,
       scriptPrompt: options.scriptPrompt,
       scriptPromptMode: options.scriptPromptMode || 'global',
+      locale: options.locale,
     }),
   });
   return data.job;
@@ -166,7 +173,11 @@ export async function deleteJob(id: string): Promise<void> {
 
 export async function retryJob(
   id: string,
-  options: { tts?: TtsOptions; fromStep?: PipelineFromStep } = {},
+  options: {
+    tts?: TtsOptions;
+    fromStep?: PipelineFromStep;
+    locale?: string;
+  } = {},
 ): Promise<Job> {
   const data = await request<{ job: Job }>(`/jobs/${id}/retry`, {
     method: 'POST',
@@ -174,6 +185,7 @@ export async function retryJob(
     body: JSON.stringify({
       tts: options.tts,
       ...(options.fromStep ? { fromStep: options.fromStep } : {}),
+      ...(options.locale ? { locale: options.locale } : {}),
     }),
   });
   return data.job;
@@ -202,6 +214,7 @@ export async function updateJob(
     title?: string;
     tts?: TtsOptions;
     scriptPrompt?: ScriptPromptOptions | null;
+    locale?: string;
   },
 ): Promise<Job> {
   const data = await request<{ job: Job }>(`/jobs/${id}`, {
