@@ -240,39 +240,40 @@ function setStarVisual(s: StarRuntime, mode: 'idle' | 'hover' | 'active', dim: n
   const coreMat = s.core.material as THREE.MeshBasicMaterial;
   const haloMat = s.halo.material as THREE.MeshBasicMaterial;
   const spikeMat = s.spike.material as THREE.MeshBasicMaterial;
+  // 选中只轻微放大，避免过曝刺眼
   const sc =
     s.baseScale *
-    (mode === 'active' ? 2.0 : mode === 'hover' ? 1.25 : 1);
+    (mode === 'active' ? 1.22 : mode === 'hover' ? 1.12 : 1);
 
-  s.core.scale.setScalar(sc * (mode === 'active' ? 0.7 : 0.55));
-  s.halo.scale.setScalar(sc * (mode === 'active' ? 11 : mode === 'hover' ? 8.2 : 7.2));
-  s.spike.scale.setScalar(sc * (mode === 'active' ? 22 : mode === 'hover' ? 14 : 11));
+  s.core.scale.setScalar(sc * (mode === 'active' ? 0.6 : 0.55));
+  s.halo.scale.setScalar(sc * (mode === 'active' ? 8.6 : mode === 'hover' ? 7.8 : 7.2));
+  s.spike.scale.setScalar(sc * (mode === 'active' ? 13 : mode === 'hover' ? 12 : 11));
 
   if (mode === 'active') {
     coreMat.color.copy(WHITE);
-    haloMat.color.copy(s.color).lerp(WHITE, 0.3);
-    spikeMat.color.copy(s.color).lerp(WHITE, 0.2);
+    haloMat.color.copy(s.color).lerp(WHITE, 0.12);
+    spikeMat.color.copy(s.color);
     coreMat.opacity = 1;
-    haloMat.opacity = 1;
-    spikeMat.opacity = 0.92;
+    haloMat.opacity = 0.88;
+    spikeMat.opacity = 0.42;
     s.spike.visible = true;
   } else if (mode === 'hover') {
     coreMat.color.copy(WHITE);
     haloMat.color.copy(s.color);
     spikeMat.color.copy(s.color);
     coreMat.opacity = 1;
-    haloMat.opacity = 0.95;
-    spikeMat.opacity = 0.48;
+    haloMat.opacity = 0.88;
+    spikeMat.opacity = 0.32;
     s.spike.visible = true;
   } else {
     coreMat.color.copy(WHITE);
     haloMat.color.copy(s.color);
     spikeMat.color.copy(s.color);
-    coreMat.opacity = 0.55 + 0.45 * dim;
-    haloMat.opacity = (0.75) * dim;
-    spikeMat.opacity = (0.16 + (s.count > 1 ? 0.12 : 0)) * dim;
+    coreMat.opacity = 0.62 + 0.38 * dim;
+    haloMat.opacity = 0.72 * dim;
+    spikeMat.opacity = (0.14 + (s.count > 1 ? 0.08 : 0)) * dim;
     // 低占用：非强调星隐藏十字炫光 draw call
-    s.spike.visible = dim > 0.7 && s.count > 1;
+    s.spike.visible = dim > 0.85 && s.count > 1;
   }
   s.visual = mode;
 }
@@ -555,14 +556,14 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
 
     // 单环选中指示
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xb7d4ff,
+      color: 0x8fb8ff,
       transparent: true,
       opacity: 0,
       side: THREE.DoubleSide,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.84, 48), ringMat);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.78, 0.86, 48), ringMat);
     ring.visible = false;
     scene.add(ring);
 
@@ -723,7 +724,7 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
         }
 
         const mode: 'idle' | 'hover' | 'active' = active ? 'active' : hover ? 'hover' : 'idle';
-        const dim = selectedName && !active ? 0.42 : 1;
+        const dim = selectedName && !active ? 0.78 : 1;
         setStarVisual(s, mode, dim);
 
         // billboard：仅交互星每帧，其余半频
@@ -736,8 +737,9 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
         }
 
         if (active) {
-          const pulse = 1 + Math.sin(t * 2.2 + s.phase) * 0.08;
-          s.halo.scale.setScalar(s.baseScale * 2.0 * 11 * pulse);
+          // 轻微呼吸，不做强闪
+          const pulse = 1 + Math.sin(t * 1.4 + s.phase) * 0.03;
+          s.halo.scale.setScalar(s.baseScale * 1.22 * 8.6 * pulse);
         }
       }
 
@@ -757,10 +759,10 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
         ring.visible = true;
         ring.position.copy(tmp);
         ring.quaternion.copy(camera.quaternion);
-        const beat = 1 + Math.sin(t * 2.6) * 0.08;
-        ring.scale.setScalar(Math.max(0.55, activeStar.baseScale * 4.8) * beat);
-        ringMat.opacity = 0.82;
-        ring.rotation.z = t * 0.5;
+        const beat = 1 + Math.sin(t * 1.6) * 0.04;
+        ring.scale.setScalar(Math.max(0.48, activeStar.baseScale * 3.4) * beat);
+        ringMat.opacity = 0.38;
+        ring.rotation.z = t * 0.25;
 
         controls.target.lerp(tmp, 0.045);
         camOffset.copy(camera.position).sub(controls.target).normalize().multiplyScalar(9.5);
