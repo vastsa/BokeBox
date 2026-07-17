@@ -222,6 +222,17 @@ export function IconClose(p: IconProps) {
   );
 }
 
+/** 警告 / 错误提示 */
+export function IconAlert(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 8v4.8" />
+      <circle cx="12" cy="16.2" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 /** 链接 */
 export function IconLink(p: IconProps) {
   return (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   changePassword,
   fetchAccessSettings,
@@ -22,6 +22,7 @@ import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
 import { ContentLocaleSelect } from '../components/admin/ContentLocaleSelect';
 import { IconRefresh } from '../components/icons';
 import { PageHeader } from '../components/ui/PageHeader';
+import { SettingsToast } from '../components/ui/SettingsToast';
 import { clearAuthSession } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 import {
@@ -117,6 +118,11 @@ export function SettingsPage({ route }: { route: Route }) {
   const [savingPw, setSavingPw] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const dismissToast = useCallback(() => {
+    setMsg(null);
+    setError(null);
+  }, []);
 
   const [contentLocale, setContentLocale] = useState<Locale>('zh-CN');
   const [contentLocaleOptions, setContentLocaleOptions] = useState<
@@ -1200,8 +1206,11 @@ export function SettingsPage({ route }: { route: Route }) {
           </div>
         </div>
 
-        {msg && <div className="settings-toast is-ok">{msg}</div>}
-        {error && <div className="settings-toast is-err">{error}</div>}
+        {error ? (
+          <SettingsToast message={error} tone="err" onDismiss={dismissToast} />
+        ) : msg ? (
+          <SettingsToast message={msg} tone="ok" onDismiss={dismissToast} />
+        ) : null}
       </div>
     </AppShell>
   );

@@ -8187,25 +8187,145 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
   font-weight: var(--fw-medium);
 }
 
+/* 设置页反馈：底部居中浮动 toast */
 .settings-toast {
-  position: sticky;
-  bottom: var(--size-84);
-  margin-top: var(--space-1);
-  padding: var(--space-2_5) var(--space-3);
-  border-radius: var(--radius-sm);
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--bottom-nav-h, 58px) + var(--global-player-h, 0px) + 16px);
+  z-index: var(--z-top);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2_5);
+  width: min(420px, calc(100vw - 2 * var(--page-x, 16px)));
+  max-width: calc(100% - 2 * var(--page-x, 16px));
+  margin: 0;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
+  border-radius: var(--radius-xl);
+  border: var(--bw-1) solid var(--separator);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 92%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 96%, transparent) 100%
+    );
+  color: var(--text);
+  box-shadow:
+    var(--shadow-card),
+    0 18px 40px color-mix(in srgb, var(--ink-a18) 55%, transparent);
+  backdrop-filter: blur(var(--blur-3xl)) saturate(1.15);
+  -webkit-backdrop-filter: blur(var(--blur-3xl)) saturate(1.15);
   font-size: var(--fs-base-plus);
-  z-index: var(--z-modal);
-  border: var(--bw-1) solid transparent;
+  line-height: var(--lh-snug, 1.35);
+  transform: translate3d(-50%, 0, 0);
+  animation: settings-toast-in var(--dur-mid) var(--ease) both;
+  pointer-events: auto;
+}
+.settings-toast.is-leaving {
+  animation: settings-toast-out var(--dur-fast) var(--ease) both;
+}
+.settings-toast-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: var(--control-md, 28px);
+  height: var(--control-md, 28px);
+  border-radius: var(--radius-pill);
+  margin-top: 1px;
+}
+.settings-toast-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: 3px;
+  font-weight: var(--fw-medium);
+  color: var(--text);
+  word-break: break-word;
+}
+.settings-toast-close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: var(--control-sm, 28px);
+  height: var(--control-sm, 28px);
+  margin: -2px -4px -2px 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.settings-toast-close:hover {
+  background: color-mix(in srgb, var(--surface-3) 80%, transparent);
+  color: var(--text);
+}
+.settings-toast-close:active {
+  transform: scale(0.96);
 }
 .settings-toast.is-ok {
-  background: var(--surface);
+  border-color: color-mix(in srgb, var(--success) 22%, var(--separator));
+  box-shadow:
+    var(--shadow-card),
+    0 16px 36px color-mix(in srgb, var(--success) 12%, transparent);
+}
+.settings-toast.is-ok .settings-toast-icon {
   color: var(--success);
-  border-color: color-mix(in srgb, var(--success) 28%, var(--separator));
+  background: var(--success-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--success) 16%, transparent);
 }
 .settings-toast.is-err {
-  background: var(--surface);
+  border-color: color-mix(in srgb, var(--danger) 24%, var(--separator));
+  box-shadow:
+    var(--shadow-card),
+    0 16px 36px color-mix(in srgb, var(--danger) 12%, transparent);
+}
+.settings-toast.is-err .settings-toast-icon {
   color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 28%, var(--separator));
+  background: var(--danger-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 16%, transparent);
+}
+@keyframes settings-toast-in {
+  from {
+    opacity: 0;
+    transform: translate3d(-50%, 12px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+}
+@keyframes settings-toast-out {
+  from {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(-50%, 8px, 0) scale(0.98);
+  }
+}
+@media (min-width: 768px) {
+  .settings-toast {
+    bottom: calc(var(--global-player-h, 0px) + 28px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-toast,
+  .settings-toast.is-leaving {
+    animation: none;
+  }
+}
+html[data-theme="dark"] .settings-toast {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 88%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 94%, transparent) 100%
+    );
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 var(--white-a08);
 }
 
 /* 首页：制作中任务条 */
