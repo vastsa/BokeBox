@@ -28,6 +28,25 @@ export const EDGE_VOICE_OPTIONS: Array<{
   { id: 'en-GB-SoniaNeural', name: 'Sonia', language: '英文(英式)' },
 ];
 
+/** 与服务端 openaiTts 预置音色对齐 */
+export const OPENAI_VOICE_OPTIONS: Array<{
+  id: string;
+  name: string;
+  language: string;
+}> = [
+  { id: 'alloy', name: 'Alloy', language: '多语' },
+  { id: 'ash', name: 'Ash', language: '多语' },
+  { id: 'ballad', name: 'Ballad', language: '多语' },
+  { id: 'coral', name: 'Coral', language: '多语' },
+  { id: 'echo', name: 'Echo', language: '多语' },
+  { id: 'fable', name: 'Fable', language: '多语' },
+  { id: 'onyx', name: 'Onyx', language: '多语' },
+  { id: 'nova', name: 'Nova', language: '多语' },
+  { id: 'sage', name: 'Sage', language: '多语' },
+  { id: 'shimmer', name: 'Shimmer', language: '多语' },
+  { id: 'verse', name: 'Verse', language: '多语' },
+];
+
 /** openai-whisper 常用模型 */
 export const WHISPER_MODEL_OPTIONS = [
   'tiny',

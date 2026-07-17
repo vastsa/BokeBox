@@ -630,6 +630,7 @@ export const zhCN = {
     modeDefaultHint: '预置精品音色 · 音频标签控制',
     modeCustomHint: 'Voice Design · 自然语言描述',
     presetVoices: '预置音色',
+    basicOnlyHint: '当前 TTS 提供方仅支持基础音色；自定义音色 / 风格标签仅 MiMo 可用',
     styleTags: '开头风格',
     preview: '预览：',
     previewSample: '大家好，欢迎收听…',

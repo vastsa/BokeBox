@@ -1,11 +1,15 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { navigate } from '../../lib/router';
 import type { TtsOptions, TtsSourceMode } from '../../types/job';
 import { IconMic } from '../icons';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from './GlobalTtsSettings';
-import { TtsModePicker } from './TtsModePicker';
+import {
+  defaultVoiceForProvider,
+  isMimoTtsProvider,
+  TtsModePicker,
+} from './TtsModePicker';
 import { TtsSummary } from './TtsSummary';
-import { fetchTtsSettings } from '../../api/client';
+import { fetchAiSettings, fetchTtsSettings } from '../../api/client';
 import { useI18n } from '../../i18n';
 
 export function TtsPicker({
@@ -14,6 +18,7 @@ export function TtsPicker({
   globalValue,
   disabled = false,
   compact = false,
+  provider: providerProp,
   onModeChange,
   onChange,
 }: {
@@ -22,12 +27,34 @@ export function TtsPicker({
   globalValue: TtsOptions;
   disabled?: boolean;
   compact?: boolean;
+  /** 当前 TTS 提供方；不传则自动拉取 AI 设置 */
+  provider?: string;
   onModeChange: (mode: TtsSourceMode) => void;
   onChange: (next: TtsOptions) => void;
 }) {
   const { t } = useI18n();
+  const [provider, setProvider] = useState(providerProp || 'mimo');
   const active = mode === 'global' ? globalValue : value;
   const summary = useMemo(() => summarizeTts(active), [active]);
+
+  useEffect(() => {
+    if (providerProp) {
+      setProvider(providerProp);
+      return;
+    }
+    let cancelled = false;
+    void fetchAiSettings()
+      .then((ai) => {
+        if (cancelled) return;
+        setProvider(ai.tts?.provider || ai.ttsProvider || 'mimo');
+      })
+      .catch(() => {
+        if (!cancelled) setProvider('mimo');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [providerProp]);
 
   return (
     <div className={['script-prompt-picker', disabled ? 'is-disabled' : ''].join(' ')}>
@@ -85,7 +112,11 @@ export function TtsPicker({
           <div className="script-prompt-hint">
             {t('tts.onceHint')}
           </div>
-          <TtsModePicker value={value} onChange={onChange} />
+          <TtsModePicker
+            value={value}
+            provider={provider}
+            onChange={onChange}
+          />
           <div className="script-prompt-global-actions">
             <button
               type="button"
@@ -99,7 +130,16 @@ export function TtsPicker({
               type="button"
               className="nl-btn nl-btn-secondary"
               disabled={disabled}
-              onClick={() => onChange({ ...DEFAULT_GLOBAL_TTS })}
+              onClick={() =>
+                onChange(
+                  isMimoTtsProvider(provider)
+                    ? { ...DEFAULT_GLOBAL_TTS }
+                    : {
+                        mode: 'default',
+                        voice: defaultVoiceForProvider(provider),
+                      },
+                )
+              }
             >
               {t('tts.restoreDefault')}
             </button>

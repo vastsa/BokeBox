@@ -772,7 +772,7 @@ export function revokeAllSessions(): void {
 }
 
 
-const PRESET_VOICE_IDS = new Set([
+const MIMO_PRESET_VOICE_IDS = new Set([
   'mimo_default',
   '冰糖',
   '茉莉',
@@ -784,11 +784,95 @@ const PRESET_VOICE_IDS = new Set([
   'Dean',
 ]);
 
-function resolveStoredVoice(voice?: string): string {
+const OPENAI_PRESET_VOICE_IDS = new Set([
+  'alloy',
+  'ash',
+  'ballad',
+  'coral',
+  'echo',
+  'fable',
+  'onyx',
+  'nova',
+  'sage',
+  'shimmer',
+  'verse',
+]);
+
+const EDGE_PRESET_VOICE_IDS = new Set([
+  'zh-CN-XiaoxiaoNeural',
+  'zh-CN-XiaoyiNeural',
+  'zh-CN-YunxiNeural',
+  'zh-CN-YunjianNeural',
+  'zh-CN-YunyangNeural',
+  'zh-CN-XiaochenNeural',
+  'zh-CN-XiaohanNeural',
+  'zh-CN-XiaomengNeural',
+  'zh-CN-XiaomoNeural',
+  'zh-CN-XiaoruiNeural',
+  'zh-CN-XiaoshuangNeural',
+  'zh-CN-XiaoxuanNeural',
+  'zh-CN-YunfengNeural',
+  'zh-CN-YunhaoNeural',
+  'zh-CN-YunxiaNeural',
+  'zh-CN-YunyeNeural',
+  'zh-CN-YunzeNeural',
+  'en-US-AriaNeural',
+  'en-US-JennyNeural',
+  'en-US-GuyNeural',
+  'en-US-ChristopherNeural',
+  'en-GB-SoniaNeural',
+]);
+
+function currentTtsProviderId(): string {
+  return (getAiConfig().ttsProvider || DEFAULT_AI.ttsProvider || 'mimo')
+    .trim()
+    .toLowerCase() || 'mimo';
+}
+
+function defaultVoiceForProvider(provider: string): string {
+  if (provider === 'edge') return 'zh-CN-XiaoxiaoNeural';
+  if (provider === 'openai') return 'alloy';
+  return DEFAULT_AI.defaultVoice || '冰糖';
+}
+
+function resolveStoredVoice(voice?: string, providerId?: string): string {
+  const provider = (providerId || currentTtsProviderId()).trim().toLowerCase();
+  const cfgDefault = getAiConfig().defaultVoice?.trim() || '';
+  const candidate = voice?.trim() || cfgDefault;
+
+  if (provider === 'edge') {
+    const fallback =
+      cfgDefault &&
+      (EDGE_PRESET_VOICE_IDS.has(cfgDefault) ||
+        /^[a-z]{2}-[A-Z]{2}-/.test(cfgDefault))
+        ? cfgDefault
+        : defaultVoiceForProvider('edge');
+    if (
+      candidate &&
+      (EDGE_PRESET_VOICE_IDS.has(candidate) ||
+        /^[a-z]{2}-[A-Z]{2}-/.test(candidate))
+    ) {
+      return candidate;
+    }
+    return fallback;
+  }
+
+  if (provider === 'openai') {
+    const normalized = candidate.toLowerCase();
+    const fallback =
+      cfgDefault && OPENAI_PRESET_VOICE_IDS.has(cfgDefault.toLowerCase())
+        ? cfgDefault.toLowerCase()
+        : defaultVoiceForProvider('openai');
+    if (normalized && OPENAI_PRESET_VOICE_IDS.has(normalized)) return normalized;
+    return fallback;
+  }
+
+  // mimo 及其他：仅放行 MiMo 预置
   const fallback =
-    getAiConfig().defaultVoice?.trim() || DEFAULT_AI.defaultVoice;
-  const candidate = voice?.trim() || fallback;
-  if (PRESET_VOICE_IDS.has(candidate)) return candidate;
+    cfgDefault && MIMO_PRESET_VOICE_IDS.has(cfgDefault)
+      ? cfgDefault
+      : defaultVoiceForProvider('mimo');
+  if (candidate && MIMO_PRESET_VOICE_IDS.has(candidate)) return candidate;
   return fallback;
 }
 
@@ -821,19 +905,30 @@ function parseStyleTags(raw: unknown): string[] | undefined {
   return tags.length ? tags : undefined;
 }
 
-/** 统一归一化全局/任务 TTS 配置 */
+/** 统一归一化全局/任务 TTS 配置（非 MiMo 强制收敛高级音色字段） */
 export function normalizeTtsOptions(tts?: Partial<TtsOptions> | null): TtsOptions {
-  const mode = normalizeMode(tts?.mode ? String(tts.mode) : 'default');
-  const styleTags = parseStyleTags(
-    (tts as { styleTags?: unknown } | null | undefined)?.styleTags,
-  );
-  const voiceDesign = tts?.voiceDesign ? String(tts.voiceDesign).trim() : '';
+  const provider = currentTtsProviderId();
+  const isMimo = provider === 'mimo';
+  let mode = normalizeMode(tts?.mode ? String(tts.mode) : 'default');
+  if (!isMimo) mode = 'default';
+
+  const styleTags = isMimo
+    ? parseStyleTags(
+        (tts as { styleTags?: unknown } | null | undefined)?.styleTags,
+      )
+    : undefined;
+  const voiceDesign =
+    isMimo && tts?.voiceDesign ? String(tts.voiceDesign).trim() : '';
+
   return {
     mode,
     voice:
       mode === 'voicedesign'
         ? undefined
-        : resolveStoredVoice(tts?.voice ? String(tts.voice) : undefined),
+        : resolveStoredVoice(
+            tts?.voice ? String(tts.voice) : undefined,
+            provider,
+          ),
     voiceDesign: voiceDesign || undefined,
     styleTags: mode === 'voicedesign' ? undefined : styleTags,
   };

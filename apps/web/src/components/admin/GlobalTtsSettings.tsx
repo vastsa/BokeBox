@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchTtsSettings, saveTtsSettings } from '../../api/client';
+import {
+  fetchAiSettings,
+  fetchTtsSettings,
+  saveTtsSettings,
+} from '../../api/client';
 import type { TtsOptions } from '../../types/job';
-import { TtsModePicker } from './TtsModePicker';
+import {
+  defaultVoiceForProvider,
+  isMimoTtsProvider,
+  TtsModePicker,
+} from './TtsModePicker';
 import { tOutside, useI18n } from '../../i18n';
 
 const DEFAULT_TTS: TtsOptions = {
@@ -14,7 +22,9 @@ function summarizeTts(tts: TtsOptions): string {
   if (tts.mode === 'voicedesign') {
     const desc = tts.voiceDesign?.trim();
     return desc
-      ? tOutside('tts.customSummary', { desc: `${desc.slice(0, 28)}${desc.length > 28 ? '…' : ''}` })
+      ? tOutside('tts.customSummary', {
+          desc: `${desc.slice(0, 28)}${desc.length > 28 ? '…' : ''}`,
+        })
       : tOutside('tts.customVoice');
   }
   const parts = [tOutside('tts.modeDefault')];
@@ -27,17 +37,29 @@ function summarizeTts(tts: TtsOptions): string {
 export function GlobalTtsSettings() {
   const { t } = useI18n();
   const [value, setValue] = useState<TtsOptions>(DEFAULT_TTS);
+  const [ttsProvider, setTtsProvider] = useState('mimo');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedHint, setSavedHint] = useState(false);
 
+  const advanced = isMimoTtsProvider(ttsProvider);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchTtsSettings();
-      setValue(data.tts || DEFAULT_TTS);
+      const [ttsData, ai] = await Promise.all([
+        fetchTtsSettings(),
+        fetchAiSettings().catch(() => null),
+      ]);
+      const provider =
+        ai?.tts?.provider || ai?.ttsProvider || 'mimo';
+      setTtsProvider(provider);
+      setValue(ttsData.tts || {
+        ...DEFAULT_TTS,
+        voice: defaultVoiceForProvider(provider),
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -51,13 +73,15 @@ export function GlobalTtsSettings() {
 
   const summary = useMemo(() => summarizeTts(value), [value]);
   const modeLabel =
-    value.mode === 'voicedesign' ? tOutside('tts.modeCustom') : tOutside('tts.modeDefault');
+    value.mode === 'voicedesign'
+      ? tOutside('tts.modeCustom')
+      : tOutside('tts.modeDefault');
   const voiceLabel =
     value.mode === 'voicedesign'
       ? value.voiceDesign?.trim() || tOutside('tts.noDesc')
-      : String(value.voice || '冰糖');
+      : String(value.voice || defaultVoiceForProvider(ttsProvider));
   const styleLabel =
-    value.mode === 'default' && value.styleTags?.length
+    advanced && value.mode === 'default' && value.styleTags?.length
       ? value.styleTags.join('、')
       : tOutside('common.none');
 
@@ -78,7 +102,13 @@ export function GlobalTtsSettings() {
   };
 
   const onReset = () => {
-    setValue(DEFAULT_TTS);
+    setValue({
+      ...DEFAULT_TTS,
+      voice: defaultVoiceForProvider(ttsProvider),
+      ...(advanced
+        ? {}
+        : { mode: 'default' as const, voiceDesign: undefined, styleTags: undefined }),
+    });
     setSavedHint(false);
   };
 
@@ -89,15 +119,21 @@ export function GlobalTtsSettings() {
           <dt>{t('tts.metaSummary')}</dt>
           <dd title={summary}>{summary}</dd>
         </div>
+        {advanced && (
+          <div className="settings-meta-row">
+            <dt>{t('tts.metaMode')}</dt>
+            <dd>{modeLabel}</dd>
+          </div>
+        )}
         <div className="settings-meta-row">
-          <dt>{t('tts.metaMode')}</dt>
-          <dd>{modeLabel}</dd>
-        </div>
-        <div className="settings-meta-row">
-          <dt>{value.mode === 'voicedesign' ? t('tts.metaDesc') : t('tts.labelVoice')}</dt>
+          <dt>
+            {value.mode === 'voicedesign' && advanced
+              ? t('tts.metaDesc')
+              : t('tts.labelVoice')}
+          </dt>
           <dd title={voiceLabel}>{voiceLabel}</dd>
         </div>
-        {value.mode === 'default' && (
+        {advanced && value.mode === 'default' && (
           <div className="settings-meta-row">
             <dt>{t('tts.labelStyle')}</dt>
             <dd>{styleLabel}</dd>
@@ -112,10 +148,13 @@ export function GlobalTtsSettings() {
           <div className="settings-block">
             <div className="settings-block-head">
               <h3>{t('tts.editTitle')}</h3>
-              <p>{t('tts.editDesc')}</p>
+              <p>
+                {advanced ? t('tts.editDesc') : t('tts.basicOnlyHint')}
+              </p>
             </div>
             <TtsModePicker
               value={value}
+              provider={ttsProvider}
               onChange={(next) => {
                 setValue(next);
                 setSavedHint(false);
@@ -135,7 +174,9 @@ export function GlobalTtsSettings() {
               {t('tts.restoreDefaults')}
             </button>
             <div className="settings-card-actions-right">
-              {savedHint && <span className="script-prompt-saved">{t('common.saved')}</span>}
+              {savedHint && (
+                <span className="script-prompt-saved">{t('common.saved')}</span>
+              )}
               <button
                 type="button"
                 className="nl-btn nl-btn-primary"

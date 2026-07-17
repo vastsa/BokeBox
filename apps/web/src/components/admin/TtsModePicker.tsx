@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { PresetVoiceId, TtsMode, TtsOptions } from '../../types/job';
+import {
+  EDGE_VOICE_OPTIONS,
+  OPENAI_VOICE_OPTIONS,
+} from '../../lib/providerOptions';
 import { useI18n } from '../../i18n';
 
 const MODES: Array<{ id: TtsMode; titleKey: string; descKey: string }> = [
@@ -72,47 +76,165 @@ function toggleTag(list: string[] | undefined, tag: string): string[] {
   return cur.includes(tag) ? cur.filter((t) => t !== tag) : [...cur, tag];
 }
 
+function normalizeProviderId(provider?: string): string {
+  return String(provider || 'mimo').trim().toLowerCase() || 'mimo';
+}
+
+/** 仅 MiMo 支持 VoiceDesign / 风格标签等高级能力 */
+export function isMimoTtsProvider(provider?: string): boolean {
+  return normalizeProviderId(provider) === 'mimo';
+}
+
+export function defaultVoiceForProvider(provider?: string): string {
+  const id = normalizeProviderId(provider);
+  if (id === 'edge') return 'zh-CN-XiaoxiaoNeural';
+  if (id === 'openai') return 'alloy';
+  return DEFAULT_PRESET_VOICE;
+}
+
+type VoiceOption = {
+  id: string;
+  name: string;
+  meta: string;
+  title?: string;
+};
+
+function voiceOptionsForProvider(
+  provider: string,
+  t: (key: string) => string,
+): VoiceOption[] {
+  if (provider === 'edge') {
+    return EDGE_VOICE_OPTIONS.map((v) => ({
+      id: v.id,
+      name: v.name,
+      meta: v.language,
+      title: `${v.name} · ${v.language}`,
+    }));
+  }
+  if (provider === 'openai') {
+    return OPENAI_VOICE_OPTIONS.map((v) => ({
+      id: v.id,
+      name: v.name,
+      meta: v.language,
+      title: `${v.name} · ${v.language}`,
+    }));
+  }
+  return PRESET_VOICES.map((v) => {
+    const name = v.nameKey ? t(v.nameKey) : v.name || v.id;
+    const language = t(v.languageKey);
+    const gender = v.genderKey ? t(v.genderKey) : v.gender || '-';
+    const desc = v.descriptionKey
+      ? t(v.descriptionKey)
+      : `${language} · ${gender}`;
+    return {
+      id: v.id,
+      name,
+      meta: gender !== '-' ? `${language} · ${gender}` : language,
+      title: desc,
+    };
+  });
+}
+
+function clampTtsForProvider(value: TtsOptions, provider: string): TtsOptions {
+  if (isMimoTtsProvider(provider)) return value;
+
+  const voices = voiceOptionsForProvider(provider, (k) => k);
+  const allowed = new Set(voices.map((v) => v.id));
+  const fallback = defaultVoiceForProvider(provider);
+  const voice =
+    value.voice && allowed.has(String(value.voice))
+      ? String(value.voice)
+      : fallback;
+
+  return {
+    mode: 'default',
+    voice,
+    voiceDesign: undefined,
+    styleTags: undefined,
+  };
+}
+
+function needsClamp(value: TtsOptions, provider: string): boolean {
+  if (isMimoTtsProvider(provider)) return false;
+  const clamped = clampTtsForProvider(value, provider);
+  return (
+    value.mode !== clamped.mode ||
+    String(value.voice || '') !== String(clamped.voice || '') ||
+    Boolean(value.voiceDesign) ||
+    Boolean(value.styleTags?.length)
+  );
+}
+
 export function TtsModePicker({
   value,
   onChange,
+  provider = 'mimo',
 }: {
   value: TtsOptions;
   onChange: (next: TtsOptions) => void;
+  /** 当前 TTS 提供方；非 mimo 时仅展示基础音色 */
+  provider?: string;
 }) {
   const { t } = useI18n();
   const [showTips, setShowTips] = useState(false);
-  const currentVoice = (value.voice || DEFAULT_PRESET_VOICE) as string;
-  const showPreset = value.mode === 'default';
+  const providerId = normalizeProviderId(provider);
+  const advanced = isMimoTtsProvider(providerId);
+  const voiceOptions = useMemo(
+    () => voiceOptionsForProvider(providerId, t),
+    [providerId, t],
+  );
+
+  // 切换到非 MiMo 时自动收敛高级字段，避免旧配置残留
+  useEffect(() => {
+    if (!needsClamp(value, providerId)) return;
+    onChange(clampTtsForProvider(value, providerId));
+    // 仅响应提供方/非法字段；避免跟 onChange 循环
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerId, value.mode, value.voice, value.voiceDesign, value.styleTags]);
+
+  const currentVoice = String(
+    value.voice || defaultVoiceForProvider(providerId),
+  );
+  const showPreset = advanced ? value.mode === 'default' : true;
   const styleTags = value.styleTags || [];
 
   return (
     <div className="space-y-2.5">
-      <div className="tts-mode-grid">
-        {MODES.map((m) => {
-          const active = value.mode === m.id;
-          return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() =>
-                onChange({
-                  ...value,
-                  mode: m.id,
-                  voice:
-                    m.id === 'voicedesign'
-                      ? value.voice
-                      : value.voice || DEFAULT_PRESET_VOICE,
-                  styleTags: m.id === 'voicedesign' ? undefined : value.styleTags,
-                })
-              }
-              className={['tts-mode', active ? 'is-active' : ''].join(' ')}
-            >
-              <div className="title">{t(m.titleKey)}</div>
-              <div className="desc">{t(m.descKey)}</div>
-            </button>
-          );
-        })}
-      </div>
+      {!advanced && (
+        <div className="auth-tip">
+          <span>{t('tts.basicOnlyHint')}</span>
+        </div>
+      )}
+
+      {advanced && (
+        <div className="tts-mode-grid">
+          {MODES.map((m) => {
+            const active = value.mode === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    mode: m.id,
+                    voice:
+                      m.id === 'voicedesign'
+                        ? value.voice
+                        : value.voice || DEFAULT_PRESET_VOICE,
+                    styleTags:
+                      m.id === 'voicedesign' ? undefined : value.styleTags,
+                  })
+                }
+                className={['tts-mode', active ? 'is-active' : ''].join(' ')}
+              >
+                <div className="title">{t(m.titleKey)}</div>
+                <div className="desc">{t(m.descKey)}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {showPreset && (
         <div>
@@ -120,25 +242,27 @@ export function TtsModePicker({
             {t('tts.presetVoices')}
           </div>
           <div className="tts-voice-grid">
-            {PRESET_VOICES.map((v) => {
+            {voiceOptions.map((v) => {
               const active = currentVoice === v.id;
-              const name = v.nameKey ? t(v.nameKey) : (v.name || v.id);
-              const language = t(v.languageKey);
-              const gender = v.genderKey ? t(v.genderKey) : (v.gender || '-');
-              const desc = v.descriptionKey ? t(v.descriptionKey) : `${language} · ${gender}`;
               return (
                 <button
                   key={v.id}
                   type="button"
-                  onClick={() => onChange({ ...value, voice: v.id })}
+                  onClick={() =>
+                    onChange({
+                      ...value,
+                      mode: 'default',
+                      voice: v.id,
+                      ...(advanced
+                        ? {}
+                        : { voiceDesign: undefined, styleTags: undefined }),
+                    })
+                  }
                   className={['tts-voice', active ? 'is-active' : ''].join(' ')}
-                  title={desc}
+                  title={v.title || `${v.name} · ${v.meta}`}
                 >
-                  <div className="name">{name}</div>
-                  <div className="meta">
-                    {language}
-                    {gender !== '-' ? ` · ${gender}` : ''}
-                  </div>
+                  <div className="name">{v.name}</div>
+                  <div className="meta">{v.meta}</div>
                 </button>
               );
             })}
@@ -146,7 +270,7 @@ export function TtsModePicker({
         </div>
       )}
 
-      {value.mode === 'default' && (
+      {advanced && value.mode === 'default' && (
         <div className="tts-sing-panel">
           <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
             {t('tts.styleTags')}
@@ -162,7 +286,10 @@ export function TtsModePicker({
                   type="button"
                   className={['tts-tag', active ? 'is-active' : ''].join(' ')}
                   onClick={() =>
-                    onChange({ ...value, styleTags: toggleTag(value.styleTags, tag) })
+                    onChange({
+                      ...value,
+                      styleTags: toggleTag(value.styleTags, tag),
+                    })
                   }
                 >
                   {tag}
@@ -174,7 +301,9 @@ export function TtsModePicker({
           {styleTags.length > 0 && (
             <div className="tts-sing-preview">
               {t('tts.preview')}
-              <code>({styleTags.join(' ')}) {t('tts.previewSample')}</code>
+              <code>
+                ({styleTags.join(' ')}) {t('tts.previewSample')}
+              </code>
             </div>
           )}
 
@@ -197,9 +326,9 @@ export function TtsModePicker({
                 <li>{t('tts.tipsLine2')}</li>
                 <li>
                   {t('tts.tipsLine3')}
-                  {AUDIO_TAG_HINTS.map((t) => (
-                    <code key={t} className="mx-0.5">
-                      （{t}）
+                  {AUDIO_TAG_HINTS.map((hint) => (
+                    <code key={hint} className="mx-0.5">
+                      （{hint}）
                     </code>
                   ))}
                 </li>
@@ -209,7 +338,7 @@ export function TtsModePicker({
         </div>
       )}
 
-      {value.mode === 'voicedesign' && (
+      {advanced && value.mode === 'voicedesign' && (
         <label className="block">
           <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
             {t('tts.voiceDesc')}

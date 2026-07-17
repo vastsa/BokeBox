@@ -369,6 +369,8 @@ export function SetupPage() {
                         ...prev,
                         mode: 'default',
                         voice: 'alloy',
+                        styleTags: undefined,
+                        voiceDesign: undefined,
                       }));
                     }
                     if (id === 'mimo') {
@@ -386,6 +388,8 @@ export function SetupPage() {
                         ...prev,
                         mode: 'default',
                         voice: 'zh-CN-XiaoxiaoNeural',
+                        styleTags: undefined,
+                        voiceDesign: undefined,
                       }));
                     }
                   }}
@@ -483,14 +487,16 @@ export function SetupPage() {
                   </div>
                 </>
               )}
-              <label className="auth-field">
-                <span>{t('setup.voiceDesignModel')}</span>
-                <input
-                  value={voiceDesignModel}
-                  onChange={(e) => setVoiceDesignModel(e.target.value)}
-                  spellCheck={false}
-                />
-              </label>
+              {ttsProvider === 'mimo' && (
+                <label className="auth-field">
+                  <span>{t('setup.voiceDesignModel')}</span>
+                  <input
+                    value={voiceDesignModel}
+                    onChange={(e) => setVoiceDesignModel(e.target.value)}
+                    spellCheck={false}
+                  />
+                </label>
+              )}
             </div>
 
             <div className="setup-image-model">
@@ -527,7 +533,7 @@ export function SetupPage() {
                 </div>
               </div>
             </div>
-            <TtsModePicker value={tts} onChange={setTts} />
+            <TtsModePicker value={tts} provider={ttsProvider} onChange={setTts} />
           </div>
         )}
 

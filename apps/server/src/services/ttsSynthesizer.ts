@@ -105,8 +105,22 @@ export async function synthesizePodcastAudio(options: {
 }> {
   const paths = jobPaths(options.jobId);
   await ensureDir(paths.dir);
-  const mode: TtsMode = options.tts?.mode || 'default';
   const provider = resolveTtsProvider();
+  // 非 MiMo 提供方不支持 VoiceDesign / 风格标签
+  const rawMode: TtsMode = options.tts?.mode || 'default';
+  const mode: TtsMode =
+    provider.id === 'mimo' ? rawMode : 'default';
+  const ttsForProvider: TtsOptions | undefined =
+    provider.id === 'mimo'
+      ? options.tts
+      : options.tts
+        ? {
+            mode: 'default',
+            voice: options.tts.voice,
+            voiceDesign: undefined,
+            styleTags: undefined,
+          }
+        : undefined;
   const outPath = paths.podcastWav;
   const mp3Fallback = paths.podcastMp3;
 
@@ -153,7 +167,7 @@ export async function synthesizePodcastAudio(options: {
   for (let i = 0; i < chunks.length; i++) {
     const chunkResult = await provider.synthesizeChunk({
       text: chunks[i],
-      tts: options.tts,
+      tts: ttsForProvider,
       applyLeadingStyle: i === 0,
     });
     if (chunkResult.demo) {

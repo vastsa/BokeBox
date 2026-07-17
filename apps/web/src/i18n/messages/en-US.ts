@@ -635,6 +635,7 @@ export const enUS: MessageTree = {
     modeDefaultHint: 'Premium presets · audio tags',
     modeCustomHint: 'Voice Design · natural language',
     presetVoices: 'Preset voices',
+    basicOnlyHint: 'Current TTS provider supports basic voices only. Custom voice design and style tags require MiMo.',
     styleTags: 'Opening style',
     preview: 'Preview: ',
     previewSample: 'Hello, welcome to the show…',
