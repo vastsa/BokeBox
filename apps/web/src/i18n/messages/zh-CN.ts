@@ -7,6 +7,11 @@ export const zhCN = {
     podcast: '播客',
     podcastAudio: '播客音频',
     privatePodcast: '私人播客',
+    openSource: '开源项目',
+    openSourceBadge: '开源',
+    github: 'GitHub',
+    license: 'LGPL-3.0',
+    openSourceHint: 'BokeBox 以 LGPL-3.0 协议开源',
   },
   common: {
     loading: '加载中…',
@@ -437,6 +442,10 @@ export const zhCN = {
     updatingPassword: '更新中…',
     updatePassword: '更新密码',
     passwordUpdated: '密码已更新，请重新登录',
+    aboutOpenSource: '开源与仓库',
+    aboutOpenSourceDesc: 'BokeBox 是开源项目，采用 LGPL-3.0 协议。欢迎 Star、Issue 与 PR。',
+    openGithub: '打开 GitHub 仓库',
+    licenseLabel: '开源协议',
   },
   tts: {
     modeDefault: '自然口播',

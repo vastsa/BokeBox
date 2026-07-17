@@ -2,7 +2,7 @@
   "name": "bokebox",
   "version": "1.0.0",
   "private": true,
-  "description": "BokeBox · AI 私人播客匣：视频转口播，人设与音色可自定义",
+  "description": "BokeBox · AI 私人播客匣：视频转口播，人设与音色可自定义（开源）",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "dev:server": "pnpm --filter @bokebox/server dev",
@@ -13,11 +13,21 @@
     "start:prod": "./start.sh prod",
     "docker:up": "./start.sh docker",
     "docker:down": "./start.sh docker:down",
-    "docker:prod": "docker compose -f docker-compose.prod.yml up -d",
-    "docker:prod:pull": "docker compose -f docker-compose.prod.yml pull"
+    "docker:prod": "./start.sh docker",
+    "docker:prod:pull": "docker compose pull",
+    "docker:local": "./start.sh docker.local"
   },
   "engines": {
     "node": ">=22.5"
   },
-  "packageManager": "pnpm@9.15.0"
+  "packageManager": "pnpm@9.15.0",
+  "license": "LGPL-3.0-only",
+  "homepage": "https://github.com/vastsa/BokeBox/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vastsa/BokeBox.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vastsa/BokeBox/issues"
+  }
 }

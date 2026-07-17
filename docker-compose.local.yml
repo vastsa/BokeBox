@@ -1,29 +1,25 @@
-# 默认编排：拉取 GHCR 预构建镜像（推荐）
+# 本地构建编排：从源码 Dockerfile 构建镜像
 # 用法:
-#   docker pull ghcr.io/vastsa/bokebox:latest
-#   docker compose up -d
-#   或: ./start.sh docker
-#
-# 本地从源码构建请用:
 #   ./start.sh docker.local
 #   docker compose -f docker-compose.local.yml up -d --build
-#
-# 可通过环境变量覆盖:
-#   GHCR_IMAGE=ghcr.io/vastsa/bokebox
-#   IMAGE_TAG=latest
 
 services:
   bokebox:
-    image: ${GHCR_IMAGE:-ghcr.io/vastsa/bokebox}:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bokebox:local
     container_name: bokebox
     ports:
       - "${PORT:-8787}:8787"
     env_file:
       - .env
     environment:
+      # 容器内固定监听；其余密钥与模型配置来自 .env
       HOST: 0.0.0.0
       PORT: 8787
     volumes:
+      # 持久化 SQLite + 音视频资产
       - ./storage:/app/storage
     restart: unless-stopped
     healthcheck:

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # BokeBox · 一键启动
 # 用法:
-#   ./start.sh            本地开发（前后端热更新）
-#   ./start.sh prod       本地生产模式（构建后仅启服务端）
-#   ./start.sh docker     Docker Compose 本地构建并启动
-#   ./start.sh docker:prod  拉取 GHCR 生产镜像并启动
+#   ./start.sh              本地开发（前后端热更新）
+#   ./start.sh prod         本地生产模式（构建后仅启服务端）
+#   ./start.sh docker       拉取 GHCR 镜像并启动（推荐）
+#   ./start.sh docker.local 本地 Dockerfile 构建并启动
+#   ./start.sh docker:prod  同 docker（兼容旧命令）
 #   ./start.sh docker:down  停止并移除容器
-#   ./start.sh stop       停止本地后台进程（若用了 --detach）
+#   ./start.sh stop         停止本地后台进程（若用了 --detach）
 
 set -euo pipefail
 
@@ -121,30 +122,62 @@ start_prod() {
   exec pnpm --filter @bokebox/server start
 }
 
-docker_up() {
-  ensure_env
-  ensure_storage
+resolve_compose() {
   if command -v docker >/dev/null 2>&1; then
     if docker compose version >/dev/null 2>&1; then
       COMPOSE=(docker compose)
+      return
     elif command -v docker-compose >/dev/null 2>&1; then
       COMPOSE=(docker-compose)
-    else
-      err "已安装 docker，但未找到 compose 插件"
-      exit 1
+      return
     fi
-  else
-    err "未安装 Docker。请安装 Docker Desktop 后再试"
+    err "已安装 docker，但未找到 compose 插件"
     exit 1
   fi
+  err "未安装 Docker。请安装 Docker Desktop 后再试"
+  exit 1
+}
 
-  log "Docker Compose 构建并启动 …"
-  "${COMPOSE[@]}" up -d --build
+# 推荐：拉取 GHCR 预构建镜像
+docker_up() {
+  ensure_env
+  ensure_storage
+  resolve_compose
+
+  export GHCR_IMAGE="${GHCR_IMAGE:-ghcr.io/vastsa/bokebox}"
+  export IMAGE_TAG="${IMAGE_TAG:-latest}"
+  log "拉取镜像 ${GHCR_IMAGE}:${IMAGE_TAG} …"
+  docker pull "${GHCR_IMAGE}:${IMAGE_TAG}"
+  log "Docker Compose 启动（GHCR）…"
+  "${COMPOSE[@]}" up -d
   echo
   ok "容器已启动: bokebox"
+  ok "镜像: ${GHCR_IMAGE}:${IMAGE_TAG}"
   ok "访问: http://localhost:${PORT:-8787}"
   ok "管理: http://localhost:${PORT:-8787}/#/admin"
   ok "日志: ${COMPOSE[*]} logs -f bokebox"
+  ok "本地源码构建: ./start.sh docker.local"
+  ok "停止: ./start.sh docker:down"
+}
+
+# 本地构建：使用 docker-compose.local.yml
+docker_local() {
+  ensure_env
+  ensure_storage
+  resolve_compose
+
+  if [[ ! -f docker-compose.local.yml ]]; then
+    err "缺少 docker-compose.local.yml"
+    exit 1
+  fi
+
+  log "Docker Compose 本地构建并启动 …"
+  "${COMPOSE[@]}" -f docker-compose.local.yml up -d --build
+  echo
+  ok "容器已启动: bokebox（本地构建）"
+  ok "访问: http://localhost:${PORT:-8787}"
+  ok "管理: http://localhost:${PORT:-8787}/#/admin"
+  ok "日志: ${COMPOSE[*]} -f docker-compose.local.yml logs -f bokebox"
   ok "停止: ./start.sh docker:down"
 }
 
@@ -157,8 +190,11 @@ docker_down() {
     err "未找到 docker compose"
     exit 1
   fi
-  # 同时尝试本地 build 与 prod 编排
+  # 同时尝试默认 / 本地 / prod 编排
   "${COMPOSE[@]}" down 2>/dev/null || true
+  if [[ -f docker-compose.local.yml ]]; then
+    "${COMPOSE[@]}" -f docker-compose.local.yml down 2>/dev/null || true
+  fi
   if [[ -f docker-compose.prod.yml ]]; then
     "${COMPOSE[@]}" -f docker-compose.prod.yml down 2>/dev/null || true
   fi
@@ -187,7 +223,7 @@ docker_prod() {
     exit 1
   fi
 
-  export GHCR_IMAGE="${GHCR_IMAGE:-ghcr.io/xzulab/bokebox}"
+  export GHCR_IMAGE="${GHCR_IMAGE:-ghcr.io/vastsa/bokebox}"
   export IMAGE_TAG="${IMAGE_TAG:-latest}"
   log "拉取生产镜像 ${GHCR_IMAGE}:${IMAGE_TAG} …"
   "${COMPOSE[@]}" -f docker-compose.prod.yml pull
@@ -208,10 +244,15 @@ BokeBox · 一键启动
 用法:
   ./start.sh              本地开发（热更新）
   ./start.sh prod         本地生产（构建后单端口）
-  ./start.sh docker       Docker Compose 本地构建启动
-  ./start.sh docker:prod  拉取 GHCR 镜像启动
+  ./start.sh docker       拉取 GHCR 镜像启动（推荐）
+  ./start.sh docker.local 本地 Dockerfile 构建启动
+  ./start.sh docker:prod  同 docker（兼容旧命令）
   ./start.sh docker:down  停止 Docker 容器
   ./start.sh help         显示帮助
+
+镜像:
+  docker pull ghcr.io/vastsa/bokebox:latest
+  仓库: https://github.com/vastsa/BokeBox/
 
 环境变量见 .env / .env.example
 USAGE
@@ -226,6 +267,9 @@ case "$MODE" in
     ;;
   docker|up)
     docker_up
+    ;;
+  docker.local|docker:local|local-docker)
+    docker_local
     ;;
   docker:prod|prod-docker)
     docker_prod

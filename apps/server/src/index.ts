@@ -58,6 +58,7 @@ async function main() {
 
   await app.listen({ port: PORT, host: HOST });
   app.log.info(`BokeBox listening on http://${HOST}:${PORT}`);
+  app.log.info('Open source (LGPL-3.0): https://github.com/vastsa/BokeBox/');
   app.log.info(`SQLite: ${SQLITE_DB}`);
   app.log.info(
     hasApiKey()

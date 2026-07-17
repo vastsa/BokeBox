@@ -27,6 +27,7 @@ import {
   type Locale,
 } from '../i18n';
 import { AppShell } from '../layouts/AppShell';
+import { PROJECT_GITHUB_URL, PROJECT_LICENSE_SPDX } from '../lib/project';
 
 type SettingsTab = 'voice' | 'persona' | 'cover' | 'ai' | 'account';
 
@@ -498,6 +499,29 @@ export function SettingsPage({ route }: { route: Route }) {
                               </button>
                             );
                           })}
+                        </div>
+                      </div>
+
+                      <div className="settings-block">
+                        <div className="settings-block-head">
+                          <h3>{t('settings.aboutOpenSource')}</h3>
+                          <p>{t('settings.aboutOpenSourceDesc')}</p>
+                        </div>
+                        <div className="settings-oss-row">
+                          <div className="settings-oss-meta">
+                            <span className="settings-oss-badge">{t('app.openSourceBadge')}</span>
+                            <span>
+                              {t('settings.licenseLabel')}: {PROJECT_LICENSE_SPDX}
+                            </span>
+                          </div>
+                          <a
+                            className="nl-btn nl-btn-secondary"
+                            href={PROJECT_GITHUB_URL}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                          >
+                            {t('settings.openGithub')}
+                          </a>
                         </div>
                       </div>
 

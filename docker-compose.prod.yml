@@ -4,14 +4,16 @@
 #   docker compose -f docker-compose.prod.yml pull
 #   docker compose -f docker-compose.prod.yml up -d
 #
-# 镜像默认: ghcr.io/<owner>/bokebox
+# 镜像默认: ghcr.io/vastsa/bokebox
 # 可通过环境变量覆盖:
-#   GHCR_IMAGE=ghcr.io/xzulab/bokebox
+#   GHCR_IMAGE=ghcr.io/vastsa/bokebox
 #   IMAGE_TAG=latest
+#
+# 本地源码构建请用 docker-compose.local.yml / ./start.sh docker.local
 
 services:
   bokebox:
-    image: ${GHCR_IMAGE:-ghcr.io/xzulab/bokebox}:${IMAGE_TAG:-latest}
+    image: ${GHCR_IMAGE:-ghcr.io/vastsa/bokebox}:${IMAGE_TAG:-latest}
     container_name: bokebox
     ports:
       - "${PORT:-8787}:8787"

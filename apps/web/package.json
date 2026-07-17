@@ -22,5 +22,6 @@
     "tailwindcss": "^4.1.10",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
-  }
+  },
+  "license": "LGPL-3.0-only"
 }

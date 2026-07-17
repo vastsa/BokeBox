@@ -19,7 +19,7 @@ main push / 手动 deploy
 
 ```
 ghcr.io/<owner>/<repo>
-# 例: ghcr.io/xzulab/bokebox
+# 例: ghcr.io/vastsa/bokebox
 ```
 
 常用 tag：
@@ -43,12 +43,17 @@ ghcr.io/<owner>/<repo>
 ## 本地验证
 
 ```bash
-# 与 CI 相同的 Dockerfile 构建
-docker build -t bokebox:local .
-docker run --rm -p 8787:8787 --env-file .env bokebox:local
-
-# 或 compose 本地 build
+# 推荐：直接拉取预构建镜像
+docker pull ghcr.io/vastsa/bokebox:latest
 ./start.sh docker
+
+# 本地源码构建
+./start.sh docker.local
+# 等价:
+# docker compose -f docker-compose.local.yml up -d --build
+# 或:
+# docker build -t bokebox:local .
+# docker run --rm -p 8787:8787 --env-file .env bokebox:local
 ```
 
 ## 生产机拉取（推荐）
@@ -73,10 +78,12 @@ PAT 权限：`read:packages`（推送 CI 已用 `GITHUB_TOKEN`）。
 3. 启动：
 
 ```bash
-export GHCR_IMAGE=ghcr.io/xzulab/bokebox
+export GHCR_IMAGE=ghcr.io/vastsa/bokebox
 export IMAGE_TAG=latest
-docker compose -f docker-compose.prod.yml pull
+docker pull ghcr.io/vastsa/bokebox:latest
 docker compose -f docker-compose.prod.yml up -d
+# 或默认 compose:
+# docker compose up -d
 ```
 
 ## 可选：自动 SSH 部署

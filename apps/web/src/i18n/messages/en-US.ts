@@ -9,6 +9,11 @@ export const enUS: MessageTree = {
     podcast: 'Podcast',
     podcastAudio: 'Podcast audio',
     privatePodcast: 'Private podcast',
+    openSource: 'Open Source',
+    openSourceBadge: 'Open Source',
+    github: 'GitHub',
+    license: 'LGPL-3.0',
+    openSourceHint: 'BokeBox is open-sourced under LGPL-3.0',
   },
   common: {
     loading: 'Loading…',
@@ -441,6 +446,10 @@ export const enUS: MessageTree = {
     updatingPassword: 'Updating…',
     updatePassword: 'Update password',
     passwordUpdated: 'Password updated. Please sign in again.',
+    aboutOpenSource: 'Open source & repo',
+    aboutOpenSourceDesc: 'BokeBox is open source under LGPL-3.0. Stars, issues, and PRs are welcome.',
+    openGithub: 'Open GitHub repository',
+    licenseLabel: 'License',
   },
   tts: {
     modeDefault: 'Natural voice',

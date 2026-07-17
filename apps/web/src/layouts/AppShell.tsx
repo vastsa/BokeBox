@@ -5,7 +5,9 @@ import {
   IconSpark,
   IconUpload,
 } from '../components/icons';
+import { OpenSourceMark } from '../components/OpenSourceMark';
 import { useI18n } from '../i18n';
+import { PROJECT_GITHUB_URL } from '../lib/project';
 import { navigate, type Route } from '../lib/router';
 
 export function AppShell({
@@ -72,19 +74,31 @@ export function AppShell({
             />
           </nav>
 
-          <div className="topbar-actions md:hidden">
-            <TopActionButton
-              active={createActive}
-              label={t('nav.create')}
-              onClick={() => navigate({ name: 'create' })}
-              icon={<IconUpload size={15} />}
-            />
-            <TopActionButton
-              active={settingsActive}
-              label={t('nav.settings')}
-              onClick={() => navigate({ name: 'settings' })}
-              icon={<IconSpark size={15} />}
-            />
+          <div className="topbar-end">
+            <a
+              className="topbar-oss-link hidden sm:inline-flex"
+              href={PROJECT_GITHUB_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              title={t('app.openSourceHint')}
+            >
+              <span className="topbar-oss-badge">{t('app.openSourceBadge')}</span>
+              <span>GitHub</span>
+            </a>
+            <div className="topbar-actions md:hidden">
+              <TopActionButton
+                active={createActive}
+                label={t('nav.create')}
+                onClick={() => navigate({ name: 'create' })}
+                icon={<IconUpload size={15} />}
+              />
+              <TopActionButton
+                active={settingsActive}
+                label={t('nav.settings')}
+                onClick={() => navigate({ name: 'settings' })}
+                icon={<IconSpark size={15} />}
+              />
+            </div>
           </div>
         </div>
       </header>
@@ -115,6 +129,10 @@ export function AppShell({
           </div>
         </nav>
       )}
+
+      <div className="page-container open-source-shell">
+        <OpenSourceMark compact />
+      </div>
     </div>
   );
 }

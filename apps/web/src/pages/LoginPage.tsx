@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchSetupStatus, login } from '../api/client';
 import { IconHeadphones } from '../components/icons';
+import { OpenSourceMark } from '../components/OpenSourceMark';
 import { useI18n } from '../i18n';
 import { getStoredUsername, setAuthSession } from '../lib/auth';
 import { navigate } from '../lib/router';
@@ -108,6 +109,8 @@ export function LoginPage() {
             {loading ? t('auth.loggingIn') : t('auth.login')}
           </button>
         </div>
+
+        <OpenSourceMark className="auth-open-source" />
       </form>
     </div>
   );

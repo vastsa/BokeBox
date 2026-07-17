@@ -14,9 +14,10 @@
 </p>
 
 <p align="center">
-  <a href="#-30-秒看懂"><img src="https://img.shields.io/badge/AI-生成口播-7C5CFF?style=flat-square" alt="AI" /></a>
-  <a href="#-它解决什么问题"><img src="https://img.shields.io/badge/私人-单用户部署-0EA5E9?style=flat-square" alt="Private" /></a>
-  <a href="#-开始使用"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square" alt="MIT" /></a>
+  <a href="https://github.com/vastsa/BokeBox/"><img src="https://img.shields.io/badge/Open%20Source-GitHub-181717?style=flat-square&logo=github" alt="GitHub" /></a>
+  <a href="#-30-second-pitch"><img src="https://img.shields.io/badge/AI-%E5%8F%A3%E6%92%AD%E8%84%9A%E6%9C%AC-7C5CFF?style=flat-square" alt="AI" /></a>
+  <a href="#-problems-it-solves"><img src="https://img.shields.io/badge/Private-%E5%8D%95%E7%94%A8%E6%88%B7-0EA5E9?style=flat-square" alt="Private" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-LGPL--3.0-22C55E?style=flat-square" alt="LGPL-3.0" /></a>
 </p>
 
 <p align="center">
@@ -153,7 +154,7 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 > 三步开箱。更细的部署与模型说明见下方「附录」。
 
 ```bash
-git clone https://github.com/xzulab/BokeBox.git
+git clone https://github.com/vastsa/BokeBox.git
 cd bokebox
 cp .env.example .env   # 填入你的 API Key
 ./start.sh             # 打开 http://localhost:5173
@@ -162,12 +163,20 @@ cp .env.example .env   # 填入你的 API Key
 首次进入会引导你完成 **账号初始化** 与模型配置。  
 之后，你的第一期私人播客，只差一条视频。
 
-**Docker 用户：**
+**Docker（推荐：拉取预构建镜像）：**
 
 ```bash
 cp .env.example .env
+docker pull ghcr.io/vastsa/bokebox:latest
 ./start.sh docker
 # 访问 http://localhost:8787
+```
+
+**Docker（本地源码构建）：**
+
+```bash
+cp .env.example .env
+./start.sh docker.local
 ```
 
 ---
@@ -221,7 +230,8 @@ BokeBox 更在意帮你 **更好地消化内容**。
 | --- | --- |
 | `./start.sh` | 本地开发（前端 5173 + 后端 8787） |
 | `./start.sh prod` | 构建后单端口运行 |
-| `./start.sh docker` | Docker Compose 启动 |
+| `./start.sh docker` | 拉取 `ghcr.io/vastsa/bokebox:latest` 并启动 |
+| `./start.sh docker.local` | 本地 Dockerfile 构建并启动 |
 | `./start.sh docker:down` | 停止容器 |
 
 ### 配置要点（`.env`）
@@ -250,7 +260,7 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
 ### License
 
-[MIT](LICENSE) —— 自由使用、修改与分发。
+[LGPL-3.0](LICENSE) —— 开源协议；基于本项目库代码的衍生修改需保持 LGPL 兼容。
 
 </details>
 
@@ -258,5 +268,6 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
 <p align="center">
   <b>BokeBox</b><br/>
-  <sub>私人 AI 播客匣 · MIT License</sub>
+  <sub>私人 AI 播客匣 · 开源 · LGPL-3.0</sub><br/>
+  <sub><a href="https://github.com/vastsa/BokeBox/">github.com/vastsa/BokeBox</a></sub>
 </p>

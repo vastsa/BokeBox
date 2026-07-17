@@ -14,9 +14,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/vastsa/BokeBox/"><img src="https://img.shields.io/badge/Open%20Source-GitHub-181717?style=flat-square&logo=github" alt="GitHub" /></a>
   <a href="#-30-second-pitch"><img src="https://img.shields.io/badge/AI-Spoken%20Scripts-7C5CFF?style=flat-square" alt="AI" /></a>
   <a href="#-problems-it-solves"><img src="https://img.shields.io/badge/Private-Single%20user-0EA5E9?style=flat-square" alt="Private" /></a>
-  <a href="#-get-started"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square" alt="MIT" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-LGPL--3.0-22C55E?style=flat-square" alt="LGPL-3.0" /></a>
 </p>
 
 <p align="center">
@@ -153,7 +154,7 @@ You get:
 > Three steps to ship. Deeper deploy & model notes are in the appendix.
 
 ```bash
-git clone https://github.com/xzulab/BokeBox.git
+git clone https://github.com/vastsa/BokeBox.git
 cd bokebox
 cp .env.example .env   # add your API keys
 ./start.sh             # open http://localhost:5173
@@ -162,12 +163,20 @@ cp .env.example .env   # add your API keys
 First launch walks you through **account setup** and model config.  
 After that, your first private episode is one video away.
 
-**Docker:**
+**Docker (recommended: pull prebuilt image):**
 
 ```bash
 cp .env.example .env
+docker pull ghcr.io/vastsa/bokebox:latest
 ./start.sh docker
 # open http://localhost:8787
+```
+
+**Docker (build from source locally):**
+
+```bash
+cp .env.example .env
+./start.sh docker.local
 ```
 
 ---
@@ -221,7 +230,8 @@ Add BokeBox to your toolkit — and drop a Star so more people find it.
 | --- | --- |
 | `./start.sh` | Local dev (web 5173 + API 8787) |
 | `./start.sh prod` | Build and run on a single port |
-| `./start.sh docker` | Docker Compose up |
+| `./start.sh docker` | Pull `ghcr.io/vastsa/bokebox:latest` and start |
+| `./start.sh docker.local` | Build from local Dockerfile and start |
 | `./start.sh docker:down` | Stop containers |
 
 ### Config highlights (`.env`)
@@ -250,7 +260,7 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
 ### License
 
-[MIT](LICENSE) — free to use, modify, and distribute.
+[LGPL-3.0](LICENSE) — open source; derivative works of the library must remain LGPL-compatible.
 
 </details>
 
@@ -258,5 +268,6 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
 <p align="center">
   <b>BokeBox</b><br/>
-  <sub>Private AI podcast box · MIT License</sub>
+  <sub>Private AI podcast box · Open Source · LGPL-3.0</sub><br/>
+  <sub><a href="https://github.com/vastsa/BokeBox/">github.com/vastsa/BokeBox</a></sub>
 </p>

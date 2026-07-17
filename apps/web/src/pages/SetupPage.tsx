@@ -7,6 +7,7 @@ import {
 import { TtsModePicker } from '../components/admin/TtsModePicker';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from '../components/admin/GlobalTtsSettings';
 import { IconCheck, IconHeadphones, IconMic, IconSpark } from '../components/icons';
+import { OpenSourceMark } from '../components/OpenSourceMark';
 import { setAuthSession } from '../lib/auth';
 import { navigate } from '../lib/router';
 import { ContentLocaleSelect } from '../components/admin/ContentLocaleSelect';
@@ -419,6 +420,8 @@ export function SetupPage() {
             </button>
           )}
         </div>
+
+        <OpenSourceMark className="auth-open-source" />
       </div>
     </div>
   );
