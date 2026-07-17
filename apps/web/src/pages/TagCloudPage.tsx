@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { coverImageUrl, fetchLibrary } from '../api/client';
+import { StarMapLoader } from '../components/tags/StarMapLoader';
 import { TagUniverse, type TagStar } from '../components/tags/TagUniverse';
 import { CoverArt } from '../components/ui/CoverArt';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -40,6 +41,11 @@ export function TagCloudPage({ route }: { route: Route }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  /** 与当前 tagKey 对齐后才算场景就绪，避免重建时闪黑 */
+  const [readyKey, setReadyKey] = useState<string | null>(null);
+  const [loaderFading, setLoaderFading] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
+  const fadeTimerRef = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -102,15 +108,64 @@ export function TagCloudPage({ route }: { route: Route }) {
   };
 
   const empty = !loading && tags.length === 0;
+  const hasStars = tags.length > 0;
+  const tagKey = useMemo(
+    () => tags.map((x) => `${x.name}:${x.count}`).join('|'),
+    [tags],
+  );
+  const sceneReady = hasStars && readyKey === tagKey;
+  // 初次进入：数据请求或场景未就绪时展示加载动画
+  const booting = loading || (hasStars && !sceneReady);
+
+  useEffect(() => {
+    if (booting) {
+      setShowLoader(true);
+      setLoaderFading(false);
+      if (fadeTimerRef.current != null) {
+        window.clearTimeout(fadeTimerRef.current);
+        fadeTimerRef.current = null;
+      }
+      return;
+    }
+    // 就绪后淡出再卸载，避免硬切
+    setLoaderFading(true);
+    fadeTimerRef.current = window.setTimeout(() => {
+      setShowLoader(false);
+      setLoaderFading(false);
+      fadeTimerRef.current = null;
+    }, 420);
+    return () => {
+      if (fadeTimerRef.current != null) {
+        window.clearTimeout(fadeTimerRef.current);
+        fadeTimerRef.current = null;
+      }
+    };
+  }, [booting]);
+
+  const handleSceneReady = useCallback(() => {
+    setReadyKey(tagKey);
+  }, [tagKey]);
 
   return (
     <AppShell route={route} hideBottomNav={false}>
       <div className="tc-page">
         <div className="tc-universe">
-          {!empty && tags.length > 0 ? (
-            <TagUniverse tags={tags} selected={selected} onSelect={setSelected} />
+          {!empty && hasStars ? (
+            <TagUniverse
+              tags={tags}
+              selected={selected}
+              onSelect={setSelected}
+              onReady={handleSceneReady}
+            />
           ) : (
-            <div className="tu-stage" aria-hidden />
+            <div className="tu-stage" aria-hidden>
+              <div className="tu-vignette" />
+              <div className="tu-aurora" />
+            </div>
+          )}
+
+          {showLoader && (
+            <StarMapLoader label={t('tags.loading')} fading={loaderFading} />
           )}
 
           <header className="tc-hud-top">

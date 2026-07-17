@@ -15,6 +15,8 @@ type Props = {
   tags: TagStar[];
   selected?: string | null;
   onSelect: (name: string | null) => void;
+  /** WebGL 首帧绘制完成后回调，用于收起加载层 */
+  onReady?: () => void;
   className?: string;
 };
 
@@ -278,9 +280,10 @@ function setStarVisual(s: StarRuntime, mode: 'idle' | 'hover' | 'active', dim: n
   s.visual = mode;
 }
 
-export function TagUniverse({ tags, selected, onSelect, className }: Props) {
+export function TagUniverse({ tags, selected, onSelect, onReady, className }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const onSelectRef = useRef(onSelect);
+  const onReadyRef = useRef(onReady);
   const selectedRef = useRef(selected);
   const starsRef = useRef<StarRuntime[]>([]);
   const hoverRef = useRef<string | null>(null);
@@ -293,6 +296,10 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
   useEffect(() => {
     onSelectRef.current = onSelect;
   }, [onSelect]);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
 
   useEffect(() => {
     selectedRef.current = selected;
@@ -665,6 +672,7 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
     let frame = 0;
     let last = performance.now();
     let rootAngle = 0;
+    let readyNotified = false;
     const clockStart = performance.now();
 
     const tick = (now: number) => {
@@ -784,6 +792,14 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       // 标签半频刷新也够用（交互帧全量）
       if (activeStar || hoverName || frame % 2 === 0) {
         labelRenderer.render(scene, camera);
+      }
+
+      // 首帧画完再通知外层，避免加载层撤得过早露出黑屏
+      if (!readyNotified) {
+        readyNotified = true;
+        queueMicrotask(() => {
+          if (!disposed) onReadyRef.current?.();
+        });
       }
     };
     raf = requestAnimationFrame(tick);

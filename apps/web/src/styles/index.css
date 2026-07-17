@@ -8853,6 +8853,201 @@ html[data-route="tags"] main {
   width: 100%;
 }
 
+/* 星图加载层：盖住懒加载 / 数据 / WebGL 首帧黑屏 */
+.tc-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  background:
+    radial-gradient(48% 36% at 50% 42%, rgba(79, 142, 247, 0.16), transparent 72%),
+    radial-gradient(36% 28% at 70% 68%, rgba(124, 92, 255, 0.12), transparent 75%),
+    rgba(3, 4, 12, 0.88);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 1;
+  transform: translateZ(0);
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+  pointer-events: none;
+  user-select: none;
+}
+
+.tc-loader.is-fading {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.tc-loader-sky {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  display: grid;
+  place-items: center;
+}
+
+.tc-loader-glow {
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(143, 184, 255, 0.35), rgba(79, 142, 247, 0.08) 55%, transparent 72%);
+  animation: tc-loader-breathe 2.4s ease-in-out infinite;
+  filter: blur(1px);
+}
+
+.tc-loader-orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.tc-loader-orbit--outer {
+  inset: 0;
+  border-color: rgba(143, 184, 255, 0.18);
+  border-top-color: rgba(143, 184, 255, 0.75);
+  border-right-color: rgba(124, 92, 255, 0.35);
+  animation: tc-loader-spin 3.2s linear infinite;
+}
+
+.tc-loader-orbit--mid {
+  inset: 16px;
+  border-color: rgba(79, 142, 247, 0.12);
+  border-bottom-color: rgba(47, 214, 207, 0.65);
+  border-left-color: rgba(143, 184, 255, 0.28);
+  animation: tc-loader-spin-rev 2.4s linear infinite;
+}
+
+.tc-loader-orbit--inner {
+  inset: 32px;
+  border-color: rgba(255, 255, 255, 0.05);
+  border-top-color: rgba(255, 220, 160, 0.7);
+  animation: tc-loader-spin 1.7s linear infinite;
+}
+
+.tc-loader-core {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 35% 30%, #fff 0%, #dce9ff 22%, #8fb8ff 58%, rgba(79, 142, 247, 0.2) 100%);
+  box-shadow:
+    0 0 18px rgba(143, 184, 255, 0.65),
+    0 0 42px rgba(79, 142, 247, 0.35);
+  animation: tc-loader-pulse 1.6s ease-in-out infinite;
+}
+
+.tc-loader-core-star {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  opacity: 0.95;
+}
+
+.tc-loader-spark {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #e8f0ff;
+  box-shadow: 0 0 8px rgba(200, 220, 255, 0.9);
+  animation: tc-loader-twinkle 1.8s ease-in-out infinite;
+}
+
+.tc-loader-spark.s1 { top: 10px; left: 54px; animation-delay: 0s; }
+.tc-loader-spark.s2 { top: 36px; right: 12px; width: 2px; height: 2px; animation-delay: 0.25s; }
+.tc-loader-spark.s3 { bottom: 22px; right: 28px; animation-delay: 0.5s; }
+.tc-loader-spark.s4 { bottom: 18px; left: 22px; width: 2px; height: 2px; animation-delay: 0.75s; }
+.tc-loader-spark.s5 { top: 48px; left: 8px; animation-delay: 1s; }
+.tc-loader-spark.s6 { top: 14px; right: 30px; width: 2px; height: 2px; animation-delay: 1.25s; }
+
+.tc-loader-text {
+  margin: 0;
+  color: rgba(232, 236, 244, 0.88);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.tc-loader-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 8px;
+}
+
+.tc-loader-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(143, 184, 255, 0.75);
+  animation: tc-loader-dot 1.2s ease-in-out infinite;
+}
+
+.tc-loader-dots i:nth-child(2) { animation-delay: 0.15s; }
+.tc-loader-dots i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes tc-loader-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes tc-loader-spin-rev {
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes tc-loader-pulse {
+  0%, 100% { transform: scale(0.94); opacity: 0.9; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+@keyframes tc-loader-breathe {
+  0%, 100% { transform: scale(0.92); opacity: 0.55; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@keyframes tc-loader-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+@keyframes tc-loader-dot {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-loader-glow,
+  .tc-loader-orbit,
+  .tc-loader-core,
+  .tc-loader-spark,
+  .tc-loader-dots i {
+    animation: none;
+  }
+  .tc-loader {
+    transition: none;
+  }
+}
+
 
 /* 星图页取消 main 底垫，全屏背景 */
 .page-bottom-pad:has(.tc-page) {

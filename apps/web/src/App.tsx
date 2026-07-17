@@ -15,6 +15,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { SetupPage } from './pages/SetupPage';
 import { useI18n } from './i18n';
 import { PlayerProvider } from './player/PlayerContext';
+import { StarMapLoader } from './components/tags/StarMapLoader';
 
 const TagCloudPage = lazy(() =>
   import('./pages/TagCloudPage').then((m) => ({ default: m.TagCloudPage })),
@@ -210,7 +211,13 @@ export default function App() {
           <Suspense
             fallback={
               <div className="tc-page tc-page-boot" aria-busy="true">
-                <div className="tc-universe" />
+                <div className="tc-universe">
+                  <div className="tu-stage" aria-hidden>
+                    <div className="tu-vignette" />
+                    <div className="tu-aurora" />
+                  </div>
+                  <StarMapLoader label={t('tags.loading')} />
+                </div>
               </div>
             }
           >
