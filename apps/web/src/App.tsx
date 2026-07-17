@@ -3,6 +3,7 @@ import { GlobalPlayerBar } from './components/listen/GlobalPlayerBar';
 import { fetchMe, fetchSetupStatus } from './api/client';
 import { clearAuthSession, getToken } from './lib/auth';
 import { setCachedSiteName } from './lib/site';
+import { setCachedSeo } from './lib/seo';
 import { navigate, parseHash, type Route } from './lib/router';
 import { AdminJobPage } from './pages/AdminJobPage';
 import { AdminUploadPage } from './pages/AdminUploadPage';
@@ -45,6 +46,17 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
+  // 星图是深色全屏页：在懒加载 chunk 前就把 html/body 底色切黑，避免亮色主题闪白
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.route = route.name;
+    return () => {
+      if (root.dataset.route === route.name) {
+        delete root.dataset.route;
+      }
+    };
+  }, [route.name]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -53,6 +65,9 @@ export default function App() {
         if (cancelled) return;
         if (status.siteName !== undefined || status.siteTitle !== undefined) {
           setCachedSiteName(status.siteName || '');
+        }
+        if (status.seo) {
+          setCachedSeo(status.seo);
         }
         if (!status.initialized) {
           setGate('setup');
@@ -189,7 +204,13 @@ export default function App() {
         break;
       case 'tags':
         page = (
-          <Suspense fallback={<div className="tc-page" />}>
+          <Suspense
+            fallback={
+              <div className="tc-page tc-page-boot" aria-busy="true">
+                <div className="tc-universe" />
+              </div>
+            }
+          >
             <TagCloudPage route={route} />
           </Suspense>
         );

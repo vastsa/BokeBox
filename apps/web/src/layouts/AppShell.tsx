@@ -18,6 +18,10 @@ import {
 } from '../lib/site';
 import { navigate, type Route } from '../lib/router';
 
+function prefetchTagCloud() {
+  void import('../pages/TagCloudPage');
+}
+
 export function AppShell({
   route,
   children,
@@ -77,6 +81,7 @@ export function AppShell({
               active={tagsActive}
               label={t('nav.tags')}
               onClick={() => navigate({ name: 'tags' })}
+              onIntent={prefetchTagCloud}
               icon={<IconStars size={14} />}
             />
             {!isGuest && (
@@ -164,6 +169,7 @@ export function AppShell({
               active={tagsActive}
               label={t('nav.tags')}
               onClick={() => navigate({ name: 'tags' })}
+              onIntent={prefetchTagCloud}
               icon={<IconStars size={18} />}
             />
             {!isGuest && (
@@ -204,17 +210,22 @@ function TopNavItem({
   active,
   label,
   onClick,
+  onIntent,
   icon,
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
+  onIntent?: () => void;
   icon: ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      onMouseEnter={onIntent}
+      onFocus={onIntent}
+      onTouchStart={onIntent}
       className={[
         'topbar-nav-item inline-flex min-h-[30px] items-center gap-1.5 rounded-full px-3 text-[12.5px] font-semibold transition',
         active
@@ -257,17 +268,22 @@ function BottomNavItem({
   active,
   label,
   onClick,
+  onIntent,
   icon,
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
+  onIntent?: () => void;
   icon: ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      onMouseEnter={onIntent}
+      onFocus={onIntent}
+      onTouchStart={onIntent}
       className={[
         'bottom-nav-item flex min-h-[46px] flex-col items-center justify-center gap-0.5 rounded-[12px] text-[10.5px] font-semibold transition',
         active ? 'is-active bg-[var(--brand-soft)] text-[var(--brand-2)]' : 'text-[var(--text-3)]',

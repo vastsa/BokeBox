@@ -107,8 +107,10 @@ export function TagCloudPage({ route }: { route: Route }) {
     <AppShell route={route} hideBottomNav={false}>
       <div className="tc-page">
         <div className="tc-universe">
-          {!empty && tags.length > 0 && (
+          {!empty && tags.length > 0 ? (
             <TagUniverse tags={tags} selected={selected} onSelect={setSelected} />
+          ) : (
+            <div className="tu-stage" aria-hidden />
           )}
 
           <header className="tc-hud-top">

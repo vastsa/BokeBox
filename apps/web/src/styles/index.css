@@ -8787,6 +8787,27 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
 
 
 /* ===== Star Map · 星图 ===== */
+/* 路由级深色底：亮色主题切过来时不闪白（不依赖 :has(.tc-page)） */
+html[data-route="tags"],
+html[data-route="tags"] body,
+html[data-route="tags"] #root {
+  background: #03040c !important;
+  background-image: none !important;
+  color: #e8ecf4;
+}
+
+html[data-route="tags"] .page-shell,
+html[data-route="tags"] .page-bottom-pad,
+html[data-route="tags"] main {
+  background: #03040c;
+}
+
+.tc-page-boot {
+  min-height: 100dvh;
+  width: 100%;
+}
+
+
 /* 星图页取消 main 底垫，全屏背景 */
 .page-bottom-pad:has(.tc-page) {
   padding-bottom: 0;
@@ -9283,85 +9304,85 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
 }
 
 /* 星图页：导航沉浸深色（亮色主题下也不发白） */
-html:has(.tc-page) .topbar {
+html:has(.tc-page) .topbar , html[data-route="tags"] .topbar {
   background: rgba(3, 4, 12, 0.72) !important;
   border-bottom-color: rgba(255, 255, 255, 0.06) !important;
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
 
-html:has(.tc-page) .topbar .text-\[var\(--text\)\],
-html:has(.tc-page) .topbar span.block {
+html:has(.tc-page) .topbar .text-\[var\(--text\)\], html[data-route="tags"] .topbar .text-\[var\(--text\)\],
+html:has(.tc-page) .topbar span.block , html[data-route="tags"] .topbar span.block {
   color: #e8ecf4 !important;
 }
 
-html:has(.tc-page) .topbar .text-\[var\(--text-3\)\] {
+html:has(.tc-page) .topbar .text-\[var\(--text-3\)\] , html[data-route="tags"] .topbar .text-\[var\(--text-3\)\] {
   color: #7f8eaa !important;
 }
 
 /* 桌面顶栏胶囊菜单 */
-html:has(.tc-page) .topbar-nav {
+html:has(.tc-page) .topbar-nav , html[data-route="tags"] .topbar-nav {
   background: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-html:has(.tc-page) .topbar-nav-item {
+html:has(.tc-page) .topbar-nav-item , html[data-route="tags"] .topbar-nav-item {
   color: #9aa6bf !important;
   background: transparent !important;
 }
 
-html:has(.tc-page) .topbar-nav-item:hover {
+html:has(.tc-page) .topbar-nav-item:hover , html[data-route="tags"] .topbar-nav-item:hover {
   color: #e8ecf4 !important;
   background: rgba(255, 255, 255, 0.08) !important;
 }
 
-html:has(.tc-page) .topbar-nav-item.is-active {
+html:has(.tc-page) .topbar-nav-item.is-active , html[data-route="tags"] .topbar-nav-item.is-active {
   color: #cfe0ff !important;
   background: rgba(79, 142, 247, 0.22) !important;
 }
 
 /* 手机顶栏快捷按钮 */
-html:has(.tc-page) .topbar-action-btn {
+html:has(.tc-page) .topbar-action-btn , html[data-route="tags"] .topbar-action-btn {
   color: #c5d0e4 !important;
   background: rgba(255, 255, 255, 0.06) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-html:has(.tc-page) .topbar-action-btn:hover,
-html:has(.tc-page) .topbar-action-btn.is-active {
+html:has(.tc-page) .topbar-action-btn:hover, html[data-route="tags"] .topbar-action-btn:hover,
+html:has(.tc-page) .topbar-action-btn.is-active , html[data-route="tags"] .topbar-action-btn.is-active {
   color: #dce8ff !important;
   background: rgba(79, 142, 247, 0.2) !important;
   border-color: rgba(143, 184, 255, 0.28) !important;
 }
 
-html:has(.tc-page) .topbar-oss-link {
+html:has(.tc-page) .topbar-oss-link , html[data-route="tags"] .topbar-oss-link {
   color: #9aa6bf !important;
 }
 
-html:has(.tc-page) .topbar-oss-link:hover {
+html:has(.tc-page) .topbar-oss-link:hover , html[data-route="tags"] .topbar-oss-link:hover {
   color: #e8ecf4 !important;
 }
 
 /* 底栏菜单 */
-html:has(.tc-page) .bottom-nav {
+html:has(.tc-page) .bottom-nav , html[data-route="tags"] .bottom-nav {
   background: rgba(6, 8, 16, 0.94) !important;
   border-top-color: rgba(255, 255, 255, 0.06) !important;
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
 
-html:has(.tc-page) .bottom-nav-item {
+html:has(.tc-page) .bottom-nav-item , html[data-route="tags"] .bottom-nav-item {
   color: #7f8eaa !important;
   background: transparent !important;
 }
 
-html:has(.tc-page) .bottom-nav-item.is-active {
+html:has(.tc-page) .bottom-nav-item.is-active , html[data-route="tags"] .bottom-nav-item.is-active {
   color: #cfe0ff !important;
   background: rgba(79, 142, 247, 0.18) !important;
 }
 
 /* 迷你播放条同步深色，避免亮色块打断星图 */
-html:has(.tc-page) .global-player {
+html:has(.tc-page) .global-player , html[data-route="tags"] .global-player {
   background:
     linear-gradient(180deg, rgba(79, 142, 247, 0.12), transparent 58%),
     rgba(10, 14, 24, 0.94) !important;
@@ -9369,20 +9390,71 @@ html:has(.tc-page) .global-player {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
 }
 
-html:has(.tc-page) .global-player-title {
+html:has(.tc-page) .global-player-title , html[data-route="tags"] .global-player-title {
   color: #e8ecf4 !important;
 }
 
-html:has(.tc-page) .global-player-time,
-html:has(.tc-page) .global-player .global-rate {
+html:has(.tc-page) .global-player-time, html[data-route="tags"] .global-player-time,
+html:has(.tc-page) .global-player .global-rate , html[data-route="tags"] .global-player .global-rate {
   color: #8b95a7 !important;
 }
 
-html:has(.tc-page) .global-player .global-ctrl {
+html:has(.tc-page) .global-player .global-ctrl , html[data-route="tags"] .global-player .global-ctrl {
   color: #c5d0e4 !important;
   background: rgba(255, 255, 255, 0.06) !important;
 }
 
-html:has(.tc-page) .open-source-shell {
+html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-shell {
   display: none;
+}
+
+
+/* ===== Settings · SEO preview ===== */
+.settings-seo-preview {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--separator);
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+}
+.settings-seo-preview-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.settings-seo-preview-title {
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--text);
+  line-height: 1.35;
+}
+.settings-seo-preview-desc {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.5;
+  word-break: break-word;
+}
+.settings-seo-preview-attr {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.settings-seo-preview-attr a {
+  color: var(--brand-2);
+  text-decoration: none;
+  word-break: break-all;
+}
+.settings-seo-preview-attr a:hover {
+  text-decoration: underline;
+}
+.settings-seo-preview-attr-text {
+  opacity: 0.9;
 }
