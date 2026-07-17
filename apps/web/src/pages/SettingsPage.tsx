@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   changePassword,
   fetchAccessSettings,
@@ -12,6 +12,7 @@ import {
 import { GlobalCoverPromptSettings } from '../components/admin/GlobalCoverPromptSettings';
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
 import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
+import { ContentLocaleSelect } from '../components/admin/ContentLocaleSelect';
 import { IconRefresh } from '../components/icons';
 import { PageHeader } from '../components/ui/PageHeader';
 import { clearAuthSession } from '../lib/auth';
@@ -22,7 +23,6 @@ import {
   subscribeTheme,
   type ThemePreference,
 } from '../lib/theme';
-import { ContentLocaleSelect } from '../components/admin/ContentLocaleSelect';
 import {
   resolveContentLocale,
   useI18n,
@@ -34,11 +34,71 @@ import { setCachedSiteName } from '../lib/site';
 import {
   buildPublicSiteSeo,
   setCachedSeo,
-  SITE_ATTRIBUTION,
-  withSeoAttribution,
 } from '../lib/seo';
 
-type SettingsTab = 'voice' | 'persona' | 'cover' | 'ai' | 'account';
+type SettingsTab = 'voice' | 'persona' | 'cover' | 'ai' | 'site' | 'account';
+
+function SettingsPanel({
+  id,
+  active,
+  children,
+}: {
+  id: SettingsTab;
+  active: boolean;
+  children: ReactNode;
+}) {
+  if (!active) return null;
+  return (
+    <div
+      className="settings-tab-panel"
+      role="tabpanel"
+      id={`settings-panel-${id}`}
+      aria-labelledby={`settings-tab-${id}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SettingsCard({
+  children,
+  className = '',
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={['settings-card', 'settings-card-wide', className]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {children}
+    </section>
+  );
+}
+
+function SettingsBlock({
+  title,
+  desc,
+  children,
+  bare = false,
+}: {
+  title: string;
+  desc?: string;
+  children: ReactNode;
+  bare?: boolean;
+}) {
+  return (
+    <div className={bare ? 'settings-block is-bare' : 'settings-block'}>
+      <div className="settings-block-head">
+        <h3>{title}</h3>
+        {desc ? <p>{desc}</p> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export function SettingsPage({ route }: { route: Route }) {
   const { t, locale, setLocale, locales, meta } = useI18n();
@@ -67,25 +127,51 @@ export function SettingsPage({ route }: { route: Route }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [themePref, setThemePref] = useState<ThemePreference>(() => getThemePreference());
+  const [themePref, setThemePref] = useState<ThemePreference>(() =>
+    getThemePreference(),
+  );
   const [guestHomePublic, setGuestHomePublic] = useState(false);
   const [siteName, setSiteName] = useState('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
   const [savingAccess, setSavingAccess] = useState(false);
-  const [savingSiteName, setSavingSiteName] = useState(false);
-  const [savingSeo, setSavingSeo] = useState(false);
+  const [savingSite, setSavingSite] = useState(false);
 
   const tabs = useMemo(
     () =>
       (
         [
-          { id: 'voice', label: t('settings.tabVoice'), desc: t('settings.tabVoiceDesc') },
-          { id: 'persona', label: t('settings.tabPersona'), desc: t('settings.tabPersonaDesc') },
-          { id: 'cover', label: t('settings.tabCover'), desc: t('settings.tabCoverDesc') },
-          { id: 'ai', label: t('settings.tabAi'), desc: t('settings.tabAiDesc') },
-          { id: 'account', label: t('settings.tabAccount'), desc: t('settings.tabAccountDesc') },
+          {
+            id: 'voice' as const,
+            label: t('settings.tabVoice'),
+            desc: t('settings.tabVoiceDesc'),
+          },
+          {
+            id: 'persona' as const,
+            label: t('settings.tabPersona'),
+            desc: t('settings.tabPersonaDesc'),
+          },
+          {
+            id: 'cover' as const,
+            label: t('settings.tabCover'),
+            desc: t('settings.tabCoverDesc'),
+          },
+          {
+            id: 'ai' as const,
+            label: t('settings.tabAi'),
+            desc: t('settings.tabAiDesc'),
+          },
+          {
+            id: 'site' as const,
+            label: t('settings.tabSite'),
+            desc: t('settings.tabSiteDesc'),
+          },
+          {
+            id: 'account' as const,
+            label: t('settings.tabAccount'),
+            desc: t('settings.tabAccountDesc'),
+          },
         ] as const
       ).map((x) => ({ ...x })),
     [t],
@@ -96,9 +182,18 @@ export function SettingsPage({ route }: { route: Route }) {
     [tab, tabs],
   );
 
-  const onLocaleChange = (next: Locale) => {
-    setLocale(next);
-  };
+  const seoPreview = useMemo(
+    () =>
+      buildPublicSiteSeo(
+        {
+          title: seoTitle,
+          description: seoDescription,
+          keywords: seoKeywords,
+        },
+        siteName,
+      ),
+    [seoTitle, seoDescription, seoKeywords, siteName],
+  );
 
   useEffect(() => {
     return subscribeTheme((theme) => {
@@ -124,7 +219,11 @@ export function SettingsPage({ route }: { route: Route }) {
       setGuestHomePublic(Boolean(access.guestHomePublic));
       setSiteName(String(access.siteName || ''));
       setCachedSiteName(access.siteName || '');
-      const input = access.seoInput || { title: '', description: '', keywords: '' };
+      const input = access.seoInput || {
+        title: '',
+        description: '',
+        keywords: '',
+      };
       setSeoTitle(input.title || '');
       setSeoDescription(input.description || '');
       setSeoKeywords(input.keywords || '');
@@ -234,49 +333,38 @@ export function SettingsPage({ route }: { route: Route }) {
     }
   };
 
-  const onSaveSiteName = async () => {
-    setSavingSiteName(true);
-    setMsg(null);
-    setError(null);
-    try {
-      const res = await saveAccessSettings({ siteName });
-      setSiteName(res.siteName || '');
-      setCachedSiteName(res.siteName || '');
-      if (res.seo) setCachedSeo(res.seo);
-      setMsg(t('settings.siteNameSaved'));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSavingSiteName(false);
-    }
-  };
-
-  const onSaveSeo = async () => {
-    setSavingSeo(true);
+  /** 站点名称 + SEO 一并保存 */
+  const onSaveSite = async () => {
+    setSavingSite(true);
     setMsg(null);
     setError(null);
     try {
       const res = await saveAccessSettings({
+        siteName,
         seo: {
           title: seoTitle,
           description: seoDescription,
           keywords: seoKeywords,
         },
       });
-      const input = res.seoInput || { title: '', description: '', keywords: '' };
+      setSiteName(res.siteName || '');
+      setCachedSiteName(res.siteName || '');
+      const input = res.seoInput || {
+        title: '',
+        description: '',
+        keywords: '',
+      };
       setSeoTitle(input.title || '');
       setSeoDescription(input.description || '');
       setSeoKeywords(input.keywords || '');
       if (res.seo) setCachedSeo(res.seo);
-      setMsg(t('settings.seoSaved'));
+      setMsg(t('settings.siteSaved'));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setSavingSeo(false);
+      setSavingSite(false);
     }
   };
-
-
 
   return (
     <AppShell route={route}>
@@ -285,7 +373,7 @@ export function SettingsPage({ route }: { route: Route }) {
           title={t('settings.title')}
           subtitle={
             username
-              ? t('settings.subtitle') + (username ? ` · ${username}` : '')
+              ? `${t('settings.subtitle')} · ${username}`
               : t('settings.subtitle')
           }
           actions={
@@ -303,7 +391,7 @@ export function SettingsPage({ route }: { route: Route }) {
 
         <div className="settings-shell">
           <nav className="settings-nav" aria-label={t('settings.title')}>
-            <div className="settings-nav-label">{t('settings.title')}</div>
+            <div className="settings-nav-label">{t('settings.navLabel')}</div>
             <div className="settings-nav-track" role="tablist">
               {tabs.map((item) => {
                 const active = tab === item.id;
@@ -337,58 +425,33 @@ export function SettingsPage({ route }: { route: Route }) {
               <div className="auth-loading">{t('settings.loading')}</div>
             ) : (
               <div className="settings-tab-panels">
-                {tab === 'voice' && (
-                  <div
-                    className="settings-tab-panel"
-                    role="tabpanel"
-                    id="settings-panel-voice"
-                    aria-labelledby="settings-tab-voice"
-                  >
-                    <GlobalTtsSettings />
-                  </div>
-                )}
+                <SettingsPanel id="voice" active={tab === 'voice'}>
+                  <GlobalTtsSettings />
+                </SettingsPanel>
 
-                {tab === 'persona' && (
-                  <div
-                    className="settings-tab-panel"
-                    role="tabpanel"
-                    id="settings-panel-persona"
-                    aria-labelledby="settings-tab-persona"
-                  >
-                    <GlobalScriptPromptSettings />
-                  </div>
-                )}
+                <SettingsPanel id="persona" active={tab === 'persona'}>
+                  <GlobalScriptPromptSettings />
+                </SettingsPanel>
 
-                {tab === 'cover' && (
-                  <div
-                    className="settings-tab-panel"
-                    role="tabpanel"
-                    id="settings-panel-cover"
-                    aria-labelledby="settings-tab-cover"
-                  >
-                    <GlobalCoverPromptSettings />
-                  </div>
-                )}
+                <SettingsPanel id="cover" active={tab === 'cover'}>
+                  <GlobalCoverPromptSettings />
+                </SettingsPanel>
 
-                {tab === 'ai' && (
-                  <div
-                    className="settings-tab-panel"
-                    role="tabpanel"
-                    id="settings-panel-ai"
-                    aria-labelledby="settings-tab-ai"
-                  >
-                    <section className="settings-card settings-card-wide">
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.connection')}</h3>
-                          <p>{t('settings.connectionDesc')}</p>
-                        </div>
+                <SettingsPanel id="ai" active={tab === 'ai'}>
+                  <div className="settings-stack">
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.connection')}
+                        desc={t('settings.connectionDesc')}
+                      >
                         <div className="settings-fields">
                           <label className="auth-field">
                             <span>
                               API Key
                               <em className="settings-field-meta">
-                                {ai?.apiKeySet ? t('settings.apiKeySet') : t('settings.apiKeyUnset')}
+                                {ai?.apiKeySet
+                                  ? t('settings.apiKeySet')
+                                  : t('settings.apiKeyUnset')}
                               </em>
                             </span>
                             <input
@@ -408,18 +471,19 @@ export function SettingsPage({ route }: { route: Route }) {
                             <input
                               value={baseUrl}
                               onChange={(e) => setBaseUrl(e.target.value)}
-                              placeholder="https://api.example.com/v1"
                               spellCheck={false}
+                              autoComplete="off"
                             />
                           </label>
                         </div>
-                      </div>
+                      </SettingsBlock>
+                    </SettingsCard>
 
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.contentLanguage')}</h3>
-                          <p>{t('settings.contentLanguageDesc')}</p>
-                        </div>
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.contentLanguage')}
+                        desc={t('settings.contentLanguageDesc')}
+                      >
                         <ContentLocaleSelect
                           className="settings-locale-select"
                           value={contentLocale}
@@ -427,13 +491,14 @@ export function SettingsPage({ route }: { route: Route }) {
                           aria-label={t('settings.contentLanguageAria')}
                           onChange={setContentLocale}
                         />
-                      </div>
+                      </SettingsBlock>
+                    </SettingsCard>
 
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.models')}</h3>
-                          <p>{t('settings.modelsDesc')}</p>
-                        </div>
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.models')}
+                        desc={t('settings.modelsDesc')}
+                      >
                         <div className="settings-fields settings-fields-2">
                           <label className="auth-field">
                             <span>{t('settings.chatModel')}</span>
@@ -478,24 +543,27 @@ export function SettingsPage({ route }: { route: Route }) {
                               spellCheck={false}
                             />
                           </label>
+                          <label className="auth-field">
+                            <span>{t('settings.defaultVoiceId')}</span>
+                            <input
+                              value={defaultVoice}
+                              onChange={(e) => setDefaultVoice(e.target.value)}
+                              placeholder={t('settings.defaultVoicePlaceholder')}
+                              spellCheck={false}
+                            />
+                          </label>
                         </div>
                         <p className="settings-field-tip">
                           {t('settings.imageHintPrefix')}
-                          <code>/images/generations</code> {t('settings.imageHintSuffix')}
+                          <code>/images/generations</code>{' '}
+                          {t('settings.imageHintSuffix')}
                         </p>
-                        <label className="auth-field settings-field-span">
-                          <span>{t('settings.defaultVoiceId')}</span>
-                          <input
-                            value={defaultVoice}
-                            onChange={(e) => setDefaultVoice(e.target.value)}
-                            placeholder={t('settings.defaultVoicePlaceholder')}
-                            spellCheck={false}
-                          />
-                        </label>
-                      </div>
+                      </SettingsBlock>
 
                       <div className="settings-card-actions">
-                        <span className="settings-card-hint">{t('settings.adminOnly')}</span>
+                        <span className="settings-card-hint">
+                          {t('settings.adminOnly')}
+                        </span>
                         <button
                           type="button"
                           className="nl-btn nl-btn-primary"
@@ -505,40 +573,17 @@ export function SettingsPage({ route }: { route: Route }) {
                           {savingAi ? t('common.saving') : t('common.save')}
                         </button>
                       </div>
-                    </section>
+                    </SettingsCard>
                   </div>
-                )}
+                </SettingsPanel>
 
-                {tab === 'account' && (
-                  <div
-                    className="settings-tab-panel"
-                    role="tabpanel"
-                    id="settings-panel-account"
-                    aria-labelledby="settings-tab-account"
-                  >
-                    <section className="settings-card settings-card-wide">
-                      <div className="settings-profile">
-                        <div className="settings-profile-meta">
-                          <div className="settings-profile-kicker">{t('settings.profileKicker')}</div>
-                          <div className="settings-profile-name">
-                            {username || '—'}
-                          </div>
-                          <div className="settings-profile-sub">{t('common.admin')}</div>
-                        </div>
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-secondary"
-                          onClick={() => void onLogout()}
-                        >
-                          {t('auth.logout')}
-                        </button>
-                      </div>
-
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.siteName')}</h3>
-                          <p>{t('settings.siteNameDesc')}</p>
-                        </div>
+                <SettingsPanel id="site" active={tab === 'site'}>
+                  <div className="settings-stack">
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.siteBrand')}
+                        desc={t('settings.siteBrandDesc')}
+                      >
                         <div className="settings-fields">
                           <label className="auth-field settings-field-span">
                             <span>{t('settings.siteName')}</span>
@@ -551,26 +596,6 @@ export function SettingsPage({ route }: { route: Route }) {
                               spellCheck={false}
                             />
                           </label>
-                        </div>
-                        <div className="settings-card-actions">
-                          <span />
-                          <button
-                            type="button"
-                            className="nl-btn nl-btn-primary"
-                            onClick={() => void onSaveSiteName()}
-                            disabled={savingSiteName}
-                          >
-                            {savingSiteName ? t('common.saving') : t('common.save')}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.seo')}</h3>
-                          <p>{t('settings.seoDesc')}</p>
-                        </div>
-                        <div className="settings-fields">
                           <label className="auth-field settings-field-span">
                             <span>{t('settings.seoTitle')}</span>
                             <input
@@ -587,8 +612,12 @@ export function SettingsPage({ route }: { route: Route }) {
                             <textarea
                               className="nl-textarea"
                               value={seoDescription}
-                              onChange={(e) => setSeoDescription(e.target.value)}
-                              placeholder={t('settings.seoDescriptionPlaceholder')}
+                              onChange={(e) =>
+                                setSeoDescription(e.target.value)
+                              }
+                              placeholder={t(
+                                'settings.seoDescriptionPlaceholder',
+                              )}
                               maxLength={300}
                               rows={3}
                             />
@@ -599,90 +628,140 @@ export function SettingsPage({ route }: { route: Route }) {
                               type="text"
                               value={seoKeywords}
                               onChange={(e) => setSeoKeywords(e.target.value)}
-                              placeholder={t('settings.seoKeywordsPlaceholder')}
+                              placeholder={t(
+                                'settings.seoKeywordsPlaceholder',
+                              )}
                               maxLength={200}
                               spellCheck={false}
                             />
                           </label>
                         </div>
-                        <div className="settings-seo-preview" aria-label={t('settings.seoPreview')}>
-                          <div className="settings-seo-preview-label">{t('settings.seoPreview')}</div>
+
+                        <div
+                          className="settings-seo-preview"
+                          aria-label={t('settings.seoPreview')}
+                        >
+                          <div className="settings-seo-preview-label">
+                            {t('settings.seoPreview')}
+                          </div>
                           <div className="settings-seo-preview-title">
-                            {buildPublicSiteSeo({ title: seoTitle, description: seoDescription, keywords: seoKeywords }, siteName).title}
+                            {seoPreview.title}
                           </div>
                           <div className="settings-seo-preview-desc">
-                            {withSeoAttribution(seoDescription || buildPublicSiteSeo({ title: seoTitle }, siteName).title)}
+                            {seoPreview.description}
                           </div>
-                          <div className="settings-seo-preview-attr">
-                            <span className="settings-seo-preview-attr-text">{SITE_ATTRIBUTION}</span>
+                          <div className="settings-seo-preview-kw">
+                            {seoPreview.keywords}
                           </div>
                         </div>
-                        <div className="settings-card-actions">
-                          <span />
-                          <button
-                            type="button"
-                            className="nl-btn nl-btn-primary"
-                            onClick={() => void onSaveSeo()}
-                            disabled={savingSeo}
-                          >
-                            {savingSeo ? t('common.saving') : t('common.save')}
-                          </button>
-                        </div>
-                      </div>
+                      </SettingsBlock>
 
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.guestHome')}</h3>
-                          <p>{t('settings.guestHomeDesc')}</p>
-                        </div>
+                      <div className="settings-card-actions">
+                        <span />
+                        <button
+                          type="button"
+                          className="nl-btn nl-btn-primary"
+                          onClick={() => void onSaveSite()}
+                          disabled={savingSite}
+                        >
+                          {savingSite ? t('common.saving') : t('common.save')}
+                        </button>
+                      </div>
+                    </SettingsCard>
+
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.guestHome')}
+                        desc={t('settings.guestHomeDesc')}
+                      >
                         <label
                           className={[
                             'upload-switch-row',
-                            savingAccess ? 'is-locked' : '',
-                          ].join(' ')}
+                            guestHomePublic ? 'is-on' : '',
+                            savingAccess ? 'is-busy' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
                         >
-                          <div className="upload-switch-copy">
-                            <div className="title">{t('settings.guestHomeToggle')}</div>
-                            <div className="desc">{t('settings.guestHomeToggleDesc')}</div>
-                          </div>
-                          <span
-                            className={[
-                              'upload-switch',
-                              guestHomePublic ? 'is-on' : '',
-                            ].join(' ')}
-                          >
-                            <i />
-                            <input
-                              type="checkbox"
-                              className="upload-switch-input"
-                              checked={guestHomePublic}
-                              disabled={savingAccess}
-                              onChange={(e) => void onToggleGuestHome(e.target.checked)}
-                              aria-label={t('settings.guestHomeToggle')}
-                            />
+                          <span className="upload-switch-copy">
+                            <span className="title">
+                              {t('settings.guestHomeToggle')}
+                            </span>
+                            <span className="desc">
+                              {t('settings.guestHomeToggleDesc')}
+                            </span>
                           </span>
+                          <input
+                            type="checkbox"
+                            className="upload-switch-input"
+                            checked={guestHomePublic}
+                            disabled={savingAccess}
+                            onChange={(e) =>
+                              void onToggleGuestHome(e.target.checked)
+                            }
+                          />
+                          <span className="upload-switch-ui" aria-hidden />
                         </label>
-                      </div>
+                      </SettingsBlock>
+                    </SettingsCard>
+                  </div>
+                </SettingsPanel>
 
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.language')}</h3>
-                          <p>{t('settings.languageDesc')}</p>
+                <SettingsPanel id="account" active={tab === 'account'}>
+                  <div className="settings-stack">
+                    <SettingsCard>
+                      <div className="settings-profile">
+                        <div className="settings-profile-meta">
+                          <div className="settings-profile-kicker">
+                            {t('settings.profileKicker')}
+                          </div>
+                          <div className="settings-profile-name">
+                            {username || '—'}
+                          </div>
+                          <div className="settings-profile-sub">
+                            {t('common.admin')}
+                          </div>
                         </div>
-                        <div className="theme-pref-grid" role="radiogroup" aria-label={t('settings.languageAria')}>
-                          {locales.map((id) => {
-                            const active = locale === id;
-                            const item = meta[id];
+                        <button
+                          type="button"
+                          className="nl-btn nl-btn-secondary"
+                          onClick={() => void onLogout()}
+                        >
+                          {t('auth.logout')}
+                        </button>
+                      </div>
+                    </SettingsCard>
+
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.language')}
+                        desc={t('settings.languageDesc')}
+                      >
+                        <div
+                          className="theme-pref-grid"
+                          role="radiogroup"
+                          aria-label={t('settings.languageAria')}
+                        >
+                          {locales.map((code) => {
+                            const item = meta[code];
+                            const active = locale === code;
                             return (
                               <button
-                                key={id}
+                                key={code}
                                 type="button"
                                 role="radio"
                                 aria-checked={active}
-                                className={['theme-pref-card', active ? 'is-active' : ''].join(' ')}
-                                onClick={() => onLocaleChange(id)}
+                                className={[
+                                  'theme-pref-card',
+                                  active ? 'is-active' : '',
+                                ].join(' ')}
+                                onClick={() => setLocale(code)}
                               >
-                                <span className="theme-pref-swatch lang-pref-swatch" data-tone={id} aria-hidden>
+                                <span
+                                  className="theme-pref-swatch lang-pref-swatch"
+                                  data-tone={code}
+                                  aria-hidden
+                                >
                                   {item.short}
                                 </span>
                                 <span className="theme-pref-copy">
@@ -693,18 +772,31 @@ export function SettingsPage({ route }: { route: Route }) {
                             );
                           })}
                         </div>
-                      </div>
+                      </SettingsBlock>
+                    </SettingsCard>
 
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.theme')}</h3>
-                          <p>{t('settings.themeDesc')}</p>
-                        </div>
-                        <div className="theme-pref-grid" role="radiogroup" aria-label={t('settings.themeAria')}>
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.theme')}
+                        desc={t('settings.themeDesc')}
+                      >
+                        <div
+                          className="theme-pref-grid"
+                          role="radiogroup"
+                          aria-label={t('settings.themeAria')}
+                        >
                           {(
                             [
-                              { id: 'light', label: t('settings.themeLight'), desc: t('settings.themeLightDesc') },
-                              { id: 'dark', label: t('settings.themeDark'), desc: t('settings.themeDarkDesc') },
+                              {
+                                id: 'light' as const,
+                                label: t('settings.themeLight'),
+                                desc: t('settings.themeLightDesc'),
+                              },
+                              {
+                                id: 'dark' as const,
+                                label: t('settings.themeDark'),
+                                desc: t('settings.themeDarkDesc'),
+                              },
                             ] as const
                           ).map((item) => {
                             const active = themePref === item.id;
@@ -714,10 +806,17 @@ export function SettingsPage({ route }: { route: Route }) {
                                 type="button"
                                 role="radio"
                                 aria-checked={active}
-                                className={['theme-pref-card', active ? 'is-active' : ''].join(' ')}
+                                className={[
+                                  'theme-pref-card',
+                                  active ? 'is-active' : '',
+                                ].join(' ')}
                                 onClick={() => onThemeChange(item.id)}
                               >
-                                <span className="theme-pref-swatch" data-tone={item.id} aria-hidden />
+                                <span
+                                  className="theme-pref-swatch"
+                                  data-tone={item.id}
+                                  aria-hidden
+                                />
                                 <span className="theme-pref-copy">
                                   <strong>{item.label}</strong>
                                   <em>{item.desc}</em>
@@ -726,36 +825,14 @@ export function SettingsPage({ route }: { route: Route }) {
                             );
                           })}
                         </div>
-                      </div>
+                      </SettingsBlock>
+                    </SettingsCard>
 
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.aboutOpenSource')}</h3>
-                          <p>{t('settings.aboutOpenSourceDesc')}</p>
-                        </div>
-                        <div className="settings-oss-row">
-                          <div className="settings-oss-meta">
-                            <span className="settings-oss-badge">{t('app.openSourceBadge')}</span>
-                            <span>
-                              {t('settings.licenseLabel')}: {PROJECT_LICENSE_SPDX}
-                            </span>
-                          </div>
-                          <a
-                            className="nl-btn nl-btn-secondary"
-                            href={PROJECT_GITHUB_URL}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                          >
-                            {t('settings.openGithub')}
-                          </a>
-                        </div>
-                      </div>
-
-                      <div className="settings-block">
-                        <div className="settings-block-head">
-                          <h3>{t('settings.changePassword')}</h3>
-                          <p>{t('settings.changePasswordDesc')}</p>
-                        </div>
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.changePassword')}
+                        desc={t('settings.changePasswordDesc')}
+                      >
                         <div className="settings-fields">
                           <label className="auth-field">
                             <span>{t('settings.currentPassword')}</span>
@@ -791,22 +868,51 @@ export function SettingsPage({ route }: { route: Route }) {
                             </label>
                           </div>
                         </div>
-                      </div>
-
+                      </SettingsBlock>
                       <div className="settings-card-actions">
-                        <span />
+                        <span className="settings-card-hint">
+                          {t('settings.passwordHint')}
+                        </span>
                         <button
                           type="button"
                           className="nl-btn nl-btn-primary"
                           onClick={() => void onChangePassword()}
                           disabled={savingPw}
                         >
-                          {savingPw ? t('settings.updatingPassword') : t('settings.updatePassword')}
+                          {savingPw
+                            ? t('settings.updatingPassword')
+                            : t('settings.updatePassword')}
                         </button>
                       </div>
-                    </section>
+                    </SettingsCard>
+
+                    <SettingsCard>
+                      <SettingsBlock
+                        title={t('settings.aboutOpenSource')}
+                        desc={t('settings.aboutOpenSourceDesc')}
+                      >
+                        <div className="settings-oss-row">
+                          <div className="settings-oss-meta">
+                            <span className="settings-oss-badge">
+                              {t('app.openSourceBadge')}
+                            </span>
+                            <span>
+                              {t('settings.licenseLabel')}: {PROJECT_LICENSE_SPDX}
+                            </span>
+                          </div>
+                          <a
+                            className="nl-btn nl-btn-secondary"
+                            href={PROJECT_GITHUB_URL}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                          >
+                            {t('settings.openGithub')}
+                          </a>
+                        </div>
+                      </SettingsBlock>
+                    </SettingsCard>
                   </div>
-                )}
+                </SettingsPanel>
               </div>
             )}
           </div>
