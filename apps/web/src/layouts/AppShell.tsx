@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
+import { BrandMark } from '../components/BrandMark';
 import {
-  IconHeadphones,
   IconLibrary,
   IconSpark,
   IconUpload,
@@ -40,9 +40,7 @@ export function AppShell({
             onClick={() => navigate({ name: 'home' })}
             className="flex min-h-[36px] items-center gap-2"
           >
-            <span className="brand-mark">
-              <IconHeadphones size={15} />
-            </span>
+            <BrandMark size={32} />
             <span className="text-left">
               <span className="block text-[14.5px] font-semibold leading-none tracking-[-0.02em] text-[var(--text)]">
                 BokeBox

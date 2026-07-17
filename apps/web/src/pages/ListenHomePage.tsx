@@ -9,11 +9,11 @@ import {
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
 import {
-  IconLibrary,
   IconPause,
   IconPlay,
 } from '../components/icons';
 import { CoverArt } from '../components/ui/CoverArt';
+import { BrandMascot } from '../components/BrandMark';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageHeader } from '../components/ui/PageHeader';
 import {
@@ -307,7 +307,7 @@ export function ListenHomePage({ route }: { route: Route }) {
             />
           ) : !library.length ? (
             <EmptyState
-              icon={<IconLibrary size={22} />}
+              icon={<BrandMascot size={56} />}
               title={t('home.emptyTitle')}
               description={t('home.emptyDesc')}
               actionLabel={t('home.emptyAction')}

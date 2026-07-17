@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/web/public/favicon.svg" width="96" height="96" alt="BokeBox" />
+  <img src="docs/img/logo.svg" width="120" height="120" alt="BokeBox" />
 </p>
 
 <h1 align="center">BokeBox · 播匣</h1>

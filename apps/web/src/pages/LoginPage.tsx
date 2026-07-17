@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchSetupStatus, login } from '../api/client';
-import { IconHeadphones } from '../components/icons';
+import { BrandMascot } from '../components/BrandMark';
 import { OpenSourceMark } from '../components/OpenSourceMark';
 import { useI18n } from '../i18n';
 import { getStoredUsername, setAuthSession } from '../lib/auth';
@@ -62,11 +62,9 @@ export function LoginPage() {
   return (
     <div className="auth-screen">
       <form className="auth-card nl-enter" onSubmit={(e) => void onSubmit(e)}>
-        <div className="auth-brand">
-          <span className="brand-mark">
-            <IconHeadphones size={16} />
-          </span>
-          <div>
+        <div className="auth-brand auth-brand-stack">
+          <BrandMascot size={96} className="auth-brand-mascot" />
+          <div className="auth-brand-copy">
             <div className="auth-brand-title">BokeBox</div>
             <div className="auth-brand-sub">{t('auth.brandSub')}</div>
           </div>

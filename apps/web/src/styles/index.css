@@ -6996,8 +6996,21 @@ button.pb-cover {
   position: relative;
   z-index: var(--z-raised);
 }
+.nl-empty-icon .brand-mascot {
+  width: 56px;
+  height: 56px;
+  filter: none;
+}
+.nl-empty-icon:has(.brand-mascot) {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.nl-empty-icon:has(.brand-mascot)::before {
+  display: none;
+}
 
-/* 顶栏品牌标 */
+/* 顶栏 / 认证页品牌标 · IP 形象 logo.svg */
 .brand-mark {
   position: relative;
   display: grid;
@@ -7005,23 +7018,31 @@ button.pb-cover {
   width: var(--control-xl);
   height: var(--control-xl);
   border-radius: var(--radius-md-minus);
-  color: var(--text-inv);
-  background: var(--brand-grad);
-  box-shadow: var(--shadow-fab);
+  background: transparent;
+  box-shadow: none;
   overflow: hidden;
+  flex: 0 0 auto;
 }
-.brand-mark::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(90% 70% at 20% 15%, var(--white-a28), transparent 50%),
-    radial-gradient(circle at 80% 80%, var(--black-a12), transparent 45%);
-  pointer-events: none;
+.brand-mark-img,
+.brand-logo,
+.brand-mascot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
-.brand-mark > * {
-  position: relative;
-  z-index: var(--z-raised);
+.brand-logo {
+  width: auto;
+  height: auto;
+}
+.brand-mascot {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  filter: drop-shadow(0 10px 24px color-mix(in srgb, var(--brand) 18%, transparent));
 }
 
 /* CoverArt 与既有尺寸 class 的兼容 */
@@ -7297,6 +7318,21 @@ html[data-theme="dark"] .script-prompt-mode-tab.is-active {
   align-items: center;
   gap: var(--space-2_5);
   margin-bottom: var(--space-4);
+}
+.auth-brand-stack {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+}
+.auth-brand-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.auth-brand-mascot {
+  width: 96px;
+  height: 96px;
 }
 .auth-brand-title {
   font-size: var(--fs-lg);

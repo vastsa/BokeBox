@@ -6,7 +6,8 @@ import {
 } from '../api/client';
 import { TtsModePicker } from '../components/admin/TtsModePicker';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from '../components/admin/GlobalTtsSettings';
-import { IconCheck, IconHeadphones, IconMic, IconSpark } from '../components/icons';
+import { BrandMascot } from '../components/BrandMark';
+import { IconCheck, IconMic, IconSpark } from '../components/icons';
 import { OpenSourceMark } from '../components/OpenSourceMark';
 import { setAuthSession } from '../lib/auth';
 import { navigate } from '../lib/router';
@@ -192,11 +193,9 @@ export function SetupPage() {
   return (
     <div className="auth-screen">
       <div className="auth-card auth-card-wide nl-enter">
-        <div className="auth-brand">
-          <span className="brand-mark">
-            <IconHeadphones size={16} />
-          </span>
-          <div>
+        <div className="auth-brand auth-brand-stack">
+          <BrandMascot size={88} className="auth-brand-mascot" />
+          <div className="auth-brand-copy">
             <div className="auth-brand-title">BokeBox</div>
             <div className="auth-brand-sub">{t('setup.brandSub')}</div>
           </div>
