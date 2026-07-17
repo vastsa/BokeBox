@@ -63,6 +63,19 @@ storage/plugins/source/<dir>/
 
 需登录（走全局 auth guard）。
 
+## 任务指定插件
+
+创建 URL 任务时可指定插件：
+
+```http
+POST /api/jobs/from-url
+{ "url": "https://example.com/a.mp4", "pluginId": "direct-http" }
+```
+
+- 缺省 `pluginId`：自动匹配（启用 ∩ available ∩ canHandle，低风险优先）
+- 指定 `pluginId`：强制使用该插件（须已启用且 canHandle）
+- 任务字段：`sourcePluginId`（pipeline 导入时透传）
+
 ## 使用
 
 ```ts

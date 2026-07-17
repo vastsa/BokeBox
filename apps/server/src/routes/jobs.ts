@@ -34,6 +34,12 @@ import {
   extractReadableText,
   isValidHttpUrl,
 } from '../services/urlImporter.js';
+import {
+  ensureBuiltinSourcePlugins,
+  getSourcePluginRegistration,
+  isSourcePluginEnabled,
+  refreshExternalSourcePlugins,
+} from '../sources/index.js';
 import { getActiveTtsUiMeta } from '../services/ttsSynthesizer.js';
 import {
   listAsrProviderDescriptors,
@@ -692,6 +698,8 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
   app.post<{
     Body: {
       url?: string;
+      /** 指定 Source 插件；缺省自动匹配 */
+      pluginId?: string;
       tts?: TtsOptions;
       ttsSourceMode?: 'global' | 'custom';
       published?: boolean;
@@ -705,8 +713,61 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     if (!url) {
       return reply.code(400).send({ error: t(getRequestLocale(req), 'job.urlRequired') });
     }
-    if (!isValidHttpUrl(url)) {
-      return reply.code(400).send({ error: t(getRequestLocale(req), 'job.urlInvalid') });
+
+    const pluginId = String(req.body?.pluginId || '').trim() || undefined;
+    const localeMsg = getRequestLocale(req);
+    ensureBuiltinSourcePlugins();
+
+    if (pluginId) {
+      let reg = getSourcePluginRegistration(pluginId);
+      if (!reg) {
+        // 可能刚放入目录尚未 rescan
+        await refreshExternalSourcePlugins();
+        reg = getSourcePluginRegistration(pluginId);
+      }
+      if (!reg) {
+        return reply.code(400).send({
+          error: t(localeMsg, 'job.pluginNotFound', { id: pluginId }),
+        });
+      }
+      if (!reg.plugin || reg.loadError) {
+        const detail = reg.loadError ? ` (${reg.loadError})` : '';
+        return reply.code(400).send({
+          error: t(localeMsg, 'job.pluginUnavailable', {
+            id: pluginId,
+            detail,
+          }),
+        });
+      }
+      if (!isSourcePluginEnabled(pluginId)) {
+        return reply.code(400).send({
+          error: t(localeMsg, 'job.pluginDisabled', { id: pluginId }),
+        });
+      }
+      if (!reg.plugin.isAvailable()) {
+        return reply.code(400).send({
+          error: t(localeMsg, 'job.pluginUnavailable', {
+            id: pluginId,
+            detail: '',
+          }),
+        });
+      }
+      // jobId 仅用于 canHandle 形状；正式导入时再写真实 id
+      if (
+        !reg.plugin.canHandle({
+          type: 'url',
+          url,
+          jobId: 'validate',
+          pluginId,
+        })
+      ) {
+        return reply.code(400).send({
+          error: t(localeMsg, 'job.pluginCannotHandle', { id: pluginId }),
+        });
+      }
+    } else if (!isValidHttpUrl(url)) {
+      // 自动匹配仍要求 http(s)，避免无效输入直接进队列
+      return reply.code(400).send({ error: t(localeMsg, 'job.urlInvalid') });
     }
 
     const tts = resolveTtsForJob(
@@ -752,6 +813,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       locale: resolveJobLocale(req.body?.locale),
       videoPath: '',
       sourceUrl: url,
+      sourcePluginId: pluginId,
       sourceKind: 'video', // 下载后会被覆盖
       tts,
       scriptPrompt,

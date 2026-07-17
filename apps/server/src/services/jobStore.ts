@@ -41,6 +41,7 @@ export function toGuestPublic(job: Job): JobPublic {
     tts: undefined,
     scriptPrompt: undefined,
     sourceUrl: undefined,
+    sourcePluginId: undefined,
     error: undefined,
     message: '',
     originalFilename: '',
@@ -102,12 +103,12 @@ export async function createJob(job: Job): Promise<Job> {
         id, title, original_filename, mime_type, size, status, progress,
         message, locale, video_path, audio_path, podcast_audio_path, transcript,
         podcast_json, tts_json, published, error, created_at, updated_at,
-        source_kind, source_url, script_prompt_json
+        source_kind, source_url, source_plugin_id, script_prompt_json
       ) VALUES (
         @id, @title, @original_filename, @mime_type, @size, @status, @progress,
         @message, @locale, @video_path, @audio_path, @podcast_audio_path, @transcript,
         @podcast_json, @tts_json, @published, @error, @created_at, @updated_at,
-        @source_kind, @source_url, @script_prompt_json
+        @source_kind, @source_url, @source_plugin_id, @script_prompt_json
       )`,
     )
     .run(jobToRow(next));
@@ -151,6 +152,7 @@ export async function updateJob(
         updated_at = @updated_at,
         source_kind = @source_kind,
         source_url = @source_url,
+        source_plugin_id = @source_plugin_id,
         script_prompt_json = @script_prompt_json
       WHERE id = @id`,
     )

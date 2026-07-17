@@ -208,6 +208,15 @@ interface SourceArtifact {
 1. 输入显式带 `pluginId` 且该插件已启用  
 2. 否则在 **已启用 + isAvailable + canHandle** 的插件中，按 `riskLevel` **从低到高** 选第一个  
 
+创建任务时指定插件：
+
+```http
+POST /api/jobs/from-url
+{ "url": "https://example.com/a", "pluginId": "direct-http" }
+```
+
+前端「URL 导入」面板可选插件；缺省为自动匹配。任务会持久化 `sourcePluginId`，流水线导入时透传给 `importSource`。
+
 因此：
 
 - `canHandle` 应尽量精确（例如只匹配你的 URL 前缀/域名）  

@@ -503,6 +503,10 @@
   line-height: var(--lh-normal);
   color: var(--text-3);
 }
+.upload-source-plugin-select {
+  cursor: pointer;
+  appearance: auto;
+}
 
 
 html[data-theme="dark"] {

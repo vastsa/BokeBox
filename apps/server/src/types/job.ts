@@ -160,6 +160,8 @@ export interface Job {
   sourceKind?: SourceKind;
   /** 远程导入地址（本地上传为空） */
   sourceUrl?: string;
+  /** 指定 Source 插件 id；缺省则自动匹配 */
+  sourcePluginId?: string;
   error?: string;
   createdAt: string;
   updatedAt: string;

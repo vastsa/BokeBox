@@ -42,6 +42,9 @@ export function initDatabase(): DatabaseSync {
     if (!names.has('locale')) {
       db!.exec(`ALTER TABLE jobs ADD COLUMN locale TEXT DEFAULT 'zh-CN'`);
     }
+    if (!names.has('source_plugin_id')) {
+      db!.exec(`ALTER TABLE jobs ADD COLUMN source_plugin_id TEXT`);
+    }
   };
 
   db.exec(`
@@ -202,6 +205,7 @@ export type JobRow = {
   updated_at: string;
   source_kind: string | null;
   source_url: string | null;
+  source_plugin_id: string | null;
   script_prompt_json: string | null;
 };
 
@@ -240,6 +244,7 @@ export function normalizeJob(job: Job): Job {
     published: job.published ?? true,
     sourceKind,
     sourceUrl: job.sourceUrl?.trim() || undefined,
+    sourcePluginId: job.sourcePluginId?.trim() || undefined,
     scriptPrompt,
     tts: {
       mode,
@@ -274,6 +279,7 @@ export function jobToRow(job: Job): JobRow {
     updated_at: job.updatedAt,
     source_kind: job.sourceKind || 'video',
     source_url: job.sourceUrl || null,
+    source_plugin_id: job.sourcePluginId || null,
     script_prompt_json: job.scriptPrompt
       ? JSON.stringify(job.scriptPrompt)
       : null,
@@ -330,6 +336,7 @@ export function rowToJob(row: JobRow): Job {
     updatedAt: row.updated_at,
     sourceKind: (row.source_kind as Job['sourceKind']) || undefined,
     sourceUrl: row.source_url || undefined,
+    sourcePluginId: row.source_plugin_id || undefined,
   });
 }
 

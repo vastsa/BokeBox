@@ -283,6 +283,11 @@ export const enUS: MessageTree = {
     urlPlaceholder: 'https://… article / video / audio link',
     urlHint:
       'Supports article extraction and direct video/audio links. Use publicly accessible URLs.',
+    sourcePlugin: 'Source plugin',
+    sourcePluginAuto: 'Auto match',
+    sourcePluginHint: 'Auto-selects an enabled plugin by default; you can pin one.',
+    sourcePluginLoading: 'Loading plugins…',
+    sourcePluginUnavailable: 'No available source plugins',
     submitting: 'Submitting…',
     start: 'Start processing',
     publishOn: 'Publish when done',
