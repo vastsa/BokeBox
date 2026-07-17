@@ -1,5 +1,8 @@
 # Source 插件系统
 
+> **写插件？** 请直接看开发规范： [source-plugin-development.md](./source-plugin-development.md)
+
+
 ## 目标
 
 将「内容获取」从 pipeline 中剥离，使核心只消费统一的 `SourceArtifact`。
@@ -74,9 +77,10 @@ const artifact = await importSource({
 });
 ```
 
-## 示例
+## 示例与开发
 
-见 `examples/source-plugin-echo/`。
+- 开发规范： [source-plugin-development.md](./source-plugin-development.md)
+- 示例插件： `examples/source-plugin-echo/`
 
 ## 风险策略
 

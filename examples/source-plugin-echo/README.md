@@ -2,6 +2,9 @@
 
 用于验证 BokeBox Source 插件热加载，不发起真实网络请求。
 
+完整开发规范见：  
+[docs/source-plugin-development.md](../../docs/source-plugin-development.md)
+
 ## 安装
 
 ```bash
@@ -9,10 +12,9 @@ mkdir -p storage/plugins/source
 cp -R examples/source-plugin-echo storage/plugins/source/echo
 ```
 
-## 加载 / 启用
+在 **设置 → 内容源** 点击「重新扫描」并启用，或：
 
 ```bash
-# 需已登录的会话 cookie，或在本机管理接口调用
 curl -X POST http://localhost:8787/api/source-plugins/rescan
 curl -X PATCH http://localhost:8787/api/source-plugins/source.echo \
   -H 'Content-Type: application/json' \
@@ -26,5 +28,3 @@ curl -X PATCH http://localhost:8787/api/source-plugins/source.echo \
 ```text
 echo:这是一段演示正文
 ```
-
-仅当插件已启用时，才会匹配 `echo:` 前缀（否则仍走 direct-http，可能失败）。

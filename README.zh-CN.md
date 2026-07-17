@@ -178,6 +178,15 @@ Cursor 示例配置：
 
 可选环境变量 `PUBLIC_BASE_URL`：当经反向代理暴露时，用于生成正确的安装地址。
 
+
+## 🔌 内容源插件
+
+BokeBox 支持通过外部 Source 插件扩展内容获取方式（默认不捆绑高风险抓取）。
+
+- 开发规范： [docs/source-plugin-development.md](./docs/source-plugin-development.md)
+- 系统说明： [docs/source-plugins.md](./docs/source-plugins.md)
+- 示例插件： [examples/source-plugin-echo](./examples/source-plugin-echo)
+
 ## 🚀 开始使用
 
 > 三步开箱。更细的部署与模型说明见下方「附录」。

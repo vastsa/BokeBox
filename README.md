@@ -300,3 +300,12 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
   <sub>Private AI podcast box · Open Source · LGPL-3.0</sub><br/>
   <sub><a href="https://github.com/vastsa/BokeBox/">github.com/vastsa/BokeBox</a></sub>
 </p>
+
+## Source Plugins
+
+Extend content ingestion with optional external Source plugins (high-risk fetchers are not bundled by default).
+
+- Developer guide: [docs/source-plugin-development.md](./docs/source-plugin-development.md)
+- Architecture notes: [docs/source-plugins.md](./docs/source-plugins.md)
+- Example plugin: [examples/source-plugin-echo](./examples/source-plugin-echo)
+
