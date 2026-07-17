@@ -123,19 +123,6 @@ export function SourcePluginSettings({
     }
   };
 
-  const copyText = async (value: string, okMsg?: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      onMessage?.(okMsg || t('settings.mcpCopied'));
-    } catch {
-      onError?.(t('settings.mcpCopyFailed'));
-    }
-  };
-
-  const installCmd = pluginsDir
-    ? `cp -R examples/source-plugin-echo "${pluginsDir}/echo"`
-    : 'cp -R examples/source-plugin-echo storage/plugins/source/echo';
-
   const riskLabel = (level: SourceRiskLevel) => {
     if (level === 'low') return t('settings.sourceRiskLow');
     if (level === 'medium') return t('settings.sourceRiskMedium');
@@ -171,9 +158,7 @@ export function SourcePluginSettings({
           </div>
 
           <div className="settings-card-actions">
-            <span className="settings-card-hint">
-              {t('settings.sourceInstallHint')}
-            </span>
+            <span />
             <div className="settings-card-actions-right">
               <button
                 type="button"
@@ -195,30 +180,6 @@ export function SourcePluginSettings({
               </button>
             </div>
           </div>
-
-          <details className="settings-prompt-details source-install-details">
-            <summary>{t('settings.sourceInstallTitle')}</summary>
-            <div className="source-install-panel">
-              <p className="settings-inline-hint">
-                {t('settings.sourceInstallSimple')}
-              </p>
-              <div className="settings-prompt-actions">
-                <button
-                  type="button"
-                  className="nl-btn nl-btn-secondary settings-prompt-copy-btn"
-                  onClick={() =>
-                    void copyText(
-                      installCmd,
-                      t('settings.sourceInstallCopiedCmd'),
-                    )
-                  }
-                >
-                  {t('settings.sourceInstallCopyCmd')}
-                </button>
-              </div>
-              <pre className="settings-code-block">{installCmd}</pre>
-            </div>
-          </details>
         </div>
       </section>
 
@@ -305,29 +266,25 @@ export function SourcePluginSettings({
                   </label>
                 </div>
 
-                <div className="source-plugin-meta">
-                  <span className={`source-risk-badge ${riskClass(plugin.riskLevel)}`}>
-                    {riskLabel(plugin.riskLevel)}
-                  </span>
-                  <span className="source-meta-chip">
-                    {originLabel(plugin.origin)}
-                  </span>
-                  <span className="source-meta-chip">
-                    v{plugin.version || '—'}
-                  </span>
-                  <span
-                    className={[
-                      'source-meta-chip',
-                      plugin.available ? 'is-ok' : 'is-bad',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    {plugin.available
-                      ? t('settings.sourceAvailable')
-                      : t('settings.sourceUnavailable')}
-                  </span>
-                </div>
+                {plugin.origin !== 'builtin' || !plugin.available || plugin.loadError ? (
+                  <div className="source-plugin-meta">
+                    {plugin.origin === 'builtin' ? null : (
+                      <>
+                        <span className={`source-risk-badge ${riskClass(plugin.riskLevel)}`}>
+                          {riskLabel(plugin.riskLevel)}
+                        </span>
+                        <span className="source-meta-chip">
+                          {originLabel(plugin.origin)}
+                        </span>
+                      </>
+                    )}
+                    {!plugin.available ? (
+                      <span className="source-meta-chip is-bad">
+                        {t('settings.sourceUnavailable')}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
 
 
 
