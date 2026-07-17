@@ -7,9 +7,9 @@
 import fs from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import ffmpegStatic from 'ffmpeg-static';
 import { jobPaths } from '../utils/paths.js';
 import { pathExists } from '../utils/fs.js';
+import { resolveFfmpegPath } from '../utils/ffmpeg.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -159,10 +159,7 @@ export async function detectSilenceIntervals(
   audioPath: string,
   opts?: { noiseDb?: number; minDuration?: number },
 ): Promise<Array<{ start: number; end: number }>> {
-  const ffmpegPath =
-    typeof ffmpegStatic === 'string'
-      ? ffmpegStatic
-      : (ffmpegStatic as { default?: string } | null)?.default;
+  const ffmpegPath = resolveFfmpegPath();
   if (!ffmpegPath) return [];
   if (!(await pathExists(audioPath))) return [];
 
@@ -202,10 +199,7 @@ export async function detectSilenceIntervals(
 
 /** 读取音频时长（优先 ffmpeg 输出） */
 export async function probeAudioDurationSec(audioPath: string): Promise<number> {
-  const ffmpegPath =
-    typeof ffmpegStatic === 'string'
-      ? ffmpegStatic
-      : (ffmpegStatic as { default?: string } | null)?.default;
+  const ffmpegPath = resolveFfmpegPath();
   if (!ffmpegPath || !(await pathExists(audioPath))) return 0;
   try {
     const { stderr } = await execFileAsync(

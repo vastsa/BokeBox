@@ -222,6 +222,15 @@ cp .env.example .env
 ./start.sh docker.local
 ```
 
+**Docker（国内镜像构建，推荐大陆服务器）：**
+
+```bash
+cp .env.example .env
+./start.sh docker.cn
+# 使用 DaoCloud Node 镜像 + 阿里云 apt + npmmirror
+# 系统安装 ffmpeg，避免 GitHub 下载超时
+```
+
 ---
 
 ## 💬 一句话安利（可转发）
@@ -275,6 +284,7 @@ BokeBox 更在意帮你 **更好地消化内容**。
 | `./start.sh prod` | 构建后单端口运行 |
 | `./start.sh docker` | 拉取 `ghcr.io/vastsa/bokebox:latest` 并启动 |
 | `./start.sh docker.local` | 本地 Dockerfile 构建并启动 |
+| `./start.sh docker.cn` | 国内镜像源构建并启动（推荐大陆服务器） |
 | `./start.sh docker:down` | 停止容器 |
 
 ### 配置要点（`.env`）

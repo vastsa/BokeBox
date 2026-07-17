@@ -1,13 +1,10 @@
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegStatic from 'ffmpeg-static';
 import path from 'node:path';
 import { jobPaths } from '../utils/paths.js';
 import { ensureDir, pathExists } from '../utils/fs.js';
+import { resolveFfmpegPath } from '../utils/ffmpeg.js';
 
-const ffmpegPath =
-  typeof ffmpegStatic === 'string'
-    ? ffmpegStatic
-    : (ffmpegStatic as { default?: string } | null)?.default;
+const ffmpegPath = resolveFfmpegPath();
 
 if (ffmpegPath) {
   ffmpeg.setFfmpegPath(ffmpegPath);

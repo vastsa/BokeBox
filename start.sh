@@ -5,6 +5,7 @@
 #   ./start.sh prod         本地生产模式（构建后仅启服务端）
 #   ./start.sh docker       拉取 GHCR 镜像并启动（推荐）
 #   ./start.sh docker.local 本地 Dockerfile 构建并启动
+#   ./start.sh docker.cn    国内镜像源本地构建并启动（推荐大陆服务器）
 #   ./start.sh docker:prod  同 docker（兼容旧命令）
 #   ./start.sh docker:down  停止并移除容器
 #   ./start.sh stop         停止本地后台进程（若用了 --detach）
@@ -157,6 +158,7 @@ docker_up() {
   ok "管理: http://localhost:${PORT:-8787}/#/admin"
   ok "日志: ${COMPOSE[*]} logs -f bokebox"
   ok "本地源码构建: ./start.sh docker.local"
+  ok "国内镜像构建: ./start.sh docker.cn"
   ok "停止: ./start.sh docker:down"
 }
 
@@ -181,6 +183,41 @@ docker_local() {
   ok "停止: ./start.sh docker:down"
 }
 
+# 国内镜像构建：Docker Hub / apt / npm 全走国内源，系统 ffmpeg
+docker_cn() {
+  ensure_env
+  ensure_storage
+  resolve_compose
+
+  if [[ ! -f docker-compose.cn.yml ]]; then
+    err "缺少 docker-compose.cn.yml"
+    exit 1
+  fi
+  if [[ ! -f Dockerfile.cn ]]; then
+    err "缺少 Dockerfile.cn"
+    exit 1
+  fi
+
+  # 允许通过环境变量覆盖镜像源（也可写在 .env 里由 compose 读取 build args）
+  export NODE_IMAGE="${NODE_IMAGE:-docker.m.daocloud.io/library/node:22-bookworm-slim}"
+  export APT_MIRROR="${APT_MIRROR:-mirrors.aliyun.com}"
+  export NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmmirror.com}"
+
+  log "国内镜像构建并启动 …"
+  log "  NODE_IMAGE=${NODE_IMAGE}"
+  log "  APT_MIRROR=${APT_MIRROR}"
+  log "  NPM_REGISTRY=${NPM_REGISTRY}"
+  log "  ffmpeg=系统包（跳过 GitHub 下载）"
+
+  "${COMPOSE[@]}" -f docker-compose.cn.yml up -d --build
+  echo
+  ok "容器已启动: bokebox（国内镜像构建）"
+  ok "访问: http://localhost:${PORT:-8787}"
+  ok "管理: http://localhost:${PORT:-8787}/#/admin"
+  ok "日志: ${COMPOSE[*]} -f docker-compose.cn.yml logs -f bokebox"
+  ok "停止: ./start.sh docker:down"
+}
+
 docker_down() {
   if docker compose version >/dev/null 2>&1; then
     COMPOSE=(docker compose)
@@ -197,6 +234,9 @@ docker_down() {
   fi
   if [[ -f docker-compose.prod.yml ]]; then
     "${COMPOSE[@]}" -f docker-compose.prod.yml down 2>/dev/null || true
+  fi
+  if [[ -f docker-compose.cn.yml ]]; then
+    "${COMPOSE[@]}" -f docker-compose.cn.yml down 2>/dev/null || true
   fi
   ok "容器已停止"
 }
@@ -246,12 +286,14 @@ BokeBox · 一键启动
   ./start.sh prod         本地生产（构建后单端口）
   ./start.sh docker       拉取 GHCR 镜像启动（推荐）
   ./start.sh docker.local 本地 Dockerfile 构建启动
+  ./start.sh docker.cn    国内镜像源本地构建启动（推荐大陆服务器）
   ./start.sh docker:prod  同 docker（兼容旧命令）
   ./start.sh docker:down  停止 Docker 容器
   ./start.sh help         显示帮助
 
 镜像:
   docker pull ghcr.io/vastsa/bokebox:latest
+  国内构建: ./start.sh docker.cn  （DaoCloud Node + 阿里云 apt + npmmirror）
   仓库: https://github.com/vastsa/BokeBox/
 
 环境变量见 .env / .env.example
@@ -270,6 +312,9 @@ case "$MODE" in
     ;;
   docker.local|docker:local|local-docker)
     docker_local
+    ;;
+  docker.cn|docker:cn|cn-docker|docker.china)
+    docker_cn
     ;;
   docker:prod|prod-docker)
     docker_prod

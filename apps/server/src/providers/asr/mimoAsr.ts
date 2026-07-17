@@ -4,8 +4,8 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import ffmpegStatic from 'ffmpeg-static';
 import { aiFetch, getAsrModel, hasApiKey } from '../../utils/aiConfig.js';
+import { resolveFfmpegPath } from '../../utils/ffmpeg.js';
 import { ensureDir, pathExists, removeDirIfExists } from '../../utils/fs.js';
 import { probeAudioDurationSec } from '../../services/scriptTiming.js';
 import type { AsrProvider, AsrTranscribeInput, AsrTranscribeResult } from './types.js';
@@ -26,9 +26,7 @@ const SLICE_TIMEOUT_MS = 120_000;
 const MIN_CHUNK_SEC = 15;
 
 function ffmpegBin(): string | null {
-  if (typeof ffmpegStatic === 'string' && ffmpegStatic) return ffmpegStatic;
-  const def = (ffmpegStatic as { default?: string } | null)?.default;
-  return def || null;
+  return resolveFfmpegPath();
 }
 
 function normalizeFormat(input: AsrTranscribeInput): string {
@@ -97,7 +95,7 @@ async function sliceAudioSegment(opts: {
 }): Promise<void> {
   const bin = ffmpegBin();
   if (!bin) {
-    throw new Error('缺少 ffmpeg-static，无法切分音频做分段转写');
+    throw new Error('缺少 ffmpeg，无法切分音频做分段转写（请安装 ffmpeg 或配置 FFMPEG_BIN）');
   }
   await ensureDir(path.dirname(opts.outputPath));
   // -ss 在 -i 后更准；ASR 用 16k mono mp3 即可

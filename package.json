@@ -15,7 +15,8 @@
     "docker:down": "./start.sh docker:down",
     "docker:prod": "./start.sh docker",
     "docker:prod:pull": "docker compose pull",
-    "docker:local": "./start.sh docker.local"
+    "docker:local": "./start.sh docker.local",
+    "docker:cn": "./start.sh docker.cn"
   },
   "engines": {
     "node": ">=22.5"

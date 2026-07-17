@@ -1,0 +1,47 @@
+# 国内镜像本地构建编排
+# 用法:
+#   ./start.sh docker.cn
+#   docker compose -f docker-compose.cn.yml up -d --build
+#
+# 可选环境变量（写入 shell 或 .env）:
+#   NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
+#   APT_MIRROR=mirrors.aliyun.com
+#   NPM_REGISTRY=https://registry.npmmirror.com
+# 腾讯云可尝试:
+#   APT_MIRROR=mirrors.cloud.tencent.com
+#   NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
+
+services:
+  bokebox:
+    build:
+      context: .
+      dockerfile: Dockerfile.cn
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-docker.m.daocloud.io/library/node:22-bookworm-slim}
+        APT_MIRROR: ${APT_MIRROR:-mirrors.aliyun.com}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    image: bokebox:cn
+    container_name: bokebox
+    ports:
+      - "${PORT:-8787}:8787"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8787
+      FFMPEG_BIN: /usr/bin/ffmpeg
+    volumes:
+      - ./storage:/app/storage
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8787/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3

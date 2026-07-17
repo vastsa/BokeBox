@@ -211,6 +211,15 @@ cp .env.example .env
 ./start.sh docker.local
 ```
 
+**Docker (China mirrors build, recommended on mainland servers):**
+
+```bash
+cp .env.example .env
+./start.sh docker.cn
+# DaoCloud Node image + Aliyun apt + npmmirror
+# Installs system ffmpeg to avoid GitHub binary download timeouts
+```
+
 ---
 
 ## 💬 One-liner (shareable)
@@ -264,6 +273,7 @@ Add BokeBox to your toolkit — and drop a Star so more people find it.
 | `./start.sh prod` | Build and run on a single port |
 | `./start.sh docker` | Pull `ghcr.io/vastsa/bokebox:latest` and start |
 | `./start.sh docker.local` | Build from local Dockerfile and start |
+| `./start.sh docker.cn` | Build with China mirrors and start (mainland servers) |
 | `./start.sh docker:down` | Stop containers |
 
 ### Config highlights (`.env`)

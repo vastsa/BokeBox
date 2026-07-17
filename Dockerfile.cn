@@ -1,0 +1,92 @@
+# BokeBox · 国内镜像构建
+# 适用：大陆服务器 / 访问 Docker Hub、GitHub、npm 官方源不稳定的环境
+# 使用: ./start.sh docker.cn
+#
+# 默认走:
+#   - Docker Hub 代理: docker.m.daocloud.io
+#   - Debian apt: mirrors.aliyun.com
+#   - npm/pnpm: registry.npmmirror.com
+#   - ffmpeg: 系统包（避免 ffmpeg-static 从 GitHub 拉二进制超时）
+#
+# 可通过 build-arg 覆盖:
+#   NODE_IMAGE / APT_MIRROR / NPM_REGISTRY
+
+ARG NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
+FROM ${NODE_IMAGE} AS base
+
+WORKDIR /app
+
+ARG APT_MIRROR=mirrors.aliyun.com
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+
+ENV PNPM_HOME="/pnpm" \
+    PATH="/pnpm:$PATH" \
+    COREPACK_NPM_REGISTRY=${NPM_REGISTRY} \
+    npm_config_registry=${NPM_REGISTRY} \
+    # 运行时让 ffmpeg-static 直接返回系统 ffmpeg（见其 index.js）
+    FFMPEG_BIN=/usr/bin/ffmpeg
+
+# apt 换源 + 安装系统 ffmpeg（跳过 GitHub 二进制下载）
+RUN set -eux; \
+  if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+    sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g" \
+      /etc/apt/sources.list.d/debian.sources; \
+  fi; \
+  if [ -f /etc/apt/sources.list ]; then \
+    sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g" \
+      /etc/apt/sources.list; \
+  fi; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends ca-certificates ffmpeg; \
+  rm -rf /var/lib/apt/lists/*; \
+  ffmpeg -version | head -n 1
+
+# corepack / pnpm 走国内 npm 镜像
+RUN corepack enable \
+ && corepack prepare pnpm@9.15.0 --activate \
+ && pnpm config set registry "${NPM_REGISTRY}" \
+ && pnpm --version
+
+# ---------- 依赖安装 ----------
+FROM base AS deps
+WORKDIR /app
+# 不执行 postinstall：避免 ffmpeg-static 访问 GitHub Releases 超时
+# esbuild 等平台包会通过 optionalDependencies 从 npm 镜像拉取
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/server/package.json ./apps/server/
+COPY apps/web/package.json ./apps/web/
+RUN printf 'registry=%s\n' "${npm_config_registry}" > .npmrc \
+ && pnpm install --frozen-lockfile --ignore-scripts
+
+# ---------- 构建 ----------
+FROM deps AS build
+COPY apps ./apps
+RUN pnpm --filter @bokebox/web build \
+ && pnpm --filter @bokebox/server build
+
+# ---------- 运行 ----------
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production \
+    HOST=0.0.0.0 \
+    PORT=8787 \
+    FFMPEG_BIN=/usr/bin/ffmpeg
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/server/package.json ./apps/server/
+COPY apps/web/package.json ./apps/web/
+RUN printf 'registry=%s\n' "${npm_config_registry}" > .npmrc \
+ && pnpm install --frozen-lockfile --prod --filter @bokebox/server... --ignore-scripts \
+ && rm -f .npmrc
+
+COPY --from=build /app/apps/server/dist ./apps/server/dist
+COPY --from=build /app/apps/web/dist ./apps/web/dist
+
+RUN mkdir -p storage/jobs
+
+EXPOSE 8787
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8787)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["node", "apps/server/dist/index.js"]
