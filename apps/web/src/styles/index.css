@@ -876,7 +876,7 @@ body:has(.global-player) {
   display: inline-flex;
   align-items: center;
   padding: var(--space-0_5) var(--space-2);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   font-size: var(--fs-xs-plus);
   font-weight: var(--fw-semibold);
   letter-spacing: var(--tracking-wide);
@@ -2410,7 +2410,7 @@ html[data-theme="dark"] .player-icon-btn {
   align-items: center;
   min-height: var(--space-5);
   padding: 0 var(--space-1_5);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   font-size: var(--fs-xs-plus);
   font-weight: var(--fw-bold);
   color: var(--text-3);
@@ -3861,7 +3861,7 @@ html[data-theme="dark"] .mini-player {
   align-items: center;
   min-height: var(--control-sm);
   padding: 0 var(--space-2_5);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   border: 0;
   background: color-mix(in srgb, var(--text) 5.5%, transparent);
   font-size: var(--fs-sm-plus);
@@ -7516,7 +7516,7 @@ html[data-theme="dark"] .script-prompt-mode-tab.is-active {
 }
 @media (min-width: 900px) {
   .settings-shell {
-    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-columns: 168px minmax(0, 1fr);
     gap: var(--space-7);
   }
 }
@@ -7678,6 +7678,17 @@ html[data-theme="dark"] .script-prompt-mode-tab.is-active {
   display: flex;
   flex-direction: column;
   gap: var(--space-3_5);
+}
+.settings-stack > .settings-card {
+  min-width: 0;
+}
+/* 单卡内仅一块内容时，去掉多余底边 */
+.settings-card > .settings-profile:last-child,
+.settings-card > .settings-block:last-child {
+  border-bottom: 0;
+}
+.settings-block.is-bare {
+  padding-bottom: 0;
 }
 .settings-card-wide { width: 100%; }
 .settings-page .settings-grid {
@@ -7865,8 +7876,12 @@ html[data-theme="dark"] .script-prompt-mode-tab.is-active {
   gap: var(--space-2_5);
 }
 .settings-card-hint {
-  font-size: var(--fs-base);
+  flex: 1 1 140px;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
   color: var(--text-3);
+  word-break: break-word;
 }
 
 /* 兼容旧类名 */
@@ -9422,52 +9437,63 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
 
 /* ===== Settings · SEO preview ===== */
 .settings-seo-preview {
-  margin-top: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--separator);
-  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  margin-top: var(--space-3_5);
+  padding: var(--space-3_5);
+  border-radius: var(--radius-md);
+  border: var(--bw-1) solid var(--separator);
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--surface));
 }
 .settings-seo-preview-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-3);
-  margin-bottom: 6px;
-  letter-spacing: 0.02em;
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-wide-2);
   text-transform: uppercase;
+  color: var(--text-3);
 }
 .settings-seo-preview-title {
-  font-size: 14.5px;
-  font-weight: 650;
-  color: var(--text);
-  line-height: 1.35;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+  color: color-mix(in srgb, #1a0dab 70%, var(--text));
+  word-break: break-word;
+}
+html[data-theme="dark"] .settings-seo-preview-title {
+  color: color-mix(in srgb, #8ab4f8 80%, var(--text));
 }
 .settings-seo-preview-desc {
-  margin-top: 6px;
-  font-size: 12.5px;
+  margin-top: var(--space-1_5);
+  font-size: var(--fs-base-plus);
+  line-height: var(--lh-relaxed);
   color: var(--text-2);
-  line-height: 1.5;
+  word-break: break-word;
+}
+.settings-seo-preview-kw {
+  margin-top: var(--space-2);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-3);
   word-break: break-word;
 }
 .settings-seo-preview-attr {
-  margin-top: 10px;
+  margin-top: var(--space-2_5);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 10px;
   align-items: center;
-  font-size: 12px;
-  color: var(--text-3);
+  gap: var(--space-2);
 }
 .settings-seo-preview-attr a {
   color: var(--brand-2);
   text-decoration: none;
-  word-break: break-all;
+  font-size: var(--fs-sm);
 }
 .settings-seo-preview-attr a:hover {
   text-decoration: underline;
 }
 .settings-seo-preview-attr-text {
-  opacity: 0.9;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  word-break: break-all;
 }
 
 /* ========== Admin Console v2 · 制作台 ========== */
@@ -9497,7 +9523,7 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
   align-items: center;
   gap: var(--space-0_5);
   padding: var(--space-0_5);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-lg);
   border: var(--bw-1) solid var(--separator);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(10px);
@@ -9510,7 +9536,7 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
   min-height: 32px;
   padding: 0 var(--space-3);
   border: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-3);
   font-size: var(--fs-base);
@@ -9636,7 +9662,7 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
   gap: var(--space-1_5);
   min-height: 30px;
   padding: 0 var(--space-2_5);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   border: 0;
   background: color-mix(in srgb, var(--surface-2) 88%, transparent);
   color: var(--text-2);
@@ -9652,7 +9678,7 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
   font-style: normal;
   min-width: 1.15rem;
   padding: 0 6px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--text) 6%, transparent);
   color: var(--text-3);
   font-size: var(--fs-sm);
@@ -9694,7 +9720,7 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
   width: 100%;
   min-height: 36px;
   padding: 0 var(--space-3);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   border: var(--bw-1) solid var(--separator);
   background: var(--surface);
   color: var(--text);
@@ -9919,7 +9945,7 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
   align-items: center;
   min-height: 20px;
   padding: 0 var(--space-1_75);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
   border: 0;
   background: color-mix(in srgb, var(--text) 5%, transparent);
   color: var(--text-3);
@@ -10004,6 +10030,7 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
 .admin-job-badges .nl-tag {
   border: 0 !important;
   box-shadow: none;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--text) 6%, transparent);
   color: var(--text-2);
   padding: 2px 8px;
@@ -10042,6 +10069,7 @@ html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-she
 /* 任务详情页标签同款 */
 .admin-console .jd-tags span {
   border: 0;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--text) 5.5%, transparent);
   color: var(--text-2);
   box-shadow: none;
