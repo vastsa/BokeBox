@@ -2414,13 +2414,12 @@ html[data-theme="dark"] .player-icon-btn {
   font-size: var(--fs-xs-plus);
   font-weight: var(--fw-bold);
   color: var(--text-3);
-  background: var(--surface-2);
-  border: var(--bw-1) solid var(--separator);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border: 0;
 }
 .studio-asset.is-ok {
   color: var(--success);
-  background: var(--success-soft);
-  border-color: transparent;
+  background: color-mix(in srgb, var(--success-soft) 75%, transparent);
 }
 .studio-job-tts {
   display: inline-flex;
@@ -3863,8 +3862,8 @@ html[data-theme="dark"] .mini-player {
   min-height: var(--control-sm);
   padding: 0 var(--space-2_5);
   border-radius: var(--radius-pill);
-  border: var(--bw-1) solid var(--separator);
-  background: var(--surface-2);
+  border: 0;
+  background: color-mix(in srgb, var(--text) 5.5%, transparent);
   font-size: var(--fs-sm-plus);
   font-weight: var(--fw-bold);
   color: var(--text-2);
