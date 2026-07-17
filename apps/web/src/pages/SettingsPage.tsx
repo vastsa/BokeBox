@@ -121,7 +121,9 @@ export function SettingsPage({ route }: { route: Route }) {
   const [baseUrl, setBaseUrl] = useState('');
   const [chatModel, setChatModel] = useState('');
   const [asrModel, setAsrModel] = useState('');
+  const [asrProvider, setAsrProvider] = useState('mimo');
   const [ttsModel, setTtsModel] = useState('');
+  const [ttsProvider, setTtsProvider] = useState('mimo');
   const [voiceDesignModel, setVoiceDesignModel] = useState('');
   const [imageModel, setImageModel] = useState('');
   const [defaultVoice, setDefaultVoice] = useState('');
@@ -259,7 +261,9 @@ export function SettingsPage({ route }: { route: Route }) {
       setBaseUrl(aiCfg.baseUrl);
       setChatModel(aiCfg.chatModel);
       setAsrModel(aiCfg.asrModel);
+      setAsrProvider(aiCfg.asrProvider || 'mimo');
       setTtsModel(aiCfg.ttsModel);
+      setTtsProvider(aiCfg.ttsProvider || 'mimo');
       setVoiceDesignModel(aiCfg.voiceDesignModel);
       setImageModel(aiCfg.imageModel || '');
       setDefaultVoice(aiCfg.defaultVoice);
@@ -315,7 +319,9 @@ export function SettingsPage({ route }: { route: Route }) {
         baseUrl: baseUrl.trim(),
         chatModel: chatModel.trim(),
         asrModel: asrModel.trim(),
+        asrProvider: asrProvider.trim() || 'mimo',
         ttsModel: ttsModel.trim(),
+        ttsProvider: ttsProvider.trim() || 'mimo',
         voiceDesignModel: voiceDesignModel.trim(),
         imageModel: imageModel.trim(),
         defaultVoice: defaultVoice.trim(),
@@ -335,10 +341,10 @@ export function SettingsPage({ route }: { route: Route }) {
   };
 
 
-  const copyText = async (value: string) => {
+  const copyText = async (value: string, okMsg?: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      setMsg(t('settings.mcpCopied'));
+      setMsg(okMsg || t('settings.mcpCopied'));
       setError(null);
     } catch {
       setError(t('settings.mcpCopyFailed'));
@@ -631,6 +637,60 @@ export function SettingsPage({ route }: { route: Route }) {
                             />
                           </label>
                           <label className="auth-field">
+                            <span>{t('settings.asrProvider')}</span>
+                            <select
+                              value={asrProvider}
+                              onChange={(e) => {
+                                const id = e.target.value;
+                                setAsrProvider(id);
+                                const meta = (ai?.asrProviders || []).find((p) => p.id === id);
+                                const suggested = meta?.suggestedModels?.asr;
+                                if (suggested) setAsrModel(suggested);
+                              }}
+                            >
+                              {(ai?.asrProviders?.length
+                                ? ai.asrProviders
+                                : [
+                                    { id: 'mimo', name: 'MiMo ASR', description: '' },
+                                    { id: 'openai', name: 'OpenAI 兼容 ASR', description: '' },
+                                  ]
+                              ).map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="auth-field">
+                            <span>{t('settings.ttsProvider')}</span>
+                            <select
+                              value={ttsProvider}
+                              onChange={(e) => {
+                                const id = e.target.value;
+                                setTtsProvider(id);
+                                const meta = (ai?.ttsProviders || []).find((p) => p.id === id);
+                                const suggested = meta?.suggestedModels?.tts;
+                                if (suggested) setTtsModel(suggested);
+                                const voice = meta?.suggestedModels?.defaultVoice;
+                                if (voice) setDefaultVoice(voice);
+                                const vd = meta?.suggestedModels?.voiceDesign;
+                                if (vd) setVoiceDesignModel(vd);
+                              }}
+                            >
+                              {(ai?.ttsProviders?.length
+                                ? ai.ttsProviders
+                                : [
+                                    { id: 'mimo', name: 'MiMo TTS', description: '' },
+                                    { id: 'openai', name: 'OpenAI 兼容 TTS', description: '' },
+                                  ]
+                              ).map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="auth-field">
                             <span>{t('settings.asrModel')}</span>
                             <input
                               value={asrModel}
@@ -702,6 +762,42 @@ export function SettingsPage({ route }: { route: Route }) {
 
                 <SettingsPanel id="mcp" active={tab === 'mcp'}>
                   <div className="settings-stack">
+
+                    <SettingsCard className="settings-card-mcp-prompt">
+                      <SettingsBlock
+                        title={t('settings.mcpAiPromptTitle')}
+                        desc={t('settings.mcpAiPromptDesc')}
+                      >
+                        <p className="settings-inline-hint">
+                          {t('settings.mcpAiPromptHint')}
+                        </p>
+                        <div className="settings-prompt-actions">
+                          <button
+                            type="button"
+                            className="nl-btn nl-btn-primary settings-prompt-copy-btn"
+                            onClick={() =>
+                              void copyText(
+                                mcpInstall?.aiPrompt || '',
+                                t('settings.mcpAiPromptCopied'),
+                              )
+                            }
+                            disabled={!mcpInstall?.aiPrompt}
+                          >
+                            {t('settings.mcpCopyAiPrompt')}
+                          </button>
+                        </div>
+                        <details className="settings-prompt-details">
+                          <summary>{t('settings.mcpAiPromptPreview')}</summary>
+                          <pre className="settings-code-block settings-code-block-tall">
+                            {mcpInstall?.aiPrompt ||
+                              (mcpLoading
+                                ? t('settings.mcpLoading')
+                                : '')}
+                          </pre>
+                        </details>
+                      </SettingsBlock>
+                    </SettingsCard>
+
                     <SettingsCard>
                       <SettingsBlock
                         title={t('settings.mcpTitle')}

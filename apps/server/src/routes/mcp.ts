@@ -124,6 +124,70 @@ function buildInstallBundle(baseUrl: string, token: string) {
     serverInfo: MCP_SERVER_INFO,
   };
 
+  const tools = listMcpTools();
+  const toolLines = tools
+    .map((t) => `- \`${t.name}\`: ${t.description}`)
+    .join('\n');
+
+  const cursorJson = JSON.stringify(cursor, null, 2);
+  const claudeJson = JSON.stringify(claudeDesktop, null, 2);
+  const codexJson = JSON.stringify(codex, null, 2);
+  const openclawJson = JSON.stringify(openclaw, null, 2);
+
+  /** 直接粘贴给 AI 的安装提示词（含端点 / Token / 配置） */
+  const aiPrompt = [
+    '请帮我把 BokeBox 安装为可用的 MCP 服务器，安装完成后你就能直接调用它制作私人播客。',
+    '',
+    '## 目标',
+    '在当前 AI 客户端（Cursor / Claude Desktop / Codex / OpenClaw / 其他支持 MCP 的工具）中新增名为 `bokebox` 的 MCP 连接，并验证可用。',
+    '',
+    '## 连接信息',
+    `- 名称: bokebox`,
+    `- 协议: MCP over HTTP（streamable HTTP / JSON-RPC）`,
+    `- 端点: ${endpoint}`,
+    `- Token: ${token}`,
+    `- 鉴权头: Authorization: Bearer ${token}`,
+    `- 开源项目: https://github.com/vastsa/BokeBox/ （LGPL-3.0）`,
+    '',
+    '## 请你执行',
+    '1. 把下面 JSON 合并进当前环境的 MCP 配置（不要删掉我已有的其他 mcpServers）。',
+    '2. 若客户端区分 transport，优先使用 url + headers；也可用 type: "http" 或 streamableHttp。',
+    '3. 保存配置并在需要时重启 / 重载 MCP。',
+    '4. 安装后调用 `get_system_health` 或 `list_jobs` 验证连通。',
+    '5. 验证成功后，用一句话告诉我可以开始用 BokeBox 了。',
+    '',
+    '## Cursor 配置（推荐直接用这份）',
+    '```json',
+    cursorJson,
+    '```',
+    '',
+    '## Claude Desktop 配置',
+    '```json',
+    claudeJson,
+    '```',
+    '',
+    '## Codex / OpenClaw 配置',
+    '```json',
+    codexJson,
+    '```',
+    '',
+    '## 也可用的 streamableHttp 写法',
+    '```json',
+    openclawJson,
+    '```',
+    '',
+    '## 安装后你可以做什么',
+    toolLines,
+    '',
+    '## 使用示例',
+    '- 「用 BokeBox 把 https://example.com/article 做成中文播客」→ `create_podcast_from_url`',
+    '- 「把这段文稿做成播客」→ `create_podcast_from_text`',
+    '- 「看看最近的制作任务」→ `list_jobs`',
+    '- 「查看任务 <id> 详情」→ `get_job`',
+    '',
+    '注意：Token 是长期密钥，不要提交到公开仓库或发给无关第三方。',
+  ].join('\n');
+
   return {
     endpoint,
     token,
@@ -135,12 +199,14 @@ function buildInstallBundle(baseUrl: string, token: string) {
     claudeDesktop,
     codex,
     openclaw,
+    /** 一键复制给 AI：让对方直接完成 MCP 安装 */
+    aiPrompt,
     // 方便 AI 直接「安装」：完整 snippet 字符串
     snippets: {
-      cursorJson: JSON.stringify(cursor, null, 2),
-      claudeDesktopJson: JSON.stringify(claudeDesktop, null, 2),
-      codexJson: JSON.stringify(codex, null, 2),
-      openclawJson: JSON.stringify(openclaw, null, 2),
+      cursorJson,
+      claudeDesktopJson: claudeJson,
+      codexJson,
+      openclawJson,
     },
   };
 }

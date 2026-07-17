@@ -10399,3 +10399,59 @@ html[data-theme="dark"] .admin-chrome-tabs {
   border-radius: var(--radius-sm);
   margin-top: var(--space-2);
 }
+
+
+/* ── Settings · MCP AI 安装提示词 ── */
+.settings-card-mcp-prompt {
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--separator-strong));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 8%, transparent);
+}
+.settings-prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 var(--space-3);
+}
+.settings-prompt-copy-btn {
+  min-width: 11rem;
+  justify-content: center;
+}
+.settings-prompt-details {
+  border: var(--bw-1) solid var(--separator);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.settings-prompt-details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: var(--space-2_5) var(--space-3);
+  font-size: var(--fs-base-plus);
+  font-weight: var(--fw-semibold);
+  color: var(--text-2);
+  user-select: none;
+}
+.settings-prompt-details > summary::-webkit-details-marker {
+  display: none;
+}
+.settings-prompt-details > summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 0.45rem;
+  color: var(--text-3);
+  transition: transform 0.12s ease;
+}
+.settings-prompt-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+.settings-prompt-details[open] > summary {
+  border-bottom: var(--bw-1) solid var(--separator);
+}
+.settings-prompt-details .settings-code-block {
+  border: 0;
+  border-radius: 0;
+  max-height: 420px;
+}
+.settings-code-block-tall {
+  max-height: 420px;
+}

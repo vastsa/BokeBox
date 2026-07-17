@@ -430,7 +430,9 @@ export type SetupStatus = {
     baseUrl: string;
     chatModel: string;
     asrModel: string;
+    asrProvider?: string;
     ttsModel: string;
+    ttsProvider?: string;
     voiceDesignModel: string;
     imageModel: string;
     defaultVoice: string;
@@ -439,7 +441,9 @@ export type SetupStatus = {
       baseUrl: string;
       chatModel: string;
       asrModel: string;
+      asrProvider?: string;
       ttsModel: string;
+      ttsProvider?: string;
       voiceDesignModel: string;
       imageModel: string;
       defaultVoice: string;
@@ -457,6 +461,14 @@ export type LocaleMetaDto = {
   content: boolean;
 };
 
+export type ProviderOptionDto = {
+  id: string;
+  name: string;
+  description: string;
+  available: boolean;
+  suggestedModels?: Record<string, string>;
+};
+
 export type PublicAiConfig = {
   apiKeySet: boolean;
   apiKeyHint: string;
@@ -472,6 +484,12 @@ export type PublicAiConfig = {
   /** 服务端注册的可选语言（扩展入口） */
   contentLocales?: LocaleMetaDto[];
   uiLocales?: LocaleMetaDto[];
+  /** ASR 提供方 id：mimo | openai | ... */
+  asrProvider: string;
+  /** TTS 提供方 id：mimo | openai | ... */
+  ttsProvider: string;
+  asrProviders?: ProviderOptionDto[];
+  ttsProviders?: ProviderOptionDto[];
 };
 
 export async function fetchSetupStatus(): Promise<SetupStatus> {
@@ -486,7 +504,9 @@ export async function completeSetup(body: {
   baseUrl?: string;
   chatModel?: string;
   asrModel?: string;
+  asrProvider?: string;
   ttsModel?: string;
+  ttsProvider?: string;
   voiceDesignModel?: string;
   imageModel?: string;
   defaultVoice?: string;
@@ -545,7 +565,9 @@ export async function saveAiSettings(body: {
   baseUrl?: string;
   chatModel?: string;
   asrModel?: string;
+  asrProvider?: string;
   ttsModel?: string;
+  ttsProvider?: string;
   voiceDesignModel?: string;
   imageModel?: string;
   defaultVoice?: string;
@@ -617,6 +639,8 @@ export type McpInstallBundle = {
   claudeDesktop: Record<string, unknown>;
   codex: Record<string, unknown>;
   openclaw: Record<string, unknown>;
+  /** 直接粘贴给 AI 的安装提示词 */
+  aiPrompt: string;
   snippets: {
     cursorJson: string;
     claudeDesktopJson: string;
