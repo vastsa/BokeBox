@@ -14,9 +14,11 @@ import {
 } from '../../lib/scriptPrompt';
 import type { ScriptPromptOptions } from '../../types/job';
 import { ScriptPromptForm } from './ScriptPromptForm';
+import { useI18n } from '../../i18n';
 
 /** 设置页：全局口播人设编辑 */
 export function GlobalScriptPromptSettings() {
+  const { t } = useI18n();
   const [value, setValue] = useState<ScriptPromptOptions>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,29 +95,29 @@ export function GlobalScriptPromptSettings() {
 
   return (
     <section className="settings-card settings-card-wide">
-      <dl className="settings-meta-list" aria-label="当前人设摘要">
+      <dl className="settings-meta-list" aria-label={t('scriptPrompt.metaAria')}>
         <div className="settings-meta-row">
-          <dt>当前摘要</dt>
+          <dt>{t('scriptPrompt.metaSummary')}</dt>
           <dd title={summary}>{summary}</dd>
         </div>
         <div className="settings-meta-row">
-          <dt>状态</dt>
+          <dt>{t('scriptPrompt.metaStatus')}</dt>
           <dd>
             {hasScriptPrompt(value)
-              ? `已配置 ${filledCount} / ${SCRIPT_PROMPT_FIELDS.length} 项`
-              : '未配置，使用系统默认'}
+              ? t('scriptPrompt.filled', { filled: filledCount, total: SCRIPT_PROMPT_FIELDS.length })
+               : t('scriptPrompt.notConfigured')}
           </dd>
         </div>
       </dl>
 
       {loading ? (
-        <div className="auth-loading">加载人设…</div>
+        <div className="auth-loading">{t('scriptPrompt.loading')}</div>
       ) : (
         <>
           <div className="settings-block">
             <div className="settings-block-head">
-              <h3>基础设定</h3>
-              <p>主播身份、节目名称与表达风格。</p>
+              <h3>{t('scriptPrompt.basic')}</h3>
+              <p>{t('scriptPrompt.basicDesc')}</p>
             </div>
             <ScriptPromptForm
               value={value}
@@ -129,8 +131,8 @@ export function GlobalScriptPromptSettings() {
           <div className="settings-block">
             <div className="settings-block-head settings-block-head-row">
               <div>
-                <h3>结构偏好</h3>
-                <p>开场、收尾与额外指令（可选）。</p>
+                <h3>{t('scriptPrompt.structure')}</h3>
+                <p>{t('scriptPrompt.structureDesc')}</p>
               </div>
               <button
                 type="button"
@@ -138,7 +140,7 @@ export function GlobalScriptPromptSettings() {
                 onClick={() => setShowAdvanced((v) => !v)}
                 aria-expanded={showAdvanced}
               >
-                {showAdvanced ? '收起' : '展开'}
+                {showAdvanced ? t('common.collapse') : t('common.expand')}
               </button>
             </div>
             {showAdvanced ? (
@@ -151,7 +153,7 @@ export function GlobalScriptPromptSettings() {
               />
             ) : (
               <p className="settings-collapsed-hint">
-                未展开时保持系统默认结构；若已有高级配置会自动展开。
+                {t('scriptPrompt.advancedKeep')}
               </p>
             )}
           </div>
@@ -165,17 +167,17 @@ export function GlobalScriptPromptSettings() {
               onClick={() => void onClear()}
               disabled={saving || !hasScriptPrompt(value)}
             >
-              清空
+              {t('common.clear')}
             </button>
             <div className="settings-card-actions-right">
-              {savedHint && <span className="script-prompt-saved">已保存</span>}
+              {savedHint && <span className="script-prompt-saved">{t('common.saved')}</span>}
               <button
                 type="button"
                 className="nl-btn nl-btn-primary"
                 onClick={() => void onSave()}
                 disabled={saving}
               >
-                {saving ? '保存中…' : '保存'}
+                {saving ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>

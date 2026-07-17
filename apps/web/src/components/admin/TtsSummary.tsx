@@ -1,16 +1,17 @@
 import type { TtsOptions } from '../../types/job';
+import { useI18n } from '../../i18n';
 
 const MODE_LABEL: Record<string, string> = {
-  default: '自然口播',
-  voicedesign: '自定义音色',
+  default: 'modeDefault',
+  voicedesign: 'modeCustom',
   // 历史兼容
-  sing: '自然口播',
+  sing: 'modeDefault',
 };
 
 const MODE_DESC: Record<string, string> = {
-  default: '预置精品音色 · 音频标签控制',
-  voicedesign: 'Voice Design · 自然语言描述',
-  sing: '预置精品音色 · 音频标签控制',
+  default: 'modeDefaultHint',
+  voicedesign: 'modeCustomHint',
+  sing: 'modeDefaultHint',
 };
 
 export function TtsSummary({
@@ -20,10 +21,11 @@ export function TtsSummary({
   value?: TtsOptions | null;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const tts = value || { mode: 'default' as const, voice: '冰糖' };
   const modeKey = tts.mode === ('sing' as string) ? 'default' : tts.mode;
-  const modeLabel = MODE_LABEL[modeKey] || modeKey;
-  const modeDesc = MODE_DESC[modeKey] || '';
+  const modeLabel = t(`tts.${MODE_LABEL[modeKey] || 'modeDefault'}`);
+  const modeDesc = MODE_DESC[modeKey] ? t(`tts.${MODE_DESC[modeKey]}`) : '';
   const styleTags = modeKey === 'default' ? tts.styleTags || [] : [];
 
   if (compact) {
@@ -43,23 +45,23 @@ export function TtsSummary({
       <div className="tts-summary-grid">
         {modeKey !== 'voicedesign' && (
           <div className="tts-summary-item">
-            <span className="label">音色</span>
+            <span className="label">{t('tts.labelVoice')}</span>
             <span className="value">{tts.voice || '冰糖'}</span>
           </div>
         )}
 
         {modeKey === 'voicedesign' && (
           <div className="tts-summary-item is-wide">
-            <span className="label">音色描述</span>
+            <span className="label">{t('tts.labelDesc')}</span>
             <span className="value is-wrap">
-              {tts.voiceDesign?.trim() || '未填写'}
+              {tts.voiceDesign?.trim() || t('common.notFilled')}
             </span>
           </div>
         )}
 
         {modeKey === 'default' && (
           <div className="tts-summary-item is-wide">
-            <span className="label">风格标签</span>
+            <span className="label">{t('tts.labelStyle')}</span>
             <span className="value">
               {styleTags.length ? (
                 <span className="tts-summary-tags">
@@ -70,7 +72,7 @@ export function TtsSummary({
                   ))}
                 </span>
               ) : (
-                '由口播稿内标签控制'
+                t('tts.controlledByScript')
               )}
             </span>
           </div>

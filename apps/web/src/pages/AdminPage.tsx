@@ -22,11 +22,9 @@ import { formatSize, formatSourceLabel, formatTime } from '../lib/format';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
+import { useI18n } from '../i18n';
 
-const MODE_LABEL: Record<string, string> = {
-  default: '自然口播',
-  voicedesign: '自定义',
-};
+// labels resolved via t() at render
 
 const ACTIVE: JobStatus[] = [
   'queued',
@@ -38,6 +36,7 @@ const ACTIVE: JobStatus[] = [
 ];
 
 export function AdminPage({ route }: { route: Route }) {
+  const { t } = useI18n();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,9 +91,9 @@ export function AdminPage({ route }: { route: Route }) {
         <header className="studio-head">
           <div className="studio-head-copy">
             <div className="page-kicker">Studio Console</div>
-            <h1 className="page-title">任务管理</h1>
+            <h1 className="page-title">{t('admin.title')}</h1>
             <p className="page-subtitle">
-              管理视频转播客资产，生成播客资产。
+              {t('admin.subtitle')}
             </p>
           </div>
           <div className="studio-head-actions">
@@ -104,21 +103,21 @@ export function AdminPage({ route }: { route: Route }) {
               onClick={() => navigate({ name: 'create' })}
             >
               <IconUpload size={15} />
-              上传
+              {t('admin.upload')}
             </button>
             <button
               type="button"
               className="nl-btn nl-btn-secondary"
               onClick={() => navigate({ name: 'home' })}
             >
-              首页
+              {t('nav.home')}
             </button>
             <button
               type="button"
               className="nl-btn nl-btn-ghost studio-icon-btn"
               onClick={() => void refresh()}
-              aria-label="刷新"
-              title="刷新"
+              aria-label={t('common.refresh')}
+              title={t('common.refresh')}
             >
               <IconRefresh size={15} />
             </button>
@@ -126,26 +125,26 @@ export function AdminPage({ route }: { route: Route }) {
         </header>
 
         {/* 紧凑指标条 */}
-        <section className="studio-metrics" aria-label="任务统计">
+        <section className="studio-metrics" aria-label={t('admin.metricsAria')}>
           <MetricPill
-            label="全部"
+            label={t('admin.all')}
             value={jobs.length}
             tone="default"
           />
           <MetricPill
-            label="处理中"
+            label={t('admin.processing')}
             value={stats.activeCount}
             tone={stats.activeCount > 0 ? 'brand' : 'default'}
             pulse={stats.activeCount > 0}
           />
           <MetricPill
-            label="已发布"
+            label={t('admin.published')}
             value={stats.publishedCount}
             tone={stats.publishedCount > 0 ? 'success' : 'default'}
           />
           {stats.failedCount > 0 && (
             <MetricPill
-              label="失败"
+              label={t('admin.failed')}
               value={stats.failedCount}
               tone="danger"
             />
@@ -163,13 +162,13 @@ export function AdminPage({ route }: { route: Route }) {
         <section className="studio-library">
           <div className="studio-library-head">
             <div>
-              <h2>任务资产库</h2>
+              <h2>{t('admin.library')}</h2>
               <p>
                 {loading
-                  ? '加载中…'
+                  ? t('common.loading')
                   : jobs.length
-                    ? `${jobs.length} 条任务`
-                    : '暂无任务'}
+                    ? t('admin.jobCount', { n: jobs.length })
+                     : t('admin.noJobs')}
               </p>
             </div>
             <button
@@ -178,7 +177,7 @@ export function AdminPage({ route }: { route: Route }) {
               onClick={() => navigate({ name: 'create' })}
             >
               <IconUpload size={14} />
-              新建
+              {t('admin.newJob')}
             </button>
           </div>
 
@@ -192,9 +191,9 @@ export function AdminPage({ route }: { route: Route }) {
             <div className="studio-empty-wrap">
               <EmptyState
                 icon={<IconDashboard size={22} />}
-                title="还没有任务"
-                description="上传一段视频，自动生成可发布的播客。"
-                actionLabel="上传视频"
+                title={t('admin.emptyTitle')}
+                description={t('admin.emptyDesc')}
+                actionLabel={t('admin.emptyAction')}
                 onAction={() => navigate({ name: 'create' })}
               />
             </div>
@@ -216,7 +215,7 @@ export function AdminPage({ route }: { route: Route }) {
                     void runJobAction(job.id, () => retryJob(job.id))
                   }
                   onDelete={() => {
-                    if (!confirm('确认删除该任务及全部本地资产？')) return;
+                    if (!confirm(t('admin.confirmDelete'))) return;
                     void runJobAction(job.id, () => deleteJob(job.id));
                   }}
                 />
@@ -265,6 +264,7 @@ function JobRow({
   onRetry: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useI18n();
   const title = job.podcast?.title || job.title;
   const mode = job.tts?.mode || 'default';
   const active = ACTIVE.includes(job.status);
@@ -272,10 +272,10 @@ function JobRow({
   const canRetry = job.status === 'failed' || job.status === 'done';
 
   const assets = [
-    { key: 'v', label: '视频', ok: Boolean(job.hasVideo) },
-    { key: 'a', label: '音频', ok: Boolean(job.hasSourceAudio) },
-    { key: 't', label: '转写', ok: Boolean(job.hasTranscript) },
-    { key: 'p', label: '播客', ok: Boolean(job.hasPodcastAudio) },
+    { key: 'v', label: t('admin.assetVideo'), ok: Boolean(job.hasVideo) },
+    { key: 'a', label: t('admin.assetAudio'), ok: Boolean(job.hasSourceAudio) },
+    { key: 't', label: t('admin.assetTranscript'), ok: Boolean(job.hasTranscript) },
+    { key: 'p', label: t('admin.assetPodcast'), ok: Boolean(job.hasPodcastAudio) },
   ];
   const readyCount = assets.filter((a) => a.ok).length;
 
@@ -302,7 +302,7 @@ function JobRow({
           >
             <IconMic size={16} />
           </CoverArt>
-          {job.published && <i className="studio-job-live" title="已发布" />}
+          {job.published && <i className="studio-job-live" title={t('admin.published')} />}
         </span>
 
         <div className="studio-job-body">
@@ -311,9 +311,9 @@ function JobRow({
             <div className="studio-job-badges">
               <StatusBadge status={job.status} />
               {job.published ? (
-                <span className="nl-tag nl-tag-success">已发布</span>
+                <span className="nl-tag nl-tag-success">{t('admin.published')}</span>
               ) : (
-                <span className="nl-tag">未发布</span>
+                <span className="nl-tag">{t('admin.unpublished')}</span>
               )}
             </div>
           </div>
@@ -332,7 +332,7 @@ function JobRow({
           </div>
 
           <div className="studio-job-meta">
-            <div className="studio-job-assets" title={`资产 ${readyCount}/4`}>
+            <div className="studio-job-assets" title={t('admin.assetsTitle', { ready: readyCount })}>
               {assets.map((a) => (
                 <span
                   key={a.key}
@@ -344,7 +344,7 @@ function JobRow({
             </div>
             <span className="studio-job-tts">
               <IconSpark size={11} />
-              {MODE_LABEL[mode] || mode}
+              {mode === 'voicedesign' ? t('admin.ttsCustom') : t('admin.ttsDefault')}
               {job.tts?.voice ? ` · ${job.tts.voice}` : ''}
             </span>
           </div>
@@ -377,7 +377,7 @@ function JobRow({
           className="nl-btn nl-btn-primary"
           onClick={onOpen}
         >
-          详情
+          {t('common.details')}
         </button>
         <button
           type="button"
@@ -385,7 +385,7 @@ function JobRow({
           disabled={busy}
           onClick={onTogglePublish}
         >
-          {job.published ? '取消发布' : '发布'}
+          {job.published ? t('admin.unpublish') : t('admin.publish')}
         </button>
         {canRetry && (
           <button
@@ -393,8 +393,8 @@ function JobRow({
             className="nl-btn nl-btn-ghost studio-icon-btn"
             disabled={busy}
             onClick={onRetry}
-            aria-label="重跑"
-            title="智能重跑（跳过已完成步骤）"
+            aria-label={t('admin.rerun')}
+            title={t('admin.rerunTitle')}
           >
             <IconRefresh size={14} />
           </button>
@@ -404,8 +404,8 @@ function JobRow({
           className="nl-btn nl-btn-ghost studio-icon-btn is-danger"
           disabled={busy}
           onClick={onDelete}
-          aria-label="删除"
-          title="删除"
+          aria-label={t('common.delete')}
+          title={t('common.delete')}
         >
           <IconTrash size={14} />
         </button>

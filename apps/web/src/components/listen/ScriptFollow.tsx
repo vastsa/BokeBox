@@ -13,6 +13,7 @@ import {
   seekSecForLine,
   type ScriptLineTiming,
 } from '../../lib/scriptFollow';
+import { useI18n } from '../../i18n';
 
 const LINE_H = 56;
 const VIEW_RADIUS = 4; // 渲染中心附近行数
@@ -42,6 +43,7 @@ export function ScriptFollow({
   /** 服务端合成时写入的真实/半真实时间轴 */
   timing?: ScriptLineTiming[] | null;
 }) {
+  const { t } = useI18n();
   const parsed = useMemo(() => parseScriptLines(script), [script]);
   const lines = useMemo(() => parsed.map((l) => l.text), [parsed]);
   const active = useMemo(
@@ -59,7 +61,7 @@ export function ScriptFollow({
   }, [active, variant]);
 
   if (!lines.length) {
-    return <p className="qq-empty">暂无脚本</p>;
+    return <p className="qq-empty">{t('player.noLyrics')}</p>;
   }
 
   if (variant === 'lyrics') {
@@ -78,7 +80,7 @@ export function ScriptFollow({
   return (
     <div className="script-follow" ref={listRef}>
       <div className="script-follow-hint">
-        跟读高亮已对齐口播节奏 · 点击句子可跳转
+        {t('player.followHint')}
       </div>
       <div className="script-follow-list">
         {lines.map((line, i) => {
@@ -123,6 +125,7 @@ function LyricsWheel({
   parsed: ReturnType<typeof parseScriptLines>;
   timing?: ScriptLineTiming[] | null;
 }) {
+  const { t } = useI18n();
   const maxY = Math.max(0, (lines.length - 1) * LINE_H);
 
   const scrollYRef = useRef(active * LINE_H);
@@ -382,7 +385,7 @@ function LyricsWheel({
       onPointerCancel={endPointer}
       onWheel={onWheel}
       role="listbox"
-      aria-label="歌词，可上下滑动"
+      aria-label={t('player.lyricsAria')}
       aria-activedescendant={`lyric-${centerIdx}`}
     >
       <div className="qq-lyrics-stage" style={{ ['--lyric-h' as string]: `${LINE_H}px` }}>

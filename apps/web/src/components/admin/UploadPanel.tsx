@@ -26,6 +26,7 @@ import {
 } from './ScriptPromptPicker';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from './GlobalTtsSettings';
 import { loadGlobalTts, TtsPicker } from './TtsPicker';
+import { useI18n } from '../../i18n';
 
 const ACCEPT = [
   // 视频
@@ -40,6 +41,7 @@ type SourceMode = 'file' | 'url';
 type OptionPanel = 'none' | 'tts' | 'prompt';
 
 export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const ttsRef = useRef<TtsOptions>(DEFAULT_GLOBAL_TTS);
   const ttsSourceModeRef = useRef<TtsSourceMode>('global');
@@ -154,11 +156,11 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const handleUrl = useCallback(async () => {
     const url = sourceUrl.trim();
     if (!url) {
-      setError('请输入内容链接');
+      setError(t('upload.errUrlEmpty'));
       return;
     }
     if (!/^https?:\/\//i.test(url)) {
-      setError('链接需以 http:// 或 https:// 开头');
+      setError(t('upload.errUrlScheme'));
       return;
     }
 
@@ -203,18 +205,18 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
 
   const activeTts = ttsSourceMode === 'global' ? globalTts : tts;
   const ttsSummary = summarizeTts(activeTts);
-  const ttsModeLabel = ttsSourceMode === 'global' ? '全局' : '本次';
+  const ttsModeLabel = ttsSourceMode === 'global' ? t('common.global') : t('common.thisTime');
   const promptSummary = summarizeScriptPrompt(
     scriptPromptMode === 'global' ? globalScriptPrompt : scriptPrompt,
   );
   const promptModeLabel =
-    scriptPromptMode === 'global' ? '全局' : '本次';
+    scriptPromptMode === 'global' ? t('common.global') : t('common.thisTime');
 
   return (
     <div className="upload-studio">
       {/* 1. 主操作：导入内容 */}
       <div className="upload-studio-main">
-        <div className="upload-source-tabs" role="tablist" aria-label="导入方式">
+        <div className="upload-source-tabs" role="tablist" aria-label={t('upload.sourceAria')}>
           <button
             type="button"
             role="tab"
@@ -226,7 +228,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               setError(null);
             }}
           >
-            本地文件
+            {t('upload.localFile')}
           </button>
           <button
             type="button"
@@ -239,7 +241,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               setError(null);
             }}
           >
-            URL 导入
+            {t('upload.urlImport')}
           </button>
         </div>
 
@@ -247,7 +249,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
           <div
             role="button"
             tabIndex={0}
-            aria-label="选择或拖拽视频 / 音频 / 文本上传"
+            aria-label={t('upload.dropAria')}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -280,8 +282,8 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               </div>
 
               <div className="upload-dropzone-copy">
-                <h2>{uploading ? '正在上传…' : '拖拽文件到这里'}</h2>
-                <p>支持视频 / 音频 / 文本 · 最大 500MB</p>
+                <h2>{uploading ? t('upload.dropping') : t('upload.dropTitle')}</h2>
+                <p>{t('upload.dropHint')}</p>
               </div>
 
               {!uploading && (
@@ -294,7 +296,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                   }}
                 >
                   <IconUpload size={15} />
-                  选择文件
+                  {t('upload.chooseFile')}
                 </button>
               )}
             </div>
@@ -311,11 +313,11 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
         ) : (
           <div className={['upload-url-panel', uploading ? 'is-uploading' : ''].join(' ')}>
             <label className="upload-url-field">
-              <span className="label">内容链接</span>
+              <span className="label">{t('upload.contentUrl')}</span>
               <input
                 type="url"
                 className="nl-input"
-                placeholder="https://… 文章 / 视频 / 音频直链"
+                placeholder={t('upload.urlPlaceholder')}
                 value={sourceUrl}
                 disabled={uploading}
                 onChange={(e) => setSourceUrl(e.target.value)}
@@ -329,7 +331,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             </label>
 
             <p className="upload-url-hint">
-              支持网页文章正文抽取，以及视频 / 音频直链导入；请使用可公开访问的链接。
+              {t('upload.urlHint')}
             </p>
 
             <button
@@ -339,7 +341,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               onClick={() => void handleUrl()}
             >
               <IconUpload size={15} />
-              {uploading ? '正在提交…' : '开始处理'}
+              {uploading ? t('upload.submitting') : t('upload.start')}
             </button>
           </div>
         )}
@@ -356,12 +358,12 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                   {fileSize != null
                     ? formatSize(fileSize)
                     : sourceMode === 'url'
-                      ? 'URL 导入'
+                      ? t('upload.urlImport')
                       : '—'}
                   <span className="dot">·</span>
                   {ttsSummary}
                   <span className="dot">·</span>
-                  {published ? '完成后发布' : '暂不发布'}
+                  {published ? t('upload.publishOn') : t('upload.publishOff')}
                 </div>
               </div>
               <div className="upload-file-status">
@@ -370,7 +372,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                 ) : (
                   <span className="done">
                     <IconCheck size={14} />
-                    已提交
+                    {t('upload.submitted')}
                   </span>
                 )}
               </div>
@@ -379,9 +381,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             <div className="upload-progress-hint">
               {uploading
                 ? sourceMode === 'url'
-                  ? '任务已创建，服务端将下载并识别内容…'
-                  : '上传完成后自动跳转任务详情。'
-                : '任务已创建，正在跳转…'}
+                  ? t('upload.submittedUrl')
+                   : t('upload.submittedUpload')
+                 : t('upload.submittedRedirect')}
             </div>
           </div>
         )}
@@ -389,7 +391,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
         {error && (
           <div className="upload-error" role="alert">
             <div className="upload-error-title">
-              {sourceMode === 'url' ? '导入失败' : '上传失败'}
+              {sourceMode === 'url' ? t('upload.failUrl') : t('upload.failUpload')}
             </div>
             <div className="upload-error-msg">{error}</div>
             <button
@@ -400,14 +402,14 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                 else openPicker();
               }}
             >
-              重试
+              {t('common.retry')}
             </button>
           </div>
         )}
       </div>
 
       {/* 2. 精简选项：默认折叠，按需展开 */}
-      <aside className="upload-options" aria-label="制作选项">
+      <aside className="upload-options" aria-label={t('upload.optionsAria')}>
         <div className="upload-options-card">
           <label
             className={[
@@ -416,7 +418,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             ].join(' ')}
           >
             <div className="upload-switch-copy">
-              <div className="title">完成后自动发布</div>
+              <div className="title">{t('upload.autoPublish')}</div>
             </div>
             <span className={['upload-switch', published ? 'is-on' : ''].join(' ')}>
               <i />
@@ -426,12 +428,12 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                 checked={published}
                 disabled={uploading}
                 onChange={(e) => updatePublished(e.target.checked)}
-                aria-label="完成后自动发布"
+                aria-label={t('upload.autoPublish')}
               />
             </span>
           </label>
 
-          <div className="upload-option-chips" role="group" aria-label="高级选项">
+          <div className="upload-option-chips" role="group" aria-label={t('upload.advancedAria')}>
             <button
               type="button"
               className={[
@@ -443,12 +445,12 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               onClick={() => togglePanel('tts')}
             >
               <IconMic size={13} />
-              <span className="chip-label">音色</span>
+              <span className="chip-label">{t('upload.voice')}</span>
               <span className="chip-value" title={`${ttsModeLabel} · ${ttsSummary}`}>
                 {ttsModeLabel} · {ttsSummary}
               </span>
               <span className="chip-caret" aria-hidden>
-                {openPanel === 'tts' ? '收起' : '调整'}
+                {openPanel === 'tts' ? t('common.collapse') : t('common.adjust')}
               </span>
             </button>
 
@@ -463,12 +465,12 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               onClick={() => togglePanel('prompt')}
             >
               <IconSpark size={13} />
-              <span className="chip-label">人设</span>
+              <span className="chip-label">{t('upload.persona')}</span>
               <span className="chip-value" title={`${promptModeLabel} · ${promptSummary}`}>
                 {promptModeLabel} · {promptSummary}
               </span>
               <span className="chip-caret" aria-hidden>
-                {openPanel === 'prompt' ? '收起' : '调整'}
+                {openPanel === 'prompt' ? t('common.collapse') : t('common.adjust')}
               </span>
             </button>
           </div>
@@ -478,14 +480,14 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               <div className="upload-option-panel-head">
                 <div className="left">
                   <IconMic size={14} />
-                  <span>音色</span>
+                  <span>{t('upload.voice')}</span>
                 </div>
                 <button
                   type="button"
                   className="upload-option-close"
                   onClick={() => setOpenPanel('none')}
                 >
-                  完成
+                  {t('common.done')}
                 </button>
               </div>
               <TtsPicker
@@ -505,14 +507,14 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               <div className="upload-option-panel-head">
                 <div className="left">
                   <IconSpark size={14} />
-                  <span>口播人设</span>
+                  <span>{t('upload.scriptPersona')}</span>
                 </div>
                 <button
                   type="button"
                   className="upload-option-close"
                   onClick={() => setOpenPanel('none')}
                 >
-                  完成
+                  {t('common.done')}
                 </button>
               </div>
               <ScriptPromptPicker

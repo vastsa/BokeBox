@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchTtsSettings, saveTtsSettings } from '../../api/client';
 import type { TtsOptions } from '../../types/job';
 import { TtsModePicker } from './TtsModePicker';
+import { tOutside, useI18n } from '../../i18n';
 
 const DEFAULT_TTS: TtsOptions = {
   mode: 'default',
@@ -13,10 +14,10 @@ function summarizeTts(tts: TtsOptions): string {
   if (tts.mode === 'voicedesign') {
     const desc = tts.voiceDesign?.trim();
     return desc
-      ? `自定义 · ${desc.slice(0, 28)}${desc.length > 28 ? '…' : ''}`
-      : '自定义音色';
+      ? tOutside('tts.customSummary', { desc: `${desc.slice(0, 28)}${desc.length > 28 ? '…' : ''}` })
+      : tOutside('tts.customVoice');
   }
-  const parts = ['自然口播'];
+  const parts = [tOutside('tts.modeDefault')];
   if (tts.voice) parts.push(String(tts.voice));
   if (tts.styleTags?.length) parts.push(tts.styleTags.join(' '));
   return parts.join(' · ');
@@ -24,6 +25,7 @@ function summarizeTts(tts: TtsOptions): string {
 
 /** 设置页：全局音色编辑 */
 export function GlobalTtsSettings() {
+  const { t } = useI18n();
   const [value, setValue] = useState<TtsOptions>(DEFAULT_TTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,15 +51,15 @@ export function GlobalTtsSettings() {
 
   const summary = useMemo(() => summarizeTts(value), [value]);
   const modeLabel =
-    value.mode === 'voicedesign' ? '自定义音色' : '自然口播';
+    value.mode === 'voicedesign' ? tOutside('tts.modeCustom') : tOutside('tts.modeDefault');
   const voiceLabel =
     value.mode === 'voicedesign'
-      ? value.voiceDesign?.trim() || '未填写描述'
+      ? value.voiceDesign?.trim() || tOutside('tts.noDesc')
       : String(value.voice || '冰糖');
   const styleLabel =
     value.mode === 'default' && value.styleTags?.length
       ? value.styleTags.join('、')
-      : '无';
+      : tOutside('common.none');
 
   const onSave = async () => {
     setSaving(true);
@@ -82,35 +84,35 @@ export function GlobalTtsSettings() {
 
   return (
     <section className="settings-card settings-card-wide">
-      <dl className="settings-meta-list" aria-label="当前音色摘要">
+      <dl className="settings-meta-list" aria-label={t('tts.metaAria')}>
         <div className="settings-meta-row">
-          <dt>当前摘要</dt>
+          <dt>{t('tts.metaSummary')}</dt>
           <dd title={summary}>{summary}</dd>
         </div>
         <div className="settings-meta-row">
-          <dt>模式</dt>
+          <dt>{t('tts.metaMode')}</dt>
           <dd>{modeLabel}</dd>
         </div>
         <div className="settings-meta-row">
-          <dt>{value.mode === 'voicedesign' ? '描述' : '音色'}</dt>
+          <dt>{value.mode === 'voicedesign' ? t('tts.metaDesc') : t('tts.labelVoice')}</dt>
           <dd title={voiceLabel}>{voiceLabel}</dd>
         </div>
         {value.mode === 'default' && (
           <div className="settings-meta-row">
-            <dt>风格标签</dt>
+            <dt>{t('tts.labelStyle')}</dt>
             <dd>{styleLabel}</dd>
           </div>
         )}
       </dl>
 
       {loading ? (
-        <div className="auth-loading">加载音色…</div>
+        <div className="auth-loading">{t('tts.loading')}</div>
       ) : (
         <>
           <div className="settings-block">
             <div className="settings-block-head">
-              <h3>编辑配置</h3>
-              <p>选择合成模式、预置音色或自定义描述。</p>
+              <h3>{t('tts.editTitle')}</h3>
+              <p>{t('tts.editDesc')}</p>
             </div>
             <TtsModePicker
               value={value}
@@ -130,17 +132,17 @@ export function GlobalTtsSettings() {
               onClick={onReset}
               disabled={saving}
             >
-              恢复默认
+              {t('tts.restoreDefaults')}
             </button>
             <div className="settings-card-actions-right">
-              {savedHint && <span className="script-prompt-saved">已保存</span>}
+              {savedHint && <span className="script-prompt-saved">{t('common.saved')}</span>}
               <button
                 type="button"
                 className="nl-btn nl-btn-primary"
                 onClick={() => void onSave()}
                 disabled={saving}
               >
-                {saving ? '保存中…' : '保存'}
+                {saving ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>

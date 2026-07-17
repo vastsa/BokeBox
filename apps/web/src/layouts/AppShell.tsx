@@ -5,6 +5,7 @@ import {
   IconSpark,
   IconUpload,
 } from '../components/icons';
+import { useI18n } from '../i18n';
 import { navigate, type Route } from '../lib/router';
 
 export function AppShell({
@@ -16,6 +17,7 @@ export function AppShell({
   children: ReactNode;
   hideBottomNav?: boolean;
 }) {
+  const { t } = useI18n();
   const homeActive =
     route.name === 'home' ||
     route.name === 'listen' ||
@@ -44,44 +46,42 @@ export function AppShell({
                 BokeBox
               </span>
               <span className="mt-0.5 hidden text-[10.5px] text-[var(--text-3)] sm:block">
-                私人视频转播客
+                {t('app.tagline')}
               </span>
             </span>
           </button>
 
-          {/* 桌面端：完整顶栏导航 */}
           <nav className="hidden items-center gap-0.5 rounded-full border border-[var(--separator)] bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] p-0.5 backdrop-blur md:flex">
             <TopNavItem
               active={homeActive}
-              label="首页"
+              label={t('nav.home')}
               onClick={() => navigate({ name: 'home' })}
               icon={<IconLibrary size={14} />}
             />
             <TopNavItem
               active={createActive}
-              label="制作"
+              label={t('nav.create')}
               onClick={() => navigate({ name: 'create' })}
               icon={<IconUpload size={14} />}
             />
             <TopNavItem
               active={settingsActive}
-              label="设置"
+              label={t('nav.settings')}
               onClick={() => navigate({ name: 'settings' })}
               icon={<IconSpark size={14} />}
             />
           </nav>
 
-          {/* 手机端：右上角制作 / 设置 */}
           <div className="topbar-actions md:hidden">
             <TopActionButton
               active={createActive}
-              label="制作"
+              label={t('nav.create')}
               onClick={() => navigate({ name: 'create' })}
               icon={<IconUpload size={15} />}
             />
             <TopActionButton
               active={settingsActive}
-              label="设置"
+              label={t('nav.settings')}
               onClick={() => navigate({ name: 'settings' })}
               icon={<IconSpark size={15} />}
             />
@@ -92,23 +92,23 @@ export function AppShell({
       <main className={hideBottomNav ? 'pb-8' : 'page-bottom-pad'}>{children}</main>
 
       {!hideBottomNav && (
-        <nav className="bottom-nav" aria-label="主导航">
+        <nav className="bottom-nav" aria-label={t('nav.main')}>
           <div className="mx-auto grid max-w-sm grid-cols-3 gap-0.5">
             <BottomNavItem
               active={homeActive}
-              label="首页"
+              label={t('nav.home')}
               onClick={() => navigate({ name: 'home' })}
               icon={<IconLibrary size={18} />}
             />
             <BottomNavItem
               active={createActive}
-              label="制作"
+              label={t('nav.create')}
               onClick={() => navigate({ name: 'create' })}
               icon={<IconUpload size={18} />}
             />
             <BottomNavItem
               active={settingsActive}
-              label="设置"
+              label={t('nav.settings')}
               onClick={() => navigate({ name: 'settings' })}
               icon={<IconSpark size={18} />}
             />

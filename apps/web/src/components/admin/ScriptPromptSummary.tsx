@@ -1,5 +1,6 @@
 import { hasScriptPrompt, SCRIPT_PROMPT_FIELDS, summarizeScriptPrompt } from '../../lib/scriptPrompt';
 import type { ScriptPromptOptions } from '../../types/job';
+import { useI18n } from '../../i18n';
 
 export function ScriptPromptSummary({
   value,
@@ -8,6 +9,7 @@ export function ScriptPromptSummary({
   value?: ScriptPromptOptions | null;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const summary = summarizeScriptPrompt(value);
 
   if (compact) {
@@ -18,9 +20,9 @@ export function ScriptPromptSummary({
     return (
       <div className="script-prompt-summary">
         <div className="script-prompt-summary-hero">
-          <div className="script-prompt-summary-mode">默认人设</div>
+          <div className="script-prompt-summary-mode">{t('scriptPrompt.defaultPersona')}</div>
           <div className="script-prompt-summary-desc">
-            未设置干预项，使用系统内置口播提示词
+            {t('scriptPrompt.defaultHint')}
           </div>
         </div>
       </div>
@@ -30,7 +32,7 @@ export function ScriptPromptSummary({
   return (
     <div className="script-prompt-summary">
       <div className="script-prompt-summary-hero">
-        <div className="script-prompt-summary-mode">自定义人设</div>
+        <div className="script-prompt-summary-mode">{t('scriptPrompt.customPersona')}</div>
         <div className="script-prompt-summary-desc">{summary}</div>
       </div>
       <div className="script-prompt-summary-grid">

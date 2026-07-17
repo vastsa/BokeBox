@@ -9,6 +9,7 @@ import {
 import { CoverArt } from '../ui/CoverArt';
 import { formatDuration } from '../../lib/format';
 import { usePlayer, type PlayerTrack } from '../../player/PlayerContext';
+import { useI18n } from '../../i18n';
 
 export type MiniPlayerState = {
   current: number;
@@ -41,6 +42,7 @@ export function MiniPlayer({
   seekRequest?: number | null;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const player = usePlayer();
   const lastSeek = useRef<number | null>(null);
   const prevRef = useRef<MiniPlayerState | null>(null);
@@ -54,7 +56,7 @@ export function MiniPlayer({
   const trackPayload = useMemo<PlayerTrack>(
     () => ({
       id: trackId,
-      title: title || '播客音频',
+      title: title || t('app.podcastAudio'),
       src,
       coverClassName,
       coverImageUrl,
@@ -159,10 +161,10 @@ export function MiniPlayer({
             <div className="mini-player-kicker">
               {isActive && playing ? 'Now Playing' : 'Podcast Preview'}
             </div>
-            <div className="mini-player-title">{title || '播客音频'}</div>
+            <div className="mini-player-title">{title || t('app.podcastAudio')}</div>
           </div>
           {downloadUrl && (
-            <a href={downloadUrl} className="mini-player-dl" aria-label="下载">
+            <a href={downloadUrl} className="mini-player-dl" aria-label={t('common.download')}>
               <IconDownload size={14} />
             </a>
           )}
@@ -181,7 +183,7 @@ export function MiniPlayer({
         value={current}
         onChange={(e) => seekTo(Number(e.target.value))}
         className="pb-range mini-player-range"
-        aria-label="播放进度"
+        aria-label={t('player.progress')}
       />
       <div className="pb-progress mini-player-track">
         <i style={{ width: `${pct}%` }} />
@@ -192,7 +194,7 @@ export function MiniPlayer({
           type="button"
           className="mini-ctrl"
           onClick={() => seekBy(-15)}
-          aria-label="后退15秒"
+          aria-label={t('player.back15')}
         >
           <IconSkipBack size={16} />
         </button>
@@ -200,7 +202,7 @@ export function MiniPlayer({
           type="button"
           className="mini-ctrl is-main"
           onClick={toggle}
-          aria-label={playing ? '暂停' : '播放'}
+          aria-label={playing ? t('common.pause') : t('common.play')}
         >
           {playing ? <IconPause size={18} /> : <IconPlay size={18} />}
         </button>
@@ -208,7 +210,7 @@ export function MiniPlayer({
           type="button"
           className="mini-ctrl"
           onClick={() => seekBy(15)}
-          aria-label="前进15秒"
+          aria-label={t('player.forward15')}
         >
           <IconSkipForward size={16} />
         </button>

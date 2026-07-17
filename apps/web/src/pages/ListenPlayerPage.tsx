@@ -26,6 +26,7 @@ import { coverGradientFor, formatDuration } from '../lib/format';
 import { navigate, type Route } from '../lib/router';
 import { usePlayer } from '../player/PlayerContext';
 import type { LibraryItem } from '../types/job';
+import { useI18n } from '../i18n';
 
 type Panel = 'lyrics' | 'notes' | 'flashcards' | 'outline';
 
@@ -38,16 +39,16 @@ type SleepState =
   | { kind: 'timer'; minutes: number; endsAt: number }
   | { kind: 'eoe' };
 
-const SLEEP_PRESETS = [
-  { key: 'off', label: '关闭' },
-  { key: 'eoe', label: '播完本集' },
-  { key: 5, label: '5 分钟' },
-  { key: 10, label: '10 分钟' },
-  { key: 15, label: '15 分钟' },
-  { key: 30, label: '30 分钟' },
-  { key: 45, label: '45 分钟' },
-  { key: 60, label: '60 分钟' },
-] as const;
+const SLEEP_PRESETS: Array<{ key: SleepPresetKey; n?: number }> = [
+  { key: 'off' },
+  { key: 'eoe' },
+  { key: 5, n: 5 },
+  { key: 10, n: 10 },
+  { key: 15, n: 15 },
+  { key: 30, n: 30 },
+  { key: 45, n: 45 },
+  { key: 60, n: 60 },
+];
 
 function formatCountdown(ms: number): string {
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -57,6 +58,7 @@ function formatCountdown(ms: number): string {
 }
 
 export function ListenPlayerPage({ id, route: _route }: { id: string; route: Route }) {
+  const { t } = useI18n();
   const player = usePlayer();
   const [item, setItem] = useState<LibraryItem | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -288,7 +290,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
             className="nl-btn nl-btn-primary"
             onClick={() => navigate({ name: 'home' })}
           >
-            返回首页
+            {t('common.backHome')}
           </button>
         </div>
       </div>
@@ -314,23 +316,23 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   const artist =
     tags.slice(0, 2).join(' · ') ||
     (job.podcast?.estimatedMinutes
-      ? `约 ${job.podcast.estimatedMinutes} 分钟`
-      : '私人播客');
+      ? t('common.aboutMinutes', { n: job.podcast.estimatedMinutes })
+       : t('app.privatePodcast'));
   const hasScript = Boolean(job.podcast?.script);
   const sleepActive = sleep.kind !== 'off';
   const sleepLabel =
     sleep.kind === 'timer'
       ? formatCountdown(sleepLeftMs)
       : sleep.kind === 'eoe'
-        ? '本集'
+        ? t('player.sleepEoe')
         : '';
 
   const tabs = (
     [
-      ...(hasScript ? ([['lyrics', '歌词']] as const) : []),
-      ['notes', '笔记'] as const,
-      ['flashcards', '闪卡'] as const,
-      ['outline', '大纲'] as const,
+      ...(hasScript ? ([['lyrics', t('player.lyrics')]] as const) : []),
+      ['notes', t('player.notes')] as const,
+      ['flashcards', t('player.flashcards')] as const,
+      ['outline', t('player.outline')] as const,
     ] as Array<readonly [Panel, string]>
   );
 
@@ -345,7 +347,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         .filter(Boolean)
         .join(' ')}
       onClick={ensureAndPlay}
-      aria-label={active.playing ? '暂停' : '播放'}
+      aria-label={active.playing ? t('common.pause') : t('common.play')}
       tabIndex={variant === 'hero' ? 0 : -1}
     >
       <CoverArt
@@ -391,11 +393,11 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
           type="button"
           className="qq-icon-btn"
           onClick={() => navigate({ name: 'home' })}
-          aria-label="返回"
+          aria-label={t('player.back')}
         >
           <IconBack size={18} />
         </button>
-        <div className="qq-top-tabs" role="tablist" aria-label="内容面板">
+        <div className="qq-top-tabs" role="tablist" aria-label={t('player.contentTabs')}>
           {tabs.map(([k, label]) => (
             <button
               key={k}
@@ -412,8 +414,8 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         <a
           href={podcastAudioUrl(job.id, true)}
           className="qq-icon-btn"
-          aria-label="下载音频"
-          title="下载"
+          aria-label={t('player.downloadAudio')}
+          title={t('common.download')}
         >
           <IconDownload size={16} />
         </a>
@@ -430,7 +432,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               {(tags.length > 0 || job.podcast?.estimatedMinutes) && (
                 <div className="qq-song-chips">
                   {job.podcast?.estimatedMinutes ? (
-                    <span className="qq-chip">约 {job.podcast.estimatedMinutes} 分钟</span>
+                    <span className="qq-chip">{t('common.aboutMinutes', { n: job.podcast.estimatedMinutes })}</span>
                   ) : null}
                   {tags.slice(0, 3).map((t) => (
                     <span key={t} className="qq-chip">
@@ -455,7 +457,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
                   timing={job.podcast?.scriptTiming}
                 />
               ) : (
-                <p className="qq-empty">暂无口播脚本</p>
+                <p className="qq-empty">{t('player.noScript')}</p>
               ))}
 
             {panel === 'notes' && (
@@ -465,7 +467,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
                 ) : job.podcast?.summary ? (
                   <p>{job.podcast.summary}</p>
                 ) : (
-                  <p className="qq-empty">暂无节目笔记</p>
+                  <p className="qq-empty">{t('player.noNotes')}</p>
                 )}
               </article>
             )}
@@ -474,7 +476,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               <div className="qq-flashcards">
                 <FlashcardsView
                   cards={job.podcast?.flashcards}
-                  emptyText="暂无知识闪卡"
+                  emptyText={t('player.noFlashcards')}
                   compact
                 />
               </div>
@@ -495,7 +497,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
                     </li>
                   ))
                 ) : (
-                  <p className="qq-empty">暂无大纲</p>
+                  <p className="qq-empty">{t('player.noOutline')}</p>
                 )}
               </ol>
             )}
@@ -558,7 +560,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
                   if (!scrubbingRef.current) player.seekTo(v);
                 }}
                 className="qq-range"
-                aria-label="播放进度"
+                aria-label={t('player.progress')}
               />
               {scrubbing && (
                 <div className="qq-scrub-tip" aria-hidden>
@@ -570,8 +572,8 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               type="button"
               className="qq-time is-btn"
               onClick={() => setShowRemain((v) => !v)}
-              title={showRemain ? '显示总时长' : '显示剩余时长'}
-              aria-label={showRemain ? '显示总时长' : '显示剩余时长'}
+              title={showRemain ? t('player.showTotal') : t('player.showRemain')}
+              aria-label={showRemain ? t('player.showTotal') : t('player.showRemain')}
             >
               {showRemain ? `-${formatDuration(remain)}` : formatDuration(active.duration)}
             </button>
@@ -582,8 +584,8 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               type="button"
               className="qq-ctrl is-rate"
               onClick={cycleRate}
-              aria-label={`倍速 ${active.rate}x，点击切换`}
-              title="切换倍速"
+              aria-label={t('player.rateSwitch', { rate: active.rate })}
+              title={t('player.switchRate')}
             >
               <span className="qq-rate-text">
                 {active.rate % 1 === 0 ? `${active.rate}` : active.rate}
@@ -596,8 +598,8 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               className="qq-ctrl is-ep"
               onClick={() => goEpisode(prevItem)}
               disabled={!prevItem}
-              aria-label="上一集"
-              title={prevItem ? `上一集：${prevItem.job.podcast?.title || prevItem.job.title}` : '没有上一集'}
+              aria-label={t('player.prevEpisode')}
+              title={prevItem ? t('player.prevEpisodeTitle', { title: prevItem.job.podcast?.title || prevItem.job.title }) : t('player.noPrev')}
             >
               <IconTrackPrev size={18} />
             </button>
@@ -605,7 +607,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               type="button"
               className="qq-ctrl has-badge"
               onClick={() => player.seekBy(-15)}
-              aria-label="后退15秒"
+              aria-label={t('player.back15')}
               title="-15s"
             >
               <IconSkipBack size={17} />
@@ -615,7 +617,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               type="button"
               className="qq-ctrl is-main"
               onClick={ensureAndPlay}
-              aria-label={active.playing ? '暂停' : '播放'}
+              aria-label={active.playing ? t('common.pause') : t('common.play')}
             >
               {active.playing ? <IconPause size={24} /> : <IconPlay size={24} />}
             </button>
@@ -623,7 +625,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               type="button"
               className="qq-ctrl has-badge"
               onClick={() => player.seekBy(15)}
-              aria-label="前进15秒"
+              aria-label={t('player.forward15')}
               title="+15s"
             >
               <IconSkipForward size={17} />
@@ -634,8 +636,8 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               className="qq-ctrl is-ep"
               onClick={() => goEpisode(nextItem)}
               disabled={!nextItem}
-              aria-label="下一集"
-              title={nextItem ? `下一集：${nextItem.job.podcast?.title || nextItem.job.title}` : '没有下一集'}
+              aria-label={t('player.nextEpisode')}
+              title={nextItem ? t('player.nextEpisodeTitle', { title: nextItem.job.podcast?.title || nextItem.job.title }) : t('player.noNext')}
             >
               <IconTrackNext size={18} />
             </button>
@@ -647,19 +649,19 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
                 onClick={() => setSleepOpen((v) => !v)}
                 aria-expanded={sleepOpen}
                 aria-haspopup="menu"
-                title="睡眠定时"
+                title={t('player.sleepTimer')}
                 aria-label={
                   sleepActive
-                    ? `睡眠定时 ${sleepLabel}，点击修改`
-                    : '睡眠定时'
+                    ? t('player.sleepTimerActive', { label: sleepLabel })
+                     : t('player.sleepTimer')
                 }
               >
                 <IconMoon size={16} />
                 {sleepActive && <span className="qq-sleep-label">{sleepLabel}</span>}
               </button>
               {sleepOpen && (
-                <div className="qq-sleep-menu" role="menu" aria-label="睡眠定时选项">
-                  <div className="qq-sleep-menu-title">睡眠定时</div>
+                <div className="qq-sleep-menu" role="menu" aria-label={t('player.sleepOptions')}>
+                  <div className="qq-sleep-menu-title">{t('player.sleepTimer')}</div>
                   {SLEEP_PRESETS.map((opt) => {
                     const isActive =
                       (opt.key === 'off' && sleep.kind === 'off') ||
@@ -678,7 +680,11 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
                           .join(' ')}
                         onClick={() => applySleep(opt.key)}
                       >
-                        {opt.label}
+                        {opt.key === 'off'
+                          ? t('player.sleepOff')
+                          : opt.key === 'eoe'
+                            ? t('player.sleepEoe')
+                            : t('player.sleepMinutes', { n: opt.n ?? opt.key })}
                       </button>
                     );
                   })}

@@ -4,9 +4,11 @@ import {
   saveCoverPromptSettings,
   type CoverPromptSettings,
 } from '../../api/client';
+import { useI18n } from '../../i18n';
 
 /** 设置页：全局封面提示词模板 */
 export function GlobalCoverPromptSettings() {
+  const { t } = useI18n();
   const [data, setData] = useState<CoverPromptSettings | null>(null);
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export function GlobalCoverPromptSettings() {
       const next = await saveCoverPromptSettings({ template: draft });
       setData(next);
       setDraft(next.template);
-      setHint(next.isCustom ? '封面提示词已保存' : '已回落系统默认模板');
+      setHint(next.isCustom ? t('coverPrompt.savedCustom') : t('coverPrompt.savedDefault'));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -61,7 +63,7 @@ export function GlobalCoverPromptSettings() {
       const next = await saveCoverPromptSettings({ reset: true });
       setData(next);
       setDraft(next.defaultTemplate);
-      setHint('已恢复系统默认封面提示词');
+      setHint(t('coverPrompt.restored'));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -76,26 +78,26 @@ export function GlobalCoverPromptSettings() {
   };
 
   if (loading) {
-    return <div className="auth-loading">加载封面提示词…</div>;
+    return <div className="auth-loading">{t('coverPrompt.loading')}</div>;
   }
 
   return (
     <section className="settings-card settings-card-wide">
       <div className="settings-block">
         <div className="settings-block-head">
-          <h3>封面提示词</h3>
+          <h3>{t('coverPrompt.title')}</h3>
           <p>
-            生成 AI 封面时使用的模板。留空变量会渲染为空字符串。
+            {t('coverPrompt.desc')}
             {data?.isCustom ? (
-              <em className="settings-field-meta"> 自定义中</em>
+              <em className="settings-field-meta"> {t('coverPrompt.custom')}</em>
             ) : (
-              <em className="settings-field-meta"> 系统默认</em>
+              <em className="settings-field-meta"> {t('coverPrompt.systemDefault')}</em>
             )}
           </p>
         </div>
 
         <label className="auth-field">
-          <span>提示词模板</span>
+          <span>{t('coverPrompt.template')}</span>
           <textarea
             className="cover-prompt-textarea"
             value={draft}
@@ -105,20 +107,20 @@ export function GlobalCoverPromptSettings() {
             }}
             rows={18}
             spellCheck={false}
-            placeholder="使用 {{title}} {{summary}} 等变量…"
+            placeholder={t('coverPrompt.placeholder')}
           />
         </label>
 
         {data?.variables?.length ? (
           <div className="cover-prompt-vars">
-            <div className="cover-prompt-vars-title">可用变量</div>
+            <div className="cover-prompt-vars-title">{t('coverPrompt.varsTitle')}</div>
             <ul className="cover-prompt-vars-list">
               {data.variables.map((v) => (
                 <li key={v.key}>
                   <code
                     role="button"
                     tabIndex={0}
-                    title="点击插入"
+                    title={t('coverPrompt.insert')}
                     onClick={() => {
                       setDraft((prev) => `${prev}{{${v.key}}}`);
                       setHint(null);
@@ -151,7 +153,7 @@ export function GlobalCoverPromptSettings() {
               onClick={onRestoreDefaultDraft}
               disabled={saving}
             >
-              填入默认
+              {t('coverPrompt.fillDefault')}
             </button>
             <button
               type="button"
@@ -159,7 +161,7 @@ export function GlobalCoverPromptSettings() {
               onClick={() => void onReset()}
               disabled={saving || !data?.isCustom}
             >
-              恢复默认并保存
+              {t('coverPrompt.restoreSave')}
             </button>
           </div>
           <button
@@ -168,7 +170,7 @@ export function GlobalCoverPromptSettings() {
             onClick={() => void onSave()}
             disabled={saving || !dirty}
           >
-            {saving ? '保存中…' : '保存封面提示词'}
+            {saving ? t('common.saving') : t('coverPrompt.save')}
           </button>
         </div>
       </div>

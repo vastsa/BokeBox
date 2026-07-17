@@ -34,25 +34,26 @@ import { CoverArt } from '../components/ui/CoverArt';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus, PipelineFromStep } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
+import { useI18n } from '../i18n';
 
 type ContentTab = 'script' | 'notes' | 'flashcards' | 'transcript' | 'source';
 
-const CONTENT_TABS: Array<{ key: ContentTab; label: string }> = [
-  { key: 'script', label: '口播脚本' },
-  { key: 'notes', label: '节目笔记' },
-  { key: 'flashcards', label: '知识闪卡' },
-  { key: 'transcript', label: '原转写' },
-  { key: 'source', label: '源素材' },
+const CONTENT_TABS: Array<{ key: ContentTab; labelKey: string }> = [
+  { key: 'script', labelKey: 'job.tabScript' },
+  { key: 'notes', labelKey: 'job.tabNotes' },
+  { key: 'flashcards', labelKey: 'job.tabFlashcards' },
+  { key: 'transcript', labelKey: 'job.tabTranscript' },
+  { key: 'source', labelKey: 'job.tabSource' },
 ];
 
-const PIPELINE: Array<{ key: string; label: string; match: JobStatus[] }> = [
-  { key: 'queued', label: '排队', match: ['queued'] },
-  { key: 'extracting_audio', label: '提音频', match: ['extracting_audio'] },
-  { key: 'transcribing', label: '转写', match: ['transcribing'] },
-  { key: 'generating_podcast', label: '脚本', match: ['generating_podcast'] },
-  { key: 'generating_cover', label: '封面', match: ['generating_cover'] },
-  { key: 'synthesizing_audio', label: '合成', match: ['synthesizing_audio'] },
-  { key: 'done', label: '完成', match: ['done'] },
+const PIPELINE: Array<{ key: string; labelKey: string; match: JobStatus[] }> = [
+  { key: 'queued', labelKey: 'statusShort.queued', match: ['queued'] },
+  { key: 'extracting_audio', labelKey: 'statusShort.extracting_audio', match: ['extracting_audio'] },
+  { key: 'transcribing', labelKey: 'statusShort.transcribing', match: ['transcribing'] },
+  { key: 'generating_podcast', labelKey: 'statusShort.generating_podcast', match: ['generating_podcast'] },
+  { key: 'generating_cover', labelKey: 'statusShort.generating_cover', match: ['generating_cover'] },
+  { key: 'synthesizing_audio', labelKey: 'statusShort.synthesizing_audio', match: ['synthesizing_audio'] },
+  { key: 'done', labelKey: 'statusShort.done', match: ['done'] },
 ];
 
 const ACTIVE_STATUSES: JobStatus[] = [
@@ -66,45 +67,45 @@ const ACTIVE_STATUSES: JobStatus[] = [
 
 const RERUN_STEPS: Array<{
   key: PipelineFromStep;
-  label: string;
-  desc: string;
+  labelKey: string;
+  descKey: string;
   /** 需要哪些已有资产才能选该起点 */
   requires: Array<'audio' | 'transcript' | 'script'>;
 }> = [
   {
     key: 'extract',
-    label: '提取音频',
-    desc: '从源视频重新提取，完整重跑后续步骤',
+    labelKey: 'job.stepExtract',
+    descKey: 'job.stepExtractDesc',
     requires: [],
   },
   {
     key: 'transcribe',
-    label: '转写文字',
-    desc: '复用已有音频，跳过提取',
+    labelKey: 'job.stepTranscribe',
+    descKey: 'job.stepTranscribeDesc',
     requires: ['audio'],
   },
   {
     key: 'script',
-    label: '生成脚本',
-    desc: '复用音频 + 转写，重做脚本 / 封面 / 笔记 / 闪卡 / 合成',
+    labelKey: 'job.stepGenerate',
+    descKey: 'job.stepGenerateDesc',
     requires: ['audio', 'transcript'],
   },
   {
     key: 'cover',
-    label: '生成封面',
-    desc: '复用脚本，仅重新生成 AI 封面（需配置图片模型）',
+    labelKey: 'job.stepCover',
+    descKey: 'job.stepCoverDesc',
     requires: ['script'],
   },
   {
     key: 'flashcards',
-    label: '知识闪卡',
-    desc: '复用脚本与笔记，仅重新生成知识闪卡',
+    labelKey: 'job.stepFlashcards',
+    descKey: 'job.stepFlashcardsDesc',
     requires: ['transcript', 'script'],
   },
   {
     key: 'synthesize',
-    label: '合成音频',
-    desc: '复用脚本，仅重新 TTS',
+    labelKey: 'job.stepSynthesize',
+    descKey: 'job.stepSynthesizeDesc',
     requires: ['audio', 'script'],
   },
 ];
@@ -155,6 +156,7 @@ function pipelineIndex(status: JobStatus): number {
 }
 
 export function AdminJobPage({ id, route }: { id: string; route: Route }) {
+  const { t } = useI18n();
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -244,7 +246,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               className="nl-btn nl-btn-primary mt-4"
               onClick={() => navigate({ name: 'home' })}
             >
-              返回首页
+              {t('common.backHome')}
             </button>
           </div>
         </div>
@@ -307,7 +309,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
           className="jd-back"
         >
           <IconBack size={16} />
-          返回首页
+          {t('common.backHome')}
         </button>
 
         {/* 顶栏信息 */}
@@ -327,12 +329,12 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
             <div className="jd-badges">
               <StatusBadge status={job.status} />
               <span className={['nl-tag', job.published ? 'nl-tag-success' : ''].join(' ')}>
-                {job.published ? '已发布' : '未发布'}
+                {job.published ? t('admin.published') : t('admin.unpublished')}
               </span>
             </div>
             <h1 className="jd-title">{title}</h1>
             <p className="jd-sub">
-              <span>{job.message || '等待处理…'}</span>
+              <span>{job.message || t('job.waiting')}</span>
             </p>
             <p className="jd-meta">
               <span
@@ -354,7 +356,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                 className="nl-btn nl-btn-primary"
                 onClick={() => navigate({ name: 'player', id: job.id })}
               >
-                打开播放
+                {t('job.openPlayer')}
               </button>
             )}
             <button
@@ -368,10 +370,10 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               }
             >
               {busy === 'publish'
-                ? '更新中…'
+                ? t('job.updating')
                 : job.published
-                  ? '取消发布'
-                  : '发布到库'}
+                  ? t('job.unpublish')
+                   : t('job.publishToLib')}
             </button>
             <button
               type="button"
@@ -385,7 +387,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
           {(showPipeline || job.progress < 100 || job.status === 'failed') && (
             <div className="jd-progress">
               <div className="jd-progress-row">
-                <span>{active ? '处理中' : job.status === 'failed' ? '已失败' : '进度'}</span>
+                <span>{active ? t('job.processing') : job.status === 'failed' ? t('job.failedState') : t('job.progress')}</span>
                 <span>{Math.round(job.progress)}%</span>
               </div>
               <ProgressBar
@@ -417,7 +419,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                           .join(' ')}
                       >
                         <i />
-                        <span>{step.label}</span>
+                        <span>{t(step.labelKey)}</span>
                       </div>
                     );
                   })}
@@ -428,7 +430,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
 
           {(job.error || actionError) && (
             <div className="jd-alert jd-break" role="alert">
-              <strong>{job.error ? '处理失败' : '操作失败'}</strong>
+              <strong>{job.error ? t('job.processFailed') : t('job.actionFailed')}</strong>
               <p>{job.error || actionError}</p>
             </div>
           )}
@@ -439,7 +441,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
             {/* 播放 + 摘要 */}
             <section className="jd-panel">
               <div className="jd-panel-head">
-                <h2>播客成果</h2>
+                <h2>{t('job.resultTitle')}</h2>
                 <div className="jd-panel-actions">
                   {job.hasPodcastAudio && (
                     <a
@@ -447,7 +449,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                       className="nl-btn nl-btn-secondary"
                     >
                       <IconDownload size={14} />
-                      下载
+                      {t('common.download')}
                     </a>
                   )}
                   {canListen && (
@@ -456,7 +458,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                       className="nl-btn nl-btn-ghost"
                       onClick={() => navigate({ name: 'player', id: job.id })}
                     >
-                      沉浸播放
+                      {t('job.immersive')}
                     </button>
                   )}
                 </div>
@@ -478,7 +480,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               ) : (
                 <div className="jd-placeholder">
                   <IconWave size={18} />
-                  <span>{active ? '播客音频生成中…' : '尚未生成播客音频'}</span>
+                  <span>{active ? t('job.audioGenerating') : t('job.audioMissing')}</span>
                 </div>
               )}
 
@@ -496,7 +498,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
 
               {!!job.podcast?.outline?.length && (
                 <div className="jd-outline">
-                  <div className="jd-outline-h">内容大纲</div>
+                  <div className="jd-outline-h">{t('job.outline')}</div>
                   <ol>
                     {job.podcast.outline.map((seg, i) => (
                       <li key={`${seg.title}-${i}`}>
@@ -544,7 +546,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                         if (item.key !== 'script') setFollowScript(false);
                       }}
                     >
-                      {item.label}
+                      {t(item.labelKey)}
                     </button>
                   );
                 })}
@@ -557,7 +559,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                     ].join(' ')}
                     onClick={() => setFollowScript((v) => !v)}
                   >
-                    {followScript ? '跟读中' : '边听边看'}
+                    {followScript ? t('job.following') : t('job.followListen')}
                   </button>
                 )}
               </div>
@@ -577,7 +579,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                       <pre className="jd-pre">{job.podcast.script}</pre>
                     )
                   ) : (
-                    <div className="jd-placeholder soft">口播脚本尚未生成</div>
+                    <div className="jd-placeholder soft">{t('job.scriptMissing')}</div>
                   ))}
 
                 {tab === 'notes' && (
@@ -585,7 +587,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                     {job.podcast?.showNotes ? (
                       <ReactMarkdown>{job.podcast.showNotes}</ReactMarkdown>
                     ) : (
-                      <div className="jd-placeholder soft">暂无节目笔记</div>
+                      <div className="jd-placeholder soft">{t('job.notesMissing')}</div>
                     )}
                   </article>
                 )}
@@ -594,7 +596,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                   <div className="jd-flashcards">
                     <div className="jd-flashcards-bar">
                       <p className="jd-hint jd-hint-top">
-                        知识闪卡由独立 AI 生成，适合主动回忆复习。
+                        {t('job.flashcardsHint')}
                       </p>
                       <button
                         type="button"
@@ -613,22 +615,22 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                       >
                         <IconSpark size={14} />
                         {busy === 'flashcards'
-                          ? '生成中…'
+                          ? t('job.flashcardsGenerating')
                           : job.podcast?.flashcards?.length
-                            ? '重新生成'
-                            : 'AI 生成闪卡'}
+                            ? t('job.flashcardsRegen')
+                             : t('job.flashcardsGenerate')}
                       </button>
                     </div>
                     <FlashcardsView
                       cards={job.podcast?.flashcards}
-                      emptyText="暂无知识闪卡，可点击上方按钮单独生成"
+                      emptyText={t('job.flashcardsEmpty')}
                     />
                   </div>
                 )}
 
                 {tab === 'transcript' && (
                   <pre className="jd-pre">
-                    {job.transcript || '转写文字尚未生成'}
+                    {job.transcript || t('job.transcriptMissing')}
                   </pre>
                 )}
 
@@ -637,14 +639,14 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                     <div className="jd-source-block">
                       <div className="jd-source-h">
                         <span>
-                          <IconVideo size={14} /> 原始视频
+                          <IconVideo size={14} /> {t('job.originalVideo')}
                         </span>
                         <span
                           className={
                             job.hasVideo ? 'nl-tag nl-tag-success' : 'nl-tag'
                           }
                         >
-                          {job.hasVideo ? '就绪' : '未就绪'}
+                          {job.hasVideo ? t('common.ready') : t('common.unreadied')}
                         </span>
                       </div>
                       {job.hasVideo ? (
@@ -655,13 +657,13 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                           src={videoUrl(job.id)}
                         />
                       ) : (
-                        <div className="jd-placeholder soft">视频不可用</div>
+                        <div className="jd-placeholder soft">{t('job.videoUnavailable')}</div>
                       )}
                     </div>
                     <div className="jd-source-block">
                       <div className="jd-source-h">
                         <span>
-                          <IconWave size={14} /> 提取音频
+                          <IconWave size={14} /> {t('job.extractedAudio')}
                         </span>
                         <span
                           className={
@@ -670,7 +672,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                               : 'nl-tag'
                           }
                         >
-                          {job.hasSourceAudio ? '就绪' : '未就绪'}
+                          {job.hasSourceAudio ? t('common.ready') : t('common.unreadied')}
                         </span>
                       </div>
                       {job.hasSourceAudio ? (
@@ -680,7 +682,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                           src={sourceAudioUrl(job.id)}
                         />
                       ) : (
-                        <div className="jd-placeholder soft">音频尚未提取</div>
+                        <div className="jd-placeholder soft">{t('job.audioMissingExtract')}</div>
                       )}
                     </div>
                   </div>
@@ -691,36 +693,36 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
 
           <aside className="jd-side">
             <section className="jd-panel">
-              <h2 className="jd-side-title">资产状态</h2>
+              <h2 className="jd-side-title">{t('job.assetsTitle')}</h2>
               <div className="jd-assets">
                 <AssetRow
                   icon={<IconVideo size={14} />}
-                  label="原始视频"
+                  label="{t('job.originalVideo')}"
                   ready={Boolean(job.hasVideo)}
                 />
                 <AssetRow
                   icon={<IconWave size={14} />}
-                  label="提取音频"
+                  label="{t('job.extractedAudio')}"
                   ready={Boolean(job.hasSourceAudio)}
                 />
                 <AssetRow
                   icon={<IconText size={14} />}
-                  label="转写文字"
+                  label={t('job.stepTranscribe')}
                   ready={Boolean(job.hasTranscript || job.transcript)}
                 />
                 <AssetRow
                   icon={<IconMic size={14} />}
-                  label="播客音频"
+                  label={t('job.podcastAudio')}
                   ready={Boolean(job.hasPodcastAudio)}
                 />
                 <AssetRow
                   icon={<IconSpark size={14} />}
-                  label="脚本 / 笔记"
+                  label={t('job.scriptNotes')}
                   ready={Boolean(job.podcast?.script || job.podcast?.showNotes)}
                 />
                 <AssetRow
                   icon={<IconSpark size={14} />}
-                  label="知识闪卡"
+                  label={t('job.knowledgeCards')}
                   ready={Boolean(job.podcast?.flashcards?.length)}
                 />
 
@@ -729,34 +731,34 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
 
             <section className="jd-panel">
               <div className="jd-side-head">
-                <h2 className="jd-side-title">TTS 配置</h2>
-                <span className="nl-chip">只读</span>
+                <h2 className="jd-side-title">{t('job.ttsConfig')}</h2>
+                <span className="nl-chip">{t('common.readonly')}</span>
               </div>
               <TtsSummary value={job.tts} />
             </section>
 
             <section className="jd-panel">
               <div className="jd-side-head">
-                <h2 className="jd-side-title">口播人设</h2>
-                <span className="nl-chip">只读</span>
+                <h2 className="jd-side-title">{t('job.persona')}</h2>
+                <span className="nl-chip">{t('common.readonly')}</span>
               </div>
               <ScriptPromptSummary value={job.scriptPrompt} />
             </section>
 
             <section className="jd-panel">
-              <h2 className="jd-side-title">重新处理</h2>
+              <h2 className="jd-side-title">{t('job.reprocess')}</h2>
               <div className="jd-ops">
                 <p className="jd-hint jd-hint-top">
-                  选择处理起点，已完成步骤可跳过，避免重复耗时操作
+                  {t('job.reprocessHint')}
                 </p>
 
                 <label className="jd-select-field">
-                  <span className="jd-select-label">处理起点</span>
+                  <span className="jd-select-label">{t('job.fromStep')}</span>
                   <select
                     className="jd-select"
                     value={fromStep}
                     disabled={active || Boolean(busy)}
-                    aria-label="重跑起点"
+                    aria-label={t('job.fromStepAria')}
                     onChange={(e) =>
                       setFromStep(e.target.value as PipelineFromStep)
                     }
@@ -769,8 +771,8 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                           value={step.key}
                           disabled={!enabled}
                         >
-                          {step.label}
-                          {!enabled ? '（缺前置）' : ''}
+                          {t(step.labelKey)}
+                          {!enabled ? t('job.missingPrereq') : ''}
                         </option>
                       );
                     })}
@@ -778,7 +780,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                 </label>
 
                 {selectedMeta && (
-                  <p className="jd-select-desc">{selectedMeta.desc}</p>
+                  <p className="jd-select-desc">{t(selectedMeta.descKey)}</p>
                 )}
 
                 <button
@@ -793,19 +795,19 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                 >
                   <IconRefresh size={14} />
                   {busy === 'retry'
-                    ? '处理中…'
-                    : `从「${selectedMeta?.label || '起点'}」开始`}
+                    ? t('common.processingEllipsis')
+                    : t('job.startFrom', { label: selectedMeta ? t(selectedMeta.labelKey) : t('job.startPoint') })}
                 </button>
                 <p className="jd-hint">
-                  {fromStep === 'extract' && '将重新提取音频并完整重跑后续步骤'}
-                  {fromStep === 'transcribe' && '保留源音频，从转写开始重跑'}
+                  {fromStep === 'extract' && t('job.hintExtract')}
+                  {fromStep === 'transcribe' && t('job.hintTranscribe')}
                   {fromStep === 'script' &&
-                    '保留音频与转写，重新生成脚本、封面、笔记、闪卡并合成'}
+                    t('job.hintGenerate')}
                   {fromStep === 'cover' &&
-                    '保留脚本，仅重新生成 AI 封面（未配置图片模型则跳过）'}
+                    t('job.hintCover')}
                   {fromStep === 'flashcards' &&
-                    '保留脚本与笔记，仅重新生成知识闪卡（不重跑 TTS）'}
-                  {fromStep === 'synthesize' && '保留脚本，仅按当前 TTS 配置重合成'}
+                    t('job.hintFlashcards')}
+                  {fromStep === 'synthesize' && t('job.hintSynthesize')}
                 </p>
 
                 <div className="jd-danger">
@@ -817,12 +819,12 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                       onClick={() => setConfirmDelete(true)}
                     >
                       <IconTrash size={14} />
-                      删除任务
+                      {t('job.deleteJob')}
                     </button>
                   ) : (
                     <div className="jd-confirm">
-                      <strong>确认删除？</strong>
-                      <p>将移除全部文件与生成结果，不可恢复。</p>
+                      <strong>{t('job.deleteConfirmTitle')}</strong>
+                      <p>{t('job.deleteConfirmBody')}</p>
                       <div className="jd-confirm-actions">
                         <button
                           type="button"
@@ -832,7 +834,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                             void runAction('delete', () => deleteJob(job.id))
                           }
                         >
-                          {busy === 'delete' ? '删除中…' : '确认删除'}
+                          {busy === 'delete' ? t('common.deleting') : t('common.confirmDelete')}
                         </button>
                         <button
                           type="button"
@@ -840,7 +842,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                           disabled={busy === 'delete'}
                           onClick={() => setConfirmDelete(false)}
                         >
-                          取消
+                          {t('common.cancel')}
                         </button>
                       </div>
                     </div>
@@ -851,22 +853,22 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
 
             <section className="jd-panel jd-meta-panel">
               <div>
-                <span>创建</span>
+                <span>{t('job.created')}</span>
                 <b>{formatTime(job.createdAt)}</b>
               </div>
               <div>
-                <span>更新</span>
+                <span>{t('job.updated')}</span>
                 <b>{formatTime(job.updatedAt)}</b>
               </div>
               <div>
-                <span>类型</span>
+                <span>{t('job.type')}</span>
                 <b>{job.mimeType || '—'}</b>
               </div>
               <div>
-                <span>预估</span>
+                <span>{t('job.estimate')}</span>
                 <b>
                   {job.podcast?.estimatedMinutes
-                    ? `${job.podcast.estimatedMinutes} 分钟`
+                    ? t('common.minutes', { n: job.podcast.estimatedMinutes })
                     : '—'}
                 </b>
               </div>
@@ -887,11 +889,12 @@ function AssetRow({
   label: string;
   ready: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div className={['jd-asset', ready ? 'is-ready' : ''].join(' ')}>
       <span className="ic">{icon}</span>
       <span className="lb">{label}</span>
-      <span className="st">{ready ? '就绪' : '未就绪'}</span>
+      <span className="st">{ready ? t('common.ready') : t('common.unreadied')}</span>
     </div>
   );
 }

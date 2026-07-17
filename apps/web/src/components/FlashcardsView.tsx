@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 import type { Flashcard } from '../types/job';
 import { IconCheck, IconSkipBack, IconSkipForward } from './icons';
+import { useI18n } from '../i18n';
 
 export function FlashcardsView({
   cards,
-  emptyText = '暂无知识闪卡',
+  emptyText: emptyTextProp,
   compact = false,
 }: {
   cards?: Flashcard[] | null;
@@ -12,6 +13,8 @@ export function FlashcardsView({
   /** 听播页更紧凑 */
   compact?: boolean;
 }) {
+  const { t } = useI18n();
+  const emptyText = emptyTextProp ?? t('flashcards.empty');
   const list = useMemo(
     () => (Array.isArray(cards) ? cards.filter((c) => c.front && c.back) : []),
     [cards],
@@ -167,7 +170,7 @@ export function FlashcardsView({
             <span> / {list.length}</span>
           </strong>
           <em>
-            已掌握 {knownCount}
+            {t('flashcards.masteredCount', { n: knownCount })}
             {knownCount > 0 && (
               <span className="fc-mastered-pct"> · {Math.round(masteredPct)}%</span>
             )}
@@ -198,7 +201,7 @@ export function FlashcardsView({
                 setIndex(i);
                 setFlipped(false);
               }}
-              aria-label={`第 ${i + 1} 张`}
+              aria-label={t('flashcards.cardIndex', { n: i + 1 })}
             />
           ))}
           {list.length > (compact ? 12 : 16) && safeIndex < list.length - 6 && (
@@ -225,21 +228,21 @@ export function FlashcardsView({
             .filter(Boolean)
             .join(' ')}
           onClick={() => setFlipped((v) => !v)}
-          aria-label={flipped ? '显示正面' : '显示背面'}
+          aria-label={flipped ? t('flashcards.showFront') : t('flashcards.showBack')}
         >
           <div className="fc-face fc-front">
             <div className="fc-face-top">
-              <span className="fc-kicker">问题 · 概念</span>
+              <span className="fc-kicker">{t('flashcards.question')}</span>
               {isKnown && (
                 <span className="fc-known-badge">
                   <IconCheck size={12} />
-                  已掌握
+                  {t('flashcards.mastered')}
                 </span>
               )}
             </div>
             <div className="fc-face-body">
               <p>{card.front}</p>
-              {card.hint && !flipped && <small>提示：{card.hint}</small>}
+              {card.hint && !flipped && <small>{t('flashcards.hint', { hint: card.hint })}</small>}
               {!!card.tags?.length && (
                 <div className="fc-tags">
                   {card.tags.map((t) => (
@@ -249,17 +252,17 @@ export function FlashcardsView({
               )}
             </div>
             <em className="fc-tip">
-              <span className="fc-tip-desktop">点击翻转 · 空格翻转 · ← → 切卡</span>
-              <span className="fc-tip-mobile">轻点翻转 · 左右滑动切卡</span>
+              <span className="fc-tip-desktop">{t('flashcards.tipDesktop')}</span>
+              <span className="fc-tip-mobile">{t('flashcards.tipMobile')}</span>
             </em>
           </div>
           <div className="fc-face fc-back">
             <div className="fc-face-top">
-              <span className="fc-kicker">答案 · 解释</span>
+              <span className="fc-kicker">{t('flashcards.answer')}</span>
               {isKnown && (
                 <span className="fc-known-badge">
                   <IconCheck size={12} />
-                  已掌握
+                  {t('flashcards.mastered')}
                 </span>
               )}
             </div>
@@ -267,8 +270,8 @@ export function FlashcardsView({
               <p>{card.back}</p>
             </div>
             <em className="fc-tip">
-              <span className="fc-tip-desktop">点击翻回 · 按 K 标记掌握</span>
-              <span className="fc-tip-mobile">轻点翻回</span>
+              <span className="fc-tip-desktop">{t('flashcards.tipBackDesktop')}</span>
+              <span className="fc-tip-mobile">{t('flashcards.tipBackMobile')}</span>
             </em>
           </div>
         </button>
@@ -279,10 +282,10 @@ export function FlashcardsView({
           type="button"
           className="fc-act fc-act-nav"
           onClick={() => go(safeIndex - 1)}
-          aria-label="上一张"
+          aria-label={t('flashcards.prev')}
         >
           <IconSkipBack size={16} />
-          <span>上一张</span>
+          <span>{t('flashcards.prev')}</span>
         </button>
         <button
           type="button"
@@ -291,15 +294,15 @@ export function FlashcardsView({
           aria-pressed={isKnown}
         >
           <IconCheck size={16} />
-          <span>{isKnown ? '取消掌握' : '已掌握'}</span>
+          <span>{isKnown ? t('flashcards.unmaster') : t('flashcards.mastered')}</span>
         </button>
         <button
           type="button"
           className="fc-act fc-act-nav"
           onClick={() => go(safeIndex + 1)}
-          aria-label="下一张"
+          aria-label={t('flashcards.next')}
         >
-          <span>下一张</span>
+          <span>{t('flashcards.next')}</span>
           <IconSkipForward size={16} />
         </button>
       </div>
@@ -325,7 +328,7 @@ export function FlashcardsView({
                 <span className="fc-list-idx">{String(i + 1).padStart(2, '0')}</span>
                 <span className="fc-list-main">
                   <span className="fc-list-front">{c.front}</span>
-                  {known[c.id] && <span className="fc-list-known">已掌握</span>}
+                  {known[c.id] && <span className="fc-list-known">{t('flashcards.mastered')}</span>}
                 </span>
               </button>
             </li>

@@ -1,40 +1,43 @@
 import { useState } from 'react';
 import type { PresetVoiceId, TtsMode, TtsOptions } from '../../types/job';
+import { useI18n } from '../../i18n';
 
-const MODES: Array<{ id: TtsMode; title: string; desc: string }> = [
-  { id: 'default', title: '自然口播', desc: '预置音色' },
-  { id: 'voicedesign', title: '自定义音色', desc: '自然语言描述' },
+const MODES: Array<{ id: TtsMode; titleKey: string; descKey: string }> = [
+  { id: 'default', titleKey: 'tts.modeDefault', descKey: 'tts.modeDefaultDesc' },
+  { id: 'voicedesign', titleKey: 'tts.modeCustom', descKey: 'tts.modeCustomDesc' },
 ];
 
 /** mimo-v2.5-tts 预置精品音色（与官方文档一致） */
 export const PRESET_VOICES: Array<{
   id: PresetVoiceId;
-  name: string;
-  language: string;
-  gender: string;
-  description?: string;
+  name?: string;
+  nameKey?: string;
+  languageKey: string;
+  genderKey?: string;
+  gender?: string;
+  descriptionKey?: string;
 }> = [
   {
     id: 'mimo_default',
-    name: 'MiMo-默认',
-    language: '自适应',
+    nameKey: 'tts.mimoDefault',
+    languageKey: 'tts.langAuto',
     gender: '-',
-    description: '中国集群=冰糖',
+    descriptionKey: 'tts.mimoDefaultDesc',
   },
-  { id: '冰糖', name: '冰糖', language: '中文', gender: '女性' },
-  { id: '茉莉', name: '茉莉', language: '中文', gender: '女性' },
-  { id: '苏打', name: '苏打', language: '中文', gender: '男性' },
-  { id: '白桦', name: '白桦', language: '中文', gender: '男性' },
-  { id: 'Mia', name: 'Mia', language: '英文', gender: '女性' },
-  { id: 'Chloe', name: 'Chloe', language: '英文', gender: '女性' },
-  { id: 'Milo', name: 'Milo', language: '英文', gender: '男性' },
-  { id: 'Dean', name: 'Dean', language: '英文', gender: '男性' },
+  { id: '冰糖', name: '冰糖', languageKey: 'tts.langZh', genderKey: 'tts.genderFemale' },
+  { id: '茉莉', name: '茉莉', languageKey: 'tts.langZh', genderKey: 'tts.genderFemale' },
+  { id: '苏打', name: '苏打', languageKey: 'tts.langZh', genderKey: 'tts.genderMale' },
+  { id: '白桦', name: '白桦', languageKey: 'tts.langZh', genderKey: 'tts.genderMale' },
+  { id: 'Mia', name: 'Mia', languageKey: 'tts.langEn', genderKey: 'tts.genderFemale' },
+  { id: 'Chloe', name: 'Chloe', languageKey: 'tts.langEn', genderKey: 'tts.genderFemale' },
+  { id: 'Milo', name: 'Milo', languageKey: 'tts.langEn', genderKey: 'tts.genderMale' },
+  { id: 'Dean', name: 'Dean', languageKey: 'tts.langEn', genderKey: 'tts.genderMale' },
 ];
 
 export const DEFAULT_PRESET_VOICE: PresetVoiceId = '冰糖';
 
 /**
- * 自然口播 · 开头风格标签（写入 assistant 开头）
+ * 自然口播风格标签（写入 assistant 开头）
  * 文档「音频标签控制」
  */
 const SPEECH_STYLE_TAGS = [
@@ -76,6 +79,7 @@ export function TtsModePicker({
   value: TtsOptions;
   onChange: (next: TtsOptions) => void;
 }) {
+  const { t } = useI18n();
   const [showTips, setShowTips] = useState(false);
   const currentVoice = (value.voice || DEFAULT_PRESET_VOICE) as string;
   const showPreset = value.mode === 'default';
@@ -103,8 +107,8 @@ export function TtsModePicker({
               }
               className={['tts-mode', active ? 'is-active' : ''].join(' ')}
             >
-              <div className="title">{m.title}</div>
-              <div className="desc">{m.desc}</div>
+              <div className="title">{t(m.titleKey)}</div>
+              <div className="desc">{t(m.descKey)}</div>
             </button>
           );
         })}
@@ -113,23 +117,27 @@ export function TtsModePicker({
       {showPreset && (
         <div>
           <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
-            预置音色
+            {t('tts.presetVoices')}
           </div>
           <div className="tts-voice-grid">
             {PRESET_VOICES.map((v) => {
               const active = currentVoice === v.id;
+              const name = v.nameKey ? t(v.nameKey) : (v.name || v.id);
+              const language = t(v.languageKey);
+              const gender = v.genderKey ? t(v.genderKey) : (v.gender || '-');
+              const desc = v.descriptionKey ? t(v.descriptionKey) : `${language} · ${gender}`;
               return (
                 <button
                   key={v.id}
                   type="button"
                   onClick={() => onChange({ ...value, voice: v.id })}
                   className={['tts-voice', active ? 'is-active' : ''].join(' ')}
-                  title={v.description || `${v.language} · ${v.gender}`}
+                  title={desc}
                 >
-                  <div className="name">{v.name}</div>
+                  <div className="name">{name}</div>
                   <div className="meta">
-                    {v.language}
-                    {v.gender !== '-' ? ` · ${v.gender}` : ''}
+                    {language}
+                    {gender !== '-' ? ` · ${gender}` : ''}
                   </div>
                 </button>
               );
@@ -141,8 +149,8 @@ export function TtsModePicker({
       {value.mode === 'default' && (
         <div className="tts-sing-panel">
           <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
-            开头风格
-            <span className="ml-1 font-normal text-[var(--text-3)]">可选</span>
+            {t('tts.styleTags')}
+            <span className="ml-1 font-normal text-[var(--text-3)]">{t('common.optional')}</span>
           </div>
 
           <div className="tts-tag-grid">
@@ -165,8 +173,8 @@ export function TtsModePicker({
 
           {styleTags.length > 0 && (
             <div className="tts-sing-preview">
-              预览：
-              <code>({styleTags.join(' ')}) 大家好，欢迎收听…</code>
+              {t('tts.preview')}
+              <code>({styleTags.join(' ')}) {t('tts.previewSample')}</code>
             </div>
           )}
 
@@ -176,19 +184,19 @@ export function TtsModePicker({
             onClick={() => setShowTips((v) => !v)}
             aria-expanded={showTips}
           >
-            {showTips ? '收起说明' : '标签用法说明'}
+            {showTips ? t('tts.tipsHide') : t('tts.tipsShow')}
           </button>
 
           {showTips && (
             <div className="tts-sing-tip">
               <ul>
                 <li>
-                  整体风格写在文本最开头：
+                  {t('tts.tipsLine1')}
                   <code>(磁性)</code> <code>(沉稳 温柔)</code>
                 </li>
-                <li>不支持 user 侧「风格指令」，只靠文本内标签控制语气</li>
+                <li>{t('tts.tipsLine2')}</li>
                 <li>
-                  口播稿生成时会自动插入细粒度标签，例如：
+                  {t('tts.tipsLine3')}
                   {AUDIO_TAG_HINTS.map((t) => (
                     <code key={t} className="mx-0.5">
                       （{t}）
@@ -204,17 +212,17 @@ export function TtsModePicker({
       {value.mode === 'voicedesign' && (
         <label className="block">
           <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
-            音色描述
+            {t('tts.voiceDesc')}
           </div>
           <textarea
             value={value.voiceDesign || ''}
             onChange={(e) => onChange({ ...value, voiceDesign: e.target.value })}
             rows={3}
-            placeholder="例如：温柔成熟的女性播客主持人，声线清晰，语速适中，有亲和力"
+            placeholder={t('tts.voiceDescPlaceholder')}
             className="nl-textarea"
           />
           <div className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-3)]">
-            Voice Design 不支持预置音色与音频风格标签
+            {t('tts.voiceDesignNote')}
           </div>
         </label>
       )}

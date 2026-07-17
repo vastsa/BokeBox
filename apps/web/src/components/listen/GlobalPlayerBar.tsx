@@ -9,8 +9,10 @@ import {
   IconSkipForward,
 } from '../icons';
 import { CoverArt } from '../ui/CoverArt';
+import { useI18n } from '../../i18n';
 
 export function GlobalPlayerBar({ route }: { route: Route }) {
+  const { t } = useI18n();
   const {
     track,
     playing,
@@ -39,7 +41,7 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
     <div
       className={['global-player', hasBottomNav ? 'with-bottom-nav' : ''].join(' ')}
       role="region"
-      aria-label="全局播放器"
+      aria-label={t('player.globalAria')}
     >
       <div className="global-player-inner">
         <CoverArt
@@ -50,7 +52,7 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
           title={track.title}
           className="global-player-cover"
           onClick={() => navigate({ name: 'player', id: track.id })}
-          aria-label="打开播放页"
+          aria-label={t('player.openPage')}
         >
           {playing ? <IconPause size={14} /> : <IconPlay size={14} />}
         </CoverArt>
@@ -71,7 +73,7 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
             type="button"
             className="global-ctrl"
             onClick={() => seekBy(-15)}
-            aria-label="后退15秒"
+            aria-label={t('player.back15')}
           >
             <IconSkipBack size={15} />
           </button>
@@ -79,7 +81,7 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
             type="button"
             className="global-ctrl is-main"
             onClick={toggle}
-            aria-label={playing ? '暂停' : '播放'}
+            aria-label={playing ? t('common.pause') : t('common.play')}
           >
             {playing ? <IconPause size={16} /> : <IconPlay size={16} />}
           </button>
@@ -87,7 +89,7 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
             type="button"
             className="global-ctrl"
             onClick={() => seekBy(15)}
-            aria-label="前进15秒"
+            aria-label={t('player.forward15')}
           >
             <IconSkipForward size={15} />
           </button>
@@ -98,7 +100,7 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
             className="global-rate"
             value={rate}
             onChange={(e) => setRate(Number(e.target.value))}
-            aria-label="倍速"
+            aria-label={t('player.rate')}
           >
             {[0.75, 1, 1.25, 1.5, 1.75, 2].map((r) => (
               <option key={r} value={r}>
@@ -110,7 +112,7 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
             type="button"
             className="global-close"
             onClick={stop}
-            aria-label="关闭播放"
+            aria-label={t('player.close')}
           >
             <IconClose size={14} />
           </button>
@@ -125,7 +127,7 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
         step={0.1}
         value={current}
         onChange={(e) => seekTo(Number(e.target.value))}
-        aria-label="播放进度"
+        aria-label={t('player.progress')}
       />
       <div className="pb-progress global-player-progress">
         <i style={{ width: `${pct}%` }} />

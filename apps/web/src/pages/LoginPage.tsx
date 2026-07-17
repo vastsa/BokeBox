@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { fetchSetupStatus, login } from '../api/client';
 import { IconHeadphones } from '../components/icons';
+import { useI18n } from '../i18n';
 import { getStoredUsername, setAuthSession } from '../lib/auth';
 import { navigate } from '../lib/router';
 
 export function LoginPage() {
+  const { t } = useI18n();
   const [username, setUsername] = useState(getStoredUsername() || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export function LoginPage() {
           return;
         }
       } catch {
-        // 忽略，允许尝试登录
+        // ignore
       } finally {
         setChecking(false);
       }
@@ -50,7 +52,7 @@ export function LoginPage() {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-loading">加载中…</div>
+          <div className="auth-loading">{t('auth.loading')}</div>
         </div>
       </div>
     );
@@ -65,16 +67,16 @@ export function LoginPage() {
           </span>
           <div>
             <div className="auth-brand-title">BokeBox</div>
-            <div className="auth-brand-sub">登录你的私人播客</div>
+            <div className="auth-brand-sub">{t('auth.brandSub')}</div>
           </div>
         </div>
 
-        <h1 className="auth-title">欢迎回来</h1>
-        <p className="auth-desc">输入初始化时设置的账号密码</p>
+        <h1 className="auth-title">{t('auth.welcomeBack')}</h1>
+        <p className="auth-desc">{t('auth.desc')}</p>
 
         <div className="auth-form">
           <label className="auth-field">
-            <span>用户名</span>
+            <span>{t('auth.username')}</span>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -83,7 +85,7 @@ export function LoginPage() {
             />
           </label>
           <label className="auth-field">
-            <span>密码</span>
+            <span>{t('auth.password')}</span>
             <input
               type="password"
               value={password}
@@ -103,7 +105,7 @@ export function LoginPage() {
             className="nl-btn nl-btn-primary"
             disabled={loading}
           >
-            {loading ? '登录中…' : '登录'}
+            {loading ? t('auth.loggingIn') : t('auth.login')}
           </button>
         </div>
       </form>

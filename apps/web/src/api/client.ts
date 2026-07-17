@@ -9,6 +9,7 @@ import type {
   TtsOptions,
   TtsSourceMode,
 } from '../types/job';
+import { tOutside } from '../i18n';
 import { clearAuthSession, getToken } from '../lib/auth';
 
 const BASE = import.meta.env.VITE_API_BASE || '/api';
@@ -42,7 +43,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       clearAuthSession();
     }
     throw new ApiError(
-      err.error || `请求失败 (${res.status})`,
+      err.error || tOutside('api.requestFailed', { status: res.status }),
       res.status,
       err.code,
     );
@@ -92,11 +93,11 @@ export async function createJob(
       } else {
         const err =
           (xhr.response as { error?: string } | null)?.error ||
-          `上传失败 (${xhr.status})`;
+          tOutside('api.uploadFailed', { status: xhr.status });
         reject(new Error(err));
       }
     };
-    xhr.onerror = () => reject(new Error('网络错误，上传失败'));
+    xhr.onerror = () => reject(new Error(tOutside('api.networkUploadFailed')));
     const form = new FormData();
     // 重要：字段必须在 file 之前，否则 @fastify/multipart 的 req.file()
     // 往往拿不到后续字段，TTS 会静默回落到 default

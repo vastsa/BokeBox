@@ -9,6 +9,7 @@ import { DEFAULT_GLOBAL_TTS, summarizeTts } from '../components/admin/GlobalTtsS
 import { IconCheck, IconHeadphones, IconMic, IconSpark } from '../components/icons';
 import { setAuthSession } from '../lib/auth';
 import { navigate } from '../lib/router';
+import { useI18n } from '../i18n';
 import type { TtsOptions } from '../types/job';
 
 type Step = 1 | 2 | 3 | 4;
@@ -24,6 +25,7 @@ const DEFAULTS = {
 };
 
 export function SetupPage() {
+  const { t } = useI18n();
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -79,11 +81,11 @@ export function SetupPage() {
   }, []);
 
   const stepHint = useMemo(() => {
-    if (step === 1) return '创建登录账号，保护你的私人播客库';
-    if (step === 2) return '配置模型服务，用于转写、写稿、合成与封面';
-    if (step === 3) return '填写各环节模型，含可选的图片封面模型';
-    return '设置全局默认音色，制作时会默认使用';
-  }, [step]);
+    if (step === 1) return t('setup.step1Desc');
+    if (step === 2) return t('setup.step2Desc');
+    if (step === 3) return t('setup.step3Desc');
+    return t('setup.step4Desc');
+  }, [step, t]);
 
   const ttsSummary = useMemo(() => summarizeTts(tts), [tts]);
 
@@ -91,15 +93,15 @@ export function SetupPage() {
     setError(null);
     if (step === 1) {
       if (username.trim().length < 2) {
-        setError('用户名至少 2 个字符');
+        setError(t('setup.errUsername'));
         return;
       }
       if (password.length < 6) {
-        setError('密码至少 6 位');
+        setError(t('setup.errPassword'));
         return;
       }
       if (password !== confirmPassword) {
-        setError('两次密码不一致');
+        setError(t('setup.errPasswordMismatch'));
         return;
       }
       setStep(2);
@@ -107,11 +109,11 @@ export function SetupPage() {
     }
     if (step === 2) {
       if (!apiKey.trim()) {
-        setError('请填写 API Key');
+        setError(t('setup.errApiKey'));
         return;
       }
       if (!baseUrl.trim()) {
-        setError('请填写 API Base URL');
+        setError(t('setup.errBaseUrl'));
         return;
       }
       setStep(3);
@@ -119,7 +121,7 @@ export function SetupPage() {
     }
     if (step === 3) {
       if (!chatModel.trim() || !asrModel.trim() || !ttsModel.trim()) {
-        setError('请完整填写模型名称');
+        setError(t('setup.errModels'));
         return;
       }
       setStep(4);
@@ -167,7 +169,7 @@ export function SetupPage() {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-loading">正在检查系统状态…</div>
+          <div className="auth-loading">{t('setup.checking')}</div>
         </div>
       </div>
     );
@@ -182,14 +184,14 @@ export function SetupPage() {
           </span>
           <div>
             <div className="auth-brand-title">BokeBox</div>
-            <div className="auth-brand-sub">首次使用 · 系统初始化</div>
+            <div className="auth-brand-sub">{t('setup.brandSub')}</div>
           </div>
         </div>
 
-        <h1 className="auth-title">欢迎使用</h1>
+        <h1 className="auth-title">{t('setup.welcome')}</h1>
         <p className="auth-desc">{stepHint}</p>
 
-        <div className="setup-steps" aria-label="初始化步骤">
+        <div className="setup-steps" aria-label={t('setup.stepsAria')}>
           {[1, 2, 3, 4].map((n) => (
             <div
               key={n}
@@ -206,12 +208,12 @@ export function SetupPage() {
               </span>
               <span className="setup-step-label">
                 {n === 1
-                  ? '账号'
+                  ? t('setup.stepAccount')
                   : n === 2
-                    ? '服务'
+                    ? t('setup.stepService')
                     : n === 3
-                      ? '模型'
-                      : '音色'}
+                      ? t('setup.stepModel')
+                      : t('setup.stepVoice')}
               </span>
             </div>
           ))}
@@ -220,7 +222,7 @@ export function SetupPage() {
         {step === 1 && (
           <div className="auth-form">
             <label className="auth-field">
-              <span>用户名</span>
+              <span>{t('setup.username')}</span>
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -229,23 +231,23 @@ export function SetupPage() {
               />
             </label>
             <label className="auth-field">
-              <span>密码</span>
+              <span>{t('setup.password')}</span>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
-                placeholder="至少 6 位"
+                placeholder={t('setup.passwordPlaceholder')}
               />
             </label>
             <label className="auth-field">
-              <span>确认密码</span>
+              <span>{t('setup.confirmPassword')}</span>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
-                placeholder="再输入一次"
+                placeholder={t('setup.confirmPlaceholder')}
               />
             </label>
           </div>
@@ -273,7 +275,7 @@ export function SetupPage() {
             </label>
             <div className="auth-tip">
               <IconSpark size={14} />
-              <span>兼容 OpenAI 协议的网关即可（含 /v1/images/generations 图片接口），后续可在设置中修改。</span>
+              <span>{t('setup.apiKeyHint')}</span>
             </div>
           </div>
         )}
@@ -282,7 +284,7 @@ export function SetupPage() {
           <div className="auth-form">
             <div className="auth-grid-2">
               <label className="auth-field">
-                <span>对话模型</span>
+                <span>{t('setup.chatModel')}</span>
                 <input
                   value={chatModel}
                   onChange={(e) => setChatModel(e.target.value)}
@@ -290,7 +292,7 @@ export function SetupPage() {
                 />
               </label>
               <label className="auth-field">
-                <span>转写模型</span>
+                <span>{t('setup.asrModel')}</span>
                 <input
                   value={asrModel}
                   onChange={(e) => setAsrModel(e.target.value)}
@@ -298,7 +300,7 @@ export function SetupPage() {
                 />
               </label>
               <label className="auth-field">
-                <span>TTS 模型</span>
+                <span>{t('setup.ttsModel')}</span>
                 <input
                   value={ttsModel}
                   onChange={(e) => setTtsModel(e.target.value)}
@@ -306,7 +308,7 @@ export function SetupPage() {
                 />
               </label>
               <label className="auth-field">
-                <span>音色设计模型</span>
+                <span>{t('setup.voiceDesignModel')}</span>
                 <input
                   value={voiceDesignModel}
                   onChange={(e) => setVoiceDesignModel(e.target.value)}
@@ -317,20 +319,20 @@ export function SetupPage() {
 
             <div className="setup-image-model">
               <label className="auth-field">
-                <span>图片模型</span>
+                <span>{t('setup.imageModel')}</span>
                 <input
                   value={imageModel}
                   onChange={(e) => setImageModel(e.target.value)}
-                  placeholder="例如 dall-e-3 / flux… 留空则用渐变封面"
+                  placeholder={t('setup.imagePlaceholder')}
                   spellCheck={false}
                 />
               </label>
               <div className="auth-tip">
                 <IconSpark size={14} />
                 <span>
-                  初始化时即可配置。填写后生成播客会调用
+                  {t('setup.imageHintPrefix')}
                   <code> /v1/images/generations </code>
-                  自动出封面；留空可之后在设置里补。
+                  {t('setup.imageHintSuffix')}
                 </span>
               </div>
             </div>
@@ -342,10 +344,10 @@ export function SetupPage() {
             <div className="setup-tts-head">
               <IconMic size={15} />
               <div>
-                <div className="setup-tts-title">全局默认音色</div>
+                <div className="setup-tts-title">{t('setup.defaultVoiceTitle')}</div>
                 <div className="setup-tts-desc">
-                  当前：<strong>{ttsSummary}</strong>
-                  。制作时默认使用，也可在设置中修改。
+                  {t('setup.currentVoice')}<strong>{ttsSummary}</strong>
+                  {t('setup.currentVoiceSuffix')}
                 </div>
               </div>
             </div>
@@ -363,7 +365,7 @@ export function SetupPage() {
               onClick={goBack}
               disabled={submitting}
             >
-              上一步
+              {t('common.prev')}
             </button>
           ) : (
             <span />
@@ -374,7 +376,7 @@ export function SetupPage() {
               className="nl-btn nl-btn-primary"
               onClick={goNext}
             >
-              下一步
+              {t('common.next')}
             </button>
           ) : (
             <button
@@ -383,7 +385,7 @@ export function SetupPage() {
               onClick={() => void submit()}
               disabled={submitting}
             >
-              {submitting ? '初始化中…' : '完成并进入'}
+              {submitting ? t('setup.finishing') : t('setup.finish')}
             </button>
           )}
         </div>

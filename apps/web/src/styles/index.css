@@ -8506,3 +8506,33 @@ html[data-theme="dark"] .theme-pref-card.is-active .theme-pref-copy strong {
   color: var(--success);
   font-size: var(--fs-base);
 }
+
+
+.theme-pref-swatch.lang-pref-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-2);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--brand-soft) 80%, white), var(--surface-2));
+  border: 1px solid var(--separator);
+}
+.theme-pref-swatch.lang-pref-swatch[data-tone="zh-CN"] {
+  background: linear-gradient(145deg, #fee2e2, #fecaca);
+  color: #9f1239;
+}
+.theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
+  background: linear-gradient(145deg, #dbeafe, #bfdbfe);
+  color: #1e3a8a;
+}
+html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="zh-CN"] {
+  background: linear-gradient(145deg, #4c0519, #7f1d1d);
+  color: #fecdd3;
+}
+html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
+  background: linear-gradient(145deg, #172554, #1e3a8a);
+  color: #bfdbfe;
+}

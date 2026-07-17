@@ -10,11 +10,13 @@ import { ListenPlayerPage } from './pages/ListenPlayerPage';
 import { LoginPage } from './pages/LoginPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SetupPage } from './pages/SetupPage';
+import { useI18n } from './i18n';
 import { PlayerProvider } from './player/PlayerContext';
 
 type Gate = 'checking' | 'setup' | 'login' | 'app';
 
 export default function App() {
+  const { t } = useI18n();
   const [route, setRoute] = useState<Route>(() => parseHash());
   const [gate, setGate] = useState<Gate>('checking');
 
@@ -92,7 +94,7 @@ export default function App() {
     page = (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-loading">正在启动…</div>
+          <div className="auth-loading">{t('app.starting')}</div>
         </div>
       </div>
     );

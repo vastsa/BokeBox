@@ -1,6 +1,6 @@
-import {
-  SCRIPT_PROMPT_FIELDS,
-} from '../../lib/scriptPrompt';
+import { useMemo } from 'react';
+import { useI18n } from '../../i18n';
+import { getScriptPromptFields } from '../../lib/scriptPrompt';
 import type { ScriptPromptOptions } from '../../types/job';
 
 const BASIC_KEYS: Array<keyof ScriptPromptOptions> = [
@@ -35,7 +35,9 @@ export function ScriptPromptForm({
   /** 设置页可按区块拆分字段，制作页仍用 all */
   group?: 'all' | 'basic' | 'advanced';
 }) {
-  const fields = SCRIPT_PROMPT_FIELDS.filter((field) => {
+  const { t } = useI18n();
+  const allFields = useMemo(() => getScriptPromptFields(t), [t]);
+  const fields = allFields.filter((field) => {
     if (group === 'basic') return BASIC_KEYS.includes(field.key);
     if (group === 'advanced') return ADVANCED_KEYS.includes(field.key);
     return true;
@@ -80,7 +82,6 @@ export function ScriptPromptForm({
             ) : (
               <input
                 className="nl-input"
-                // 数字字段用 text + inputMode，避免 number 控件中途被改写
                 type="text"
                 inputMode={isNumber ? 'numeric' : undefined}
                 pattern={isNumber ? '[0-9]*' : undefined}

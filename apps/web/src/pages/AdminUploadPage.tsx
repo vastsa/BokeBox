@@ -1,15 +1,17 @@
 import { UploadPanel } from '../components/admin/UploadPanel';
 import { PageHeader } from '../components/ui/PageHeader';
 import { navigate, type Route } from '../lib/router';
+import { useI18n } from '../i18n';
 import { AppShell } from '../layouts/AppShell';
 
 export function AdminUploadPage({ route }: { route: Route }) {
+  const { t } = useI18n();
   return (
     <AppShell route={route}>
       <div className="page-container app-page nl-enter">
         <PageHeader
-          title="制作播客"
-          subtitle="上传文件或粘贴链接，自动完成转写、脚本与口播合成"
+          title={t('upload.title')}
+          subtitle={t('upload.subtitle')}
         />
 
         <section className="admin-upload-wrap">

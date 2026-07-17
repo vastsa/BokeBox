@@ -13,6 +13,7 @@ import type { ScriptPromptMode, ScriptPromptOptions } from '../../types/job';
 import { IconSpark } from '../icons';
 import { ScriptPromptForm } from './ScriptPromptForm';
 import { fetchScriptPromptSettings } from '../../api/client';
+import { useI18n } from '../../i18n';
 
 export function ScriptPromptPicker({
   mode,
@@ -34,6 +35,7 @@ export function ScriptPromptPicker({
   /** @deprecated 全局编辑已迁至设置页，保留以兼容旧调用 */
   onGlobalChange?: (next: ScriptPromptOptions) => void;
 }) {
+  const { t } = useI18n();
   const activePrompt = mode === 'global' ? globalValue : value;
   const summary = useMemo(
     () => summarizeScriptPrompt(activePrompt),
@@ -58,7 +60,7 @@ export function ScriptPromptPicker({
 
   return (
     <div className={['script-prompt-picker', disabled ? 'is-disabled' : ''].join(' ')}>
-      <div className="script-prompt-mode-tabs" role="tablist" aria-label="口播人设来源">
+      <div className="script-prompt-mode-tabs" role="tablist" aria-label={t('scriptPrompt.sourceAria')}>
         <button
           type="button"
           role="tab"
@@ -67,7 +69,7 @@ export function ScriptPromptPicker({
           disabled={disabled}
           onClick={() => onModeChange('global')}
         >
-          使用全局
+          {t('scriptPrompt.useGlobal')}
         </button>
         <button
           type="button"
@@ -77,14 +79,14 @@ export function ScriptPromptPicker({
           disabled={disabled}
           onClick={() => onModeChange('custom')}
         >
-          本次单独
+          {t('scriptPrompt.useOnce')}
         </button>
       </div>
 
       {mode === 'global' && (
         <div className="script-prompt-global-box">
           <div className="script-prompt-summary-row">
-            <span className="script-prompt-summary-label">当前</span>
+            <span className="script-prompt-summary-label">{t('common.current')}</span>
             <span className="script-prompt-summary-value" title={summary}>
               {summary}
             </span>
@@ -118,7 +120,7 @@ export function ScriptPromptPicker({
 
           {!hasScriptPrompt(globalValue) && (
             <div className="script-prompt-empty">
-              尚未配置全局人设，将使用系统默认。
+              {t('scriptPrompt.noGlobal')}
             </div>
           )}
 
@@ -130,7 +132,7 @@ export function ScriptPromptPicker({
               onClick={() => navigate({ name: 'settings' })}
             >
               <IconSpark size={14} />
-              去设置编辑
+              {t('common.goSettings')}
             </button>
           </div>
         </div>
@@ -139,7 +141,7 @@ export function ScriptPromptPicker({
       {mode === 'custom' && (
         <div className="script-prompt-custom-box">
           <div className="script-prompt-hint">
-            仅对本任务生效。留空字段表示不干预。
+            {t('scriptPrompt.onceHint')}
           </div>
           <ScriptPromptForm
             value={value}
@@ -154,7 +156,7 @@ export function ScriptPromptPicker({
               disabled={disabled || !hasScriptPrompt(value)}
               onClick={() => onChange(emptyScriptPrompt())}
             >
-              清空
+              {t('common.clear')}
             </button>
             <button
               type="button"
@@ -162,7 +164,7 @@ export function ScriptPromptPicker({
               disabled={disabled || !hasScriptPrompt(globalValue)}
               onClick={() => onChange({ ...globalValue })}
             >
-              从全局复制
+              {t('common.copyFromGlobal')}
             </button>
           </div>
         </div>

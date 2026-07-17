@@ -6,6 +6,7 @@ import { DEFAULT_GLOBAL_TTS, summarizeTts } from './GlobalTtsSettings';
 import { TtsModePicker } from './TtsModePicker';
 import { TtsSummary } from './TtsSummary';
 import { fetchTtsSettings } from '../../api/client';
+import { useI18n } from '../../i18n';
 
 export function TtsPicker({
   mode,
@@ -24,12 +25,13 @@ export function TtsPicker({
   onModeChange: (mode: TtsSourceMode) => void;
   onChange: (next: TtsOptions) => void;
 }) {
+  const { t } = useI18n();
   const active = mode === 'global' ? globalValue : value;
   const summary = useMemo(() => summarizeTts(active), [active]);
 
   return (
     <div className={['script-prompt-picker', disabled ? 'is-disabled' : ''].join(' ')}>
-      <div className="script-prompt-mode-tabs" role="tablist" aria-label="音色来源">
+      <div className="script-prompt-mode-tabs" role="tablist" aria-label={t('tts.sourceAria')}>
         <button
           type="button"
           role="tab"
@@ -38,7 +40,7 @@ export function TtsPicker({
           disabled={disabled}
           onClick={() => onModeChange('global')}
         >
-          使用全局
+          {t('tts.useGlobal')}
         </button>
         <button
           type="button"
@@ -48,14 +50,14 @@ export function TtsPicker({
           disabled={disabled}
           onClick={() => onModeChange('custom')}
         >
-          本次单独
+          {t('tts.useOnce')}
         </button>
       </div>
 
       {mode === 'global' && (
         <div className="script-prompt-global-box">
           <div className="script-prompt-summary-row">
-            <span className="script-prompt-summary-label">当前</span>
+            <span className="script-prompt-summary-label">{t('common.current')}</span>
             <span className="script-prompt-summary-value" title={summary}>
               {summary}
             </span>
@@ -72,7 +74,7 @@ export function TtsPicker({
               onClick={() => navigate({ name: 'settings' })}
             >
               <IconMic size={14} />
-              去设置编辑
+              {t('common.goSettings')}
             </button>
           </div>
         </div>
@@ -81,7 +83,7 @@ export function TtsPicker({
       {mode === 'custom' && (
         <div className="script-prompt-custom-box">
           <div className="script-prompt-hint">
-            仅对本任务生效，不会改动全局默认音色。
+            {t('tts.onceHint')}
           </div>
           <TtsModePicker value={value} onChange={onChange} />
           <div className="script-prompt-global-actions">
@@ -91,7 +93,7 @@ export function TtsPicker({
               disabled={disabled}
               onClick={() => onChange({ ...globalValue })}
             >
-              从全局复制
+              {t('common.copyFromGlobal')}
             </button>
             <button
               type="button"
@@ -99,7 +101,7 @@ export function TtsPicker({
               disabled={disabled}
               onClick={() => onChange({ ...DEFAULT_GLOBAL_TTS })}
             >
-              恢复系统默认
+              {t('tts.restoreDefault')}
             </button>
           </div>
         </div>

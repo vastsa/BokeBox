@@ -1,3 +1,5 @@
+import { getLocale, tOutside } from '../i18n';
+
 export function formatSize(bytes: number): string {
   if (!bytes) return '-';
   if (bytes < 1024) return `${bytes} B`;
@@ -8,7 +10,7 @@ export function formatSize(bytes: number): string {
 export function formatTime(iso?: string): string {
   if (!iso) return '-';
   try {
-    return new Date(iso).toLocaleString('zh-CN', {
+    return new Date(iso).toLocaleString(getLocale(), {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
@@ -122,21 +124,21 @@ export function motifIndexFor(seed?: string): number {
  * - 超长标题做视觉截断，保证封面可读
  */
 export function coverLabelFrom(text?: string): string {
-  if (!text) return '播客';
+  if (!text) return tOutside('app.podcast');
   let cleaned = text
     .replace(/https?:\/\/\S+/gi, ' ')
     .replace(/[【】\[\]（）()《》「」『』<>]/g, ' ')
     .replace(/[·•|,./\\#@!$%^&*_+=~`'":;？?！!。、]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  if (!cleaned) return '播客';
+  if (!cleaned) return tOutside('app.podcast');
 
   // job.id / uuid / 纯哈希不作为封面文案
   if (
     /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(cleaned) ||
     /^[0-9a-f]{16,}$/i.test(cleaned)
   ) {
-    return '播客';
+    return tOutside('app.podcast');
   }
 
   const chars = [...cleaned];

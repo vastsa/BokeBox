@@ -20,43 +20,13 @@ import {
   subscribeTheme,
   type ThemePreference,
 } from '../lib/theme';
+import { useI18n, type Locale } from '../i18n';
 import { AppShell } from '../layouts/AppShell';
 
 type SettingsTab = 'voice' | 'persona' | 'cover' | 'ai' | 'account';
 
-const TABS: Array<{
-  id: SettingsTab;
-  label: string;
-  desc: string;
-}> = [
-  {
-    id: 'voice',
-    label: '全局音色',
-    desc: '制作任务默认采用的 TTS 配置',
-  },
-  {
-    id: 'persona',
-    label: '口播人设',
-    desc: '脚本生成时使用的主播与节目设定',
-  },
-  {
-    id: 'cover',
-    label: '封面提示词',
-    desc: 'AI 生成播客封面时使用的图片提示词模板',
-  },
-  {
-    id: 'ai',
-    label: 'AI 服务',
-    desc: '接口凭证、服务地址与模型参数',
-  },
-  {
-    id: 'account',
-    label: '账号与安全',
-    desc: '外观主题、管理员身份、密码与会话',
-  },
-];
-
 export function SettingsPage({ route }: { route: Route }) {
+  const { t, locale, setLocale, locales, meta } = useI18n();
   const [tab, setTab] = useState<SettingsTab>('voice');
   const [username, setUsername] = useState('');
   const [ai, setAi] = useState<PublicAiConfig | null>(null);
@@ -80,10 +50,28 @@ export function SettingsPage({ route }: { route: Route }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [themePref, setThemePref] = useState<ThemePreference>(() => getThemePreference());
 
-  const activeTab = useMemo(
-    () => TABS.find((t) => t.id === tab) || TABS[0],
-    [tab],
+  const tabs = useMemo(
+    () =>
+      (
+        [
+          { id: 'voice', label: t('settings.tabVoice'), desc: t('settings.tabVoiceDesc') },
+          { id: 'persona', label: t('settings.tabPersona'), desc: t('settings.tabPersonaDesc') },
+          { id: 'cover', label: t('settings.tabCover'), desc: t('settings.tabCoverDesc') },
+          { id: 'ai', label: t('settings.tabAi'), desc: t('settings.tabAiDesc') },
+          { id: 'account', label: t('settings.tabAccount'), desc: t('settings.tabAccountDesc') },
+        ] as const
+      ).map((x) => ({ ...x })),
+    [t],
   );
+
+  const activeTab = useMemo(
+    () => tabs.find((item) => item.id === tab) || tabs[0],
+    [tab, tabs],
+  );
+
+  const onLocaleChange = (next: Locale) => {
+    setLocale(next);
+  };
 
   useEffect(() => {
     return subscribeTheme((theme) => {
@@ -145,7 +133,7 @@ export function SettingsPage({ route }: { route: Route }) {
       setAi(next);
       setImageModel(next.imageModel || '');
       setApiKey('');
-      setMsg('AI 配置已保存');
+      setMsg(t('settings.aiSaved'));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -164,7 +152,7 @@ export function SettingsPage({ route }: { route: Route }) {
         confirmPassword,
       });
       clearAuthSession();
-      setMsg(res.message || '密码已更新，请重新登录');
+      setMsg(res.message || t('settings.passwordUpdated'));
       window.setTimeout(() => navigate({ name: 'login' }), 800);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -183,19 +171,19 @@ export function SettingsPage({ route }: { route: Route }) {
     <AppShell route={route}>
       <div className="page-container app-page nl-enter settings-page">
         <PageHeader
-          title="系统设置"
+          title={t('settings.title')}
           subtitle={
             username
-              ? `管理全局默认配置与管理员账户 · ${username}`
-              : '管理全局默认配置与管理员账户'
+              ? t('settings.subtitle') + (username ? ` · ${username}` : '')
+              : t('settings.subtitle')
           }
           actions={
             <button
               type="button"
               className="app-page-icon-btn"
               onClick={() => void load()}
-              aria-label="刷新"
-              title="刷新"
+              aria-label={t('common.refresh')}
+              title={t('common.refresh')}
             >
               <IconRefresh size={15} />
             </button>
@@ -203,10 +191,10 @@ export function SettingsPage({ route }: { route: Route }) {
         />
 
         <div className="settings-shell">
-          <nav className="settings-nav" aria-label="设置分类">
-            <div className="settings-nav-label">配置项</div>
+          <nav className="settings-nav" aria-label={t('settings.title')}>
+            <div className="settings-nav-label">{t('settings.title')}</div>
             <div className="settings-nav-track" role="tablist">
-              {TABS.map((item) => {
+              {tabs.map((item) => {
                 const active = tab === item.id;
                 return (
                   <button
@@ -235,7 +223,7 @@ export function SettingsPage({ route }: { route: Route }) {
             </div>
 
             {loading ? (
-              <div className="auth-loading">加载设置…</div>
+              <div className="auth-loading">{t('settings.loading')}</div>
             ) : (
               <div className="settings-tab-panels">
                 {tab === 'voice' && (
@@ -281,15 +269,15 @@ export function SettingsPage({ route }: { route: Route }) {
                     <section className="settings-card settings-card-wide">
                       <div className="settings-block">
                         <div className="settings-block-head">
-                          <h3>连接配置</h3>
-                          <p>接口凭证与服务端点。API Key 留空表示保持不变。</p>
+                          <h3>{t('settings.connection')}</h3>
+                          <p>{t('settings.connectionDesc')}</p>
                         </div>
                         <div className="settings-fields">
                           <label className="auth-field">
                             <span>
                               API Key
                               <em className="settings-field-meta">
-                                {ai?.apiKeySet ? '已配置' : '未配置'}
+                                {ai?.apiKeySet ? t('settings.apiKeySet') : t('settings.apiKeyUnset')}
                               </em>
                             </span>
                             <input
@@ -298,8 +286,8 @@ export function SettingsPage({ route }: { route: Route }) {
                               onChange={(e) => setApiKey(e.target.value)}
                               placeholder={
                                 ai?.apiKeySet
-                                  ? '输入新密钥以覆盖'
-                                  : '请输入 API Key'
+                                  ? t('settings.apiKeyOverride')
+                                  : t('settings.apiKeyRequired')
                               }
                               autoComplete="off"
                             />
@@ -318,12 +306,12 @@ export function SettingsPage({ route }: { route: Route }) {
 
                       <div className="settings-block">
                         <div className="settings-block-head">
-                          <h3>模型参数</h3>
-                          <p>各处理环节使用的模型标识。</p>
+                          <h3>{t('settings.models')}</h3>
+                          <p>{t('settings.modelsDesc')}</p>
                         </div>
                         <div className="settings-fields settings-fields-2">
                           <label className="auth-field">
-                            <span>对话模型</span>
+                            <span>{t('settings.chatModel')}</span>
                             <input
                               value={chatModel}
                               onChange={(e) => setChatModel(e.target.value)}
@@ -331,7 +319,7 @@ export function SettingsPage({ route }: { route: Route }) {
                             />
                           </label>
                           <label className="auth-field">
-                            <span>转写模型</span>
+                            <span>{t('settings.asrModel')}</span>
                             <input
                               value={asrModel}
                               onChange={(e) => setAsrModel(e.target.value)}
@@ -339,7 +327,7 @@ export function SettingsPage({ route }: { route: Route }) {
                             />
                           </label>
                           <label className="auth-field">
-                            <span>TTS 模型</span>
+                            <span>{t('settings.ttsModel')}</span>
                             <input
                               value={ttsModel}
                               onChange={(e) => setTtsModel(e.target.value)}
@@ -347,7 +335,7 @@ export function SettingsPage({ route }: { route: Route }) {
                             />
                           </label>
                           <label className="auth-field">
-                            <span>音色设计模型</span>
+                            <span>{t('settings.voiceDesignModel')}</span>
                             <input
                               value={voiceDesignModel}
                               onChange={(e) =>
@@ -357,39 +345,39 @@ export function SettingsPage({ route }: { route: Route }) {
                             />
                           </label>
                           <label className="auth-field">
-                            <span>图片模型</span>
+                            <span>{t('settings.imageModel')}</span>
                             <input
                               value={imageModel}
                               onChange={(e) => setImageModel(e.target.value)}
-                              placeholder="留空则不生成 AI 封面"
+                              placeholder={t('settings.imagePlaceholder')}
                               spellCheck={false}
                             />
                           </label>
                         </div>
                         <p className="settings-field-tip">
-                          填写图片模型后，生成播客时会调用兼容 OpenAI 的
-                          <code>/images/generations</code> 生成封面；留空则使用渐变封面。
+                          {t('settings.imageHintPrefix')}
+                          <code>/images/generations</code> {t('settings.imageHintSuffix')}
                         </p>
                         <label className="auth-field settings-field-span">
-                          <span>默认音色 ID</span>
+                          <span>{t('settings.defaultVoiceId')}</span>
                           <input
                             value={defaultVoice}
                             onChange={(e) => setDefaultVoice(e.target.value)}
-                            placeholder="服务端回落音色"
+                            placeholder={t('settings.defaultVoicePlaceholder')}
                             spellCheck={false}
                           />
                         </label>
                       </div>
 
                       <div className="settings-card-actions">
-                        <span className="settings-card-hint">仅管理员可修改</span>
+                        <span className="settings-card-hint">{t('settings.adminOnly')}</span>
                         <button
                           type="button"
                           className="nl-btn nl-btn-primary"
                           onClick={() => void onSaveAi()}
                           disabled={savingAi}
                         >
-                          {savingAi ? '保存中…' : '保存'}
+                          {savingAi ? t('common.saving') : t('common.save')}
                         </button>
                       </div>
                     </section>
@@ -406,31 +394,62 @@ export function SettingsPage({ route }: { route: Route }) {
                     <section className="settings-card settings-card-wide">
                       <div className="settings-profile">
                         <div className="settings-profile-meta">
-                          <div className="settings-profile-kicker">当前账户</div>
+                          <div className="settings-profile-kicker">{t('settings.profileKicker')}</div>
                           <div className="settings-profile-name">
                             {username || '—'}
                           </div>
-                          <div className="settings-profile-sub">管理员</div>
+                          <div className="settings-profile-sub">{t('common.admin')}</div>
                         </div>
                         <button
                           type="button"
                           className="nl-btn nl-btn-secondary"
                           onClick={() => void onLogout()}
                         >
-                          退出登录
+                          {t('auth.logout')}
                         </button>
                       </div>
 
                       <div className="settings-block">
                         <div className="settings-block-head">
-                          <h3>外观主题</h3>
-                          <p>在亮色与深色界面之间切换。</p>
+                          <h3>{t('settings.language')}</h3>
+                          <p>{t('settings.languageDesc')}</p>
                         </div>
-                        <div className="theme-pref-grid" role="radiogroup" aria-label="外观主题">
+                        <div className="theme-pref-grid" role="radiogroup" aria-label={t('settings.languageAria')}>
+                          {locales.map((id) => {
+                            const active = locale === id;
+                            const item = meta[id];
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                role="radio"
+                                aria-checked={active}
+                                className={['theme-pref-card', active ? 'is-active' : ''].join(' ')}
+                                onClick={() => onLocaleChange(id)}
+                              >
+                                <span className="theme-pref-swatch lang-pref-swatch" data-tone={id} aria-hidden>
+                                  {item.short}
+                                </span>
+                                <span className="theme-pref-copy">
+                                  <strong>{item.nativeLabel}</strong>
+                                  <em>{item.label}</em>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="settings-block">
+                        <div className="settings-block-head">
+                          <h3>{t('settings.theme')}</h3>
+                          <p>{t('settings.themeDesc')}</p>
+                        </div>
+                        <div className="theme-pref-grid" role="radiogroup" aria-label={t('settings.themeAria')}>
                           {(
                             [
-                              { id: 'light', label: '亮色', desc: '浅色界面' },
-                              { id: 'dark', label: '深色', desc: '深色界面' },
+                              { id: 'light', label: t('settings.themeLight'), desc: t('settings.themeLightDesc') },
+                              { id: 'dark', label: t('settings.themeDark'), desc: t('settings.themeDarkDesc') },
                             ] as const
                           ).map((item) => {
                             const active = themePref === item.id;
@@ -456,12 +475,12 @@ export function SettingsPage({ route }: { route: Route }) {
 
                       <div className="settings-block">
                         <div className="settings-block-head">
-                          <h3>修改密码</h3>
-                          <p>更新后当前会话将失效，需使用新密码重新登录。</p>
+                          <h3>{t('settings.changePassword')}</h3>
+                          <p>{t('settings.changePasswordDesc')}</p>
                         </div>
                         <div className="settings-fields">
                           <label className="auth-field">
-                            <span>当前密码</span>
+                            <span>{t('settings.currentPassword')}</span>
                             <input
                               type="password"
                               value={currentPassword}
@@ -473,7 +492,7 @@ export function SettingsPage({ route }: { route: Route }) {
                           </label>
                           <div className="settings-fields-2">
                             <label className="auth-field">
-                              <span>新密码</span>
+                              <span>{t('settings.newPassword')}</span>
                               <input
                                 type="password"
                                 value={newPassword}
@@ -482,7 +501,7 @@ export function SettingsPage({ route }: { route: Route }) {
                               />
                             </label>
                             <label className="auth-field">
-                              <span>确认新密码</span>
+                              <span>{t('settings.confirmPassword')}</span>
                               <input
                                 type="password"
                                 value={confirmPassword}
@@ -504,7 +523,7 @@ export function SettingsPage({ route }: { route: Route }) {
                           onClick={() => void onChangePassword()}
                           disabled={savingPw}
                         >
-                          {savingPw ? '更新中…' : '更新密码'}
+                          {savingPw ? t('settings.updatingPassword') : t('settings.updatePassword')}
                         </button>
                       </div>
                     </section>

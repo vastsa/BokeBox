@@ -15,6 +15,7 @@ import {
   saveLastTrack,
   saveLocalProgress,
 } from './listenProgress';
+import { tOutside } from '../i18n';
 
 export type PlayerTrack = {
   id: string;
@@ -108,7 +109,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     const track: PlayerTrack = {
       id: last.id,
-      title: last.title || '播客音频',
+      title: last.title || tOutside('app.podcastAudio'),
       src: last.src,
       coverClassName: last.coverClassName,
       coverImageUrl: last.coverImageUrl,

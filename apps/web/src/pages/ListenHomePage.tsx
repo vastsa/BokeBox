@@ -23,6 +23,7 @@ import {
 } from '../lib/format';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus, LibraryItem } from '../types/job';
+import { useI18n, type Translator } from '../i18n';
 import { AppShell } from '../layouts/AppShell';
 import { usePlayer } from '../player/PlayerContext';
 import { trackFromJob } from '../player/trackFromJob';
@@ -39,12 +40,14 @@ const ACTIVE: JobStatus[] = [
 
 type FilterKey = 'all' | 'unplayed' | 'progress' | 'done';
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: 'all', label: '全部' },
-  { key: 'unplayed', label: '未听' },
-  { key: 'progress', label: '在听' },
-  { key: 'done', label: '听完' },
-];
+const FILTER_KEYS: FilterKey[] = ['all', 'unplayed', 'progress', 'done'];
+
+const FILTER_LABEL_KEY: Record<FilterKey, string> = {
+  all: 'home.filterAll',
+  unplayed: 'home.filterUnplayed',
+  progress: 'home.filterProgress',
+  done: 'home.filterDone',
+};
 
 /** 真正的最短列瀑布流：2 → 3 → 4 列 */
 const MASONRY_CONFIG = {
@@ -61,19 +64,19 @@ function itemTitle(item: LibraryItem): string {
   return item.job.podcast?.title || item.job.title;
 }
 
-function itemSummary(item: LibraryItem): string {
+function itemSummary(item: LibraryItem, t: Translator): string {
   return (
     item.job.podcast?.summary?.trim() ||
     item.job.podcast?.hostIntro?.trim() ||
-    '暂无简介'
+    t('home.noSummary')
   );
 }
 
-function itemMinutes(item: LibraryItem): string {
+function itemMinutes(item: LibraryItem, t: Translator): string {
   const mins = item.job.podcast?.estimatedMinutes;
-  if (mins && mins > 0) return `${mins} 分钟`;
+  if (mins && mins > 0) return t('common.minutes', { n: mins });
   if (item.listen?.durationSec) return formatDuration(item.listen.durationSec);
-  return '播客';
+  return t('app.podcast');
 }
 
 function itemPct(item: LibraryItem): number {
@@ -95,7 +98,9 @@ function matchQuery(item: LibraryItem, raw: string): boolean {
   if (!q) return true;
   const hay = [
     itemTitle(item),
-    itemSummary(item),
+    item.job.podcast?.summary?.trim() ||
+      item.job.podcast?.hostIntro?.trim() ||
+      '',
     item.job.originalFilename || '',
     ...(item.job.podcast?.tags || []),
   ]
@@ -111,6 +116,7 @@ function cardSize(seed: string): 's' | 'm' | 't' {
 }
 
 export function ListenHomePage({ route }: { route: Route }) {
+  const { t } = useI18n();
   const player = usePlayer();
   const [library, setLibrary] = useState<LibraryItem[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -225,23 +231,23 @@ export function ListenHomePage({ route }: { route: Route }) {
 
   const libraryCount = library.length;
   const headSub = loading
-    ? '加载中…'
+    ? t('home.loading')
     : libraryCount
-      ? `${libraryCount} 条可听内容`
-      : '上传视频或链接后会出现在这里';
+      ? t('home.count', { n: libraryCount })
+      : t('home.emptyHint');
 
   return (
     <AppShell route={route}>
       <div className="lh-page nl-enter">
         <div className="page-container app-page lh-body">
-          <PageHeader title="我的播客" subtitle={headSub} />
+          <PageHeader title={t('home.title')} subtitle={headSub} />
 
           {error && <div className="lh-error">{error}</div>}
 
           {!loading && pipelineJobs.length > 0 && (
             <section className="lh-pipeline">
               <div className="lh-section-head">
-                <h2 className="lh-section-title">制作中</h2>
+                <h2 className="lh-section-title">{t('home.producing')}</h2>
                 <span className="lh-section-meta">{pipelineJobs.length}</span>
               </div>
               <div className="lh-pipeline-list">
@@ -269,7 +275,7 @@ export function ListenHomePage({ route }: { route: Route }) {
                       </div>
                       <div className="lh-pipeline-sub">
                         <StatusBadge status={job.status} />
-                        <span>{job.message || '处理中'}</span>
+                        <span>{job.message || t('common.processing')}</span>
                       </div>
                       {ACTIVE.includes(job.status) && (
                         <ProgressBar value={job.progress || 0} />
@@ -302,29 +308,29 @@ export function ListenHomePage({ route }: { route: Route }) {
           ) : !library.length ? (
             <EmptyState
               icon={<IconLibrary size={22} />}
-              title="还没有可听内容"
-              description="上传视频或链接，生成播客后会出现在这里"
-              actionLabel="开始制作"
+              title={t('home.emptyTitle')}
+              description={t('home.emptyDesc')}
+              actionLabel={t('home.emptyAction')}
               onAction={() => navigate({ name: 'create' })}
             />
           ) : (
             <>
               <div className="lh-toolbar">
-                <div className="lh-filters" role="tablist" aria-label="筛选">
-                  {FILTERS.map((f) => (
+                <div className="lh-filters" role="tablist" aria-label={t('home.filtersAria')}>
+                  {FILTER_KEYS.map((key) => (
                     <button
-                      key={f.key}
+                      key={key}
                       type="button"
                       role="tab"
-                      aria-selected={filter === f.key}
+                      aria-selected={filter === key}
                       className={[
                         'lh-filter',
-                        filter === f.key ? 'is-active' : '',
+                        filter === key ? 'is-active' : '',
                       ].join(' ')}
-                      onClick={() => setFilter(f.key)}
+                      onClick={() => setFilter(key)}
                     >
-                      <span>{f.label}</span>
-                      <em>{filterCounts[f.key]}</em>
+                      <span>{t(FILTER_LABEL_KEY[key])}</span>
+                      <em>{filterCounts[key]}</em>
                     </button>
                   ))}
                 </div>
@@ -337,15 +343,15 @@ export function ListenHomePage({ route }: { route: Route }) {
                     className="lh-search-input"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="搜索关键词"
-                    aria-label="搜索关键词"
+                    placeholder={t('home.searchPlaceholder')}
+                    aria-label={t('home.searchAria')}
                   />
                   {query.trim() && (
                     <button
                       type="button"
                       className="lh-search-clear"
                       onClick={() => setQuery('')}
-                      aria-label="清除搜索"
+                      aria-label={t('home.clearSearch')}
                     >
                       ×
                     </button>
@@ -355,7 +361,7 @@ export function ListenHomePage({ route }: { route: Route }) {
 
               {!filtered.length ? (
                 <div className="lh-empty-filter">
-                  {query.trim() ? '没有匹配的播客' : '当前筛选下没有内容'}
+                  {query.trim() ? t('home.noMatch') : t('home.noFilter')}
                   <button
                     type="button"
                     className="lh-empty-filter-btn"
@@ -364,7 +370,7 @@ export function ListenHomePage({ route }: { route: Route }) {
                       setQuery('');
                     }}
                   >
-                    清除条件
+                    {t('home.clearFilters')}
                   </button>
                 </div>
               ) : (
@@ -417,12 +423,13 @@ function CoverCard({
   onOpen: () => void;
   onManage: () => void;
 }) {
+  const { t } = useI18n();
   const title = itemTitle(item);
-  const summary = itemSummary(item);
+  const summary = itemSummary(item, t);
   const pct = itemPct(item);
-  const mins = itemMinutes(item);
+  const mins = itemMinutes(item, t);
   const badge = item.listen?.completed
-    ? '已听完'
+    ? t('home.finished')
     : pct > 0
       ? `${Math.round(pct)}%`
       : mins;
@@ -452,7 +459,7 @@ function CoverCard({
           type="button"
           className="lh-card-overlay"
           onClick={onOpen}
-          aria-label={`打开 ${title}`}
+          aria-label={t('home.openTitle', { title })}
         >
           <div className="lh-card-top">
             <span className="lh-card-badge">{badge}</span>
@@ -465,7 +472,7 @@ function CoverCard({
           type="button"
           className="lh-card-play"
           onClick={onPlay}
-          aria-label={playing ? '暂停' : `播放 ${title}`}
+          aria-label={playing ? t('common.pause') : t('home.playTitle', { title })}
         >
           {playing ? <IconPause size={16} /> : <IconPlay size={16} />}
         </button>
@@ -474,8 +481,8 @@ function CoverCard({
           type="button"
           className="lh-card-manage"
           onClick={onManage}
-          aria-label={`管理 ${title}`}
-          title="管理"
+          aria-label={t('home.manageTitle', { title })}
+          title={t('common.manage')}
         >
           ···
         </button>
