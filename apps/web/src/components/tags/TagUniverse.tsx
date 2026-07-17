@@ -500,18 +500,32 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
       root.add(linkLines);
     }
 
-    // 选中时环
+    // 选中光环：挂在场景中，每帧用星点世界坐标对齐
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0x9ec1ff,
+      color: 0xb7d4ff,
       transparent: true,
       opacity: 0,
       side: THREE.DoubleSide,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.62, 64), ringMat);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.84, 72), ringMat);
     ring.visible = false;
+    ring.renderOrder = 3;
     scene.add(ring);
+
+    const ringMat2 = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const ring2 = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.02, 72), ringMat2);
+    ring2.visible = false;
+    ring2.renderOrder = 3;
+    scene.add(ring2);
 
     const raycaster = new THREE.Raycaster();
     // 放大命中半径
@@ -612,8 +626,10 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
 
       let activeStar: StarRuntime | null = null;
       for (const s of runtimes) {
-        const active = Boolean(s.group.userData.active);
-        const hover = s.label.element.classList.contains('is-hover');
+        // 以 selectedRef 为准，避免 userData 不同步
+        const active = Boolean(selectedRef.current && s.name === selectedRef.current);
+        s.group.userData.active = active;
+        const hover = !active && s.label.element.classList.contains('is-hover');
         if (active) activeStar = s;
 
         const floatY = Math.sin(t * 1.1 + s.phase) * 0.08;
@@ -624,40 +640,76 @@ export function TagUniverse({ tags, selected, onSelect, className }: Props) {
           s.basePos.z,
         );
 
-        const pulse = 1 + Math.sin(t * 1.6 + s.phase) * 0.07;
-        const boost = active ? 1.55 : hover ? 1.22 : 1;
+        const pulse = 1 + Math.sin(t * 1.6 + s.phase) * (active ? 0.12 : 0.07);
+        const boost = active ? 2.05 : hover ? 1.28 : 1;
         const sc = s.baseScale * pulse * boost;
-        s.core.scale.setScalar(sc * 0.55);
-        s.halo.scale.setScalar(sc * 7.5);
-        s.spike.scale.setScalar(sc * (active ? 18 : 12));
+        s.core.scale.setScalar(sc * (active ? 0.72 : 0.55));
+        s.halo.scale.setScalar(sc * (active ? 12.5 : 7.5));
+        s.spike.scale.setScalar(sc * (active ? 26 : hover ? 15 : 12));
         s.halo.quaternion.copy(camera.quaternion);
         s.spike.quaternion.copy(camera.quaternion);
-        s.spike.rotation.z = t * 0.15 + s.phase;
+        s.spike.rotation.z = t * (active ? 0.45 : 0.15) + s.phase;
 
+        const coreMat = s.core.material as THREE.MeshBasicMaterial;
         const haloMat = s.halo.material as THREE.MeshBasicMaterial;
         const spikeMat = s.spike.material as THREE.MeshBasicMaterial;
-        haloMat.opacity = active ? 1 : hover ? 0.95 : 0.72 + Math.sin(t * 1.3 + s.phase) * 0.1;
-        spikeMat.opacity = active ? 0.85 : hover ? 0.45 : 0.18 + (s.count / maxCount) * 0.25;
+        if (active) {
+          coreMat.color.setRGB(1, 1, 1);
+          haloMat.color.copy(s.color).lerp(new THREE.Color(1, 1, 1), 0.35);
+          spikeMat.color.copy(s.color).lerp(new THREE.Color(1, 1, 1), 0.25);
+          haloMat.opacity = 1;
+          spikeMat.opacity = 0.95;
+        } else {
+          coreMat.color.setRGB(1, 1, 1);
+          haloMat.color.copy(s.color);
+          spikeMat.color.copy(s.color);
+          haloMat.opacity = hover ? 0.95 : 0.72 + Math.sin(t * 1.3 + s.phase) * 0.1;
+          spikeMat.opacity = hover ? 0.5 : 0.18 + (s.count / maxCount) * 0.25;
+        }
+
+        // 非选中星点略微压暗，突出当前星
+        const dim = selectedRef.current && !active ? 0.42 : 1;
+        if (!active) {
+          haloMat.opacity *= dim;
+          spikeMat.opacity *= dim;
+          coreMat.opacity = 0.55 + 0.45 * dim;
+        } else {
+          coreMat.opacity = 1;
+        }
       }
 
-      // 选中环与镜头焦点
+      // 选中环与镜头焦点：必须用世界坐标（root 有自转）
       if (activeStar) {
+        activeStar.group.getWorldPosition(tmp);
         ring.visible = true;
-        ring.position.copy(activeStar.group.position);
+        ring2.visible = true;
+        ring.position.copy(tmp);
+        ring2.position.copy(tmp);
         ring.quaternion.copy(camera.quaternion);
-        const beat = 0.9 + Math.sin(t * 2.4) * 0.08;
-        ring.scale.setScalar(activeStar.baseScale * 3.2 * beat);
-        ringMat.opacity = 0.55 + Math.sin(t * 3) * 0.15;
+        ring2.quaternion.copy(camera.quaternion);
+        const beat = 1 + Math.sin(t * 2.8) * 0.1;
+        const base = Math.max(0.55, activeStar.baseScale * 4.8);
+        ring.scale.setScalar(base * beat);
+        ring2.scale.setScalar(base * 1.28 * (1 + Math.sin(t * 2.1 + 1.2) * 0.08));
+        ringMat.opacity = 0.85;
+        ringMat2.opacity = 0.35 + Math.sin(t * 3.2) * 0.12;
+        ring.rotation.z = t * 0.6;
+        ring2.rotation.z = -t * 0.35;
 
-        // 镜头轻轻拉近
-        tmp.copy(activeStar.group.position);
-        controls.target.lerp(tmp, 0.035);
-        const desired = tmp.clone().add(new THREE.Vector3(0.4, 0.8, 9.2));
-        camera.position.lerp(desired, 0.02);
+        controls.target.lerp(tmp, 0.04);
+        const desired = tmp.clone().add(
+          camera.position.clone().sub(controls.target).normalize().multiplyScalar(9.5),
+        );
+        // 初次选中时保证相机不塌缩
+        if (desired.lengthSq() > 0.01) {
+          camera.position.lerp(desired, 0.025);
+        }
         controls.autoRotate = false;
       } else {
         ring.visible = false;
+        ring2.visible = false;
         ringMat.opacity = 0;
+        ringMat2.opacity = 0;
         controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.02);
       }
 
