@@ -5,8 +5,8 @@
 <h1 align="center">BokeBox</h1>
 
 <p align="center">
-  <b>Drop videos in. Get podcasts out.</b><br/>
-  <sub>Turn long videos into private podcasts you can actually finish — host persona, voice, and style, all yours.</sub>
+  <b>Content in. Private podcasts out.</b><br/>
+  <sub>Turn videos, links, articles, meetings, and courses into private podcasts you can actually finish — host persona, voice, and style, all yours.</sub>
 </p>
 
 <p align="center">
@@ -28,21 +28,21 @@
 </p>
 
 <p align="center">
-  <img src="docs/img/banner_en.webp" alt="BokeBox — Drop videos in. Get podcasts out." width="100%" />
+  <img src="docs/img/banner_en.webp" alt="BokeBox — Content in. Private podcasts out." width="100%" />
 </p>
 
 ---
 
 ## 🎧 Sound familiar?
 
-- You saved a 2-hour tech talk / product keynote and **never found time to watch it**
-- On commutes, chores, or walks, you want to learn — but your phone only offers short-video noise
+- You saved talks, courses, meeting notes, and long articles — always “later”
+- On commutes, chores, or walks, you want to digest info — but your phone only offers short-video noise
 - You want a show **just for yourself**, without recording into a mic at midnight
 - You tried AI podcast demos: fake voices, rigid personas, and you quit after two minutes
 
 **BokeBox is built for those moments.**
 
-Drop a video, link, or draft into the box. It will:
+**Not limited to long videos.** Drop a video, web link, article, meeting note, course material, or plain draft into the box (and extend more sources via Source plugins). It will:
 
 1. Understand the content  
 2. Rewrite it as a spoken script  
@@ -56,14 +56,14 @@ Drop a video, link, or draft into the box. It will:
 ```text
   What you put in                    What BokeBox gives back
  ─────────────────                  ──────────────────────
-  Meeting recordings                 Rhythmic spoken episodes
-  Course replays         ──AI──▶     Custom host personas
-  Long-form articles                 Preset / described voices
-  Any link                           Cover · flashcards · progress
+  Meetings / notes                   Rhythmic spoken episodes
+  Course replays / materials ─AI──▶  Custom host personas
+  Long-form articles / drafts        Preset / described voices
+  Any link (plugin-extensible)       Cover · flashcards · progress
 ```
 
 **In one line:**  
-Not another “video-to-audio” converter — a **personal AI podcast studio that belongs only to you**.
+Not another single-format “media-to-audio” converter — a **multi-source personal AI podcast studio that belongs only to you**.
 
 ---
 
@@ -72,8 +72,10 @@ Not another “video-to-audio” converter — a **personal AI podcast studio th
 | What you care about | How BokeBox does it |
 | --- | --- |
 | **You can actually finish it** | Not dry subtitle reading — AI rewrites into spoken structure: open, highlights, close |
+| **Multi-source input** | Videos / links / drafts / meetings & courses — extend further with Source plugins |
 | **Sounds like a person talking** | Natural podcast voices + delivery tags (pauses, light laughs, pace shifts…) |
 | **You own the persona** | Who the host is, who they talk to, style, show name — global defaults or per-episode |
+| **AI-native control** | Built-in MCP so Cursor / Claude can create episodes and query jobs |
 | **Knowledge sticks** | Auto-extracted flashcards so key points are easy to review |
 | **Your data stays yours** | Single-user private deploy; tasks and progress stay local — no public social feed |
 
@@ -87,9 +89,9 @@ Give BokeBox a ⭐ and help more people discover private AI podcasts.
 
 ## 🎯 Problems it solves
 
-### From “never finished watching” to “easy to listen through”
+### From “never finished reading/watching” to “easy to listen through”
 
-Long videos are dense, but they burn **eye time**.  
+Long videos, articles, meetings, and course materials are dense, but they burn **eye time** and **uninterrupted blocks**.  
 BokeBox turns them into **ear time**: commute, chores, bedtime — still productive.
 
 ### From “robot reading a script” to “a show with a persona”
@@ -111,9 +113,9 @@ Each episode ships audio plus knowledge cards and notes — one listen becomes r
 
 ## 👤 Who it's for
 
-- **Lifelong learners**: too many courses, interviews, and keynotes — want highlights in spare time  
-- **Creators / researchers**: digest source material by ear before writing or editing  
-- **Solo founders / indie hackers**: fold meetings, podcasts, and essays into one personal “info radio”  
+- **Lifelong learners**: too many courses, interviews, keynotes, and essays — want highlights in spare time  
+- **Creators / researchers**: digest multi-source material by ear before writing or editing  
+- **Solo founders / indie hackers**: fold meetings, links, notes, and essays into one personal “info radio”  
 - **Privacy-minded users**: content stays on your machine, not platform algorithms  
 
 Not a fit if you want a public podcast platform, multi-tenant SaaS, or live collaborative editing. BokeBox is intentionally small, private, and deep.
@@ -131,7 +133,7 @@ Create, listen, and manage task assets in one private space.
 You get:
 
 - **Home library** — finished shows and in-progress jobs at a glance  
-- **One-click create** — upload video / paste link, set persona & voice  
+- **One-click create** — upload video / paste link / drop draft, set persona & voice  
 - **Task detail** — transcript, script, audio, cover, flashcards end-to-end  
 - **Immersive player** — progress memory, speed, sleep timer  
 
@@ -140,7 +142,7 @@ You get:
 ## 🪄 How it feels
 
 1. **Drop it in**  
-   Local video, web link, or existing draft.
+   Local video, web link, article, or existing draft / notes — plus plugin-extended sources.
 
 2. **Tune it (optional)**  
    Keep global persona, or set this episode’s tone.
@@ -190,7 +192,7 @@ cp .env.example .env   # add your API keys
 ```
 
 First launch walks you through **account setup** and model config.  
-After that, your first private episode is one video away.
+After that, your first private episode is one piece of content away.
 
 **Docker (recommended: pull prebuilt image):**
 
@@ -212,7 +214,7 @@ cp .env.example .env
 
 ## 💬 One-liner (shareable)
 
-> BokeBox: turn videos you’ll never finish watching into private podcasts you’ll actually listen to. AI spoken scripts, custom persona & voice, data stays on your machine.
+> BokeBox: turn videos, links, articles, meetings, and courses into private podcasts you’ll actually listen to. AI spoken scripts, custom persona & voice, MCP + pluggable sources, data stays on your machine.
 
 If that resonates:
 
@@ -240,7 +242,7 @@ BokeBox cares more about helping you **digest content better**.
 
 In an age of overload, what you can finish listening to is what truly becomes yours.
 
-**Drop videos in. Get podcasts out.**  
+**Content in. Private podcasts out.**  
 Add BokeBox to your toolkit — and drop a Star so more people find it.
 
 ---
@@ -279,8 +281,9 @@ Full variables: `.env.example`. CI/CD & image publish: [`docs/ci-cd.md`](docs/ci
 ### Pipeline (sketch)
 
 ```text
-Upload → extract audio → ASR → spoken script
-      → parallel: cover / flashcards / TTS → library
+multi-source input (video / link / draft / plugins)
+  → normalize → ASR/understanding → spoken script
+  → parallel: cover / flashcards / TTS → library
 ```
 
 ### Stack (if you ask)
@@ -303,8 +306,10 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
 ## Source Plugins
 
-Extend content ingestion with optional external Source plugins (high-risk fetchers are not bundled by default).
+BokeBox is **not locked to one media type**. Beyond built-in video / link / draft paths, optional external Source plugins extend content ingestion (high-risk fetchers are not bundled by default).
 
+- Drop plugins into `storage/plugins/source/`, rescan in Settings  
+- Plugins normalize inputs into the same pipeline: spoken script → voice → cover / flashcards  
 - Developer guide: [docs/source-plugin-development.md](./docs/source-plugin-development.md)
 - Architecture notes: [docs/source-plugins.md](./docs/source-plugins.md)
 - Example plugin: [examples/source-plugin-echo](./examples/source-plugin-echo)

@@ -2,7 +2,7 @@
   "name": "bokebox",
   "version": "1.0.0",
   "private": true,
-  "description": "BokeBox · AI 私人播客匣：视频转口播，人设与音色可自定义（开源）",
+  "description": "BokeBox · AI 私人播客匣：多源内容转口播（视频/链接/文稿等），MCP + 插件式内容源，人设与音色可自定义（开源）",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "dev:server": "pnpm --filter @bokebox/server dev",
