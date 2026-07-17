@@ -598,6 +598,82 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   outline-offset: var(--outline-offset);
 }
 
+/* ===== Text selection · 全局策略 =====
+ * 默认不可选：减少拖选、误触、移动端长按菜单干扰。
+ * 表单 / 正文 / 代码块显式可选：支持复制脚本、提示词、错误信息。
+ */
+html, body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 图片 / 图标：禁拖拽与选中高亮 */
+img,
+svg,
+video,
+canvas {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* 可编辑控件：必须可选，否则 iOS 父级 none 会阻断输入选区 */
+input,
+textarea,
+select,
+[contenteditable=""],
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 可读可复制内容区 */
+.prose-soft,
+.prose-soft *,
+.player-script,
+.jd-pre,
+.settings-code-block,
+.qq-notes,
+.qq-notes *,
+.qq-outline,
+.qq-outline *,
+/* 知识卡片正文 */
+.fc-face-body,
+.fc-face-body *,
+.fc-list-main,
+.fc-list-main *,
+/* 错误 / 提示文案便于排查复制 */
+.auth-error,
+.upload-error,
+.upload-error-msg,
+.studio-job-msg,
+.admin-job-msg,
+.job-hero-msg,
+.job-hero-error,
+.lh-error,
+.lh-pipeline-error,
+.qq-error,
+.settings-toast,
+.settings-inline-error,
+.script-prompt-error,
+.tc-error,
+/* 显式 opt-in */
+.u-select,
+.u-select * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 选区高亮：跟品牌色 */
+::selection {
+  background: color-mix(in srgb, var(--brand) 32%, transparent);
+  color: var(--text);
+}
+
+html[data-theme="dark"] ::selection {
+  background: color-mix(in srgb, var(--brand-3) 38%, transparent);
+  color: var(--text);
+}
+
 /* layout */
 .page-shell {
   min-height: 100vh;
