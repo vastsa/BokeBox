@@ -15,6 +15,7 @@ import {
   type PublicAiConfig,
 } from '../api/client';
 import { AiServiceSettings } from '../components/admin/AiServiceSettings';
+import { SourcePluginSettings } from '../components/admin/SourcePluginSettings';
 import { GlobalPromptSettings } from '../components/admin/GlobalPromptSettings';
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
 import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
@@ -42,7 +43,7 @@ import {
   setCachedSeo,
 } from '../lib/seo';
 
-type SettingsTab = 'voice' | 'persona' | 'prompts' | 'ai' | 'mcp' | 'site' | 'account';
+type SettingsTab = 'voice' | 'persona' | 'prompts' | 'ai' | 'sources' | 'mcp' | 'site' | 'account';
 
 function SettingsPanel({
   id,
@@ -169,6 +170,11 @@ export function SettingsPage({ route }: { route: Route }) {
             id: 'ai' as const,
             label: t('settings.tabAi'),
             desc: t('settings.tabAiDesc'),
+          },
+          {
+            id: 'sources' as const,
+            label: t('settings.tabSources'),
+            desc: t('settings.tabSourcesDesc'),
           },
           {
             id: 'mcp' as const,
@@ -556,6 +562,13 @@ export function SettingsPage({ route }: { route: Route }) {
                       onError={setError}
                     />
                   </div>
+                </SettingsPanel>
+
+                <SettingsPanel id="sources" active={tab === 'sources'}>
+                  <SourcePluginSettings
+                    onMessage={setMsg}
+                    onError={setError}
+                  />
                 </SettingsPanel>
 
 

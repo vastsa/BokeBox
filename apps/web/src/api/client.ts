@@ -721,3 +721,76 @@ export async function regenerateMcpToken(): Promise<
   return request('/mcp/regenerate', { method: 'POST' });
 }
 
+// ── Source 插件 ──────────────────────────────────────────
+
+export type SourceRiskLevel = 'low' | 'medium' | 'high';
+export type SourcePluginOrigin = 'builtin' | 'external';
+export type SourceCapability = 'url' | 'file' | 'webpage' | 'media';
+export type SourcePluginPermission =
+  | 'network'
+  | 'fs:job-dir'
+  | 'process:spawn'
+  | 'config'
+  | 'cookies';
+
+export type SourcePluginDescriptor = {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  riskLevel: SourceRiskLevel;
+  capabilities: SourceCapability[];
+  defaultEnabled: boolean;
+  enabled: boolean;
+  available: boolean;
+  origin: SourcePluginOrigin;
+  dirName?: string;
+  dirPath?: string;
+  permissions?: SourcePluginPermission[];
+  apiVersion?: number;
+  loadError?: string;
+};
+
+export type SourcePluginsResponse = {
+  pluginsDir: string;
+  plugins: SourcePluginDescriptor[];
+};
+
+export type SourcePluginsRescanResponse = {
+  ok: boolean;
+  scan: {
+    pluginsDir: string;
+    loaded: string[];
+    failed: Array<{ id: string; dirName: string; error: string }>;
+    removed: string[];
+  };
+  plugins: SourcePluginDescriptor[];
+};
+
+export async function fetchSourcePlugins(): Promise<SourcePluginsResponse> {
+  return request('/source-plugins');
+}
+
+export async function rescanSourcePlugins(): Promise<SourcePluginsRescanResponse> {
+  return request('/source-plugins/rescan', { method: 'POST' });
+}
+
+export async function setSourcePluginEnabledApi(
+  id: string,
+  enabled: boolean,
+): Promise<{ ok: boolean; id: string; enabled: boolean; plugins: SourcePluginDescriptor[] }> {
+  return request(`/source-plugins/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+export async function resetSourcePluginEnabledApi(
+  id: string,
+): Promise<{ ok: boolean; id: string; enabled: boolean; plugins: SourcePluginDescriptor[] }> {
+  return request(`/source-plugins/${encodeURIComponent(id)}/reset`, {
+    method: 'POST',
+  });
+}
+
