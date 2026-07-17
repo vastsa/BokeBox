@@ -40,9 +40,9 @@
   <rect width="2048" height="2048" fill="#FFFFFF"/>
   <circle cx="1024" cy="970" r="800" fill="url(#halo)"/>
 
-  <!-- Subtle app-icon squircle -->
+  <!-- App-icon squircle（favicon 无描边边框） -->
   <rect x="258" y="258" width="1532" height="1532" rx="382"
-        fill="#FFFFFF" stroke="#EDF1F8" stroke-width="8" filter="url(#shadow)"/>
+        fill="#FFFFFF"/>
 
   <!-- Floating audio particles -->
   <g fill="#6A9BFA" opacity="0.9">
