@@ -10,7 +10,7 @@ import {
 import {
   getLocale,
   LOCALE_META,
-  LOCALES,
+  UI_LOCALES,
   setLocale as persistLocale,
   subscribeLocale,
   type Locale,
@@ -51,7 +51,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const value = useMemo<I18nContextValue>(
     () => ({
       locale,
-      locales: LOCALES,
+      locales: UI_LOCALES,
       setLocale,
       t,
       meta: LOCALE_META,

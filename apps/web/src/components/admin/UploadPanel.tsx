@@ -26,7 +26,12 @@ import {
 } from './ScriptPromptPicker';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from './GlobalTtsSettings';
 import { loadGlobalTts, TtsPicker } from './TtsPicker';
-import { useI18n, type Locale } from '../../i18n';
+import { ContentLocaleSelect, contentLocaleLabel } from './ContentLocaleSelect';
+import {
+  resolveContentLocale,
+  useI18n,
+  type Locale,
+} from '../../i18n';
 
 const ACCEPT = [
   // 视频
@@ -64,6 +69,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const [globalContentLocale, setGlobalContentLocale] =
     useState<Locale>('zh-CN');
   const [contentLocaleReady, setContentLocaleReady] = useState(false);
+  const [contentLocaleOptions, setContentLocaleOptions] = useState<
+    Array<{ code: string; nativeLabel: string; label: string; short?: string }>
+  >([]);
   const [scriptPromptMode, setScriptPromptMode] =
     useState<ScriptPromptMode>('global');
   const [scriptPrompt, setScriptPrompt] =
@@ -92,11 +100,11 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
       ttsRef.current = ttsCfg;
       setTts(ttsCfg);
       setTtsReady(true);
-      const cl: Locale =
-        ai?.contentLocale === 'en-US' ? 'en-US' : 'zh-CN';
+      const cl = resolveContentLocale(ai?.contentLocale);
       setGlobalContentLocale(cl);
       contentLocaleRef.current = cl;
       setContentLocale(cl);
+      if (ai?.contentLocales) setContentLocaleOptions(ai.contentLocales);
       setContentLocaleReady(true);
     });
     return () => {
@@ -231,8 +239,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   );
   const promptModeLabel =
     scriptPromptMode === 'global' ? t('common.global') : t('common.thisTime');
-  const contentLocaleLabel =
-    contentLocale === 'en-US' ? t('upload.localeEn') : t('upload.localeZh');
+  const contentLocaleDisplay = contentLocaleLabel(contentLocale);
   const contentLocaleHint =
     contentLocale === globalContentLocale
       ? t('upload.localeGlobal')
@@ -389,7 +396,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                   <span className="dot">·</span>
                   {ttsSummary}
                   <span className="dot">·</span>
-                  {contentLocaleLabel}
+                  {contentLocaleDisplay}
                   <span className="dot">·</span>
                   {published ? t('upload.publishOn') : t('upload.publishOff')}
                 </div>
@@ -470,34 +477,14 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
                   : t('upload.localeLoading')}
               </span>
             </div>
-            <div
-              className="upload-locale-grid"
-              role="radiogroup"
+            <ContentLocaleSelect
+              className="upload-locale-select"
+              value={contentLocale}
+              options={contentLocaleOptions}
+              disabled={uploading || !contentLocaleReady}
               aria-label={t('upload.contentLocaleAria')}
-            >
-              {([
-                { id: 'zh-CN' as const, short: t('upload.localeZhShort'), label: t('upload.localeZh') },
-                { id: 'en-US' as const, short: t('upload.localeEnShort'), label: t('upload.localeEn') },
-              ]).map((item) => {
-                const active = contentLocale === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    className={['upload-locale-card', active ? 'is-active' : ''].join(' ')}
-                    disabled={uploading || !contentLocaleReady}
-                    onClick={() => updateContentLocale(item.id)}
-                  >
-                    <span className="upload-locale-short" aria-hidden>
-                      {item.short}
-                    </span>
-                    <span className="upload-locale-label">{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+              onChange={updateContentLocale}
+            />
           </div>
 
           <div className="upload-option-chips" role="group" aria-label={t('upload.advancedAria')}>

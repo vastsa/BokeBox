@@ -78,8 +78,9 @@ import {
 import {
   errorMessage,
   getRequestLocale,
-  isLocale,
+  isContentLocale,
   kindLabel as i18nKindLabel,
+  resolveContentLocale,
   t,
   type Locale,
 } from '../i18n/index.js';
@@ -87,9 +88,9 @@ import { getContentLocale } from '../services/settingsStore.js';
 
 /** 任务内容语言：请求指定优先，否则回落全局 contentLocale */
 function resolveJobLocale(raw: unknown): Locale {
-  if (isLocale(raw)) return raw;
+  if (isContentLocale(raw)) return raw;
   const s = String(raw ?? '').trim();
-  if (isLocale(s)) return s;
+  if (isContentLocale(s)) return s;
   return getContentLocale();
 }
 

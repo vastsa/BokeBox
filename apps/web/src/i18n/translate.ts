@@ -1,4 +1,5 @@
 import type { Locale } from './locale';
+import { DEFAULT_UI_LOCALE, resolveUiLocale } from './locale';
 import { enUS } from './messages/en-US';
 import { zhCN, type MessageTree } from './messages/zh-CN';
 
@@ -17,13 +18,14 @@ type PathKeys<T, Prefix extends string = ''> = T extends string
       >;
     }[keyof T & string];
 
-const catalogs: Record<Locale, Messages> = {
+const catalogs: Partial<Record<Locale, Messages>> = {
   'zh-CN': zhCN,
   'en-US': enUS,
 };
 
 export function getMessages(locale: Locale): Messages {
-  return catalogs[locale] || zhCN;
+  const ui = resolveUiLocale(locale, DEFAULT_UI_LOCALE);
+  return catalogs[ui] || zhCN;
 }
 
 function resolvePath(messages: Messages, key: string): string | undefined {
@@ -49,7 +51,7 @@ export function interpolate(
 }
 
 export function createTranslator(locale: Locale) {
-  const messages = getMessages(locale);
+  const messages = getMessages(resolveUiLocale(locale));
   function t(key: MessageKey | string, params?: TranslateParams): string {
     const raw =
       resolvePath(messages, key) ??

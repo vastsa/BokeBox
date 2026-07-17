@@ -1,3 +1,10 @@
-export type Locale = 'zh-CN' | 'en-US';
-
-export type TranslateParams = Record<string, string | number | boolean | null | undefined>;
+export type {
+  Locale,
+  LocaleDefinition,
+  LocaleMeta,
+  ScriptDensity,
+} from './registry.js';
+export type TranslateParams = Record<
+  string,
+  string | number | boolean | null | undefined
+>;

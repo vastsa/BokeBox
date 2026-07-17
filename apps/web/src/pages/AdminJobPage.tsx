@@ -34,7 +34,15 @@ import { CoverArt } from '../components/ui/CoverArt';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus, PipelineFromStep } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
-import { useI18n, type Locale } from '../i18n';
+import {
+  ContentLocaleSelect,
+  contentLocaleLabel,
+} from '../components/admin/ContentLocaleSelect';
+import {
+  resolveContentLocale,
+  useI18n,
+  type Locale,
+} from '../i18n';
 
 type ContentTab = 'script' | 'notes' | 'flashcards' | 'transcript' | 'source';
 
@@ -220,7 +228,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
   // 同步任务内容语言选择
   useEffect(() => {
     if (!job) return;
-    setJobContentLocale(job.locale === 'en-US' ? 'en-US' : 'zh-CN');
+    setJobContentLocale(resolveContentLocale(job.locale));
   }, [job?.id, job?.locale]);
 
   // 资产变化导致当前起点不可用时，自动回落
@@ -740,7 +748,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               <div className="jd-side-head">
                 <h2 className="jd-side-title">{t('job.contentLocale')}</h2>
                 <span className="nl-chip">
-                  {job.locale === 'en-US' ? t('job.localeEn') : t('job.localeZh')}
+                  {contentLocaleLabel(job.locale)}
                 </span>
               </div>
               <p className="jd-hint jd-hint-top">{t('job.contentLocaleHint')}</p>
@@ -771,18 +779,12 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
 
                 <label className="jd-select-field">
                   <span className="jd-select-label">{t('job.contentLocale')}</span>
-                  <select
-                    className="jd-select"
+                  <ContentLocaleSelect
                     value={jobContentLocale}
                     disabled={active || Boolean(busy)}
                     aria-label={t('job.contentLocaleAria')}
-                    onChange={(e) =>
-                      setJobContentLocale(e.target.value as Locale)
-                    }
-                  >
-                    <option value="zh-CN">{t('job.localeZh')}</option>
-                    <option value="en-US">{t('job.localeEn')}</option>
-                  </select>
+                    onChange={setJobContentLocale}
+                  />
                 </label>
                 <p className="jd-select-desc">{t('job.contentLocaleRerunHint')}</p>
 

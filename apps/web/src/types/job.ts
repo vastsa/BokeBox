@@ -129,7 +129,7 @@ export interface Job {
   progress: number;
   message: string;
   /** 任务内容语言：口播/闪卡/提示词 + 进度文案（创建时可指定，默认全局 contentLocale） */
-  locale?: 'zh-CN' | 'en-US';
+  locale?: string;
   transcript?: string;
   podcast?: PodcastContent;
   tts?: TtsOptions;

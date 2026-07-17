@@ -4,9 +4,20 @@ export {
   initLocale,
   LOCALES,
   LOCALE_META,
+  CONTENT_LOCALES,
+  UI_LOCALES,
+  DEFAULT_CONTENT_LOCALE,
+  DEFAULT_UI_LOCALE,
+  isContentLocale,
+  isLocale,
+  isUiLocale,
+  listLocaleMeta,
+  resolveContentLocale,
+  resolveUiLocale,
   setLocale,
   subscribeLocale,
   type Locale,
+  type LocaleMeta,
 } from './locale';
 export { I18nProvider, tOutside, useI18n } from './context';
 export {

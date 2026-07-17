@@ -8629,3 +8629,22 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
   background: linear-gradient(145deg, #172554, #1e3a8a);
   color: #bfdbfe;
 }
+
+
+/* 可扩展内容语言选择器 */
+.settings-locale-select,
+.upload-locale-select {
+  width: 100%;
+  min-height: var(--control-6xl, 44px);
+  border-radius: var(--radius-md);
+  border: var(--bw-1) solid var(--separator);
+  background: var(--surface);
+  padding: 0 var(--space-3);
+  font-size: var(--fs-lg);
+  color: var(--text);
+  outline: none;
+}
+.settings-locale-select:focus,
+.upload-locale-select:focus {
+  border-color: var(--accent);
+}

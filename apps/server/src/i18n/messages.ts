@@ -243,7 +243,8 @@ const enUS: Record<keyof typeof zhCN, string> = {
 
 export type MessageKey = keyof typeof zhCN;
 
-export const catalogs: Record<Locale, Record<MessageKey, string>> = {
+/** 仅 ui:true 的语言需要目录；其它内容语言走 resolveUiLocale 回落 */
+export const catalogs: Partial<Record<Locale, Record<MessageKey, string>>> = {
   'zh-CN': zhCN,
   'en-US': enUS,
 };

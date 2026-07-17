@@ -15,7 +15,7 @@ import {
   type SessionRecord,
 } from './settingsStore.js';
 import type { TtsOptions } from '../types/job.js';
-import { AppError, isLocale } from '../i18n/index.js';
+import { AppError, isContentLocale, isLocale } from '../i18n/index.js';
 
 const SCRYPT_KEYLEN = 64;
 
@@ -121,7 +121,7 @@ export function completeSetup(input: SetupInput): {
       globalTts.mode === 'default'
         ? globalTts.voice || input.defaultVoice
         : input.defaultVoice || globalTts.voice,
-    contentLocale: isLocale(input.contentLocale)
+    contentLocale: isContentLocale(input.contentLocale)
       ? input.contentLocale
       : undefined,
   };

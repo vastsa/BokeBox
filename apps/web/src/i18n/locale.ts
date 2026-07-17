@@ -1,45 +1,62 @@
-export type Locale = 'zh-CN' | 'en-US';
+/**
+ * UI 语言持久化与检测
+ * 语言清单见 registry.ts（扩展入口）
+ */
+import {
+  DEFAULT_UI_LOCALE,
+  isUiLocale,
+  resolveUiLocale,
+  UI_LOCALES,
+  type Locale,
+} from './registry';
 
-export const LOCALES: Locale[] = ['zh-CN', 'en-US'];
+export type { Locale } from './registry';
+export {
+  CONTENT_LOCALES,
+  DEFAULT_CONTENT_LOCALE,
+  DEFAULT_LOCALE,
+  DEFAULT_UI_LOCALE,
+  LOCALES,
+  LOCALE_DEFINITIONS,
+  LOCALE_META,
+  UI_LOCALES,
+  getLocaleDefinition,
+  isContentLocale,
+  isLocale,
+  isUiLocale,
+  listLocaleMeta,
+  resolveContentLocale,
+  resolveRegisteredLocale,
+  resolveUiLocale,
+  type LocaleDefinition,
+  type LocaleMeta,
+} from './registry';
 
-export const LOCALE_META: Record<
-  Locale,
-  { label: string; nativeLabel: string; short: string }
-> = {
-  'zh-CN': { label: 'Chinese', nativeLabel: '简体中文', short: '中文' },
-  'en-US': { label: 'English', nativeLabel: 'English', short: 'EN' },
-};
+/** 界面可选语言（兼容旧名 LOCALES 仅 UI） */
+export const LOCALES_UI = UI_LOCALES;
 
 const STORAGE_KEY = 'pb-locale';
 
 type LocaleListener = (locale: Locale) => void;
-
 const listeners = new Set<LocaleListener>();
 
-function isLocale(value: string | null): value is Locale {
-  return value === 'zh-CN' || value === 'en-US';
-}
-
 function detectBrowserLocale(): Locale {
-  if (typeof navigator === 'undefined') return 'zh-CN';
+  if (typeof navigator === 'undefined') return DEFAULT_UI_LOCALE;
   const candidates = [
     navigator.language,
     ...(navigator.languages || []),
-  ]
-    .filter(Boolean)
-    .map((x) => x.toLowerCase());
-
+  ].filter(Boolean);
   for (const lang of candidates) {
-    if (lang.startsWith('zh')) return 'zh-CN';
-    if (lang.startsWith('en')) return 'en-US';
+    const resolved = resolveUiLocale(String(lang));
+    if (isUiLocale(resolved)) return resolved;
   }
-  return 'zh-CN';
+  return DEFAULT_UI_LOCALE;
 }
 
 export function getLocale(): Locale {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (isLocale(raw)) return raw;
+    if (isUiLocale(raw)) return raw;
   } catch {
     // ignore
   }
@@ -50,7 +67,6 @@ function notify(locale: Locale) {
   listeners.forEach((listener) => listener(locale));
 }
 
-/** 应用语言到 html[lang] 与 document.title */
 export function applyLocale(locale: Locale = getLocale()): Locale {
   if (typeof document !== 'undefined') {
     document.documentElement.lang = locale;
@@ -60,12 +76,13 @@ export function applyLocale(locale: Locale = getLocale()): Locale {
 }
 
 export function setLocale(locale: Locale): Locale {
+  const next = isUiLocale(locale) ? locale : DEFAULT_UI_LOCALE;
   try {
-    localStorage.setItem(STORAGE_KEY, locale);
+    localStorage.setItem(STORAGE_KEY, next);
   } catch {
     // ignore
   }
-  return applyLocale(locale);
+  return applyLocale(next);
 }
 
 export function subscribeLocale(listener: LocaleListener): () => void {
@@ -76,7 +93,6 @@ export function subscribeLocale(listener: LocaleListener): () => void {
   };
 }
 
-/** 启动时初始化语言 */
 export function initLocale(): Locale {
   return applyLocale(getLocale());
 }

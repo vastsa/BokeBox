@@ -391,6 +391,15 @@ export type SetupStatus = {
   };
 };
 
+export type LocaleMetaDto = {
+  code: string;
+  label: string;
+  nativeLabel: string;
+  short: string;
+  ui: boolean;
+  content: boolean;
+};
+
 export type PublicAiConfig = {
   apiKeySet: boolean;
   apiKeyHint: string;
@@ -403,6 +412,9 @@ export type PublicAiConfig = {
   defaultVoice: string;
   /** 内容生成 / AI 提示词默认语言 */
   contentLocale: string;
+  /** 服务端注册的可选语言（扩展入口） */
+  contentLocales?: LocaleMetaDto[];
+  uiLocales?: LocaleMetaDto[];
 };
 
 export async function fetchSetupStatus(): Promise<SetupStatus> {

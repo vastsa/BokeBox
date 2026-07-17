@@ -12,6 +12,7 @@ import type { Locale } from '../i18n/types.js';
 import {
   buildPodcastSystemPrompt,
   buildPodcastUserPrompt,
+  demoHostName,
   buildRewriteSystemPrompt,
   buildRewriteUserPrompt,
   podcastFallbackCopy,

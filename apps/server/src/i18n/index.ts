@@ -1,32 +1,59 @@
 import type { FastifyRequest } from 'fastify';
 import { catalogs, type MessageKey } from './messages.js';
-import type { Locale, TranslateParams } from './types.js';
+import {
+  DEFAULT_UI_LOCALE,
+  isLocale,
+  isUiLocale,
+  resolveRegisteredLocale,
+  resolveUiLocale,
+  type Locale,
+} from './registry.js';
+import type { TranslateParams } from './types.js';
 
 export type { Locale, TranslateParams } from './types.js';
 export type { MessageKey } from './messages.js';
+export {
+  CONTENT_LOCALES,
+  DEFAULT_CONTENT_LOCALE,
+  DEFAULT_LOCALE,
+  DEFAULT_UI_LOCALE,
+  LOCALES,
+  LOCALE_DEFINITIONS,
+  LOCALE_META,
+  UI_LOCALES,
+  contentLanguageLabel,
+  contentPromptLanguage,
+  getLocaleDefinition,
+  isContentLocale,
+  isLocale,
+  isUiLocale,
+  listLocaleMeta,
+  resolveContentLocale,
+  resolveRegisteredLocale,
+  resolveUiLocale,
+  spokenCharsPerMinute,
+  type LocaleDefinition,
+  type LocaleMeta,
+  type ScriptDensity,
+} from './registry.js';
 
-export const LOCALES: Locale[] = ['zh-CN', 'en-US'];
-
-export function isLocale(value: unknown): value is Locale {
-  return value === 'zh-CN' || value === 'en-US';
-}
-
+/** 解析请求 / Accept-Language 为 UI 语言（无 UI 包时回落默认） */
 export function resolveLocale(input?: string | null): Locale {
-  if (!input) return 'zh-CN';
+  if (!input) return DEFAULT_UI_LOCALE;
   const raw = String(input).toLowerCase();
-  // Accept-Language: en-US,en;q=0.9,zh-CN;q=0.8
-  const parts = raw.split(',').map((p) => p.trim().split(';')[0]);
+  const parts = raw.split(',').map((p) => p.trim().split(';')[0]).filter(Boolean);
   for (const part of parts) {
-    if (part.startsWith('zh')) return 'zh-CN';
-    if (part.startsWith('en')) return 'en-US';
+    const reg = resolveRegisteredLocale(part, DEFAULT_UI_LOCALE);
+    if (isUiLocale(reg)) return reg;
   }
-  return 'zh-CN';
+  return DEFAULT_UI_LOCALE;
 }
 
 export function getRequestLocale(req: FastifyRequest): Locale {
   const q = (req.query || {}) as { lang?: string; locale?: string };
-  if (isLocale(q.lang)) return q.lang;
-  if (isLocale(q.locale)) return q.locale;
+  if (isUiLocale(q.lang)) return q.lang;
+  if (isUiLocale(q.locale)) return q.locale;
+  if (isLocale(q.lang) && isUiLocale(q.lang)) return q.lang;
   const header =
     (req.headers['x-locale'] as string | undefined) ||
     (req.headers['accept-language'] as string | undefined);
@@ -50,11 +77,16 @@ export function t(
   key: MessageKey | string,
   params?: TranslateParams,
 ): string {
-  const loc: Locale = isLocale(locale) ? locale : resolveLocale(String(locale || ''));
-  const table = catalogs[loc] || catalogs['zh-CN'];
+  // 进度/错误文案仅使用有 UI 包的语言
+  const loc: Locale = resolveUiLocale(
+    isLocale(locale) ? locale : String(locale || ''),
+    DEFAULT_UI_LOCALE,
+  );
+  const fallbackTable = catalogs['zh-CN']!;
+  const table = catalogs[loc as keyof typeof catalogs] || fallbackTable;
   const raw =
     (table as Record<string, string>)[key] ||
-    catalogs['zh-CN'][key as MessageKey] ||
+    (fallbackTable as Record<string, string>)[key as MessageKey] ||
     key;
   return interpolate(raw, params);
 }

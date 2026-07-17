@@ -1,7 +1,7 @@
 import { getDb } from '../db/sqlite.js';
 import type { ScriptPromptOptions, TtsOptions } from '../types/job.js';
 import type { Locale } from '../i18n/types.js';
-import { isLocale } from '../i18n/index.js';
+import { isContentLocale, isLocale, listLocaleMeta, type LocaleMeta } from '../i18n/index.js';
 import { normalizeScriptPrompt } from './scriptPrompt.js';
 
 const KEY_SCRIPT_PROMPT = 'script_prompt';
@@ -47,6 +47,10 @@ export type PublicAiConfig = {
   imageModel: string;
   defaultVoice: string;
   contentLocale: Locale;
+  /** 可选内容语言（来自注册中心，便于前端扩展展示） */
+  contentLocales: LocaleMeta[];
+  /** 可选界面语言 */
+  uiLocales: LocaleMeta[];
 };
 
 export type SessionRecord = {
@@ -156,7 +160,7 @@ export function getAiConfig(): AiConfig {
       stored?.defaultVoice?.trim() ||
       process.env.OPENAI_TTS_DEFAULT_VOICE ||
       DEFAULT_AI.defaultVoice,
-    contentLocale: isLocale(stored?.contentLocale)
+    contentLocale: isContentLocale(stored?.contentLocale)
       ? stored!.contentLocale!
       : DEFAULT_AI.contentLocale,
   };
@@ -205,7 +209,7 @@ export function setAiConfig(patch: Partial<AiConfig>): AiConfig {
         ? String(patch.defaultVoice).trim() || current.defaultVoice
         : current.defaultVoice,
     contentLocale:
-      patch.contentLocale !== undefined && isLocale(patch.contentLocale)
+      patch.contentLocale !== undefined && isContentLocale(patch.contentLocale)
         ? patch.contentLocale
         : current.contentLocale,
   };
@@ -237,6 +241,8 @@ export function toPublicAiConfig(cfg?: AiConfig): PublicAiConfig {
     imageModel: c.imageModel || '',
     defaultVoice: c.defaultVoice,
     contentLocale: c.contentLocale || 'zh-CN',
+    contentLocales: listLocaleMeta({ content: true }),
+    uiLocales: listLocaleMeta({ ui: true }),
   };
 }
 

@@ -11,7 +11,13 @@ import { getJob, updateJob } from './jobStore.js';
 import { pathExists, writeText } from '../utils/fs.js';
 import { jobPaths } from '../utils/paths.js';
 import type { Job, JobStatus, PipelineFromStep, SourceKind } from '../types/job.js';
-import { AppError, isLocale, t, type Locale } from '../i18n/index.js';
+import {
+  AppError,
+  resolveContentLocale,
+  resolveUiLocale,
+  t,
+  type Locale,
+} from '../i18n/index.js';
 
 const running = new Set<string>();
 
@@ -55,8 +61,18 @@ function kindLabel(locale: Locale, kind: SourceKind): string {
   return t(locale, 'kind.video');
 }
 
+function jobContentLocale(job?: { locale?: string } | null): Locale {
+  return resolveContentLocale(job?.locale);
+}
+
+/** 进度/错误文案语言（无 UI 包时回落默认界面语言） */
+function jobUiLocale(job?: { locale?: string } | null): Locale {
+  return resolveUiLocale(job?.locale);
+}
+
+/** @deprecated 兼容旧调用：返回内容语言 */
 function jobLocale(job?: { locale?: string } | null): Locale {
-  return isLocale(job?.locale) ? job.locale : 'zh-CN';
+  return jobContentLocale(job);
 }
 
 /** 读取文本素材正文：优先 DB transcript，其次源文件 */
@@ -102,7 +118,7 @@ export function buildRetryPatch(
   fromStep: PipelineFromStep,
   tts: Job['tts'],
   scriptPrompt?: Job['scriptPrompt'],
-  locale: Locale = jobLocale(job),
+  locale: Locale = jobUiLocale(job),
 ): Partial<Job> {
   const start = stepIndex(fromStep);
   const kind = kindOf(job);
@@ -238,7 +254,8 @@ export async function runPipeline(
   try {
     let job = await getJob(jobId);
     if (!job) return;
-    let locale = jobLocale(job);
+    const contentLocale = jobContentLocale(job);
+    let locale = jobUiLocale(job);
 
     // ── 0. URL 下载识别（无源文件时） ──
     if (job.sourceUrl && !job.videoPath) {
@@ -395,7 +412,7 @@ export async function runPipeline(
         latest.originalFilename || latest.title,
         jobId,
         latest.scriptPrompt,
-        locale,
+        contentLocale,
       );
       podcast = generated;
       await setProgress(
@@ -493,7 +510,7 @@ export async function runPipeline(
         transcript,
         sourceTitle: latestCards.originalFilename || latestCards.title,
         podcast,
-        locale,
+        locale: contentLocale,
       });
       podcast = { ...podcast, flashcards };
       await setProgress(
@@ -580,7 +597,7 @@ export async function runPipeline(
         transcript: transcriptSnapshot,
         sourceTitle,
         podcast: podcastSnapshot,
-        locale,
+        locale: contentLocale,
       });
     };
 
@@ -676,7 +693,7 @@ export async function runPipeline(
       },
     );
   } catch (err) {
-    const locale = jobLocale(await getJob(jobId));
+    const locale = jobUiLocale(await getJob(jobId));
     const message =
       err instanceof AppError
         ? t(locale, err.key, err.params)

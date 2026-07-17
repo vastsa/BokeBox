@@ -1,56 +1,98 @@
 import type { Locale } from './types.js';
-import { isLocale } from './index.js';
+import {
+  contentLanguageLabel as registryLanguageLabel,
+  contentPromptLanguage,
+  resolveContentLocale as resolveFromRegistry,
+  spokenCharsPerMinute as registrySpokenCpm,
+} from './registry.js';
 
 export function resolveContentLocale(raw?: string | null): Locale {
-  return isLocale(raw) ? raw : 'zh-CN';
+  return resolveFromRegistry(raw);
 }
 
-export function contentLanguageLabel(locale: Locale): string {
-  return locale === 'en-US' ? 'English' : '中文';
+export function contentLanguageLabel(locale: Locale | string): string {
+  return registryLanguageLabel(locale);
 }
 
 /** 口播时长估算：每分钟大约字符数（去除音频标签后） */
-export function spokenCharsPerMinute(locale: Locale): number {
-  return locale === 'en-US' ? 750 : 220;
+export function spokenCharsPerMinute(locale: Locale | string): number {
+  return registrySpokenCpm(locale);
+}
+
+function isZhFamily(locale: Locale): boolean {
+  return locale === 'zh-CN' || locale === 'zh-TW';
 }
 
 /** 口播人设字段标签（注入 system prompt） */
 export function scriptPromptFieldLabels(
   locale: Locale,
 ): Array<{ key: string; label: string }> {
-  if (locale === 'en-US') {
+  if (isZhFamily(locale)) {
+    const traditional = locale === 'zh-TW';
     return [
-      { key: 'hostName', label: 'Host name' },
-      { key: 'hostIdentity', label: 'Host role' },
-      { key: 'showName', label: 'Show name' },
-      { key: 'speakingStyle', label: 'Speaking style' },
-      { key: 'audience', label: 'Audience' },
-      { key: 'tone', label: 'Tone' },
-      { key: 'openingStyle', label: 'Opening preference' },
-      { key: 'closingStyle', label: 'Closing preference' },
-      { key: 'maxChars', label: 'Max spoken characters' },
-      { key: 'extraInstructions', label: 'Extra requirements' },
+      { key: 'hostName', label: traditional ? '主播稱呼' : '主播称呼' },
+      { key: 'hostIdentity', label: '主播身份' },
+      { key: 'showName', label: traditional ? '節目名稱' : '节目名称' },
+      { key: 'speakingStyle', label: traditional ? '說話風格' : '说话风格' },
+      { key: 'audience', label: traditional ? '目標聽眾' : '目标听众' },
+      { key: 'tone', label: traditional ? '語氣調性' : '语气调性' },
+      { key: 'openingStyle', label: traditional ? '開場偏好' : '开场偏好' },
+      { key: 'closingStyle', label: traditional ? '收尾偏好' : '收尾偏好' },
+      { key: 'maxChars', label: traditional ? '字數上限' : '字数上限' },
+      { key: 'extraInstructions', label: traditional ? '額外要求' : '额外要求' },
     ];
   }
+  // 非中文：英文标签（脚手架统一英文，目标语由 promptLanguage 指定）
   return [
-    { key: 'hostName', label: '主播称呼' },
-    { key: 'hostIdentity', label: '主播身份' },
-    { key: 'showName', label: '节目名称' },
-    { key: 'speakingStyle', label: '说话风格' },
-    { key: 'audience', label: '目标听众' },
-    { key: 'tone', label: '语气调性' },
-    { key: 'openingStyle', label: '开场偏好' },
-    { key: 'closingStyle', label: '收尾偏好' },
-    { key: 'maxChars', label: '字数上限' },
-    { key: 'extraInstructions', label: '额外要求' },
+    { key: 'hostName', label: 'Host name' },
+    { key: 'hostIdentity', label: 'Host role' },
+    { key: 'showName', label: 'Show name' },
+    { key: 'speakingStyle', label: 'Speaking style' },
+    { key: 'audience', label: 'Audience' },
+    { key: 'tone', label: 'Tone' },
+    { key: 'openingStyle', label: 'Opening preference' },
+    { key: 'closingStyle', label: 'Closing preference' },
+    { key: 'maxChars', label: 'Max spoken characters' },
+    { key: 'extraInstructions', label: 'Extra requirements' },
   ];
 }
 
 export function scriptPromptSectionTitle(locale: Locale): string {
-  return locale === 'en-US'
-    ? '[Host persona & style overrides] (user-defined; higher priority than defaults)'
-    : '【口播人设与风格干预】（用户自定义，优先级高于默认设定）';
+  if (isZhFamily(locale)) {
+    return locale === 'zh-TW'
+      ? '【口播人設與風格干預】（用戶自定義，優先級高於默認設定）'
+      : '【口播人设与风格干预】（用户自定义，优先级高于默认设定）';
+  }
+  return '[Host persona & style overrides] (user-defined; higher priority than defaults)';
 }
+
+const MIMO_TAG_RULES_EN = [
+  '5. script MUST use MiMo TTS audio tags (critical):',
+  '   - No separate style-instruction sentences like “please read in a warm tone”.',
+  '   - Put 1-2 global style tags in half-width parentheses at the very beginning, e.g.:',
+  '     (磁性) or (沉稳 温柔) or (慵懒). Keep these tag tokens exactly as Chinese control words.',
+  '     Style examples: 磁性/沉稳/温柔/慵懒/怅然/深情/欢快/激昂/清亮/甜美.',
+  '   - Insert fine-grained tags in the body sparingly, e.g.:',
+  '     （深呼吸）（轻笑）（沉默片刻）（语速加快）（小声）（提高音量）（叹气）（哽咽）.',
+  '   - Categories: pacing / emotion / voice quality / laugh-cry cues.',
+  '   - About 6-12 fine tags total; never tag every sentence.',
+  '   - Tags wrap control words only, not full sentences.',
+  '   - Good example: (磁性 沉稳)Hello and welcome. （深呼吸）Here is the takeaway… （轻笑）See you next time.',
+];
+
+const MIMO_TAG_RULES_ZH = [
+  '5. script 必须使用 MiMo TTS 音频标签（关键）：',
+  '   - 不要写“请用温柔语气朗读”这类独立风格说明句。',
+  '   - 在文稿最开头用半角括号放 1-2 个全局风格标签，例如：',
+  '     (磁性) 或 (沉稳 温柔) 或 (慵懒)。标签控制词保持中文原文，不要翻译。',
+  '     风格示例：磁性/沉稳/温柔/慵懒/怅然/深情/欢快/激昂/清亮/甜美。',
+  '   - 正文中少量插入细粒度标签，例如：',
+  '     （深呼吸）（轻笑）（沉默片刻）（语速加快）（小声）（提高音量）（叹气）（哽咽）。',
+  '   - 类别：节奏 / 情绪 / 音色 / 笑哭等提示。',
+  '   - 全文约 6-12 个细标签；不要每句都打。',
+  '   - 括号内只放控制词，不要包整句。',
+  '   - 正例：(磁性 沉稳)大家好。 （深呼吸）今天重点是… （轻笑）我们下期见。',
+];
 
 export function buildPodcastSystemPrompt(input: {
   locale: Locale;
@@ -58,75 +100,100 @@ export function buildPodcastSystemPrompt(input: {
   maxChars: number;
   personaSection?: string;
 }): string {
-  const { locale, targetMin, maxChars, personaSection } = input;
-  if (locale === 'en-US') {
+  const loc = resolveContentLocale(input.locale);
+  const { targetMin, maxChars, personaSection } = input;
+  const lang = contentPromptLanguage(loc);
+
+  if (isZhFamily(loc)) {
+    const trad = loc === 'zh-TW';
+    const langName = trad ? '繁體中文' : '简体中文';
     return [
-      'You are a senior English podcast producer and editor, also skilled at MiMo-TTS audio tag control.',
-      'Rewrite the source transcript into one episode that can be sent directly to TTS.',
-      'Requirements:',
-      '1. Output strict JSON only. No markdown fences.',
-      '2. JSON fields:',
+      trad
+        ? '你是資深中文播客製作人與內容主編，同時精通 MiMo-TTS 音頻標籤控制。'
+        : '你是资深中文播客制作人与内容主编，同时精通 MiMo-TTS 音频标签控制。',
+      trad
+        ? '請把視頻轉寫稿重構成一集可直接送入 TTS 合成的口播稿。'
+        : '请把视频转写稿重构成一集可直接送入 TTS 合成的口播稿。',
+      '要求：',
+      '1. 输出严格 JSON，不要 markdown 代码围栏。',
+      '2. JSON 字段：',
       '   title, summary, tags(string[]), hostIntro, outline({title,summary}[]),',
-      '   script, showNotes, estimatedMinutes(number).',
-      '3. title should sound like a podcast episode title; summary 80-140 words; tags 3-6 items.',
-      '4. script MUST be natural spoken English with opening, mid sections, and closing.',
-      `   Spoken length (after removing audio tags) MUST be ${targetMin}-${maxChars} characters, never above ${maxChars}.`,
-      '   Exceeding the limit is a failed output. Avoid visual-only phrases like “as shown below” / “click here”.',
-      '5. script MUST use MiMo TTS audio tags (critical):',
-      '   - No separate style-instruction sentences like “please read in a warm tone”.',
-      '   - Put 1-2 global style tags in half-width parentheses at the very beginning, e.g.:',
-      '     (磁性) or (沉稳 温柔) or (慵懒). Keep these tag tokens exactly as Chinese control words.',
-      '     Style examples: 磁性/沉稳/温柔/慵懒/怅然/深情/欢快/激昂/清亮/甜美.',
-      '   - Insert fine-grained tags in the body sparingly, e.g.:',
-      '     （深呼吸）（轻笑）（沉默片刻）（语速加快）（小声）（提高音量）（叹气）（哽咽）.',
-      '   - Categories: pacing / emotion / voice quality / laugh-cry cues.',
-      '   - About 6-12 fine tags total; never tag every sentence.',
-      '   - Tags wrap control words only, not full sentences.',
-      '   - Good example: (磁性 沉稳)Hello and welcome. （深呼吸）Here is the takeaway… （轻笑）See you next time.',
-      '6. showNotes is Markdown with outline and key points; no audio tags in showNotes.',
-      '7. Do not invent facts missing from the transcript; you may condense and polish.',
-      '8. ALL user-facing fields (title/summary/tags/hostIntro/outline/script/showNotes) MUST be in English.',
+      '   script, showNotes, estimatedMinutes(number)。',
+      '3. title 像播客单集标题；summary 80-140 字；tags 3-6 个。',
+      `4. script 必须是自然口播${langName}，含开场、中段、收尾。`,
+      `   去除音频标签后的口播长度必须在 ${targetMin}-${maxChars} 字之间，不得超过 ${maxChars}。`,
+      '   超限视为失败。避免“如下图所示”“点击这里”等视觉向表述。',
+      ...MIMO_TAG_RULES_ZH,
+      '6. showNotes 为 Markdown 大纲与要点；showNotes 内不要音频标签。',
+      '7. 不要编造转写中没有的事实；可以压缩与润色。',
+      `8. 所有面向用户的字段（title/summary/tags/hostIntro/outline/script/showNotes）必须使用${langName}。`,
       personaSection || '',
     ]
       .filter(Boolean)
       .join('\n');
   }
 
+  // en-US 与其它内容语言：英文脚手架 + 目标语约束，新增语言只需注册表
   return [
-    '你是资深中文播客制作人与内容主编，同时精通 MiMo-TTS 音频标签控制。',
-    '请把视频转写稿重构成一集可直接送入 TTS 合成的口播稿。',
-    '要求：',
-    '1. 输出严格 JSON，不要 markdown 代码围栏。',
-    '2. JSON 字段：',
+    `You are a senior ${lang} podcast producer and editor, also skilled at MiMo-TTS audio tag control.`,
+    'Rewrite the source transcript into one episode that can be sent directly to TTS.',
+    'Requirements:',
+    '1. Output strict JSON only. No markdown fences.',
+    '2. JSON fields:',
     '   title, summary, tags(string[]), hostIntro, outline({title,summary}[]),',
-    '   script, showNotes, estimatedMinutes(number)。',
-    '3. title 像播客节目名；summary 80-140 字；tags 3-6 个。',
-    '4. script 必须是适合直接口播的口语化中文，包含开场、分段展开、收尾，',
-    `   正文字数（去除音频标签后）严格控制在 ${targetMin}-${maxChars} 字，绝对不得超过 ${maxChars} 字；`,
-    '   超限属于失败输出。避免“如图所示/点击下方”等视觉依赖表述。',
-    '5. script 必须使用 MiMo TTS「音频标签控制」，规则如下（非常重要）：',
-    '   - 不支持风格指令（不要写旁白式“请用某某语气朗读”的说明句）。',
-    '   - 在全文最开头用半角括号写入 1-2 个整体风格标签，例如：',
-    '     (磁性) 或 (沉稳 温柔) 或 (慵懒) 或 (怅然)。',
-    '     可选风格示例：磁性/沉稳/温柔/慵懒/怅然/深情/欢快/激昂/清亮/甜美。',
-    '   - 在正文关键位置插入细粒度音频标签，使用全角或半角括号均可，例如：',
-    '     （深呼吸）（轻笑）（沉默片刻）（语速加快）（小声）（提高音量）（叹气）（哽咽）。',
-    '   - 细粒度标签类别：',
-    '     · 语速节奏：吸气/深呼吸/叹气/长叹一口气/喘息/屏息/语速加快/沉默片刻',
-    '     · 情绪状态：紧张/激动/疲惫/委屈/震惊/不耐烦',
-    '     · 语音特征：小声/提高音量/气声/沙哑/颤抖',
-    '     · 哭笑表达：轻笑/笑/苦笑/哽咽',
-    '   - 标签要克制自然：整篇约 6-12 处细粒度标签即可，不要句句都标。',
-    '   - 标签只包裹控制词，不把整句正文塞进标签里。',
-    '   - 错误示例：请用磁性声音说… / [用温柔语气]大家好',
-    '   - 正确示例：(磁性 沉稳)大家好，欢迎收听。 （深呼吸）先说结论…… （轻笑）我们下期见。',
-    '6. showNotes 使用 Markdown，含大纲、要点；showNotes 不要写音频标签。',
-    '7. 不要编造转写稿中不存在的事实；可归纳润色。',
-    '8. 面向用户的字段（title/summary/tags/hostIntro/outline/script/showNotes）必须使用中文。',
+    '   script, showNotes, estimatedMinutes(number).',
+    '3. title should sound like a podcast episode title; summary 80-140 words; tags 3-6 items.',
+    `4. script MUST be natural spoken ${lang} with opening, mid sections, and closing.`,
+    `   Spoken length (after removing audio tags) MUST be ${targetMin}-${maxChars} characters, never above ${maxChars}.`,
+    '   Exceeding the limit is a failed output. Avoid visual-only phrases like “as shown below” / “click here”.',
+    ...MIMO_TAG_RULES_EN,
+    '6. showNotes is Markdown with outline and key points; no audio tags in showNotes.',
+    '7. Do not invent facts missing from the transcript; you may condense and polish.',
+    `8. ALL user-facing fields (title/summary/tags/hostIntro/outline/script/showNotes) MUST be in ${lang}.`,
     personaSection || '',
   ]
     .filter(Boolean)
     .join('\n');
+}
+
+export function buildFlashcardSystemPrompt(locale: Locale): string {
+  const loc = resolveContentLocale(locale);
+  const lang = contentPromptLanguage(loc);
+  if (isZhFamily(loc)) {
+    const langName = loc === 'zh-TW' ? '繁體中文' : '简体中文';
+    return [
+      '你是学习科学专家，擅长把播客内容做成主动回忆闪卡。',
+      '根据口播稿与笔记生成 JSON 闪卡数组。',
+      '要求：',
+      '1. 只输出 JSON 数组，不要 markdown。',
+      '2. 每张卡：{ id, front, back, tags?: string[], hint?: string }。',
+      '3. front 是问题/概念；back 是简明答案。',
+      '4. 6-12 张卡，覆盖概念、结论、行动建议。',
+      '5. 不要编造原文没有的事实。',
+      `6. front/back/hint/tags 全部使用${langName}。`,
+    ].join('\n');
+  }
+  return [
+    `You are a learning-science expert who turns podcasts into active-recall flashcards in ${lang}.`,
+    'Generate a JSON array of flashcards from the script and notes.',
+    'Requirements:',
+    '1. Output a JSON array only. No markdown.',
+    '2. Each card: { id, front, back, tags?: string[], hint?: string }.',
+    '3. front is a question/concept; back is a concise answer.',
+    '4. 6-12 cards covering concepts, conclusions, and actions.',
+    '5. Do not invent facts missing from the source.',
+    `6. front/back/hint/tags MUST all be in ${lang}.`,
+  ].join('\n');
+}
+
+export function demoHostName(locale: Locale): string {
+  return isZhFamily(resolveContentLocale(locale)) ? '主持人' : 'the host';
+}
+
+export function demoFallbackTitle(locale: Locale, sourceTitle: string): string {
+  const base = sourceTitle.replace(/\.[^.]+$/, '');
+  if (base) return base;
+  return isZhFamily(resolveContentLocale(locale)) ? '视频精华' : 'Source highlights';
 }
 
 export function buildPodcastUserPrompt(
@@ -134,7 +201,7 @@ export function buildPodcastUserPrompt(
   sourceTitle: string,
   transcript: string,
 ): string {
-  if (locale === 'en-US') {
+  if (!isZhFamily(locale)) {
     return [
       `Source filename: ${sourceTitle}`,
       '',
@@ -150,7 +217,7 @@ export function buildRewriteSystemPrompt(
   maxChars: number,
   current: number,
 ): string {
-  if (locale === 'en-US') {
+  if (!isZhFamily(locale)) {
     return [
       'You are a podcast script editor. Compress the given script under the character limit.',
       'Hard rules:',
@@ -159,7 +226,7 @@ export function buildRewriteSystemPrompt(
       '3. Keep and carefully trim MiMo TTS audio tags (opening style tags + a few fine tags). Style tag tokens stay Chinese.',
       '4. Do not invent facts.',
       '5. Output strict JSON: {"script":"..."} with no markdown.',
-      '6. The rewritten script MUST remain in English.',
+      '6. The rewritten script MUST remain in the same language as the input script.',
     ].join('\n');
   }
   return [
@@ -178,7 +245,7 @@ export function buildRewriteUserPrompt(
   locale: Locale,
   input: { title: string; sourceTitle: string; maxChars: number; script: string },
 ): string {
-  if (locale === 'en-US') {
+  if (!isZhFamily(locale)) {
     return [
       `Episode title: ${input.title}`,
       `Source: ${input.sourceTitle}`,
@@ -209,7 +276,7 @@ export function podcastFallbackCopy(
   outlineTitle: string;
   outlineSummary: string;
 } {
-  if (locale === 'en-US') {
+  if (!isZhFamily(locale)) {
     return {
       title: `[Podcast] ${sourceTitle}`,
       summary: 'A condensed listen-first rewrite of the source material.',
@@ -229,39 +296,6 @@ export function podcastFallbackCopy(
   };
 }
 
-export function buildFlashcardSystemPrompt(locale: Locale): string {
-  if (locale === 'en-US') {
-    return [
-      'You are a learning designer creating knowledge flashcards from podcast/video content.',
-      'Goal: active recall, not summary dumping.',
-      'Requirements:',
-      '1. Output strict JSON only. No markdown fences.',
-      '2. Shape: { "cards": Flashcard[] }',
-      '3. Each card: front, back, hint?(optional), tags?(string[], optional).',
-      '4. Generate 8-12 cards covering: core concepts, key conclusions, contrasts, actionable next steps.',
-      '5. front is a short English question or concept name (≤40 words); back is complete but concise (40-160 words).',
-      '6. Do not invent facts missing from the source; you may condense.',
-      '7. No audio tags; do not dump full show notes.',
-      '8. Optional tags examples: concept / conclusion / contrast / action / term / case.',
-      '9. All card text MUST be in English.',
-    ].join('\n');
-  }
-  return [
-    '你是资深知识管理教练与学习设计师，擅长把播客/视频内容做成「知识闪卡」。',
-    '目标：帮助用户主动回忆（active recall），而不是抄摘要。',
-    '要求：',
-    '1. 输出严格 JSON，不要 markdown 代码围栏。',
-    '2. JSON 结构：{ "cards": Flashcard[] }',
-    '3. 每张卡字段：front, back, hint?(可选), tags?(string[], 可选)。',
-    '4. 生成 8-12 张卡，覆盖：核心概念、关键结论、易混对比、可执行行动。',
-    '5. front 用简洁中文问句或概念名（≤40 字）；back 给完整但克制的答案（40-160 字）。',
-    '6. 不要编造原文没有的事实；可归纳润色。',
-    '7. 不要写音频标签；不要输出整段节目笔记。',
-    '8. tags 可选值示例：概念 / 结论 / 对比 / 行动 / 术语 / 案例。',
-    '9. 所有卡片文案必须使用中文。',
-  ].join('\n');
-}
-
 export function buildFlashcardUserContext(
   locale: Locale,
   input: {
@@ -274,7 +308,7 @@ export function buildFlashcardUserContext(
     transcript: string;
   },
 ): string {
-  if (locale === 'en-US') {
+  if (!isZhFamily(locale)) {
     return [
       `Source title: ${input.sourceTitle}`,
       input.title ? `Episode title: ${input.title}` : '',
