@@ -12,6 +12,15 @@ export function AdminUploadPage({ route }: { route: Route }) {
         route={route}
         title={t('upload.title')}
         subtitle={t('upload.subtitle')}
+        actions={
+          <button
+            type="button"
+            className="nl-btn nl-btn-ghost"
+            onClick={() => navigate({ name: 'admin' })}
+          >
+            {t('admin.backToLibrary')}
+          </button>
+        }
       >
         <section className="admin-upload-panel">
           <UploadPanel

@@ -10261,68 +10261,6 @@ html[data-theme="dark"] .settings-seo-preview-title {
   gap: var(--space-3);
 }
 
-.admin-chrome-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2_5);
-  flex-wrap: wrap;
-}
-
-.admin-chrome-tabs {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-0_5);
-  padding: var(--space-0_5);
-  border-radius: var(--radius-lg);
-  border: var(--bw-1) solid var(--separator);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(10px);
-}
-
-.admin-chrome-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1_5);
-  min-height: 32px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--text-3);
-  font-size: var(--fs-base);
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-  transition:
-    background var(--dur-fast) var(--ease),
-    color var(--dur-fast) var(--ease);
-}
-
-.admin-chrome-tab:hover {
-  color: var(--text);
-  background: var(--surface-2);
-}
-
-.admin-chrome-tab.is-active {
-  color: var(--brand-2);
-  background: var(--brand-soft);
-}
-
-.admin-chrome-back {
-  border: 0;
-  background: transparent;
-  color: var(--brand-2);
-  font-size: var(--fs-base);
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-md);
-}
-
-.admin-chrome-back:hover {
-  background: var(--brand-soft);
-}
-
 .admin-console-body {
   display: flex;
   flex-direction: column;
@@ -10831,11 +10769,6 @@ html[data-theme="dark"] .admin-library,
 html[data-theme="dark"] .admin-job-card,
 html[data-theme="dark"] .admin-filter,
 html[data-theme="dark"] .admin-search input,
-html[data-theme="dark"] .admin-chrome-tabs {
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-}
-
-
 /* ── Settings · MCP ── */
 .settings-inline-row {
   display: flex;
