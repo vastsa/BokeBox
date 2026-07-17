@@ -225,6 +225,47 @@ POST /api/jobs/from-url
 
 ---
 
+## 7.1 插件参数（configSchema）
+
+需要 API Token / Base URL 等后台可填项时，在 `plugin.json` 声明：
+
+```json
+"configSchema": [
+  {
+    "key": "token",
+    "label": "API Token",
+    "type": "password",
+    "required": true,
+    "description": "服务商签发的密钥"
+  },
+  {
+    "key": "baseUrl",
+    "label": "API 地址",
+    "type": "string",
+    "required": false,
+    "default": "https://api.example.com"
+  }
+]
+```
+
+支持类型：`string` | `password` | `number` | `boolean` | `select`。
+
+在 `fetch` 中读取：
+
+```js
+async fetch(input, ctx) {
+  const token = ctx.getConfig('token');
+  if (!token) throw new Error('请先在设置中填写 API Token');
+  // ...
+}
+```
+
+注意：
+
+- 不要在插件代码里硬编码密钥
+- `password` 字段后台不会回显明文
+- 必填项未配置时宿主会认为 `configReady=false`，导入会失败
+
 ## 7. 权限声明
 
 | permission | 含义 | 建议 |

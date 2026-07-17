@@ -71,3 +71,43 @@ export function setSourcePluginEnabledOverride(
 export function listSourcePluginEnabledOverrides(): EnabledMap {
   return readMap();
 }
+
+// ── 插件配置 KV ─────────────────────────────────────────
+
+const CONFIG_KEY = 'source_plugin_config';
+
+type ConfigStore = Record<string, Record<string, string | number | boolean>>;
+
+function readConfigStore(): ConfigStore {
+  const raw = getSettingRaw(CONFIG_KEY);
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out: ConfigStore = {};
+    for (const [pluginId, cfg] of Object.entries(
+      parsed as Record<string, unknown>,
+    )) {
+      if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) continue;
+      const row: Record<string, string | number | boolean> = {};
+      for (const [k, v] of Object.entries(cfg as Record<string, unknown>)) {
+        if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+          row[k] = v;
+        }
+      }
+      out[pluginId] = row;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export function getSourcePluginConfigMap(): ConfigStore {
+  return readConfigStore();
+}
+
+export function setSourcePluginConfigMap(map: ConfigStore): void {
+  setSettingRaw(CONFIG_KEY, JSON.stringify(map || {}));
+}
+

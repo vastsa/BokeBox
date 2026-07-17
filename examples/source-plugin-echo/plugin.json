@@ -1,12 +1,30 @@
 {
   "id": "source.echo",
-  "name": "Echo Text Plugin",
-  "version": "0.1.0",
+  "name": "Echo Test Plugin",
+  "version": "0.2.0",
   "entry": "index.js",
   "apiVersion": 1,
-  "description": "演示用外部 Source 插件：把 URL 记为文本 artifact，不发起真实抓取",
+  "description": "演示用外部 Source 插件：把 URL 记为文本 artifact；可配置 token 前缀",
   "riskLevel": "low",
   "capabilities": ["url"],
   "defaultEnabled": false,
-  "permissions": []
+  "permissions": ["config"],
+  "configSchema": [
+    {
+      "key": "token",
+      "label": "访问令牌",
+      "type": "password",
+      "required": false,
+      "description": "可选演示字段。若填写，会写入产物文本（勿放真实密钥到演示环境）。",
+      "placeholder": "sk-..."
+    },
+    {
+      "key": "prefix",
+      "label": "标题前缀",
+      "type": "string",
+      "required": false,
+      "placeholder": "Echo",
+      "default": "Echo"
+    }
+  ]
 }

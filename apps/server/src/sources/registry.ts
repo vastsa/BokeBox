@@ -8,6 +8,7 @@
 import type {
   SourceInput,
   SourcePlugin,
+  SourcePluginConfigField,
   SourcePluginDescriptor,
   SourcePluginOrigin,
   SourcePluginPermission,
@@ -18,6 +19,11 @@ import {
   getSourcePluginEnabledOverride,
   setSourcePluginEnabledOverride,
 } from './state.js';
+import {
+  isSourcePluginConfigReady,
+  mergeConfigSchema,
+  toPublicPluginConfig,
+} from './config.js';
 
 const registry = new Map<string, SourcePluginRegistration>();
 
@@ -29,8 +35,13 @@ export function registerSourcePlugin(
     dirPath?: string;
     permissions?: SourcePluginPermission[];
     apiVersion?: number;
+    configSchema?: SourcePluginConfigField[];
   },
 ): void {
+  const configSchema = mergeConfigSchema(
+    plugin.configSchema,
+    meta?.configSchema,
+  );
   registry.set(plugin.id, {
     plugin,
     origin: meta?.origin || 'builtin',
@@ -38,6 +49,7 @@ export function registerSourcePlugin(
     dirPath: meta?.dirPath,
     permissions: meta?.permissions,
     apiVersion: meta?.apiVersion,
+    configSchema: configSchema.length ? configSchema : undefined,
     loadError: undefined,
     manifestSnapshot: undefined,
     loadedAt: new Date().toISOString(),
@@ -52,15 +64,21 @@ export function registerSourcePluginFailure(input: {
   dirPath?: string;
   permissions?: SourcePluginPermission[];
   apiVersion?: number;
+  configSchema?: SourcePluginConfigField[];
   loadError: string;
   manifestSnapshot?: SourcePluginRegistration['manifestSnapshot'];
 }): void {
+  const configSchema = mergeConfigSchema(
+    input.configSchema,
+    input.manifestSnapshot?.configSchema,
+  );
   registry.set(input.id, {
     origin: input.origin || 'external',
     dirName: input.dirName,
     dirPath: input.dirPath,
     permissions: input.permissions,
     apiVersion: input.apiVersion,
+    configSchema: configSchema.length ? configSchema : undefined,
     loadError: input.loadError,
     manifestSnapshot: input.manifestSnapshot,
     loadedAt: new Date().toISOString(),
@@ -140,6 +158,13 @@ export function toSourcePluginDescriptor(
     ? plugin.defaultEnabled
     : Boolean(snap?.defaultEnabled);
 
+  const schema =
+    reg.configSchema ||
+    mergeConfigSchema(plugin?.configSchema, snap?.configSchema);
+  const publicConfig = toPublicPluginConfig(id, schema);
+  const configReady = publicConfig.configReady;
+  const baseAvailable = plugin ? plugin.isAvailable() && !reg.loadError : false;
+
   return {
     id,
     name: plugin?.name || snap?.name || id,
@@ -153,13 +178,18 @@ export function toSourcePluginDescriptor(
     ],
     defaultEnabled,
     enabled: isSourcePluginEnabled(id),
-    available: plugin ? plugin.isAvailable() && !reg.loadError : false,
+    // 依赖/加载失败 → unavailable；必填配置看 configReady（可先启用再填）
+    available: baseAvailable,
     origin: reg.origin,
     dirName: reg.dirName,
     dirPath: reg.dirPath,
     permissions: reg.permissions || snap?.permissions,
     apiVersion: reg.apiVersion ?? snap?.apiVersion,
     loadError: reg.loadError,
+    configSchema: publicConfig.configSchema,
+    configValues: publicConfig.configValues,
+    configStatus: publicConfig.configStatus,
+    configReady,
   };
 }
 
@@ -190,11 +220,21 @@ export function resolveSourcePlugin(input: SourceInput): SourcePlugin {
     if (!isSourcePluginEnabled(explicit.id)) {
       throw new Error(`Source 插件未启用: ${explicit.id}`);
     }
+    const reg = registry.get(explicit.id);
+    const schema = reg?.configSchema || explicit.configSchema;
+    if (!isSourcePluginConfigReady(explicit.id, schema)) {
+      throw new Error(`Source 插件配置未就绪: ${explicit.id}`);
+    }
     return explicit;
   }
 
   const candidates = listEnabledSourcePlugins()
-    .filter((p) => p.isAvailable() && p.canHandle(input))
+    .filter((p) => {
+      if (!p.isAvailable() || !p.canHandle(input)) return false;
+      const reg = registry.get(p.id);
+      const schema = reg?.configSchema || p.configSchema;
+      return isSourcePluginConfigReady(p.id, schema);
+    })
     .sort((a, b) => riskRank(a.riskLevel) - riskRank(b.riskLevel));
 
   if (!candidates.length) {

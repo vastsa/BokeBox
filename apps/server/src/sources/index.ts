@@ -11,6 +11,11 @@ export type {
   SourceCapability,
   SourceInput,
   SourcePlugin,
+  SourcePluginConfigField,
+  SourcePluginConfigFieldStatus,
+  SourcePluginConfigFieldType,
+  SourcePluginConfigMap,
+  SourcePluginConfigValue,
   SourcePluginContext,
   SourcePluginDescriptor,
   SourcePluginManifest,
@@ -58,3 +63,37 @@ export {
   DIRECT_HTTP_PLUGIN_ID,
   directHttpSourcePlugin,
 } from './plugins/directHttp.js';
+
+export {
+  getSourcePluginConfig,
+  updateSourcePluginConfig,
+  resetSourcePluginConfig,
+  isSourcePluginConfigReady,
+  toPublicPluginConfig,
+  normalizeConfigSchema,
+  resolveRuntimeConfig,
+} from './config.js';
+
+import {
+  getSourcePluginRegistration,
+} from './registry.js';
+import {
+  updateSourcePluginConfig,
+  resetSourcePluginConfig,
+} from './config.js';
+
+/** 按注册表 schema 更新配置 */
+export function updateSourcePluginConfigForId(
+  id: string,
+  patch: Record<string, unknown>,
+) {
+  const reg = getSourcePluginRegistration(id);
+  if (!reg) throw new Error(`插件不存在: ${id}`);
+  const schema = reg.configSchema || reg.plugin?.configSchema || [];
+  return updateSourcePluginConfig(id, schema, patch);
+}
+
+export function resetSourcePluginConfigForId(id: string): void {
+  resetSourcePluginConfig(id);
+}
+

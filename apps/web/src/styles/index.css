@@ -11096,6 +11096,125 @@ html[data-theme="dark"] .admin-chrome-tabs {
   background: color-mix(in srgb, #ef4444 5%, transparent);
 }
 
+.source-plugin-row.is-config-missing {
+  background: color-mix(in srgb, #f59e0b 6%, transparent);
+}
+
+.source-config-dot {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  line-height: 1.5;
+}
+.source-config-dot.is-ready {
+  color: #166534;
+  background: color-mix(in srgb, #22c55e 14%, transparent);
+}
+.source-config-dot.is-missing {
+  color: #9a3412;
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+}
+
+.source-plugin-config-btn {
+  border: 0;
+  background: transparent;
+  color: var(--brand-2);
+  font-size: var(--fs-sm);
+  padding: var(--space-1) var(--space-1_5);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.source-plugin-config-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+}
+.source-plugin-config-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.source-plugin-row-config-hint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-sm);
+  color: #9a3412;
+}
+
+.source-plugin-config-panel {
+  padding: 0 var(--space-4) var(--space-4);
+  border-top: var(--space-px) solid var(--separator);
+  background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
+}
+
+.source-plugin-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+}
+
+.source-config-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.source-config-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.source-config-label {
+  font-size: var(--fs-sm-plus);
+  font-weight: var(--fw-bold);
+  color: var(--text-2);
+}
+
+.source-config-badge {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.source-config-desc {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  line-height: 1.4;
+}
+
+.source-config-secret-status {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.source-config-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.source-plugin-config-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+html[data-theme="dark"] .source-config-dot.is-ready {
+  color: #86efac;
+}
+html[data-theme="dark"] .source-config-dot.is-missing {
+  color: #fcd34d;
+}
+html[data-theme="dark"] .source-plugin-row-config-hint {
+  color: #fcd34d;
+}
+
 html[data-theme="dark"] .source-plugin-row-error {
   color: #fca5a5;
 }

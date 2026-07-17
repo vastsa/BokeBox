@@ -23,6 +23,44 @@ export type SourcePluginPermission =
   | 'config'
   | 'cookies';
 
+/** 插件配置字段类型（后台表单渲染） */
+export type SourcePluginConfigFieldType =
+  | 'string'
+  | 'password'
+  | 'number'
+  | 'boolean'
+  | 'select';
+
+export type SourcePluginConfigValue = string | number | boolean;
+
+export type SourcePluginConfigMap = Record<string, SourcePluginConfigValue>;
+
+/** 插件声明的配置项（plugin.json 或运行时对象） */
+export interface SourcePluginConfigField {
+  key: string;
+  label: string;
+  type: SourcePluginConfigFieldType;
+  description?: string;
+  required?: boolean;
+  placeholder?: string;
+  default?: SourcePluginConfigValue;
+  /** select 选项 */
+  options?: Array<{ value: string; label: string }>;
+  /**
+   * 是否敏感字段。
+   * password 默认 true；其它默认 false。
+   * 敏感值不会回传前端明文，仅返回 set/hint。
+   */
+  secret?: boolean;
+}
+
+/** 前端展示用：敏感字段状态 */
+export interface SourcePluginConfigFieldStatus {
+  set: boolean;
+  /** 脱敏提示，如 ••••ab12 */
+  hint?: string;
+}
+
 /** 统一输入：当前阶段以 URL 为主，预留 file 扩展 */
 export type SourceInput =
   | {
@@ -82,6 +120,13 @@ export interface SourcePluginContext {
   storageDir: string;
   /** 任务工作目录等扩展位 */
   signal?: AbortSignal;
+  /**
+   * 当前插件在后台保存的配置（明文）。
+   * 仅宿主注入；外部插件通过 getConfig / config 读取。
+   */
+  config: SourcePluginConfigMap;
+  /** 读取单项配置；缺省返回 undefined */
+  getConfig(key: string): SourcePluginConfigValue | undefined;
 }
 
 export interface SourcePlugin {
@@ -96,6 +141,11 @@ export interface SourcePlugin {
    * 高风险插件必须为 false，需用户显式开启。
    */
   readonly defaultEnabled: boolean;
+  /**
+   * 可选：插件配置字段声明。
+   * 也可在 plugin.json 的 configSchema 声明；加载时合并（运行时优先）。
+   */
+  readonly configSchema?: readonly SourcePluginConfigField[];
   /** 当前进程内是否可用（依赖/配置是否就绪） */
   isAvailable(): boolean;
   /** 是否声明可处理该输入（快速匹配，不做重 IO） */
@@ -120,6 +170,8 @@ export interface SourcePluginManifest {
   capabilities?: SourceCapability[];
   defaultEnabled?: boolean;
   permissions?: SourcePluginPermission[];
+  /** 后台可编辑配置项 */
+  configSchema?: SourcePluginConfigField[];
 }
 
 export interface SourcePluginDescriptor {
@@ -142,6 +194,17 @@ export interface SourcePluginDescriptor {
   apiVersion?: number;
   /** 加载失败原因（仍会出现在列表中便于排查） */
   loadError?: string;
+  /** 配置字段声明（无则后台不展示配置区） */
+  configSchema?: SourcePluginConfigField[];
+  /**
+   * 非敏感配置的当前值；敏感字段固定为空字符串。
+   * 敏感字段请看 configStatus。
+   */
+  configValues?: Record<string, SourcePluginConfigValue | ''>;
+  /** 每个字段是否已设置（敏感字段用 hint 提示） */
+  configStatus?: Record<string, SourcePluginConfigFieldStatus>;
+  /** 必填配置是否齐全 */
+  configReady?: boolean;
 }
 
 /** 注册表内部元数据 */
@@ -153,6 +216,8 @@ export interface SourcePluginRegistration {
   permissions?: SourcePluginPermission[];
   apiVersion?: number;
   loadError?: string;
+  /** 归一化后的配置 schema（清单 + 运行时合并） */
+  configSchema?: SourcePluginConfigField[];
   /** 加载失败时用于展示的清单快照 */
   manifestSnapshot?: Partial<SourcePluginManifest>;
   loadedAt?: string;
