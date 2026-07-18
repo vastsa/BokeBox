@@ -1,6 +1,6 @@
 # ASR / TTS 插件
 
-ASR 与 TTS 已与 **Source 插件** 使用同一套机制：
+ASR / TTS / Source 共用 **plugin-kit** 基础设施（启停、配置、清单加载工具），业务接口按能力区分：
 
 - 目录约定：`storage/plugins/{asr|tts}/<dir>/plugin.json` + 入口 ESM
 - 启停 / 配置 / rescan 热加载

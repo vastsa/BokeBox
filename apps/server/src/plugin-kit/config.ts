@@ -23,6 +23,9 @@ const FIELD_TYPES = new Set<PluginConfigFieldType>([
   'textarea',
 ]);
 
+/** 配置 key 合法字符（与历史 Source schema 一致） */
+const KEY_RE = /^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$/;
+
 export function isSecretField(field: PluginConfigField): boolean {
   if (typeof field.secret === 'boolean') return field.secret;
   return field.type === 'password';
@@ -37,13 +40,15 @@ function secretHint(value: string): string {
 export function normalizeConfigSchema(raw: unknown): PluginConfigField[] {
   if (!Array.isArray(raw)) return [];
   const out: PluginConfigField[] = [];
+  const seen = new Set<string>();
   for (const item of raw) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
     const obj = item as Record<string, unknown>;
     const key = String(obj.key || '').trim();
     const label = String(obj.label || '').trim();
     const type = String(obj.type || 'string').trim() as PluginConfigFieldType;
-    if (!key || !label || !FIELD_TYPES.has(type)) continue;
+    if (!key || !KEY_RE.test(key) || seen.has(key) || !label || !FIELD_TYPES.has(type)) continue;
+    seen.add(key);
 
     const field: PluginConfigField = {
       key,
@@ -227,12 +232,17 @@ export function updatePluginConfig(
 
   for (const [key, raw] of Object.entries(patch)) {
     const field = fieldMap.get(key);
-    if (!field) {
-      throw new Error(`未知配置项: ${key}`);
+    // 未知 key 忽略（兼容宽松 patch）
+    if (!field) continue;
+
+    if (raw === null) {
+      delete next[key];
+      continue;
     }
+
     if (isSecretField(field)) {
-      if (raw === '' || raw === undefined || raw === null) {
-        // 保留
+      if (raw === '' || raw === undefined) {
+        // 保留原值
         continue;
       }
       const coerced = coerceValue(field, raw);
@@ -241,15 +251,32 @@ export function updatePluginConfig(
       continue;
     }
 
-    if (raw === '' || raw === undefined || raw === null) {
+    if (raw === '' || raw === undefined) {
       delete next[key];
       continue;
     }
     const coerced = coerceValue(field, raw);
     if (coerced === undefined) {
       delete next[key];
-    } else {
-      next[key] = coerced;
+      continue;
+    }
+
+    // select 必须在选项内
+    if (field.type === 'select' && field.options?.length) {
+      const s = String(coerced);
+      if (!field.options.some((o) => o.value === s)) continue;
+      next[key] = s;
+      continue;
+    }
+
+    next[key] = coerced;
+  }
+
+  // 去掉 schema 外脏 key
+  if (fields.length) {
+    const allowed = new Set(fields.map((f) => f.key));
+    for (const k of Object.keys(next)) {
+      if (!allowed.has(k)) delete next[k];
     }
   }
 

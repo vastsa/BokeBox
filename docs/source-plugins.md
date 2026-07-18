@@ -1,4 +1,7 @@
-# Source 插件系统
+# Source 插件
+
+> 持久化与配置校验与 ASR/TTS 共用 `plugin-kit`（namespace=`source`，兼容 `source_plugin_*` 历史键）。
+
 
 > **写插件？** 请直接看开发规范： [source-plugin-development.md](./source-plugin-development.md)
 
