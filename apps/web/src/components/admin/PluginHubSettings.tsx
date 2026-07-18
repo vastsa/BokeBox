@@ -707,95 +707,46 @@ export function PluginHubSettings({
                   .join(' ')}
               >
                 <div className="source-plugin-row-main">
-                  <div className="source-plugin-row-copy">
-                    <div className="source-plugin-row-title">
-                      <strong>{plugin.name}</strong>
-                      <span className="plugin-id-chip">{plugin.id}</span>
-                      {plugin.active ? (
-                        <span className="source-config-dot is-ready">
-                          {t('settings.aiPluginActive')}
+                  <div className="source-plugin-row-header">
+                    <div className="source-plugin-row-title-block">
+                      <strong className="source-plugin-row-name">
+                        {plugin.name}
+                      </strong>
+                      <div className="source-plugin-row-meta">
+                        <span className="plugin-id-chip" title={plugin.id}>
+                          {plugin.id}
                         </span>
-                      ) : null}
-                      {showRisk ? (
-                        <span
-                          className={`source-risk-dot ${riskClass(plugin.riskLevel)}`}
-                        >
-                          {riskLabel(plugin.riskLevel)}
+                        <span className="plugin-origin-chip">
+                          {plugin.origin === 'builtin'
+                            ? t('settings.sourceOriginBuiltin')
+                            : t('settings.sourceOriginExternal')}
                         </span>
-                      ) : null}
-                      <span className="plugin-origin-chip">
-                        {plugin.origin === 'builtin'
-                          ? t('settings.sourceOriginBuiltin')
-                          : t('settings.sourceOriginExternal')}
-                      </span>
-                      {hasSchema ? (
-                        <span
-                          className={[
-                            'source-config-dot',
-                            plugin.configReady ? 'is-ready' : 'is-missing',
-                          ].join(' ')}
-                        >
-                          {plugin.configReady
-                            ? t('settings.sourceConfigReady')
-                            : t('settings.sourceConfigMissing')}
-                        </span>
-                      ) : null}
+                        {plugin.active ? (
+                          <span className="source-config-dot is-ready">
+                            {t('settings.aiPluginActive')}
+                          </span>
+                        ) : null}
+                        {showRisk ? (
+                          <span
+                            className={`source-risk-dot ${riskClass(plugin.riskLevel)}`}
+                          >
+                            {riskLabel(plugin.riskLevel)}
+                          </span>
+                        ) : null}
+                        {hasSchema ? (
+                          <span
+                            className={[
+                              'source-config-dot',
+                              plugin.configReady ? 'is-ready' : 'is-missing',
+                            ].join(' ')}
+                          >
+                            {plugin.configReady
+                              ? t('settings.sourceConfigReady')
+                              : t('settings.sourceConfigMissing')}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                    <p className="source-plugin-row-desc">
-                      {plugin.description || t('settings.sourceNoDesc')}
-                    </p>
-                    {plugin.loadError ? (
-                      <p className="source-plugin-row-error" role="alert">
-                        {plugin.loadError}
-                      </p>
-                    ) : null}
-                    {hasSchema && plugin.configReady === false ? (
-                      <p className="source-plugin-row-config-hint">
-                        {t('settings.sourceConfigNeedBeforeUse')}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="source-plugin-row-controls">
-                    {hasSchema ? (
-                      <button
-                        type="button"
-                        className="source-plugin-config-btn"
-                        disabled={Boolean(plugin.loadError)}
-                        onClick={() =>
-                          setExpandedId(expanded ? null : plugin.id)
-                        }
-                      >
-                        {expanded
-                          ? t('settings.sourceConfigHide')
-                          : t('settings.sourceConfigEdit')}
-                      </button>
-                    ) : null}
-                    {kind === 'asr' || kind === 'tts' ? (
-                      <button
-                        type="button"
-                        className="source-plugin-config-btn"
-                        disabled={
-                          busyId === plugin.id ||
-                          Boolean(plugin.loadError) ||
-                          !plugin.enabled ||
-                          Boolean(plugin.active)
-                        }
-                        onClick={() => void onSetActive(plugin)}
-                      >
-                        {plugin.active
-                          ? t('settings.aiPluginActive')
-                          : t('settings.pluginSetActive')}
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="source-plugin-reset"
-                      disabled={busyId === plugin.id}
-                      onClick={() => void onReset(plugin)}
-                    >
-                      {t('settings.sourceResetBtn')}
-                    </button>
                     <label
                       className={[
                         'source-switch',
@@ -816,6 +767,67 @@ export function PluginHubSettings({
                       />
                       <i />
                     </label>
+                  </div>
+
+                  <p className="source-plugin-row-desc">
+                    {plugin.description || t('settings.sourceNoDesc')}
+                  </p>
+                  {plugin.loadError ? (
+                    <p className="source-plugin-row-error" role="alert">
+                      {plugin.loadError}
+                    </p>
+                  ) : null}
+                  {hasSchema && plugin.configReady === false ? (
+                    <p className="source-plugin-row-config-hint">
+                      {t('settings.sourceConfigNeedBeforeUse')}
+                    </p>
+                  ) : null}
+
+                  <div className="source-plugin-row-actions">
+                    {hasSchema ? (
+                      <button
+                        type="button"
+                        className="source-plugin-action-btn is-primary"
+                        disabled={Boolean(plugin.loadError)}
+                        onClick={() =>
+                          setExpandedId(expanded ? null : plugin.id)
+                        }
+                      >
+                        {expanded
+                          ? t('settings.sourceConfigHide')
+                          : t('settings.sourceConfigEdit')}
+                      </button>
+                    ) : null}
+                    {kind === 'asr' || kind === 'tts' ? (
+                      <button
+                        type="button"
+                        className={[
+                          'source-plugin-action-btn',
+                          plugin.active ? 'is-active' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                        disabled={
+                          busyId === plugin.id ||
+                          Boolean(plugin.loadError) ||
+                          !plugin.enabled ||
+                          Boolean(plugin.active)
+                        }
+                        onClick={() => void onSetActive(plugin)}
+                      >
+                        {plugin.active
+                          ? t('settings.aiPluginActive')
+                          : t('settings.pluginSetActive')}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="source-plugin-action-btn is-muted"
+                      disabled={busyId === plugin.id}
+                      onClick={() => void onReset(plugin)}
+                    >
+                      {t('settings.sourceResetBtn')}
+                    </button>
                   </div>
                 </div>
 
