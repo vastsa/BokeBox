@@ -15,8 +15,7 @@ import {
   type PublicAiConfig,
 } from '../api/client';
 import { AiServiceSettings } from '../components/admin/AiServiceSettings';
-import { SourcePluginSettings } from '../components/admin/SourcePluginSettings';
-import { CapabilityPluginSettings } from '../components/admin/CapabilityPluginSettings';
+import { PluginHubSettings } from '../components/admin/PluginHubSettings';
 import { GlobalPromptSettings } from '../components/admin/GlobalPromptSettings';
 import { GlobalScriptPromptSettings } from '../components/admin/GlobalScriptPromptSettings';
 import { GlobalTtsSettings } from '../components/admin/GlobalTtsSettings';
@@ -569,37 +568,14 @@ export function SettingsPage({ route }: { route: Route }) {
                       onMessage={setMsg}
                       onError={setError}
                     />
-
-                    <CapabilityPluginSettings
-                      kind="asr"
-                      onMessage={setMsg}
-                      onError={setError}
-                    />
-                    <CapabilityPluginSettings
-                      kind="tts"
-                      onMessage={setMsg}
-                      onError={setError}
-                    />
                   </div>
                 </SettingsPanel>
 
                 <SettingsPanel id="sources" active={tab === 'sources'}>
-                  <div className="settings-stack">
-                    <SourcePluginSettings
-                      onMessage={setMsg}
-                      onError={setError}
-                    />
-                    <CapabilityPluginSettings
-                      kind="asr"
-                      onMessage={setMsg}
-                      onError={setError}
-                    />
-                    <CapabilityPluginSettings
-                      kind="tts"
-                      onMessage={setMsg}
-                      onError={setError}
-                    />
-                  </div>
+                  <PluginHubSettings
+                    onMessage={setMsg}
+                    onError={setError}
+                  />
                 </SettingsPanel>
 
 

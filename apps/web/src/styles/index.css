@@ -12426,3 +12426,114 @@ html[data-theme="dark"] .pg-num {
   background: color-mix(in oklab, var(--accent, #5b8cff) 8%, transparent);
 }
 
+
+
+/* ── Plugin hub (Source / ASR / TTS 统一) ─────────────── */
+.plugin-hub-tabs {
+  display: flex;
+  gap: 6px;
+  padding: var(--space-2_5) var(--space-4);
+  border-bottom: var(--space-px) solid var(--separator);
+  background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
+  overflow-x: auto;
+}
+
+.plugin-hub-tab {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-3);
+  border-radius: 999px;
+  min-height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.plugin-hub-tab:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.plugin-hub-tab.is-active {
+  color: var(--text);
+  background: var(--surface);
+  border-color: color-mix(in oklab, var(--border) 90%, transparent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+}
+
+.plugin-hub-kind-meta {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  border-bottom: var(--space-px) solid var(--separator);
+}
+
+.plugin-hub-kind-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.plugin-hub-kind-copy strong {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--text);
+}
+
+.plugin-hub-kind-copy span {
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.plugin-hub-dir {
+  margin: 0;
+  padding: var(--space-2) var(--space-2_5);
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-2) 65%, var(--surface));
+}
+
+.plugin-id-chip,
+.plugin-origin-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-3);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.plugin-id-chip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-plugin-row.is-active {
+  border-left: 3px solid color-mix(in oklab, var(--brand, #5b8cff) 75%, transparent);
+  background: color-mix(in oklab, var(--brand, #5b8cff) 7%, transparent);
+}
+
+.ai-plugin-manage-tip {
+  margin: var(--space-2) 0 var(--space-3);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .plugin-hub-tabs {
+    padding-inline: var(--space-3);
+  }
+  .plugin-hub-kind-meta {
+    padding-inline: var(--space-3);
+  }
+}

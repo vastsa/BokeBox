@@ -575,7 +575,7 @@ export function AiServiceSettings({
       </ServiceCard>
 
       <p className="settings-inline-hint ai-plugin-manage-tip">
-        {t('settings.aiPluginManageTip')}
+        {t('settings.aiPluginGoPluginsTip')}
       </p>
 
       <section className="settings-card settings-card-wide">
