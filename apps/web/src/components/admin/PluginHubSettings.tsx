@@ -441,33 +441,77 @@ export function PluginHubSettings({
     return t('settings.sourceRiskHigh');
   };
 
+  const fieldSpan = (field: SourcePluginConfigField): 'full' | 'half' => {
+    if (field.type === 'textarea' || field.type === 'boolean') return 'full';
+    // 长说明或密钥类占满一行，避免双列挤压
+    if (field.type === 'password' || isSecretField(field)) return 'full';
+    if ((field.description || '').length > 48) return 'full';
+    return 'half';
+  };
+
+  const renderFieldHead = (
+    field: SourcePluginConfigField,
+    opts?: { secret?: boolean; secretSet?: boolean; secretHint?: string },
+  ) => (
+    <div className="plugin-config-field-head">
+      <div className="plugin-config-label-wrap">
+        <span className="plugin-config-label">
+          {field.label}
+          {field.required ? (
+            <span className="plugin-config-req" title={t('settings.sourceConfigRequired')}>
+              *
+            </span>
+          ) : null}
+        </span>
+        {field.description ? (
+          <span className="plugin-config-desc">{field.description}</span>
+        ) : null}
+      </div>
+      {opts?.secret ? (
+        <span
+          className={[
+            'plugin-config-secret-chip',
+            opts.secretSet ? 'is-set' : 'is-unset',
+          ].join(' ')}
+        >
+          {opts.secretSet
+            ? t('settings.sourceConfigSecretSet', {
+                hint: opts.secretHint ? ` · ${opts.secretHint}` : '',
+              })
+            : t('settings.sourceConfigSecretUnset')}
+        </span>
+      ) : null}
+    </div>
+  );
+
   const renderField = (plugin: HubPlugin, field: SourcePluginConfigField) => {
     const draft = drafts[plugin.id] || {};
     const value = draft[field.key] ?? '';
     const secret = isSecretField(field);
     const status = plugin.configStatus?.[field.key];
     const id = `plugin-cfg-${kind}-${plugin.id}-${field.key}`;
+    const span = fieldSpan(field);
+    const disabled = savingConfigId === plugin.id;
+    const shellClass = [
+      'plugin-config-field',
+      `is-${field.type || 'string'}`,
+      span === 'full' ? 'is-span-full' : 'is-span-half',
+      secret ? 'is-secret' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     if (field.type === 'boolean') {
+      const on = value === 'true';
       return (
-        <label className="source-config-field" key={field.key} htmlFor={id}>
-          <span className="source-config-label-row">
-            <span className="source-config-label">{field.label}</span>
-            <span className="source-config-badge">
-              {field.required
-                ? t('settings.sourceConfigRequired')
-                : t('settings.sourceConfigOptional')}
-            </span>
-          </span>
-          {field.description ? (
-            <span className="source-config-desc">{field.description}</span>
-          ) : null}
-          <label className="source-config-check">
+        <div className={shellClass} key={field.key}>
+          {renderFieldHead(field)}
+          <label className="plugin-config-toggle" htmlFor={id}>
             <input
               id={id}
               type="checkbox"
-              checked={value === 'true'}
-              disabled={savingConfigId === plugin.id}
+              checked={on}
+              disabled={disabled}
               onChange={(e) =>
                 setDraftValue(
                   plugin.id,
@@ -476,68 +520,49 @@ export function PluginHubSettings({
                 )
               }
             />
-            <span>{value === 'true' ? 'true' : 'false'}</span>
+            <i aria-hidden />
+            <span>{on ? t('settings.pluginConfigOn') : t('settings.pluginConfigOff')}</span>
           </label>
-        </label>
+        </div>
       );
     }
 
     if (field.type === 'select') {
       return (
-        <label className="source-config-field" key={field.key} htmlFor={id}>
-          <span className="source-config-label-row">
-            <span className="source-config-label">{field.label}</span>
-            <span className="source-config-badge">
-              {field.required
-                ? t('settings.sourceConfigRequired')
-                : t('settings.sourceConfigOptional')}
-            </span>
-          </span>
-          {field.description ? (
-            <span className="source-config-desc">{field.description}</span>
-          ) : null}
+        <div className={shellClass} key={field.key}>
+          {renderFieldHead(field)}
           <select
             id={id}
-            className="nl-input"
+            className="plugin-config-control"
             value={value}
-            disabled={savingConfigId === plugin.id}
+            disabled={disabled}
             onChange={(e) => setDraftValue(plugin.id, field.key, e.target.value)}
           >
-            <option value="">—</option>
+            <option value="">{t('settings.pluginConfigSelectPlaceholder')}</option>
             {(field.options || []).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
           </select>
-        </label>
+        </div>
       );
     }
 
     if (field.type === 'textarea') {
       return (
-        <label className="source-config-field" key={field.key} htmlFor={id}>
-          <span className="source-config-label-row">
-            <span className="source-config-label">{field.label}</span>
-            <span className="source-config-badge">
-              {field.required
-                ? t('settings.sourceConfigRequired')
-                : t('settings.sourceConfigOptional')}
-            </span>
-          </span>
-          {field.description ? (
-            <span className="source-config-desc">{field.description}</span>
-          ) : null}
+        <div className={shellClass} key={field.key}>
+          {renderFieldHead(field)}
           <textarea
             id={id}
-            className="nl-input source-config-textarea"
-            rows={3}
+            className="plugin-config-control plugin-config-textarea"
+            rows={4}
             value={value}
             placeholder={field.placeholder}
-            disabled={savingConfigId === plugin.id}
+            disabled={disabled}
             onChange={(e) => setDraftValue(plugin.id, field.key, e.target.value)}
           />
-        </label>
+        </div>
       );
     }
 
@@ -549,24 +574,18 @@ export function PluginHubSettings({
           : 'text';
 
     return (
-      <label className="source-config-field" key={field.key} htmlFor={id}>
-        <span className="source-config-label-row">
-          <span className="source-config-label">{field.label}</span>
-          <span className="source-config-badge">
-            {field.required
-              ? t('settings.sourceConfigRequired')
-              : t('settings.sourceConfigOptional')}
-          </span>
-        </span>
-        {field.description ? (
-          <span className="source-config-desc">{field.description}</span>
-        ) : null}
+      <div className={shellClass} key={field.key}>
+        {renderFieldHead(field, {
+          secret,
+          secretSet: Boolean(status?.set),
+          secretHint: status?.hint,
+        })}
         <input
           id={id}
           type={inputType}
-          className="nl-input"
+          className="plugin-config-control"
           value={value}
-          disabled={savingConfigId === plugin.id}
+          disabled={disabled}
           placeholder={
             secret
               ? status?.set
@@ -578,16 +597,7 @@ export function PluginHubSettings({
           spellCheck={false}
           onChange={(e) => setDraftValue(plugin.id, field.key, e.target.value)}
         />
-        {secret ? (
-          <span className="source-config-secret-status">
-            {status?.set
-              ? t('settings.sourceConfigSecretSet', {
-                  hint: status.hint ? `· ${status.hint}` : '',
-                })
-              : t('settings.sourceConfigSecretUnset')}
-          </span>
-        ) : null}
-      </label>
+      </div>
     );
   };
 
@@ -810,13 +820,25 @@ export function PluginHubSettings({
                 </div>
 
                 {expanded && hasSchema ? (
-                  <div className="source-plugin-config-panel">
-                    <div className="source-plugin-config-grid">
+                  <div className="source-plugin-config-panel plugin-config-panel">
+                    <div className="plugin-config-panel-head">
+                      <strong>{t('settings.pluginConfigPanelTitle')}</strong>
+                      <span>{t('settings.pluginConfigPanelHint')}</span>
+                    </div>
+                    <div className="plugin-config-grid">
                       {(plugin.configSchema || []).map((field) =>
                         renderField(plugin, field),
                       )}
                     </div>
-                    <div className="source-plugin-config-actions">
+                    <div className="plugin-config-actions">
+                      <button
+                        type="button"
+                        className="nl-btn nl-btn-secondary"
+                        disabled={savingConfigId === plugin.id}
+                        onClick={() => void onResetConfig(plugin)}
+                      >
+                        {t('settings.sourceConfigReset')}
+                      </button>
                       <button
                         type="button"
                         className="nl-btn nl-btn-primary"
@@ -826,14 +848,6 @@ export function PluginHubSettings({
                         {savingConfigId === plugin.id
                           ? t('settings.sourceConfigSaving')
                           : t('settings.sourceConfigSave')}
-                      </button>
-                      <button
-                        type="button"
-                        className="nl-btn nl-btn-secondary"
-                        disabled={savingConfigId === plugin.id}
-                        onClick={() => void onResetConfig(plugin)}
-                      >
-                        {t('settings.sourceConfigReset')}
                       </button>
                     </div>
                   </div>
