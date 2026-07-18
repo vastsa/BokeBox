@@ -1,6 +1,8 @@
 export type Route =
   | { name: 'home' }
   | { name: 'tags' }
+  | { name: 'albums' }
+  | { name: 'album'; id: string }
   | { name: 'player'; id: string }
   | { name: 'create' }
   | { name: 'job'; id: string }
@@ -23,6 +25,7 @@ export function parseHash(): Route {
   if (path === '/tags' || path === '/tagcloud' || path === '/stars') {
     return { name: 'tags' };
   }
+  if (path === '/albums' || path === '/album') return { name: 'albums' };
   if (path === '/create' || path === '/upload') return { name: 'create' };
   if (path === '/studio' || path === '/admin' || path === '/jobs') {
     return { name: 'admin' };
@@ -30,6 +33,15 @@ export function parseHash(): Route {
 
   if (path === '/' || path === '/home' || path === '/listen') {
     return { name: 'home' };
+  }
+
+  if (path.startsWith('/albums/')) {
+    const id = path.slice('/albums/'.length).split('/')[0];
+    if (id) return { name: 'album', id };
+  }
+  if (path.startsWith('/album/')) {
+    const id = path.slice('/album/'.length).split('/')[0];
+    if (id) return { name: 'album', id };
   }
 
   if (path.startsWith('/play/')) {
@@ -65,6 +77,10 @@ export function toHash(route: Route): string {
       return '#/studio';
     case 'tags':
       return '#/tags';
+    case 'albums':
+      return '#/albums';
+    case 'album':
+      return `#/albums/${route.id}`;
     case 'player':
       return `#/play/${route.id}`;
     case 'create':

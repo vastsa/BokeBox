@@ -7,6 +7,7 @@ import {
   coverImageUrl,
 } from '../api/client';
 import { trackFromJob } from '../player/trackFromJob';
+import { loadAlbumQueue } from '../player/albumQueue';
 import { mergeListenRecord } from '../player/listenProgress';
 import { ScriptFollow } from '../components/listen/ScriptFollow';
 import { FlashcardsView } from '../components/FlashcardsView';
@@ -94,12 +95,30 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [id]);
 
-  // 曲库：用于上一集 / 下一集（与首页同一顺序：新→旧）
+  // 曲库 / 专辑队列：用于上一集 / 下一集
   useEffect(() => {
     void fetchLibrary()
-      .then((items) => setQueue(Array.isArray(items) ? items : []))
+      .then((items) => {
+        const list = Array.isArray(items) ? items : [];
+        const albumQ = loadAlbumQueue();
+        if (albumQ?.jobIds?.length) {
+          const map = new Map(list.map((it) => [it.job.id, it]));
+          const ordered = albumQ.jobIds
+            .map((jid) => map.get(jid))
+            .filter(Boolean) as LibraryItem[];
+          // 当前曲目在专辑内则用专辑顺序，否则回落全库
+          if (ordered.some((it) => it.job.id === id) || ordered.length) {
+            // 仅当当前 id 属于专辑，或专辑队列非空且用户从专辑进入
+            if (albumQ.jobIds.includes(id)) {
+              setQueue(ordered);
+              return;
+            }
+          }
+        }
+        setQueue(list);
+      })
       .catch(() => setQueue([]));
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     if (!item) return;

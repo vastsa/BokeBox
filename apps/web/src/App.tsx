@@ -8,6 +8,8 @@ import { navigate, parseHash, type Route } from './lib/router';
 import { AdminJobPage } from './pages/AdminJobPage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminUploadPage } from './pages/AdminUploadPage';
+import { AlbumsPage } from './pages/AlbumsPage';
+import { AlbumDetailPage } from './pages/AlbumDetailPage';
 import { ListenHomePage } from './pages/ListenHomePage';
 import { ListenPlayerPage } from './pages/ListenPlayerPage';
 import { LoginPage } from './pages/LoginPage';
@@ -30,7 +32,9 @@ function isGuestAllowedRoute(name: Route['name']): boolean {
     name === 'home' ||
     name === 'listen' ||
     name === 'player' ||
-    name === 'tags'
+    name === 'tags' ||
+    name === 'albums' ||
+    name === 'album'
   );
 }
 
@@ -224,6 +228,12 @@ export default function App() {
             <TagCloudPage route={route} />
           </Suspense>
         );
+        break;
+      case 'albums':
+        page = <AlbumsPage route={route} />;
+        break;
+      case 'album':
+        page = <AlbumDetailPage id={route.id} route={route} />;
         break;
       case 'settings':
         page = <SettingsPage route={route} />;

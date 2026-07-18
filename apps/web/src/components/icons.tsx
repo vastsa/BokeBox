@@ -312,3 +312,56 @@ export function IconGitHub(p: IconProps) {
     </svg>
   );
 }
+
+export function IconPlus(p: IconProps) {
+  const s = p.size ?? 20;
+  return (
+    <svg
+      width={s}
+      height={s}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={p.className}
+      aria-hidden
+    >
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function IconAlbum(p: IconProps) {
+  const s = p.size ?? 20;
+  return (
+    <svg
+      width={s}
+      height={s}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={p.className}
+      aria-hidden
+    >
+      <rect
+        x="3.5"
+        y="4.5"
+        width="14"
+        height="14"
+        rx="2.5"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M9 8.5h11.5A1.5 1.5 0 0 1 22 10v9.5A1.5 1.5 0 0 1 20.5 21H9.5A1.5 1.5 0 0 1 8 19.5V17"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <circle cx="10.5" cy="11.5" r="1.6" fill="currentColor" />
+    </svg>
+  );
+}
+
