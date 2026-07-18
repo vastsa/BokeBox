@@ -13,6 +13,14 @@ import {
 } from '../utils/pagination.js';
 import { readScriptTiming } from './scriptTiming.js';
 
+
+function truncateListText(text: string, max = 180): string {
+  const s = text.trim();
+  if (!s) return '';
+  if (s.length <= max) return s;
+  return `${s.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
+
 export function toPublic(job: Job): JobPublic {
   const { videoPath, audioPath, podcastAudioPath, ...rest } = job;
   const kind = job.sourceKind || 'video';
@@ -57,48 +65,80 @@ export function toGuestPublic(job: Job): JobPublic {
 }
 
 /**
- * 列表卡片用播客摘要：去掉脚本 / 笔记 / 闪卡 / 时间轴 / 大纲等大体量字段。
+ * 列表卡片用播客摘要：只保留卡片展示字段。
+ * 不回填 script/showNotes/outline/flashcards 等空壳，避免 JSON 体积膨胀。
  * 详情页再通过 toPublic / toGuestPublic 拉取完整内容。
  */
 export function slimPodcastForList(
   podcast?: PodcastContent,
 ): PodcastContent | undefined {
   if (!podcast) return undefined;
-  return {
+  const summary = podcast.summary?.trim() || '';
+  const hostIntro = podcast.hostIntro?.trim() || '';
+  const tags = (podcast.tags || []).filter(Boolean);
+  // 用 Partial 组装后断言：列表响应有意缺少正文级字段
+  const slim: Partial<PodcastContent> = {
     title: podcast.title,
-    summary: podcast.summary,
-    tags: podcast.tags || [],
-    hostIntro: podcast.hostIntro || '',
-    outline: [],
-    script: '',
-    showNotes: '',
-    estimatedMinutes: podcast.estimatedMinutes || 0,
-    coverGradient: podcast.coverGradient,
-    hasCoverImage: podcast.hasCoverImage,
   };
+  if (summary) slim.summary = summary;
+  // 仅当没有 summary 时才带回 hostIntro，作为卡片文案兜底
+  if (!summary && hostIntro) slim.hostIntro = hostIntro;
+  if (tags.length) slim.tags = tags;
+  if (podcast.estimatedMinutes) slim.estimatedMinutes = podcast.estimatedMinutes;
+  if (podcast.coverGradient) slim.coverGradient = podcast.coverGradient;
+  if (podcast.hasCoverImage) slim.hasCoverImage = true;
+  return slim as PodcastContent;
 }
 
 /**
- * 列表接口最小返回：保留卡片 / 筛选 / 进度所需字段，剥离正文级内容。
- * 管理端列表仍保留 tts / sourceUrl / error 等状态信息。
+ * 列表接口最小返回：白名单字段，不做全量 spread。
+ * 管理端卡片 / 听播库卡片 / 专辑条目共用；详情与写操作仍走 toPublic。
  */
 export function toListPublic(job: Job): JobPublic {
-  const base = toPublic(job);
-  return {
-    ...base,
-    transcript: undefined,
-    scriptPrompt: undefined,
-    podcast: slimPodcastForList(base.podcast),
+  const kind = job.sourceKind || 'video';
+  const podcast = slimPodcastForList(job.podcast);
+  const out: JobPublic = {
+    id: job.id,
+    title: job.title,
+    // 列表用于来源展示；本地上传时有文件名
+    originalFilename: job.originalFilename || '',
+    mimeType: job.mimeType || '',
+    size: job.size || 0,
+    status: job.status,
+    progress: job.progress || 0,
+    // 完成态完成语对列表无帮助且偏长；处理中/失败才回传
+    message:
+      job.status === 'done' ? '' : truncateListText(job.message || '', 180),
+    published: job.published !== false,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    hasVideo: Boolean(job.videoPath) && kind === 'video',
+    hasSourceAudio: Boolean(job.audioPath) || kind === 'audio',
+    hasPodcastAudio: Boolean(job.podcastAudioPath),
+    hasTranscript: Boolean(job.transcript?.trim()),
   };
+
+  if (podcast) out.podcast = podcast;
+  if (job.sourceUrl) out.sourceUrl = job.sourceUrl;
+  if (job.error) out.error = truncateListText(job.error, 240);
+  // sourceKind 仅在非默认 video 时返回，减少噪声
+  if (kind !== 'video') out.sourceKind = kind;
+
+  return out;
 }
 
-/** 游客列表最小返回 */
+/** 游客列表最小返回：在列表白名单基础上再剥管理信息 */
 export function toGuestListPublic(job: Job): JobPublic {
-  const base = toGuestPublic(job);
-  return {
-    ...base,
-    podcast: slimPodcastForList(base.podcast),
-  };
+  const base = toListPublic(job);
+  // 游客不看源文件名 / 源链接 / 错误细节 / 处理消息
+  base.originalFilename = '';
+  base.message = '';
+  delete base.sourceUrl;
+  delete base.error;
+  base.hasTranscript = false;
+  base.hasVideo = false;
+  base.hasSourceAudio = false;
+  return base;
 }
 
 /** 把磁盘上的 script-timing.json 合并进 podcast（磁盘优先，不改库） */
