@@ -80,7 +80,7 @@ async function loadOnePluginDir(dirName: string): Promise<
     const plugin = assertAsrPluginShape(exported, manifest.id);
 
     // 清单字段补齐导出缺省
-    const safePlugin: AsrPlugin = {
+    const merged: AsrPlugin = {
       ...plugin,
       id: manifest.id,
       name: plugin.name || manifest.name,
@@ -94,6 +94,12 @@ async function loadOnePluginDir(dirName: string): Promise<
       suggestedModel: plugin.suggestedModel || manifest.suggestedModel,
       configSchema: plugin.configSchema || manifest.configSchema,
     };
+
+    // 安全策略：high 风险不得默认启用
+    const safePlugin: AsrPlugin =
+      merged.riskLevel === 'high' && merged.defaultEnabled
+        ? { ...merged, defaultEnabled: false }
+        : merged;
 
     registerAsrPlugin(safePlugin, {
       origin: 'external',

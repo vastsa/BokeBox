@@ -221,70 +221,65 @@ export function listTtsPluginDescriptors(): TtsPluginDescriptor[] {
   return listTtsPluginRegistrations().map(toTtsPluginDescriptor);
 }
 
+/**
+ * 设置页下拉 / health：
+ * 含已启用 + 当前激活（即使停用），避免 select 脏值
+ */
 export function listTtsProviderDescriptors() {
+  const activeId = (getTtsProviderId() || 'mimo').trim();
   return listTtsPlugins()
-    .filter((p) => isTtsPluginEnabled(p.id) || p.id === 'demo')
+    .filter((p) => {
+      if (p.id === activeId) return true;
+      if (p.id === 'demo') return false;
+      return isTtsPluginEnabled(p.id);
+    })
     .map((p) => ({
       id: p.id,
       name: p.meta.name,
       description: p.meta.description,
       available: p.isAvailable(),
+      enabled: isTtsPluginEnabled(p.id),
+      active: p.id === activeId,
       suggestedModels: p.meta.suggestedModels,
     }));
 }
 
+/**
+ * 解析当前 TTS 插件（严格）：
+ * - 仅使用 settings.ttsProvider / 显式 id
+ * - 未注册、未启用、不可用 → 抛错，禁止静默换源
+ */
 export function resolveTtsPlugin(explicitId?: string): TtsPlugin {
   const preferredId = (explicitId || getTtsProviderId() || 'mimo').trim();
-  const preferred = registry.get(preferredId)?.plugin;
-
-  if (preferred && isTtsPluginEnabled(preferred.id)) {
-    if (preferred.isAvailable()) return preferred;
-    if (preferred.strictAvailability && preferred.id === preferredId) {
-      return preferred;
-    }
+  if (!preferredId) {
+    throw new Error('未配置 TTS 提供方（ttsProvider）');
   }
 
-  if (preferred && preferred.strictAvailability && preferred.id === preferredId) {
-    return preferred;
+  const preferredReg = registry.get(preferredId);
+  const preferred = preferredReg?.plugin;
+
+  if (!preferred) {
+    const loadError = preferredReg?.loadError;
+    throw new Error(
+      loadError
+        ? `TTS 插件加载失败: ${preferredId}（${loadError}）`
+        : `TTS 插件未注册: ${preferredId}。请在「设置 → 插件 → 语音合成」扫描/启用，或在 AI 服务中切换提供方。`,
+    );
   }
 
-  for (const reg of registry.values()) {
-    const p = reg.plugin;
-    if (!p || p.id === 'demo') continue;
-    if (!isTtsPluginEnabled(p.id)) continue;
-    if (p.isAvailable()) return p;
+  if (!isTtsPluginEnabled(preferred.id)) {
+    throw new Error(
+      `TTS 插件未启用: ${preferred.meta?.name || preferred.id}。请在「设置 → 插件 → 语音合成」中启用，或改选其他提供方。`,
+    );
   }
 
-  const demo = registry.get('demo')?.plugin;
-  if (demo) return demo;
+  if (!preferred.isAvailable()) {
+    throw new Error(
+      `TTS 插件「${preferred.meta?.name || preferred.id}」当前不可用。请检查 API Key / 网络，或在 AI 服务中切换提供方。`,
+    );
+  }
 
-  // 极端回落
-  return {
-    id: 'demo',
-    version: '1.0.0',
-    riskLevel: 'low',
-    defaultEnabled: true,
-    meta: {
-      id: 'demo',
-      name: '演示模式',
-      description: '未配置时的回落',
-      modes: [{ id: 'default', label: '演示' }],
-      voices: [],
-      supportsStyleTags: false,
-      supportsVoiceDesign: false,
-      maxCharsPerRequest: 10_000,
-    },
-    isAvailable: () => true,
-    async synthesizeChunk() {
-      return {
-        audio: Buffer.alloc(0),
-        format: 'unknown',
-        provider: 'demo',
-        demo: true,
-        mode: 'default',
-      };
-    },
-  };
+  return preferred;
 }
 
 /** @deprecated */

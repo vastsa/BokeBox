@@ -784,6 +784,10 @@ export type ProviderOptionDto = {
   name: string;
   description: string;
   available: boolean;
+  /** 插件是否启用 */
+  enabled?: boolean;
+  /** 是否为当前 settings 激活提供方 */
+  active?: boolean;
   suggestedModels?: Record<string, string>;
 };
 

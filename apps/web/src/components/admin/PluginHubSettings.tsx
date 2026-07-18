@@ -10,6 +10,7 @@ import {
   resetSourcePluginEnabledApi,
   saveAiPluginConfigApi,
   saveSourcePluginConfigApi,
+  saveAiSettings,
   setAiPluginEnabledApi,
   setSourcePluginEnabledApi,
   type AiPluginDescriptor,
@@ -247,6 +248,17 @@ export function PluginHubSettings({
       onError?.(plugin.loadError || t('settings.sourceUnavailable'));
       return;
     }
+    // 停用当前激活的 ASR/TTS：提示用户需改选提供方，否则任务会直接失败
+    if (
+      !enabled &&
+      plugin.active &&
+      (kind === 'asr' || kind === 'tts')
+    ) {
+      const ok = window.confirm(
+        t('settings.pluginDisableActiveConfirm', { name: plugin.name }),
+      );
+      if (!ok) return;
+    }
     setBusyId(plugin.id);
     onMessage?.(null);
     onError?.(null);
@@ -261,8 +273,35 @@ export function PluginHubSettings({
       onMessage?.(
         enabled
           ? t('settings.sourceEnabled', { name: plugin.name })
-          : t('settings.sourceDisabled', { name: plugin.name }),
+          : plugin.active && (kind === 'asr' || kind === 'tts')
+            ? t('settings.pluginDisabledActiveWarn', { name: plugin.name })
+            : t('settings.sourceDisabled', { name: plugin.name }),
       );
+    } catch (err) {
+      onError?.(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onSetActive = async (plugin: HubPlugin) => {
+    if (kind !== 'asr' && kind !== 'tts') return;
+    if (plugin.loadError || !plugin.enabled) {
+      onError?.(t('settings.pluginSetActiveNeedEnabled'));
+      return;
+    }
+    setBusyId(plugin.id);
+    onMessage?.(null);
+    onError?.(null);
+    try {
+      await saveAiSettings(
+        kind === 'asr'
+          ? { asrProvider: plugin.id }
+          : { ttsProvider: plugin.id },
+      );
+      // 刷新列表以更新 active 标记
+      await load();
+      onMessage?.(t('settings.pluginSetActiveDone', { name: plugin.name }));
     } catch (err) {
       onError?.(err instanceof Error ? err.message : String(err));
     } finally {
@@ -720,6 +759,23 @@ export function PluginHubSettings({
                         {expanded
                           ? t('settings.sourceConfigHide')
                           : t('settings.sourceConfigEdit')}
+                      </button>
+                    ) : null}
+                    {kind === 'asr' || kind === 'tts' ? (
+                      <button
+                        type="button"
+                        className="source-plugin-config-btn"
+                        disabled={
+                          busyId === plugin.id ||
+                          Boolean(plugin.loadError) ||
+                          !plugin.enabled ||
+                          Boolean(plugin.active)
+                        }
+                        onClick={() => void onSetActive(plugin)}
+                      >
+                        {plugin.active
+                          ? t('settings.aiPluginActive')
+                          : t('settings.pluginSetActive')}
                       </button>
                     ) : null}
                     <button

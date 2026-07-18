@@ -67,8 +67,8 @@ export function ensureBuiltinAsrPlugins(): void {
   );
   registerAsrPlugin(
     asBuiltin(demoAsrProvider, {
-      defaultEnabled: true,
-      description: '未配置 API Key 时返回固定演示转写稿',
+      defaultEnabled: false,
+      description: '演示回落：返回固定转写稿（默认关闭，需显式启用并选中）',
     }),
     { origin: 'builtin', apiVersion: 1 },
   );

@@ -89,7 +89,7 @@ async function loadOnePluginDir(dirName: string): Promise<
     const exported = await resolvePluginExportValue(mod);
     const plugin = assertTtsPluginShape(exported, manifest.id);
 
-    const safePlugin: TtsPlugin = {
+    const merged: TtsPlugin = {
       ...plugin,
       id: manifest.id,
       version: plugin.version || manifest.version,
@@ -113,6 +113,12 @@ async function loadOnePluginDir(dirName: string): Promise<
           plugin.meta.description || manifest.description || manifest.name,
       },
     };
+
+    // 安全策略：high 风险不得默认启用
+    const safePlugin: TtsPlugin =
+      merged.riskLevel === 'high' && merged.defaultEnabled
+        ? { ...merged, defaultEnabled: false }
+        : merged;
 
     registerTtsPlugin(safePlugin, {
       origin: 'external',
