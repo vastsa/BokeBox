@@ -13,6 +13,8 @@ import {
   MIMO_SPEECH_STYLE_TAGS,
   resolveMimoPresetVoice,
   resolveTtsProvider,
+  createTtsContext,
+  assertTtsPluginConfigReady,
   splitScript,
   wavDurationSec,
 } from '../providers/index.js';
@@ -106,6 +108,8 @@ export async function synthesizePodcastAudio(options: {
   const paths = jobPaths(options.jobId);
   await ensureDir(paths.dir);
   const provider = resolveTtsProvider();
+  assertTtsPluginConfigReady(provider.id);
+  const ttsCtx = createTtsContext(provider.id);
   // 非 MiMo 提供方不支持 VoiceDesign / 风格标签
   const rawMode: TtsMode = options.tts?.mode || 'default';
   const mode: TtsMode =
@@ -165,11 +169,14 @@ export async function synthesizePodcastAudio(options: {
   let usedMode: TtsMode = mode;
 
   for (let i = 0; i < chunks.length; i++) {
-    const chunkResult = await provider.synthesizeChunk({
-      text: chunks[i],
-      tts: ttsForProvider,
-      applyLeadingStyle: i === 0,
-    });
+    const chunkResult = await provider.synthesizeChunk(
+      {
+        text: chunks[i],
+        tts: ttsForProvider,
+        applyLeadingStyle: i === 0,
+      },
+      ttsCtx,
+    );
     if (chunkResult.demo) {
       // 理论不应到这：isAvailable 已过滤
       throw new Error('TTS 提供方返回演示结果');

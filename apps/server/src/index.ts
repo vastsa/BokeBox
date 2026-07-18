@@ -14,8 +14,11 @@ import {
   mcpProtocolRoutes,
 } from './routes/mcp.js';
 import { sourceRoutes } from './routes/sources.js';
+import { aiPluginRoutes } from './routes/aiPlugins.js';
 import { albumRoutes } from './routes/albums.js';
 import { refreshExternalSourcePlugins } from './sources/index.js';
+import { refreshExternalAsrPlugins } from './providers/asr/index.js';
+import { refreshExternalTtsPlugins } from './providers/tts/index.js';
 import { JOBS_DIR, ROOT_DIR, SQLITE_DB } from './utils/paths.js';
 import { ensureDir, pathExists } from './utils/fs.js';
 import { hasApiKey, getBaseUrl, getChatModel } from './utils/aiConfig.js';
@@ -45,7 +48,7 @@ async function main() {
   await migrateStorageLayout();
   // 后台自动签发 MCP Token（已初始化时）
   bootstrapMcpToken();
-  // 扫描本地 Source 外部插件（失败不阻断启动）
+  // 扫描本地 Source / ASR / TTS 外部插件（失败不阻断启动）
   try {
     const scan = await refreshExternalSourcePlugins();
     if (scan.loaded.length || scan.failed.length) {
@@ -58,6 +61,32 @@ async function main() {
     }
   } catch (err) {
     console.warn('[sources] external plugin scan failed:', err);
+  }
+  try {
+    const scan = await refreshExternalAsrPlugins();
+    if (scan.loaded.length || scan.failed.length) {
+      console.info(
+        '[asr] external plugins loaded=%s failed=%s dir=%s',
+        scan.loaded.join(',') || '-',
+        scan.failed.map((f) => `${f.dirName}:${f.error}`).join('; ') || '-',
+        scan.pluginsDir,
+      );
+    }
+  } catch (err) {
+    console.warn('[asr] external plugin scan failed:', err);
+  }
+  try {
+    const scan = await refreshExternalTtsPlugins();
+    if (scan.loaded.length || scan.failed.length) {
+      console.info(
+        '[tts] external plugins loaded=%s failed=%s dir=%s',
+        scan.loaded.join(',') || '-',
+        scan.failed.map((f) => `${f.dirName}:${f.error}`).join('; ') || '-',
+        scan.pluginsDir,
+      );
+    }
+  } catch (err) {
+    console.warn('[tts] external plugin scan failed:', err);
   }
 
   const app = Fastify({
@@ -76,6 +105,7 @@ async function main() {
   await app.register(albumRoutes, { prefix: '/api' });
   await app.register(listenRoutes, { prefix: '/api' });
   await app.register(sourceRoutes, { prefix: '/api' });
+  await app.register(aiPluginRoutes, { prefix: '/api' });
   await app.register(mcpManageRoutes, { prefix: '/api' });
   // MCP 协议端点挂在根路径 /mcp，便于客户端直接安装
   await app.register(mcpProtocolRoutes);

@@ -1,0 +1,22 @@
+{
+  "id": "asr.echo",
+  "name": "Echo ASR",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "apiVersion": 1,
+  "description": "演示 ASR 插件：返回固定转写文本，可读配置 prefix",
+  "riskLevel": "low",
+  "defaultEnabled": false,
+  "permissions": ["config"],
+  "suggestedModel": "echo",
+  "configSchema": [
+    {
+      "key": "prefix",
+      "label": "文稿前缀",
+      "type": "string",
+      "required": false,
+      "default": "EchoASR",
+      "placeholder": "EchoASR"
+    }
+  ]
+}

@@ -126,3 +126,7 @@ const artifact = await importSource({
 2. `riskLevel=high` 时 `defaultEnabled` 强制 false
 3. 加载失败插件会出现在列表中并带 `loadError`，不可启用
 4. 启停状态写入 SQLite `app_settings.source_plugin_enabled`
+
+## 相关
+
+- [ASR / TTS 插件](./asr-tts-plugins.md)（同一套机制）
