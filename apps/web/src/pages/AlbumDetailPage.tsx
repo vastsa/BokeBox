@@ -214,6 +214,10 @@ export function AlbumDetailPage({
 
   const generateCover = async () => {
     if (!album || !authed || generatingCover) return;
+    if (album.hasOwnCoverImage) {
+      const ok = window.confirm(t('album.confirmRegenerateCover'));
+      if (!ok) return;
+    }
     setGeneratingCover(true);
     setError(null);
     try {
@@ -332,14 +336,14 @@ export function AlbumDetailPage({
                       <div className="al-hero-tools" role="toolbar" aria-label={t('album.manageItems')}>
                         <button
                           type="button"
-                          className="nl-btn nl-btn-secondary al-hero-tool"
+                          className="nl-btn nl-btn-ghost al-hero-tool"
                           onClick={() => setEditing(true)}
                         >
                           {t('common.edit')}
                         </button>
                         <button
                           type="button"
-                          className="nl-btn nl-btn-secondary al-hero-tool"
+                          className="nl-btn nl-btn-ghost al-hero-tool"
                           onClick={() => void openPicker()}
                         >
                           <span className="al-btn-label-full">{t('album.manageItems')}</span>
@@ -347,7 +351,7 @@ export function AlbumDetailPage({
                         </button>
                         <button
                           type="button"
-                          className="nl-btn nl-btn-secondary al-hero-tool"
+                          className="nl-btn nl-btn-ghost al-hero-tool"
                           disabled={generatingCover}
                           onClick={() => void generateCover()}
                           title={
@@ -385,7 +389,7 @@ export function AlbumDetailPage({
                         </button>
                         <button
                           type="button"
-                          className="nl-btn nl-btn-secondary al-hero-tool"
+                          className="nl-btn nl-btn-ghost al-hero-tool"
                           onClick={() => {
                             setEditing(false);
                             setTitle(album.title);

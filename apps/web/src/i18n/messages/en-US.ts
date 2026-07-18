@@ -243,6 +243,7 @@ export const enUS: MessageTree = {
     showMore: 'Show {n} more ({total} left)',
     generateCover: 'Generate album cover',
     regenerateCover: 'Regenerate cover',
+    confirmRegenerateCover: 'This album already has a cover. Regenerating will replace it. Continue?',
     generatingCover: 'Generating cover…',
   },
   home: {
