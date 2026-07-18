@@ -29,6 +29,7 @@ import { getLocale, tOutside } from '../i18n';
 import { clearAuthSession, getToken } from '../lib/auth';
 import {
   API_OK_CODE,
+  ApiErrorCode,
   isApiEnvelope,
   type ApiEnvelope,
 } from '../types/api';
@@ -93,7 +94,7 @@ function parseApiBody<T>(raw: unknown, httpStatus: number): T {
     if (raw.code !== API_OK_CODE) {
       if (
         httpStatus === 401 &&
-        (raw.errorCode === 'UNAUTHORIZED' || raw.code === 401)
+        (raw.errorCode === ApiErrorCode.UNAUTHORIZED || raw.code === 401)
       ) {
         clearAuthSession();
         void clearServerSession();
@@ -110,7 +111,7 @@ function parseApiBody<T>(raw: unknown, httpStatus: number): T {
   // 旧错误体
   if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'error' in raw) {
     const err = raw as { error?: string; code?: string };
-    if (httpStatus === 401 && err.code === 'UNAUTHORIZED') {
+    if (httpStatus === 401 && err.code === ApiErrorCode.UNAUTHORIZED) {
       clearAuthSession();
       void clearServerSession();
     }

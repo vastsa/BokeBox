@@ -27,7 +27,8 @@ import { migrateStorageLayout } from './services/storageMigrator.js';
 import { buildPublicSiteSeo } from './services/settingsStore.js';
 import { injectSeoIntoHtml } from './utils/seoHtml.js';
 import { printOpenSourceBanner } from './utils/banner.js';
-import { wrapApiPayload } from './utils/apiResponse.js';
+import { fail, wrapApiPayload } from './utils/apiResponse.js';
+import { getRequestLocale, t } from './i18n/index.js';
 
 loadEnv({ path: path.join(ROOT_DIR, '.env') });
 
@@ -103,6 +104,28 @@ async function main() {
     const pathOnly = req.url.split('?')[0];
     if (!pathOnly.startsWith('/api')) return payload;
     return wrapApiPayload(payload, reply.statusCode);
+  });
+
+  // 未捕获异常也走统一信封（媒体流等非 /api 保持 Fastify 默认）
+  app.setErrorHandler((err, req, reply) => {
+    const pathOnly = req.url.split('?')[0];
+    req.log.error({ err, url: req.url }, 'request error');
+    const status =
+      err && typeof err === 'object' && typeof (err as { statusCode?: unknown }).statusCode === 'number'
+        ? Number((err as { statusCode: number }).statusCode)
+        : 500;
+    if (!pathOnly.startsWith('/api')) {
+      return reply.code(status).send(err);
+    }
+    const message =
+      err instanceof Error && err.message
+        ? err.message
+        : t(getRequestLocale(req), 'api.internalError');
+    const errorCode =
+      err && typeof err === 'object' && typeof (err as { code?: unknown }).code === 'string'
+        ? String((err as { code: string }).code)
+        : undefined;
+    return reply.code(status).send(fail(status, message, errorCode));
   });
 
   await app.register(cors, { origin: true });

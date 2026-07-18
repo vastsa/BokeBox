@@ -16,6 +16,22 @@
 
 export const API_OK_CODE = 0;
 
+/** 稳定业务错误码 */
+export const ApiErrorCode = {
+  OK: 'OK',
+  BAD_REQUEST: 'BAD_REQUEST',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
+  NEEDS_SETUP: 'NEEDS_SETUP',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const;
+
+export type ApiErrorCodeName =
+  (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
+
 export type ApiEnvelope<T = unknown> = {
   code: number;
   message: string;
@@ -46,6 +62,46 @@ export function fail(
   };
 }
 
+/** 按 HTTP status 推断默认业务码 */
+export function defaultErrorCode(status: number): string {
+  switch (status) {
+    case 400:
+      return ApiErrorCode.BAD_REQUEST;
+    case 401:
+      return ApiErrorCode.UNAUTHORIZED;
+    case 403:
+      return ApiErrorCode.FORBIDDEN;
+    case 404:
+      return ApiErrorCode.NOT_FOUND;
+    case 409:
+      return ApiErrorCode.CONFLICT;
+    case 413:
+      return ApiErrorCode.PAYLOAD_TOO_LARGE;
+    case 503:
+      return ApiErrorCode.NEEDS_SETUP;
+    default:
+      return status >= 500
+        ? ApiErrorCode.INTERNAL_ERROR
+        : ApiErrorCode.BAD_REQUEST;
+  }
+}
+
+/**
+ * 路由内快捷失败返回：
+ *   return sendFail(reply, 404, 'not found', ApiErrorCode.NOT_FOUND)
+ */
+export function sendFail(
+  reply: { code: (n: number) => { send: (body: unknown) => unknown } },
+  status: number,
+  message: string,
+  errorCode?: string,
+) {
+  const code = Number.isFinite(status) ? Math.floor(status) : 500;
+  return reply
+    .code(code)
+    .send(fail(code, message, errorCode || defaultErrorCode(code)));
+}
+
 export function isApiEnvelope(payload: unknown): payload is ApiEnvelope {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return false;
@@ -65,9 +121,9 @@ function isLegacyErrorBody(
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return false;
   }
-  const p = payload as Record<string, unknown>;
   // 已是信封则不算 legacy
   if (isApiEnvelope(payload)) return false;
+  const p = payload as Record<string, unknown>;
   return typeof p.error === 'string';
 }
 
@@ -82,7 +138,21 @@ export function wrapApiPayload(
   payload: unknown,
   statusCode: number,
 ): ApiEnvelope<unknown> | unknown {
-  if (isApiEnvelope(payload)) return payload;
+  if (isApiEnvelope(payload)) {
+    // 失败信封若缺 errorCode，补默认业务码
+    if (
+      payload.code !== API_OK_CODE &&
+      !payload.errorCode &&
+      statusCode >= 400
+    ) {
+      return fail(
+        payload.code || statusCode,
+        payload.message,
+        defaultErrorCode(statusCode),
+      );
+    }
+    return payload;
+  }
 
   if (isLegacyErrorBody(payload)) {
     const status = statusCode >= 400 ? statusCode : 400;
@@ -91,7 +161,11 @@ export function wrapApiPayload(
       typeof payload.message === 'string' && payload.message.trim()
         ? payload.message
         : payload.error;
-    return fail(status, message, payload.code);
+    return fail(
+      status,
+      message,
+      payload.code || defaultErrorCode(status),
+    );
   }
 
   if (statusCode >= 400) {
@@ -106,13 +180,13 @@ export function wrapApiPayload(
           ? p.errorCode
           : typeof p.code === 'string'
             ? p.code
-            : undefined;
+            : defaultErrorCode(statusCode);
       return fail(statusCode, message, errorCode);
     }
     if (typeof payload === 'string' && payload) {
-      return fail(statusCode, payload);
+      return fail(statusCode, payload, defaultErrorCode(statusCode));
     }
-    return fail(statusCode, 'error');
+    return fail(statusCode, 'error', defaultErrorCode(statusCode));
   }
 
   // 成功：整包放入 data（含 null 业务数据）

@@ -19,6 +19,9 @@ const zhCN = {
   'auth.passwordMax': '密码过长',
   'auth.apiKeyRequired': '请填写 API Key',
 
+  // common api
+  'api.internalError': '服务器内部错误',
+
   // jobs / common api
   'job.notFound': '任务不存在',
   'job.podcastAudioMissing': '播客音频尚未生成',
@@ -138,6 +141,7 @@ const enUS: Record<keyof typeof zhCN, string> = {
   'auth.newPasswordMismatch': 'New passwords do not match',
   'auth.notLoggedIn': 'Not signed in',
   'auth.pleaseLogin': 'Please sign in first',
+  'api.internalError': 'Internal server error',
   'auth.setupRequired': 'System is not initialized',
   'auth.alreadySetup': 'System already initialized. Please sign in.',
   'auth.accountMissing': 'Account missing. Please re-initialize.',

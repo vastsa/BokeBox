@@ -33,7 +33,7 @@ import {
 } from '../services/settingsStore.js';
 import { listAsrProviderDescriptors } from '../providers/asr/index.js';
 import { listTtsProviderDescriptors } from '../providers/tts/index.js';
-import { fail } from '../utils/apiResponse.js';
+import { ApiErrorCode, sendFail } from '../utils/apiResponse.js';
 
 function errStatus(err: unknown, fallback = 500): number {
   if (
@@ -404,24 +404,22 @@ export function registerAuthGuard(app: FastifyInstance): void {
 
     // 未初始化时，除公开接口外一律拦截
     if (!isSetupCompleted()) {
-      return reply.code(503).send(
-        fail(
-          503,
-          t(getRequestLocale(req), 'auth.setupRequired'),
-          'NEEDS_SETUP',
-        ),
+      return sendFail(
+        reply,
+        503,
+        t(getRequestLocale(req), 'auth.setupRequired'),
+        ApiErrorCode.NEEDS_SETUP,
       );
     }
 
     const user = getRequestUser(req);
     if (!user) {
       if (isGuestHomePublicPath(req.method, url)) return;
-      return reply.code(401).send(
-        fail(
-          401,
-          t(getRequestLocale(req), 'auth.pleaseLogin'),
-          'UNAUTHORIZED',
-        ),
+      return sendFail(
+        reply,
+        401,
+        t(getRequestLocale(req), 'auth.pleaseLogin'),
+        ApiErrorCode.UNAUTHORIZED,
       );
     }
   });

@@ -10,6 +10,22 @@ export type ApiEnvelope<T = unknown> = {
 
 export const API_OK_CODE = 0;
 
+/** 与后端 ApiErrorCode 对齐的稳定业务码 */
+export const ApiErrorCode = {
+  OK: 'OK',
+  BAD_REQUEST: 'BAD_REQUEST',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
+  NEEDS_SETUP: 'NEEDS_SETUP',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const;
+
+export type ApiErrorCodeName =
+  (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
+
 export function isApiEnvelope(payload: unknown): payload is ApiEnvelope {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return false;

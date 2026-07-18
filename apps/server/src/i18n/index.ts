@@ -9,7 +9,7 @@ import {
   type Locale,
 } from './registry.js';
 import type { TranslateParams } from './types.js';
-import { fail } from '../utils/apiResponse.js';
+import { defaultErrorCode, fail } from '../utils/apiResponse.js';
 
 export type { Locale, TranslateParams } from './types.js';
 export type { MessageKey } from './messages.js';
@@ -147,7 +147,7 @@ export function sendAppError(
   if (err instanceof AppError) {
     const status = err.statusCode;
     const message = t(locale, err.key, err.params);
-    const errorCode = err.code || String(err.key);
+    const errorCode = err.code || defaultErrorCode(status);
     return reply.code(status).send(fail(status, message, errorCode));
   }
   if (
@@ -159,8 +159,8 @@ export function sendAppError(
     const status = (err as { statusCode: number }).statusCode;
     const message =
       err instanceof Error ? errorMessage(locale, err) : String(err);
-    return reply.code(status).send(fail(status, message));
+    return reply.code(status).send(fail(status, message, defaultErrorCode(status)));
   }
   const message = errorMessage(locale, err);
-  return reply.code(fallbackStatus).send(fail(fallbackStatus, message));
+  return reply.code(fallbackStatus).send(fail(fallbackStatus, message, defaultErrorCode(fallbackStatus)));
 }
