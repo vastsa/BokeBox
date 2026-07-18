@@ -27,6 +27,7 @@ import { migrateStorageLayout } from './services/storageMigrator.js';
 import { buildPublicSiteSeo } from './services/settingsStore.js';
 import { injectSeoIntoHtml } from './utils/seoHtml.js';
 import { printOpenSourceBanner } from './utils/banner.js';
+import { wrapApiPayload } from './utils/apiResponse.js';
 
 loadEnv({ path: path.join(ROOT_DIR, '.env') });
 
@@ -92,6 +93,16 @@ async function main() {
   const app = Fastify({
     logger: true,
     bodyLimit: 520 * 1024 * 1024,
+  });
+
+  /**
+   * 全局 JSON 响应信封：/api/* 成功/失败统一为 { code, message, data }。
+   * Fastify 对 stream/Buffer/string 不会触发 preSerialization，媒体下载不受影响。
+   */
+  app.addHook('preSerialization', async (req, reply, payload) => {
+    const pathOnly = req.url.split('?')[0];
+    if (!pathOnly.startsWith('/api')) return payload;
+    return wrapApiPayload(payload, reply.statusCode);
   });
 
   await app.register(cors, { origin: true });

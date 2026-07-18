@@ -9,6 +9,7 @@ import {
   type Locale,
 } from './registry.js';
 import type { TranslateParams } from './types.js';
+import { fail } from '../utils/apiResponse.js';
 
 export type { Locale, TranslateParams } from './types.js';
 export type { MessageKey } from './messages.js';
@@ -144,10 +145,10 @@ export function sendAppError(
   fallbackStatus = 400,
 ) {
   if (err instanceof AppError) {
-    return reply.code(err.statusCode).send({
-      error: t(locale, err.key, err.params),
-      code: err.code || err.key,
-    });
+    const status = err.statusCode;
+    const message = t(locale, err.key, err.params);
+    const errorCode = err.code || String(err.key);
+    return reply.code(status).send(fail(status, message, errorCode));
   }
   if (
     err &&
@@ -158,8 +159,8 @@ export function sendAppError(
     const status = (err as { statusCode: number }).statusCode;
     const message =
       err instanceof Error ? errorMessage(locale, err) : String(err);
-    return reply.code(status).send({ error: message });
+    return reply.code(status).send(fail(status, message));
   }
   const message = errorMessage(locale, err);
-  return reply.code(fallbackStatus).send({ error: message });
+  return reply.code(fallbackStatus).send(fail(fallbackStatus, message));
 }

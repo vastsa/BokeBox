@@ -27,6 +27,11 @@ import type {
 } from '../types/pagination';
 import { getLocale, tOutside } from '../i18n';
 import { clearAuthSession, getToken } from '../lib/auth';
+import {
+  API_OK_CODE,
+  isApiEnvelope,
+  type ApiEnvelope,
+} from '../types/api';
 
 const BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -80,6 +85,52 @@ function authHeaders(extra?: HeadersInit): Headers {
   return headers;
 }
 
+/**
+ * 解析统一信封；兼容过渡期旧格式 { error, code } 与裸业务对象。
+ */
+function parseApiBody<T>(raw: unknown, httpStatus: number): T {
+  if (isApiEnvelope(raw)) {
+    if (raw.code !== API_OK_CODE) {
+      if (
+        httpStatus === 401 &&
+        (raw.errorCode === 'UNAUTHORIZED' || raw.code === 401)
+      ) {
+        clearAuthSession();
+        void clearServerSession();
+      }
+      throw new ApiError(
+        raw.message || tOutside('api.requestFailed', { status: httpStatus }),
+        httpStatus || raw.code || 500,
+        raw.errorCode,
+      );
+    }
+    return raw.data as T;
+  }
+
+  // 旧错误体
+  if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'error' in raw) {
+    const err = raw as { error?: string; code?: string };
+    if (httpStatus === 401 && err.code === 'UNAUTHORIZED') {
+      clearAuthSession();
+      void clearServerSession();
+    }
+    throw new ApiError(
+      err.error || tOutside('api.requestFailed', { status: httpStatus }),
+      httpStatus || 500,
+      err.code,
+    );
+  }
+
+  // 裸业务对象（理论上下线后不应再出现）
+  if (httpStatus >= 400) {
+    throw new ApiError(
+      tOutside('api.requestFailed', { status: httpStatus }),
+      httpStatus,
+    );
+  }
+  return raw as T;
+}
+
 async function executeRequest<T>(
   url: string,
   init: RequestInit | undefined,
@@ -90,21 +141,13 @@ async function executeRequest<T>(
     headers,
     credentials: 'include',
   });
-  const data = await res.json().catch(() => ({}));
+  const raw = await res.json().catch(() => ({}));
+
+  // HTTP 失败时也走统一解析，拿到 message / errorCode
   if (!res.ok) {
-    const err = data as { error?: string; code?: string };
-    if (res.status === 401 && err.code === 'UNAUTHORIZED') {
-      clearAuthSession();
-      // 同步清 HttpOnly cookie，避免前端游客、后端仍按登录态返回管理员数据
-      void clearServerSession();
-    }
-    throw new ApiError(
-      err.error || tOutside('api.requestFailed', { status: res.status }),
-      res.status,
-      err.code,
-    );
+    return parseApiBody<T>(raw, res.status);
   }
-  return data as T;
+  return parseApiBody<T>(raw, res.status);
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -260,13 +303,23 @@ export async function createJob(
       }
     };
     xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve((xhr.response as { job: Job }).job);
-      } else {
+      try {
+        const body = parseApiBody<{ job: Job }>(xhr.response, xhr.status);
+        resolve(body.job);
+      } catch (e) {
+        if (e instanceof ApiError) {
+          reject(e);
+          return;
+        }
         const err =
-          (xhr.response as { error?: string } | null)?.error ||
-          tOutside('api.uploadFailed', { status: xhr.status });
-        reject(new Error(err));
+          (xhr.response as ApiEnvelope | { error?: string } | null) &&
+          typeof xhr.response === 'object' &&
+          xhr.response &&
+          'message' in (xhr.response as object)
+            ? String((xhr.response as ApiEnvelope).message || '')
+            : (xhr.response as { error?: string } | null)?.error ||
+              tOutside('api.uploadFailed', { status: xhr.status });
+        reject(new ApiError(err || tOutside('api.uploadFailed', { status: xhr.status }), xhr.status));
       }
     };
     xhr.onerror = () => reject(new Error(tOutside('api.networkUploadFailed')));
