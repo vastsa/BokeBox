@@ -10,10 +10,13 @@ export {
   kindLabel,
   isValidHttpUrl,
   isPlaceholderTitle,
+  type ImportResult,
+} from './kinds.js';
+
+export {
   extractPageTitle,
   extractArticleContent,
   extractReadableText,
   detectAntiBot,
   importUrlContent,
-  type ImportResult,
 } from './urlImporter.js';

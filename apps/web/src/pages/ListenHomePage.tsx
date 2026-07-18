@@ -11,10 +11,6 @@ import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import type { LibraryListFacets, LibraryListFilter } from '../types/pagination';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
-import {
-  IconPause,
-  IconPlay,
-} from '../components/icons';
 import { CoverArt } from '../components/ui/CoverArt';
 import { BrandMascot } from '../components/BrandMark';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -33,18 +29,14 @@ import {
   ACTIVE,
   DEFAULT_LIBRARY_PAGE_SIZE,
   EMPTY_LIB_FACETS,
-  FILTER_KEYS,
-  FILTER_LABEL_KEY,
   MASONRY_CONFIG,
   SKEL_ITEMS,
   cardSize,
   estimateLibraryPageSize,
-  itemMinutes,
-  itemPct,
-  itemSummary,
-  itemTitle,
   type FilterKey,
 } from '../features/listen-home/libraryModel';
+import { CoverCard } from '../features/listen-home/CoverCard';
+import { LibraryFilters } from '../features/listen-home/LibraryFilters';
 
 export function ListenHomePage({ route }: { route: Route }) {
   const { t } = useI18n();
@@ -505,24 +497,11 @@ export function ListenHomePage({ route }: { route: Route }) {
           ) : (
             <>
               <div className="lh-toolbar">
-                <div className="lh-filters" role="tablist" aria-label={t('home.filtersAria')}>
-                  {FILTER_KEYS.map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      role="tab"
-                      aria-selected={filter === key}
-                      className={[
-                        'lh-filter',
-                        filter === key ? 'is-active' : '',
-                      ].join(' ')}
-                      onClick={() => setFilter(key)}
-                    >
-                      <span>{t(FILTER_LABEL_KEY[key])}</span>
-                      <em>{filterCounts[key]}</em>
-                    </button>
-                  ))}
-                </div>
+                <LibraryFilters
+                  filter={filter}
+                  counts={filterCounts}
+                  onChange={setFilter}
+                />
                 <label className="lh-search">
                   <span className="lh-search-icon" aria-hidden>
                     ⌕
@@ -615,95 +594,3 @@ export function ListenHomePage({ route }: { route: Route }) {
   );
 }
 
-function CoverCard({
-  item,
-  index,
-  size,
-  active,
-  playing,
-  onPlay,
-  onOpen,
-  onManage,
-}: {
-  item: LibraryItem;
-  index: number;
-  size: 's' | 'm' | 't';
-  active: boolean;
-  playing: boolean;
-  onPlay: () => void;
-  onOpen: () => void;
-  onManage: () => void;
-}) {
-  const { t } = useI18n();
-  const title = itemTitle(item);
-  const summary = itemSummary(item, t);
-  const pct = itemPct(item);
-  const mins = itemMinutes(item, t);
-  const badge = item.listen?.completed
-    ? t('home.finished')
-    : pct > 0
-      ? `${Math.round(pct)}%`
-      : mins;
-
-  return (
-    <article
-      role="listitem"
-      className={['lh-card', active ? 'is-active' : '', `is-${size}`].join(' ')}
-      style={{ ['--stagger' as string]: `${index * 28}ms` }}
-    >
-      <div className={['lh-card-face', `is-${size}`].join(' ')}>
-        <CoverArt
-          seed={item.job.id}
-          preferred={item.job.podcast?.coverGradient}
-          imageUrl={
-            item.job.podcast?.hasCoverImage
-              ? coverImageUrl(item.job.id, item.job.updatedAt)
-              : undefined
-          }
-          title={title}
-          monogram={false}
-          className="lh-card-cover"
-          aria-hidden
-        />
-
-        <button
-          type="button"
-          className="lh-card-overlay"
-          onClick={onOpen}
-          aria-label={t('home.openTitle', { title })}
-        >
-          <div className="lh-card-top">
-            <span className="lh-card-badge">{badge}</span>
-            <h2 className="lh-card-title">{title}</h2>
-          </div>
-          <p className="lh-card-desc">{summary}</p>
-        </button>
-
-        <button
-          type="button"
-          className="lh-card-play"
-          onClick={onPlay}
-          aria-label={playing ? t('common.pause') : t('home.playTitle', { title })}
-        >
-          {playing ? <IconPause size={16} /> : <IconPlay size={16} />}
-        </button>
-
-        <button
-          type="button"
-          className="lh-card-manage"
-          onClick={onManage}
-          aria-label={t('home.manageTitle', { title })}
-          title={t('common.manage')}
-        >
-          ···
-        </button>
-
-        {pct > 0 && !item.listen?.completed && (
-          <span className="lh-card-bar" aria-hidden>
-            <i style={{ width: `${pct}%` }} />
-          </span>
-        )}
-      </div>
-    </article>
-  );
-}
