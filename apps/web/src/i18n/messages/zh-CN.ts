@@ -239,6 +239,7 @@ export const zhCN = {
     showMore: '再显示 {n} 条（剩余 {total}）',
     generateCover: '生成专辑封面',
     regenerateCover: '重新生成封面',
+    confirmRegenerateCover: '当前专辑已有专属封面，重新生成会覆盖现有封面，确定继续？',
     generatingCover: '封面生成中…',
   },
   home: {
