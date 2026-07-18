@@ -10,7 +10,6 @@ import {
 } from '../api/client';
 import {
   IconBack,
-  IconCheck,
   IconPause,
   IconPlay,
   IconTrash,
@@ -28,6 +27,7 @@ import { trackFromJob } from '../player/trackFromJob';
 import { bestResumeSec, mergeListenRecord } from '../player/listenProgress';
 import type { AlbumListenDetail, AlbumListenItem } from '../types/album';
 import type { Job } from '../types/job';
+import { AlbumItemsManager } from '../components/album/AlbumItemsManager';
 
 function itemTitle(item: AlbumListenItem): string {
   return item.job.podcast?.title || item.job.title;
@@ -53,6 +53,7 @@ export function AlbumDetailPage({
   const [busy, setBusy] = useState(false);
   const [generatingCover, setGeneratingCover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerLoading, setPickerLoading] = useState(false);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -141,6 +142,7 @@ export function AlbumDetailPage({
   const openPicker = async () => {
     if (!authed) return;
     setPickerOpen(true);
+    setPickerLoading(true);
     try {
       const jobs = await fetchJobs();
       const ready = jobs.filter(
@@ -150,6 +152,9 @@ export function AlbumDetailPage({
       setSelectedIds(album?.items.map((it) => it.job.id) || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setPickerOpen(false);
+    } finally {
+      setPickerLoading(false);
     }
   };
 
@@ -203,11 +208,6 @@ export function AlbumDetailPage({
     }
   };
 
-  const toggleSelect = (jobId: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(jobId) ? prev.filter((x) => x !== jobId) : [...prev, jobId],
-    );
-  };
 
   const isPlayingId = player.track?.id;
   const isPlaying = player.playing;
@@ -521,63 +521,19 @@ export function AlbumDetailPage({
           )}
 
           {pickerOpen && (
-            <div className="al-modal-mask" role="dialog" aria-modal="true">
-              <div className="al-modal">
-                <div className="al-modal-head">
-                  <h3>{t('album.manageItems')}</h3>
-                  <button
-                    type="button"
-                    className="al-icon-btn"
-                    onClick={() => setPickerOpen(false)}
-                  >
-                    {t('common.close')}
-                  </button>
-                </div>
-                <p className="al-modal-hint">{t('album.pickerHint')}</p>
-                <div className="al-picker-list">
-                  {allJobs.map((job) => {
-                    const checked = selectedIds.includes(job.id);
-                    const label = job.podcast?.title || job.title;
-                    return (
-                      <button
-                        key={job.id}
-                        type="button"
-                        className={[
-                          'al-picker-item',
-                          checked ? 'is-checked' : '',
-                        ].join(' ')}
-                        onClick={() => toggleSelect(job.id)}
-                      >
-                        <span className="al-picker-check">
-                          {checked ? <IconCheck size={14} /> : null}
-                        </span>
-                        <span className="al-picker-title">{label}</span>
-                      </button>
-                    );
-                  })}
-                  {!allJobs.length ? (
-                    <div className="al-picker-empty">{t('album.pickerEmpty')}</div>
-                  ) : null}
-                </div>
-                <div className="al-modal-actions">
-                  <button
-                    type="button"
-                    className="nl-btn"
-                    onClick={() => setPickerOpen(false)}
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="button"
-                    className="nl-btn nl-btn-primary"
-                    disabled={busy}
-                    onClick={() => void saveItems()}
-                  >
-                    {busy ? t('common.saving') : t('common.save')}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <AlbumItemsManager
+              jobs={allJobs}
+              selectedIds={selectedIds}
+              loading={pickerLoading}
+              busy={busy}
+              onChange={setSelectedIds}
+              onClose={() => {
+                if (busy) return;
+                setPickerOpen(false);
+                setSelectedIds(album?.items.map((it) => it.job.id) || []);
+              }}
+              onSave={() => void saveItems()}
+            />
           )}
         </div>
       </div>
