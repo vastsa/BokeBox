@@ -256,9 +256,8 @@ export function AlbumDetailPage({
             <div className="al-detail-skel" aria-hidden="true">
               <div className="al-detail-skel-cover" />
               <div className="al-detail-skel-copy">
-                <i className="al-detail-skel-kicker" />
-                <i className="al-detail-skel-title" />
                 <i className="al-detail-skel-meta" />
+                <i className="al-detail-skel-title" />
                 <i className="al-detail-skel-btn" />
               </div>
             </div>
@@ -273,7 +272,7 @@ export function AlbumDetailPage({
           ) : (
             <>
               <section className="al-hero">
-                <div className="al-hero-media">
+                <div className="al-hero-row">
                   <CoverArt
                     seed={coverId || album.id}
                     preferred={album.coverGradient}
@@ -286,142 +285,152 @@ export function AlbumDetailPage({
                     }
                     className="al-hero-cover"
                   />
-                </div>
 
-                <div className="al-hero-main">
-                  <div className="al-hero-kicker">{t('album.kicker')}</div>
-
-                  {editing ? (
-                    <div className="al-edit-fields">
-                      <input
-                        className="al-edit-title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        maxLength={80}
-                        placeholder={t('album.fieldTitle')}
-                      />
-                      <textarea
-                        className="al-edit-summary"
-                        value={summary}
-                        onChange={(e) => setSummary(e.target.value)}
-                        rows={3}
-                        maxLength={400}
-                        placeholder={t('album.fieldSummary')}
-                      />
-                      <label className="al-check">
+                  <div className="al-hero-main">
+                    {editing ? (
+                      <div className="al-edit-fields">
                         <input
-                          type="checkbox"
-                          checked={published}
-                          onChange={(e) => setPublished(e.target.checked)}
+                          className="al-edit-title"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          maxLength={80}
+                          placeholder={t('album.fieldTitle')}
                         />
-                        {t('album.published')}
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="al-hero-copy">
-                      <h1 className="al-hero-title">{album.title}</h1>
-                      <p className="al-hero-meta">{headMeta}</p>
-                      {album.summary ? (
-                        <p className="al-hero-summary">{album.summary}</p>
-                      ) : null}
-                    </div>
-                  )}
-
-                  <div className="al-hero-actions">
-                    {!editing ? (
-                      <button
-                        type="button"
-                        className="al-hero-play"
-                        disabled={!album.items.length}
-                        onClick={playAll}
-                      >
-                        <IconPlay size={16} />
-                        <span>{t('album.playAll')}</span>
-                      </button>
-                    ) : null}
-
-                    {authed && !editing ? (
-                      <div
-                        className="al-hero-tools"
-                        role="toolbar"
-                        aria-label={t('album.manageItems')}
-                      >
-                        <button
-                          type="button"
-                          className="al-hero-tool"
-                          onClick={() => setEditing(true)}
-                        >
-                          {t('common.edit')}
-                        </button>
-                        <button
-                          type="button"
-                          className="al-hero-tool"
-                          onClick={() => void openPicker()}
-                        >
-                          <span className="al-btn-label-full">
-                            {t('album.manageItems')}
-                          </span>
-                          <span className="al-btn-label-short">
-                            {t('album.manageItemsShort')}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          className="al-hero-tool"
-                          disabled={generatingCover}
-                          onClick={() => void generateCover()}
-                          title={
-                            generatingCover
-                              ? t('album.generatingCover')
-                              : album.hasOwnCoverImage
-                                ? t('album.regenerateCover')
-                                : t('album.generateCover')
-                          }
-                        >
-                          <span className="al-btn-label-full">
-                            {generatingCover
-                              ? t('album.generatingCover')
-                              : album.hasOwnCoverImage
-                                ? t('album.regenerateCover')
-                                : t('album.generateCover')}
-                          </span>
-                          <span className="al-btn-label-short">
-                            {generatingCover
-                              ? t('album.generatingCoverShort')
-                              : t('album.coverShort')}
-                          </span>
-                        </button>
+                        <textarea
+                          className="al-edit-summary"
+                          value={summary}
+                          onChange={(e) => setSummary(e.target.value)}
+                          rows={3}
+                          maxLength={400}
+                          placeholder={t('album.fieldSummary')}
+                        />
+                        <label className="al-check">
+                          <input
+                            type="checkbox"
+                            checked={published}
+                            onChange={(e) => setPublished(e.target.checked)}
+                          />
+                          {t('album.published')}
+                        </label>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="al-hero-copy">
+                        <p className="al-hero-meta">
+                          <span>{t('album.kicker')}</span>
+                          <span className="al-hero-dot" aria-hidden="true" />
+                          <span>{headMeta}</span>
+                        </p>
+                        <h1 className="al-hero-title">{album.title}</h1>
+                        {album.summary ? (
+                          <p className="al-hero-summary al-hero-summary-inline">
+                            {album.summary}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
 
-                    {authed && editing ? (
-                      <div className="al-hero-tools is-editing">
+                    <div className="al-hero-actions">
+                      {!editing ? (
                         <button
                           type="button"
                           className="al-hero-play"
-                          disabled={busy}
-                          onClick={() => void saveMeta()}
+                          disabled={!album.items.length}
+                          onClick={playAll}
                         >
-                          <span>
-                            {busy ? t('common.saving') : t('common.save')}
-                          </span>
+                          <IconPlay size={13} />
+                          <span>{t('album.playAll')}</span>
                         </button>
-                        <button
-                          type="button"
-                          className="al-hero-tool"
-                          onClick={() => {
-                            setEditing(false);
-                            setTitle(album.title);
-                            setSummary(album.summary || '');
-                            setPublished(album.published);
-                          }}
+                      ) : null}
+
+                      {authed && !editing ? (
+                        <div
+                          className="al-hero-tools"
+                          role="toolbar"
+                          aria-label={t('album.manageItems')}
                         >
-                          {t('common.cancel')}
-                        </button>
-                      </div>
-                    ) : null}
+                          <button
+                            type="button"
+                            className="al-hero-tool"
+                            onClick={() => setEditing(true)}
+                          >
+                            {t('common.edit')}
+                          </button>
+                          <button
+                            type="button"
+                            className="al-hero-tool"
+                            onClick={() => void openPicker()}
+                          >
+                            <span className="al-btn-label-full">
+                              {t('album.manageItems')}
+                            </span>
+                            <span className="al-btn-label-short">
+                              {t('album.manageItemsShort')}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            className="al-hero-tool"
+                            disabled={generatingCover}
+                            onClick={() => void generateCover()}
+                            title={
+                              generatingCover
+                                ? t('album.generatingCover')
+                                : album.hasOwnCoverImage
+                                  ? t('album.regenerateCover')
+                                  : t('album.generateCover')
+                            }
+                          >
+                            <span className="al-btn-label-full">
+                              {generatingCover
+                                ? t('album.generatingCover')
+                                : album.hasOwnCoverImage
+                                  ? t('album.regenerateCover')
+                                  : t('album.generateCover')}
+                            </span>
+                            <span className="al-btn-label-short">
+                              {generatingCover
+                                ? t('album.generatingCoverShort')
+                                : t('album.coverShort')}
+                            </span>
+                          </button>
+                        </div>
+                      ) : null}
+
+                      {authed && editing ? (
+                        <div className="al-hero-tools is-editing">
+                          <button
+                            type="button"
+                            className="al-hero-play"
+                            disabled={busy}
+                            onClick={() => void saveMeta()}
+                          >
+                            <span>
+                              {busy ? t('common.saving') : t('common.save')}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            className="al-hero-tool"
+                            onClick={() => {
+                              setEditing(false);
+                              setTitle(album.title);
+                              setSummary(album.summary || '');
+                              setPublished(album.published);
+                            }}
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
+
+                {!editing && album.summary ? (
+                  <p className="al-hero-summary al-hero-summary-block">
+                    {album.summary}
+                  </p>
+                ) : null}
               </section>
 
               <section className="al-tracklist">
