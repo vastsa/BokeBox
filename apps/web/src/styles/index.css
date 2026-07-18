@@ -4951,6 +4951,71 @@ html[data-theme="dark"] .global-player {
   filter: brightness(1.03);
 }
 
+/* ---- 瀑布流触底加载 ---- */
+.lh-infinite-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) 0 var(--space-10);
+  min-height: var(--space-12);
+}
+
+.lh-infinite-sentinel {
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+}
+
+.lh-infinite-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--fg-muted, rgba(255, 255, 255, 0.55));
+  font-size: var(--text-sm);
+  letter-spacing: 0.01em;
+}
+
+.lh-infinite-status.is-done {
+  opacity: 0.72;
+}
+
+.lh-infinite-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: lh-spin 0.7s linear infinite;
+}
+
+.lh-infinite-more {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--fg, #fff) 14%, transparent);
+  background: color-mix(in srgb, var(--fg, #fff) 6%, transparent);
+  color: var(--fg-muted, rgba(255, 255, 255, 0.72));
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.lh-infinite-more:hover {
+  color: var(--fg, #fff);
+  border-color: color-mix(in srgb, var(--fg, #fff) 24%, transparent);
+  background: color-mix(in srgb, var(--fg, #fff) 10%, transparent);
+}
+
+@keyframes lh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ---- Waterfall masonry（react-plock 最短列布局） ---- */
 .lh-masonry {
   width: 100%;

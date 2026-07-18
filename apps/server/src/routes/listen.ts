@@ -29,7 +29,7 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
     };
   }>('/listen/library', async (req) => {
     const authed = Boolean(getRequestUser(req));
-    const page = parsePageQuery(req.query, { pageSize: 24 });
+    const page = parsePageQuery(req.query, { pageSize: 10 });
     const q = typeof req.query.q === 'string' ? req.query.q : '';
     const rawFilter = String(req.query.filter || 'all').trim();
     const allowed: LibraryListFilter[] = ['all', 'unplayed', 'progress', 'done'];
