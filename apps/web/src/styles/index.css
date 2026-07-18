@@ -10325,7 +10325,7 @@ html[data-route="tags"] main {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #03040c;
+  background: #02030a;
 }
 
 .tu-canvas {
@@ -10355,27 +10355,59 @@ html[data-route="tags"] main {
   pointer-events: none;
   z-index: 2;
   background:
-    radial-gradient(70% 60% at 50% 45%, transparent 35%, rgba(3, 4, 12, 0.45) 78%, rgba(3, 4, 12, 0.88) 100%),
-    linear-gradient(180deg, rgba(3, 4, 12, 0.55), transparent 18%, transparent 78%, rgba(3, 4, 12, 0.7));
+    radial-gradient(62% 54% at 50% 44%, transparent 28%, rgba(2, 3, 10, 0.28) 68%, rgba(1, 2, 8, 0.82) 100%),
+    linear-gradient(180deg, rgba(2, 3, 10, 0.62), transparent 16%, transparent 76%, rgba(1, 2, 8, 0.78)),
+    linear-gradient(90deg, rgba(1, 2, 8, 0.35), transparent 18%, transparent 82%, rgba(1, 2, 8, 0.35));
 }
 
 .tu-aurora {
   position: absolute;
-  inset: -10%;
+  inset: -12%;
   pointer-events: none;
   z-index: 1;
   background:
-    radial-gradient(35% 28% at 20% 30%, rgba(79, 142, 247, 0.16), transparent 70%),
-    radial-gradient(30% 24% at 80% 65%, rgba(124, 92, 255, 0.14), transparent 70%),
-    radial-gradient(28% 22% at 55% 80%, rgba(47, 214, 207, 0.1), transparent 70%);
+    radial-gradient(38% 30% at 18% 28%, rgba(61, 124, 255, 0.18), transparent 72%),
+    radial-gradient(32% 26% at 82% 62%, rgba(124, 92, 255, 0.16), transparent 72%),
+    radial-gradient(30% 24% at 58% 82%, rgba(47, 214, 207, 0.1), transparent 72%),
+    radial-gradient(46% 18% at 50% 52%, rgba(90, 120, 220, 0.08), transparent 75%);
   /* 去掉实时 blur，改用更软的径向渐变，显著降合成开销 */
-  animation: tu-aurora-shift 18s ease-in-out infinite alternate;
-  will-change: transform;
+  animation: tu-aurora-shift 22s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+.tu-scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.22;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(120, 170, 255, 0.03) 48%,
+      transparent 52%
+    );
+  background-size: 100% 220%;
+  animation: tu-scan-drift 14s linear infinite;
+  mix-blend-mode: screen;
 }
 
 @keyframes tu-aurora-shift {
-  from { transform: translate3d(-1.5%, -1%, 0) scale(1); opacity: 0.85; }
-  to { transform: translate3d(2%, 1.5%, 0) scale(1.05); opacity: 1; }
+  from { transform: translate3d(-1.8%, -1.2%, 0) scale(1); opacity: 0.78; }
+  to { transform: translate3d(2.2%, 1.8%, 0) scale(1.06); opacity: 1; }
+}
+
+@keyframes tu-scan-drift {
+  from { background-position: 0% 0%; }
+  to { background-position: 0% 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tu-aurora,
+  .tu-scan {
+    animation: none;
+  }
 }
 
 .tu-label {
@@ -10387,14 +10419,17 @@ html[data-route="tags"] main {
   max-width: var(--size-180);
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1_5);
   border-radius: var(--radius-pill);
-  border: var(--bw-1) solid color-mix(in srgb, var(--star) 28%, transparent);
-  background: linear-gradient(180deg, rgba(12, 16, 30, 0.55), rgba(6, 8, 18, 0.42));
-  backdrop-filter: blur(10px);
+  border: var(--bw-1) solid color-mix(in srgb, var(--star) 34%, transparent);
+  background:
+    linear-gradient(180deg, rgba(14, 20, 36, 0.62), rgba(6, 10, 20, 0.48)),
+    linear-gradient(90deg, color-mix(in srgb, var(--star) 12%, transparent), transparent 40%);
+  backdrop-filter: blur(12px) saturate(1.15);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-    0 6px 18px rgba(0, 0, 0, 0.28),
-    0 0 18px color-mix(in srgb, var(--star) 18%, transparent);
-  color: color-mix(in srgb, var(--star) 82%, white);
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 6px 18px rgba(0, 0, 0, 0.3),
+    0 0 20px color-mix(in srgb, var(--star) 20%, transparent);
+  color: color-mix(in srgb, var(--star) 78%, white);
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
   letter-spacing: var(--tracking-caps);
@@ -10403,7 +10438,7 @@ html[data-route="tags"] main {
   user-select: none;
   -webkit-user-select: none;
   cursor: pointer;
-  opacity: 0.58;
+  opacity: 0.56;
   transform: translateY(-8px) scale(0.96);
   transition: opacity 0.22s var(--ease),
     transform 0.22s var(--ease),
@@ -10440,19 +10475,25 @@ html[data-route="tags"] main {
 .tu-label:hover,
 .tu-label.is-hover,
 .tu-label.is-focus {
-  opacity: 0.96;
-  transform: translateY(-10px) scale(1.02);
-  border-color: color-mix(in srgb, var(--star) 42%, transparent);
-  background: linear-gradient(180deg, rgba(16, 22, 38, 0.72), rgba(8, 12, 24, 0.58));
+  opacity: 0.98;
+  transform: translateY(-10px) scale(1.03);
+  border-color: color-mix(in srgb, var(--star) 52%, transparent);
+  background:
+    linear-gradient(180deg, rgba(18, 26, 44, 0.8), rgba(8, 12, 24, 0.62)),
+    linear-gradient(90deg, color-mix(in srgb, var(--star) 18%, transparent), transparent 48%);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-    0 8px 20px rgba(0, 0, 0, 0.28),
-    0 0 16px color-mix(in srgb, var(--star) 18%, transparent);
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 8px 22px rgba(0, 0, 0, 0.32),
+    0 0 22px color-mix(in srgb, var(--star) 26%, transparent);
 }
 
 .tu-label.is-focus {
   font-size: var(--fs-base);
   opacity: 1;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 10px 26px rgba(0, 0, 0, 0.36),
+    0 0 28px color-mix(in srgb, var(--star) 34%, transparent);
 }
 
 .tc-hud-top,
