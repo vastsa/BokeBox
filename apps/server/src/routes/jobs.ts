@@ -91,6 +91,10 @@ import {
   findCoverFile,
 } from '../services/coverGenerator.js';
 import {
+  parseCoverImageSize,
+  resolveCoverDelivery,
+} from '../services/imageOptimize.js';
+import {
   getAllAiPromptBundles,
   getAiPromptBundle,
   saveAiPromptTemplate,
@@ -300,8 +304,12 @@ async function sendMedia(
     'Content-Disposition',
     `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(filename)}`,
   );
-  // 允许前端媒体缓存，减少重复拉流
-  reply.header('Cache-Control', 'public, max-age=3600');
+  // 有 query v= 做缓存破坏时，图片可长缓存；音频保持 1h
+  const isImage = type.startsWith('image/');
+  reply.header(
+    'Cache-Control',
+    isImage ? 'public, max-age=604800, immutable' : 'public, max-age=3600',
+  );
 
   const range = req.headers.range;
   if (range) {
@@ -588,8 +596,11 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  /** AI 生成的播客封面图 */
-  app.get<{ Params: { id: string }; Querystring: { download?: string } }>(
+  /** AI 生成的播客封面图（?size=thumb|sm|md|full；页面默认 sm，下载 full） */
+  app.get<{
+    Params: { id: string };
+    Querystring: { download?: string; size?: string };
+  }>(
     '/jobs/:id/cover',
     async (req, reply) => {
       const job = await getJob(req.params.id);
@@ -598,18 +609,25 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       if (!getRequestUser(req) && !isPubliclyListenable(job)) {
         return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
       }
-      const coverPath = await findCoverFile(job.id);
-      if (!coverPath) {
+
+      const download = req.query.download === '1';
+      // 下载强制原图档；页面浏览默认 sm 加速首屏
+      const size = download
+        ? 'full'
+        : parseCoverImageSize(req.query.size, 'sm');
+      const delivered = await resolveCoverDelivery(jobPaths(job.id).dir, size);
+      if (!delivered) {
         return reply.code(404).send({ error: t(getRequestLocale(req), 'job.coverMissing') });
       }
-      const filename = `${(job.podcast?.title || job.title || job.id).replace(/[\\/:*?"<>|]/g, '_')}-cover${path.extname(coverPath)}`;
-      return sendMedia(
-        req,
-        reply,
-        coverPath,
-        filename,
-        req.query.download === '1',
+
+      const baseName = (job.podcast?.title || job.title || job.id).replace(
+        /[\\/:*?"<>|]/g,
+        '_',
       );
+      const ext = path.extname(delivered.filePath) || '.webp';
+      const sizeTag = delivered.size === 'full' ? '' : `-${delivered.size}`;
+      const filename = `${baseName}-cover${sizeTag}${ext}`;
+      return sendMedia(req, reply, delivered.filePath, filename, download);
     },
   );
 

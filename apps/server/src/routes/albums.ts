@@ -17,9 +17,13 @@ import {
   updateAlbum,
 } from '../services/albumStore.js';
 import {
-  findAlbumCoverFile,
   generateAlbumCover,
 } from '../services/coverGenerator.js';
+import {
+  parseCoverImageSize,
+  resolveCoverDelivery,
+} from '../services/imageOptimize.js';
+import { albumPaths } from '../utils/paths.js';
 import { listListenRecords } from '../services/listenStore.js';
 import {
   hasApiKey,
@@ -91,8 +95,8 @@ export async function albumRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  /** 前台专辑封面（游客可读） */
-  app.get<{ Params: { id: string } }>(
+  /** 前台专辑封面（游客可读；?size=thumb|sm|md|full） */
+  app.get<{ Params: { id: string }; Querystring: { size?: string } }>(
     '/listen/albums/:id/cover',
     async (req, reply) => {
       const album = await getAlbum(req.params.id);
@@ -111,30 +115,26 @@ export async function albumRoutes(app: FastifyInstance): Promise<void> {
           .code(404)
           .send({ error: t(getRequestLocale(req), 'album.coverMissing') });
       }
-      const coverPath = await findAlbumCoverFile(album.id);
-      if (!coverPath) {
+      const size = parseCoverImageSize(req.query.size, 'sm');
+      const delivered = await resolveCoverDelivery(albumPaths(album.id).dir, size);
+      if (!delivered) {
         return reply
           .code(404)
           .send({ error: t(getRequestLocale(req), 'album.coverMissing') });
       }
-      const ext = path.extname(coverPath).toLowerCase();
-      const mime =
-        ext === '.jpg' || ext === '.jpeg'
-          ? 'image/jpeg'
-          : ext === '.webp'
-            ? 'image/webp'
-            : 'image/png';
-      const filename = `${(album.title || album.id).replace(/[\/:*?"<>|]/g, '_')}-cover${ext || '.png'}`;
-      const stat = await fs.stat(coverPath);
+      const ext = path.extname(delivered.filePath).toLowerCase() || '.webp';
+      const sizeTag = delivered.size === 'full' ? '' : `-${delivered.size}`;
+      const filename = `${(album.title || album.id).replace(/[\\/:*?"<>|]/g, '_')}-cover${sizeTag}${ext}`;
+      const stat = await fs.stat(delivered.filePath);
       reply
-        .type(mime)
+        .type(delivered.mime)
         .header(
           'Content-Disposition',
           `inline; filename*=UTF-8''${encodeURIComponent(filename)}`,
         )
-        .header('Cache-Control', 'public, max-age=3600')
+        .header('Cache-Control', 'public, max-age=604800, immutable')
         .header('Content-Length', String(stat.size));
-      return reply.send(createReadStream(coverPath));
+      return reply.send(createReadStream(delivered.filePath));
     },
   );
 
@@ -174,7 +174,7 @@ export async function albumRoutes(app: FastifyInstance): Promise<void> {
     return { album };
   });
 
-  app.get<{ Params: { id: string } }>(
+  app.get<{ Params: { id: string }; Querystring: { size?: string } }>(
     '/albums/:id/cover',
     async (req, reply) => {
       if (!requireAuth(req, reply)) return;
@@ -189,30 +189,26 @@ export async function albumRoutes(app: FastifyInstance): Promise<void> {
           .code(404)
           .send({ error: t(getRequestLocale(req), 'album.coverMissing') });
       }
-      const coverPath = await findAlbumCoverFile(album.id);
-      if (!coverPath) {
+      const size = parseCoverImageSize(req.query.size, 'sm');
+      const delivered = await resolveCoverDelivery(albumPaths(album.id).dir, size);
+      if (!delivered) {
         return reply
           .code(404)
           .send({ error: t(getRequestLocale(req), 'album.coverMissing') });
       }
-      const ext = path.extname(coverPath).toLowerCase();
-      const mime =
-        ext === '.jpg' || ext === '.jpeg'
-          ? 'image/jpeg'
-          : ext === '.webp'
-            ? 'image/webp'
-            : 'image/png';
-      const filename = `${(album.title || album.id).replace(/[\/:*?"<>|]/g, '_')}-cover${ext || '.png'}`;
-      const stat = await fs.stat(coverPath);
+      const ext = path.extname(delivered.filePath).toLowerCase() || '.webp';
+      const sizeTag = delivered.size === 'full' ? '' : `-${delivered.size}`;
+      const filename = `${(album.title || album.id).replace(/[\\/:*?"<>|]/g, '_')}-cover${sizeTag}${ext}`;
+      const stat = await fs.stat(delivered.filePath);
       reply
-        .type(mime)
+        .type(delivered.mime)
         .header(
           'Content-Disposition',
           `inline; filename*=UTF-8''${encodeURIComponent(filename)}`,
         )
-        .header('Cache-Control', 'public, max-age=3600')
+        .header('Cache-Control', 'public, max-age=604800, immutable')
         .header('Content-Length', String(stat.size));
-      return reply.send(createReadStream(coverPath));
+      return reply.send(createReadStream(delivered.filePath));
     },
   );
 

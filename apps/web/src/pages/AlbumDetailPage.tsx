@@ -83,7 +83,7 @@ export function AlbumDetailPage({
     album?.resolvedCoverJobId || album?.coverJobId || album?.items[0]?.job.id;
   const ownCoverUrl =
     album?.hasOwnCoverImage
-      ? albumCoverUrl(album.id, album.updatedAt)
+      ? albumCoverUrl(album.id, album.updatedAt, 'md')
       : null;
 
   const playItem = (item: AlbumListenItem, openPlayer = false) => {
@@ -280,7 +280,7 @@ export function AlbumDetailPage({
                     imageUrl={
                       ownCoverUrl ||
                       (album.hasCoverImage && coverId
-                        ? coverImageUrl(coverId, album.updatedAt)
+                        ? coverImageUrl(coverId, album.updatedAt, 'md')
                         : null)
                     }
                     className="al-hero-cover"

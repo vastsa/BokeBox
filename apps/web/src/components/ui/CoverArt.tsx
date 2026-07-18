@@ -15,6 +15,8 @@ type CoverBase = {
   title?: string;
   /** AI 生成封面图 URL；有则优先展示真实图片 */
   imageUrl?: string | null;
+  /** 浏览器 sizes 提示，辅助响应式选图 */
+  sizes?: string;
   className?: string;
   /** 是否显示标题文案（默认 true：按标题设计显示） */
   monogram?: boolean;
@@ -50,6 +52,7 @@ export function CoverArt(props: CoverArtProps) {
     preferred,
     title,
     imageUrl,
+    sizes,
     className = '',
     monogram = true,
     pattern = true,
@@ -86,6 +89,7 @@ export function CoverArt(props: CoverArtProps) {
           alt=""
           loading="lazy"
           decoding="async"
+          sizes={sizes}
           draggable={false}
           onError={() => setImgFailed(true)}
         />

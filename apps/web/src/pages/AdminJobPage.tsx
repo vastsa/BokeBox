@@ -328,7 +328,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
           <CoverArt
             seed={job.id}
             preferred={job.podcast?.coverGradient}
-            imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt) : undefined}
+            imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt, 'md') : undefined}
             title={title}
             className="jd-cover"
             aria-hidden
@@ -483,7 +483,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
                   title={title}
                   downloadUrl={podcastAudioUrl(job.id, true)}
                   coverClassName={cover}
-                  coverImageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt) : undefined}
+                  coverImageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt, 'md') : undefined}
                   summary={job.podcast?.summary}
                   seekRequest={seekRequest}
                   onStateChange={setPlayState}

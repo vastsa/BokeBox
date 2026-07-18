@@ -61,7 +61,8 @@ export const LEGACY_BLOGS_DIR = path.join(STORAGE_DIR, 'blogs');
  *   flashcards.json   知识闪卡
  *   script-timing.json 口播行时间轴
  *   podcast.mp3|.wav  合成播客
- *   cover.png|jpg     AI 生成封面（可选）
+ *   cover.webp|png|jpg  AI 封面主图（可选，默认 webp 压缩）
+ *   cover.thumb|sm|md.webp  缩略图变体（按需/预生成）
  */
 export interface JobPaths {
   dir: string;
@@ -75,7 +76,7 @@ export interface JobPaths {
   scriptTiming: string;
   podcastMp3: string;
   podcastWav: string;
-  /** 默认封面路径（png）；实际文件可能是 jpg/webp */
+  /** 默认封面路径（兼容旧 png）；实际多为 cover.webp + 缩略图变体 */
   cover: string;
 }
 
@@ -89,7 +90,7 @@ export function albumDir(albumId: string): string {
 
 export type AlbumPaths = {
   dir: string;
-  /** 默认封面路径（png）；实际可能是 jpg/webp */
+  /** 默认封面路径（兼容旧 png）；实际多为 cover.webp + 缩略图变体 */
   cover: string;
 };
 
@@ -97,7 +98,7 @@ export function albumPaths(albumId: string): AlbumPaths {
   const dir = albumDir(albumId);
   return {
     dir,
-    cover: path.join(dir, 'cover.png'),
+    cover: path.join(dir, 'cover.webp'),
   };
 }
 
@@ -118,6 +119,6 @@ export function jobPaths(jobId: string): JobPaths {
     scriptTiming: path.join(dir, 'script-timing.json'),
     podcastMp3: path.join(dir, 'podcast.mp3'),
     podcastWav: path.join(dir, 'podcast.wav'),
-    cover: path.join(dir, 'cover.png'),
+    cover: path.join(dir, 'cover.webp'),
   };
 }

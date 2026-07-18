@@ -628,12 +628,20 @@ export async function deleteAlbumApi(id: string): Promise<void> {
   await request(`/albums/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
-export function albumCoverUrl(id: string, cacheKey?: string): string {
-  const q = new URLSearchParams();
-  if (cacheKey) q.set('v', String(cacheKey));
-  const qs = q.toString();
+/** 封面尺寸：列表默认 sm，详情/播放器 md，下载 full */
+export type CoverImageSize = 'thumb' | 'sm' | 'md' | 'full';
+
+export function albumCoverUrl(
+  id: string,
+  cacheKey?: string,
+  size: CoverImageSize = 'sm',
+): string {
   // 游客与登录统一走 listen 封面（鉴权钩子已放行）
-  return `${BASE}/listen/albums/${encodeURIComponent(id)}/cover${qs ? `?${qs}` : ''}`;
+  // 始终带 size，避免 full 被服务端默认 sm 吃掉
+  return appendQuery(`${BASE}/listen/albums/${encodeURIComponent(id)}/cover`, {
+    v: cacheKey != null ? String(cacheKey) : undefined,
+    size,
+  });
 }
 
 export async function generateAlbumCoverApi(id: string): Promise<AlbumDetail> {
@@ -786,10 +794,16 @@ export function videoUrl(id: string): string {
   return appendQuery(`${BASE}/jobs/${id}/video`, {});
 }
 
-/** AI 播客封面图（hasCoverImage 时可用） */
-export function coverImageUrl(id: string, cacheKey?: string): string {
+/** AI 播客封面图（hasCoverImage 时可用；默认 sm 加速列表加载） */
+export function coverImageUrl(
+  id: string,
+  cacheKey?: string,
+  size: CoverImageSize = 'sm',
+): string {
+  // 始终带 size，避免 full 被服务端默认 sm 吃掉
   return appendQuery(`${BASE}/jobs/${id}/cover`, {
-    v: cacheKey,
+    v: cacheKey != null ? String(cacheKey) : undefined,
+    size,
   });
 }
 

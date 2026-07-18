@@ -1,6 +1,4 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
-import { ensureDir, pathExists, removeIfExists } from '../utils/fs.js';
 import { albumPaths, jobPaths } from '../utils/paths.js';
 import type { PodcastContent } from '../types/job.js';
 import {
@@ -10,9 +8,10 @@ import {
   hasImageModel,
 } from '../utils/aiConfig.js';
 import { getCoverPromptTemplateStored } from './settingsStore.js';
-
-/** 候选封面文件名（按优先级） */
-const COVER_CANDIDATES = ['cover.png', 'cover.jpg', 'cover.jpeg', 'cover.webp'] as const;
+import {
+  findCoverMasterFile,
+  writeOptimizedCover,
+} from './imageOptimize.js';
 
 /** 封面画幅：9:16 / 3:4 / 1:1 随机，制造列表视觉变化 */
 export type CoverAspect = '9:16' | '3:4' | '1:1';
@@ -83,17 +82,12 @@ export function resolveCoverPath(jobId: string, preferredExt?: string): string {
     const ext = preferredExt.startsWith('.') ? preferredExt : `.${preferredExt}`;
     return path.join(dir, `cover${ext}`);
   }
-  return path.join(dir, 'cover.png');
+  return path.join(dir, 'cover.webp');
 }
 
-/** 查找任务目录下已有封面 */
+/** 查找任务目录下已有封面（主图，不含缩略图） */
 export async function findCoverFile(jobId: string): Promise<string | null> {
-  const dir = jobPaths(jobId).dir;
-  for (const name of COVER_CANDIDATES) {
-    const p = path.join(dir, name);
-    if (await pathExists(p)) return p;
-  }
-  return null;
+  return findCoverMasterFile(jobPaths(jobId).dir);
 }
 
 function cleanText(raw: unknown, max = 200): string {
@@ -256,25 +250,17 @@ function extFromUrl(url: string): string {
   return '.png';
 }
 
-async function cleanupOldCovers(jobId: string, keepPath?: string): Promise<void> {
-  const dir = jobPaths(jobId).dir;
-  for (const name of COVER_CANDIDATES) {
-    const p = path.join(dir, name);
-    if (keepPath && path.resolve(p) === path.resolve(keepPath)) continue;
-    await removeIfExists(p);
-  }
-}
-
 async function writeCoverBytes(
   jobId: string,
   bytes: Buffer,
   ext: string,
 ): Promise<string> {
-  const out = resolveCoverPath(jobId, ext);
-  await ensureDir(path.dirname(out));
-  await cleanupOldCovers(jobId, out);
-  await fs.writeFile(out, bytes);
-  return out;
+  const dir = jobPaths(jobId).dir;
+  const { masterPath, optimized } = await writeOptimizedCover(dir, bytes, ext);
+  if (optimized) {
+    console.info(`[cover] job=${jobId} optimized webp + thumbnails`);
+  }
+  return masterPath;
 }
 
 function isLikelySizeError(status: number, body: string): boolean {
@@ -443,33 +429,7 @@ export async function maybeGeneratePodcastCover(
 // ---------- 专辑专属封面 ----------
 
 export async function findAlbumCoverFile(albumId: string): Promise<string | null> {
-  const dir = albumPaths(albumId).dir;
-  for (const name of COVER_CANDIDATES) {
-    const p = path.join(dir, name);
-    if (await pathExists(p)) return p;
-  }
-  return null;
-}
-
-function resolveAlbumCoverPath(albumId: string, preferredExt?: string): string {
-  const dir = albumPaths(albumId).dir;
-  if (preferredExt) {
-    const ext = preferredExt.startsWith('.') ? preferredExt : `.${preferredExt}`;
-    return path.join(dir, `cover${ext}`);
-  }
-  return path.join(dir, 'cover.png');
-}
-
-async function cleanupOldAlbumCovers(
-  albumId: string,
-  keepPath?: string,
-): Promise<void> {
-  const dir = albumPaths(albumId).dir;
-  for (const name of COVER_CANDIDATES) {
-    const p = path.join(dir, name);
-    if (keepPath && path.resolve(p) === path.resolve(keepPath)) continue;
-    await removeIfExists(p);
-  }
+  return findCoverMasterFile(albumPaths(albumId).dir);
 }
 
 async function writeAlbumCoverBytes(
@@ -477,11 +437,12 @@ async function writeAlbumCoverBytes(
   bytes: Buffer,
   ext: string,
 ): Promise<string> {
-  const out = resolveAlbumCoverPath(albumId, ext);
-  await ensureDir(path.dirname(out));
-  await cleanupOldAlbumCovers(albumId, out);
-  await fs.writeFile(out, bytes);
-  return out;
+  const dir = albumPaths(albumId).dir;
+  const { masterPath, optimized } = await writeOptimizedCover(dir, bytes, ext);
+  if (optimized) {
+    console.info(`[album-cover] album=${albumId} optimized webp + thumbnails`);
+  }
+  return masterPath;
 }
 
 /** 把专辑元信息映射为封面生成用的 PodcastContent 形状 */

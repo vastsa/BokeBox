@@ -371,7 +371,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
       <CoverArt
         seed={job.id}
         preferred={job.podcast?.coverGradient}
-        imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt) : undefined}
+        imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt, 'md') : undefined}
         title={title}
         className="qq-disc-face is-round"
         monogram
@@ -529,7 +529,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
           <CoverArt
             seed={job.id}
             preferred={job.podcast?.coverGradient}
-            imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt) : undefined}
+            imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt, 'md') : undefined}
             title={title}
             className="qq-dock-cover"
           />

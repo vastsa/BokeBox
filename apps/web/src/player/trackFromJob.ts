@@ -19,7 +19,7 @@ export function trackFromJob(
     src,
     coverClassName: coverGradientFor(job.id, job.podcast?.coverGradient),
     coverImageUrl: job.podcast?.hasCoverImage
-      ? coverImageUrl(job.id, versionKey)
+      ? coverImageUrl(job.id, versionKey, 'md')
       : undefined,
     downloadUrl: podcastAudioUrl(job.id, true),
     summary: job.podcast?.summary,
