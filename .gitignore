@@ -7,6 +7,7 @@ dist-ssr
 !.env.example
 .DS_Store
 # 任务媒体（按 job 聚合）
+storage/albums/*
 storage/jobs/*
 !storage/jobs/.gitkeep
 storage/samples/*
