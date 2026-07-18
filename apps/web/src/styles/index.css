@@ -2975,7 +2975,7 @@ html[data-theme="dark"] .studio-job-live {
     padding: 20px 16px;
   }
   .upload-dropzone-copy h2 {
-    font-size: 18px;
+    font-size: var(--fs-3xl-plus);
   }
   .upload-dropzone-icon {
     width: 48px;
@@ -9171,22 +9171,22 @@ html[data-theme="dark"] .settings-toast {
   min-width: 0;
 }
 .upload-options-toggle-copy strong {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--tracking-snug);
   color: var(--text);
 }
 .upload-options-toggle-copy span {
-  font-size: 12.5px;
-  line-height: 1.4;
+  font-size: var(--fs-base-plus);
+  line-height: var(--lh-normal);
   color: var(--text-3);
 }
 .upload-options-toggle em {
   flex: 0 0 auto;
-  margin-top: 2px;
+  margin-top: var(--space-0_5);
   font-style: normal;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: var(--fs-base-plus);
+  font-weight: var(--fw-bold);
   color: var(--brand-2);
 }
 .upload-options-body {
@@ -10963,8 +10963,8 @@ html[data-theme="dark"] .settings-seo-preview-title {
   border: 1px solid transparent;
   background: var(--surface);
   color: var(--text-2);
-  font-size: 12.5px;
-  font-weight: 650;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -11047,8 +11047,8 @@ html[data-theme="dark"] .settings-seo-preview-title {
   border: 1px solid color-mix(in srgb, var(--separator) 90%, transparent);
   background: color-mix(in srgb, var(--surface) 92%, var(--surface-2));
   color: var(--text-2);
-  font-size: 12.5px;
-  font-weight: 650;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -11064,8 +11064,8 @@ html[data-theme="dark"] .settings-seo-preview-title {
   border-radius: 999px;
   background: color-mix(in srgb, var(--text) 6%, transparent);
   color: var(--text-3);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -11128,7 +11128,7 @@ html[data-theme="dark"] .settings-seo-preview-title {
 @media (max-width: 767px) {
   .admin-search input {
     font-size: var(--fs-2xl);
-    font-weight: 400;
+    font-weight: var(--fw-normal);
     line-height: 1.25;
     min-height: var(--control-5xl);
   }
@@ -11174,15 +11174,15 @@ html[data-theme="dark"] .settings-seo-preview-title {
 
 .admin-library-head h2 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--tracking-snug);
   color: var(--text);
 }
 
 .admin-library-head p {
-  margin: 3px 0 0;
-  font-size: 12.5px;
+  margin: var(--space-0_5) 0 0;
+  font-size: var(--fs-base);
   color: var(--text-3);
 }
 
@@ -11196,8 +11196,8 @@ html[data-theme="dark"] .settings-seo-preview-title {
   border-radius: 999px;
   background: color-mix(in srgb, var(--text) 6%, transparent);
   color: var(--text-2);
-  font-size: 12.5px;
-  font-weight: 750;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -11346,11 +11346,11 @@ html[data-theme="dark"] .settings-seo-preview-title {
   margin: 0;
   min-width: 0;
   flex: 1 1 auto;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-snug);
   color: var(--text);
-  line-height: 1.35;
+  line-height: var(--lh-snug);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -11359,11 +11359,11 @@ html[data-theme="dark"] .settings-seo-preview-title {
 
 .admin-job-open-hint {
   flex: 0 0 auto;
-  margin-top: 2px;
-  font-size: 12px;
-  font-weight: 650;
+  margin-top: var(--space-0_5);
+  font-size: var(--fs-sm-plus);
+  font-weight: var(--fw-medium);
   color: var(--text-3);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .admin-job-card:hover .admin-job-open-hint {
@@ -11403,9 +11403,9 @@ html[data-theme="dark"] .settings-seo-preview-title {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 6px;
-  font-size: 12.5px;
+  font-size: var(--fs-base);
   color: var(--text-3);
-  line-height: 1.35;
+  line-height: var(--lh-snug);
 }
 
 .admin-job-sub .dot {
@@ -11432,7 +11432,7 @@ html[data-theme="dark"] .settings-seo-preview-title {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 12.5px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -11446,16 +11446,16 @@ html[data-theme="dark"] .settings-seo-preview-title {
 
 .admin-job-progress-row span:last-child {
   flex: 0 0 auto;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums;
   color: var(--text-3);
 }
 
 .admin-job-msg {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--fs-base);
   color: var(--text-3);
-  line-height: 1.4;
+  line-height: var(--lh-normal);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -11474,11 +11474,11 @@ html[data-theme="dark"] .settings-seo-preview-title {
 }
 
 .admin-job-action-btn.nl-btn {
-  min-height: var(--control-xl, 32px);
-  height: var(--control-xl, 32px);
+  min-height: var(--control-xl);
+  height: var(--control-xl);
   padding: 0 var(--space-3);
   border-radius: var(--radius-md-minus);
-  font-size: var(--fs-sm-plus, 12.5px);
+  font-size: var(--fs-md);
   font-weight: var(--fw-semibold);
   box-shadow: none;
 }
@@ -11513,10 +11513,10 @@ html[data-theme="dark"] .settings-seo-preview-title {
 }
 
 .admin-job-icon-btn.nl-btn {
-  width: var(--control-xl, 32px);
-  min-width: var(--control-xl, 32px);
-  height: var(--control-xl, 32px);
-  min-height: var(--control-xl, 32px);
+  width: var(--control-xl);
+  min-width: var(--control-xl);
+  height: var(--control-xl);
+  min-height: var(--control-xl);
   padding: 0;
   border-radius: var(--radius-md-minus);
   border: var(--bw-1) solid transparent;
@@ -11632,7 +11632,7 @@ html[data-theme="dark"] .settings-seo-preview-title {
   }
 
   .admin-job-title {
-    font-size: 16px;
+    font-size: var(--fs-lg-plus);
   }
 
   .admin-job-actions {
@@ -11669,7 +11669,7 @@ html[data-theme="dark"] .settings-seo-preview-title {
   }
 
   .admin-job-title {
-    font-size: 14.5px;
+    font-size: var(--fs-lg);
   }
 
   .admin-job-open-hint {
@@ -11689,7 +11689,7 @@ html[data-theme="dark"] .settings-seo-preview-title {
   }
 
   .admin-search input {
-    min-height: 40px;
+    min-height: var(--control-5xl);
   }
 }
 
@@ -11745,7 +11745,7 @@ html[data-theme="dark"] .admin-job-live {
     justify-content: center;
   }
   .jd-title {
-    font-size: 18px;
+    font-size: var(--fs-3xl-plus);
   }
   .jd-hero {
     grid-template-columns: 56px minmax(0, 1fr);
