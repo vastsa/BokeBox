@@ -7,7 +7,7 @@
 import {
   importUrlContent,
   isValidHttpUrl,
-} from '../../services/urlImporter.js';
+} from '../../services/import/index.js';
 import type {
   SourceArtifact,
   SourceInput,

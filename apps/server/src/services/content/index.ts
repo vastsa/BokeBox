@@ -1,12 +1,12 @@
 /**
- * 内容生成子域导航出口
+ * 内容生成子域
  */
-export { generatePodcast } from '../podcastGenerator.js';
+export { generatePodcast } from './podcastGenerator.js';
 export {
   generateFlashcards,
   parseFlashcardModelContent,
   type FlashcardGenerateInput,
-} from '../flashcardGenerator.js';
+} from './flashcardGenerator.js';
 export {
   DEFAULT_SCRIPT_MAX_CHARS,
   MIN_SCRIPT_MAX_CHARS,
@@ -18,7 +18,7 @@ export {
   buildScriptPromptSection,
   summarizeScriptPrompt,
   SCRIPT_PROMPT_FIELDS,
-} from '../scriptPrompt.js';
+} from './scriptPrompt.js';
 export {
   getAllAiPromptBundles,
   getAiPromptBundle,
@@ -30,4 +30,4 @@ export {
   type AiPromptKind,
   type AiPromptBundle,
   type PromptVariable,
-} from '../aiPromptTemplates.js';
+} from './aiPromptTemplates.js';

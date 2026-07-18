@@ -1,4 +1,4 @@
-import { getAiConfig } from '../services/settingsStore.js';
+import { getAiConfig } from '../services/settings/index.js';
 
 export type AiServiceId = 'llm' | 'asr' | 'tts' | 'image';
 

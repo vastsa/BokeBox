@@ -6,7 +6,7 @@ import {
   hasScriptPrompt,
   resolveScriptMaxChars,
   DEFAULT_SCRIPT_MAX_CHARS,
-} from '../src/services/scriptPrompt.js';
+} from '../src/services/content/scriptPrompt.js';
 
 describe('scriptPrompt', () => {
   it('normalizes blank prompt to empty object fields', () => {

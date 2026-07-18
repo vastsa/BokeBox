@@ -6,7 +6,7 @@ import {
   login,
   logout,
   resolveSession,
-} from '../services/authService.js';
+} from '../services/auth/authService.js';
 import {
   getRequestLocale,
   sendAppError,
@@ -23,7 +23,7 @@ import {
   isSetupCompleted,
   toPublicAiConfig,
   withProviderCatalog,
-} from '../services/settingsStore.js';
+} from '../services/settings/index.js';
 import { listAsrProviderDescriptors } from '../providers/asr/index.js';
 import { listTtsProviderDescriptors } from '../providers/tts/index.js';
 import { ApiErrorCode, sendFail } from '../utils/apiResponse.js';

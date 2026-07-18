@@ -4,3 +4,6 @@ export {
   SettingsPanel,
   type SettingsTab,
 } from './SettingsChrome';
+export { McpSettingsTab } from './McpSettingsTab';
+export { SiteSettingsTab } from './SiteSettingsTab';
+export { AccountSettingsTab } from './AccountSettingsTab';

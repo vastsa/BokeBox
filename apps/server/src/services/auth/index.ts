@@ -1,4 +1,2 @@
-/**
- * 认证子域导航出口
- */
-export * from '../authService.js';
+/** 认证子域 */
+export * from './authService.js';

@@ -21,13 +21,13 @@ import {
   toListPublic,
   toPublic,
   updateJob,
-} from '../services/jobStore.js';
+} from '../services/job/jobStore.js';
 import { parsePageQuery } from '../utils/pagination.js';
 import {
   appendJobToAlbum,
   getAlbum,
   removeJobFromAllAlbums,
-} from '../services/albumStore.js';
+} from '../services/album/albumStore.js';
 import { getRequestUser } from './auth.js';
 import {
   assertPipelinePrereqs,
@@ -35,20 +35,20 @@ import {
   isPipelineFromStep,
   resolveDefaultFromStep,
   runPipeline,
-} from '../services/pipeline.js';
+} from '../services/job/pipeline.js';
 import {
   ALLOWED_MEDIA_EXT,
   detectSourceKind,
   extractReadableText,
   isValidHttpUrl,
-} from '../services/urlImporter.js';
+} from '../services/import/index.js';
 import {
   ensureBuiltinSourcePlugins,
   getSourcePluginRegistration,
   isSourcePluginEnabled,
   refreshExternalSourcePlugins,
 } from '../sources/index.js';
-import { getActiveTtsUiMeta } from '../services/ttsSynthesizer.js';
+import { getActiveTtsUiMeta } from '../services/media/ttsSynthesizer.js';
 import {
   listAsrProviderDescriptors,
   listTtsProviderDescriptors,
@@ -64,11 +64,11 @@ import {
   getGlobalScriptPrompt,
   getGlobalTtsOptions,
   normalizeTtsOptions,
-} from '../services/settingsStore.js';
+} from '../services/settings/index.js';
 import {
   normalizeScriptPrompt,
-} from '../services/scriptPrompt.js';
-import { deleteListenRecord } from '../services/listenStore.js';
+} from '../services/content/scriptPrompt.js';
+import { deleteListenRecord } from '../services/job/listenStore.js';
 import {
   getAsrModel,
   getAsrProviderId,
@@ -83,11 +83,11 @@ import {
 } from '../utils/aiConfig.js';
 import {
   findCoverFile,
-} from '../services/coverGenerator.js';
+} from '../services/media/coverGenerator.js';
 import {
   parseCoverImageSize,
   resolveCoverDelivery,
-} from '../services/imageOptimize.js';
+} from '../services/media/imageOptimize.js';
 import {
   errorMessage,
   getRequestLocale,
@@ -97,7 +97,7 @@ import {
   t,
   type Locale,
 } from '../i18n/index.js';
-import { getContentLocale } from '../services/settingsStore.js';
+import { getContentLocale } from '../services/settings/index.js';
 
 /** 任务内容语言：请求指定优先，否则回落全局 contentLocale */
 function resolveJobLocale(raw: unknown): Locale {

@@ -4,7 +4,7 @@ import {
   PIPELINE_FROM_STEPS,
   isPipelineFromStep,
   stepIndex,
-} from '../src/services/pipeline.js';
+} from '../src/services/job/pipeline.js';
 
 describe('pipeline steps', () => {
   it('exposes stable ordered steps', () => {

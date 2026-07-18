@@ -1,12 +1,12 @@
 /**
- * 媒体处理子域导航出口
+ * 媒体处理子域
  */
 export {
   extractAudio,
   generateSilentMp3,
   convertToMp3,
   type ExtractedAudio,
-} from '../audioExtractor.js';
+} from './audioExtractor.js';
 export {
   synthesizePodcastAudio,
   getActiveTtsUiMeta,
@@ -15,7 +15,7 @@ export {
   SPEECH_STYLE_TAG_PRESETS,
   AUDIO_TAG_EXAMPLES,
   resolvePresetVoice,
-} from '../ttsSynthesizer.js';
+} from './ttsSynthesizer.js';
 export {
   COVER_PROMPT_VARIABLES,
   DEFAULT_COVER_PROMPT_TEMPLATE,
@@ -25,9 +25,9 @@ export {
   maybeGenerateAlbumCover,
   generatePodcastCover,
   generateAlbumCover,
-} from '../coverGenerator.js';
+} from './coverGenerator.js';
 export {
   parseCoverImageSize,
   resolveCoverDelivery,
-} from '../imageOptimize.js';
-export { transcribeAudio } from '../transcriber.js';
+} from './imageOptimize.js';
+export { transcribeAudio } from './transcriber.js';

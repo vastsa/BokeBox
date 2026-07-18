@@ -25,7 +25,7 @@ import { ensureDir, pathExists } from './utils/fs.js';
 import { hasApiKey, getBaseUrl, getChatModel } from './utils/aiConfig.js';
 import { initDatabase } from './db/sqlite.js';
 import { migrateStorageLayout } from './services/storageMigrator.js';
-import { buildPublicSiteSeo } from './services/settingsStore.js';
+import { buildPublicSiteSeo } from './services/settings/index.js';
 import { injectSeoIntoHtml } from './utils/seoHtml.js';
 import { printOpenSourceBanner } from './utils/banner.js';
 import { fail, wrapApiPayload } from './utils/apiResponse.js';

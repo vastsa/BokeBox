@@ -1,17 +1,17 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { extractBearerToken } from '../services/authService.js';
+import { extractBearerToken } from '../services/auth/authService.js';
 import {
   ensureMcpToken,
   getMcpTokenRecord,
   regenerateMcpToken,
   toPublicMcpStatus,
   verifyMcpToken,
-} from '../services/mcpTokenStore.js';
-import { handleMcpPayload, MCP_SERVER_INFO } from '../services/mcpProtocol.js';
-import { listMcpTools } from '../services/mcpTools.js';
+} from '../services/mcp/mcpTokenStore.js';
+import { handleMcpPayload, MCP_SERVER_INFO } from '../services/mcp/mcpProtocol.js';
+import { listMcpTools } from '../services/mcp/mcpTools.js';
 import { getRequestUser } from './auth.js';
 import { getRequestLocale, t } from '../i18n/index.js';
-import { isSetupCompleted } from '../services/settingsStore.js';
+import { isSetupCompleted } from '../services/settings/index.js';
 
 function readCookie(req: FastifyRequest, name: string): string | null {
   const raw = req.headers.cookie;

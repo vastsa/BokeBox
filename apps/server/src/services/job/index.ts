@@ -1,5 +1,5 @@
 /**
- * 任务子域导航出口（实现仍在 services 根文件，逐步迁入）
+ * 任务子域
  */
 export {
   createJob,
@@ -19,7 +19,7 @@ export {
   type JobListFacets,
   type JobListFilter,
   type LibraryListFilter,
-} from '../jobStore.js';
+} from './jobStore.js';
 
 export {
   PIPELINE_FROM_STEPS,
@@ -29,4 +29,7 @@ export {
   resolveDefaultFromStep,
   runPipeline,
   stepIndex,
-} from '../pipeline.js';
+} from './pipeline.js';
+
+export * from './scriptTiming.js';
+export * from './listenStore.js';

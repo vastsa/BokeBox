@@ -38,7 +38,6 @@ import {
   type Locale,
 } from '../i18n';
 import { AppShell } from '../layouts/AppShell';
-import { PROJECT_GITHUB_URL, PROJECT_LICENSE_SPDX } from '../lib/project';
 import { setCachedSiteName } from '../lib/site';
 import {
   buildPublicSiteSeo,
@@ -51,6 +50,9 @@ import {
   SettingsPanel,
   type SettingsTab,
 } from '../features/settings/SettingsChrome';
+import { McpSettingsTab } from '../features/settings/McpSettingsTab';
+import { SiteSettingsTab } from '../features/settings/SiteSettingsTab';
+import { AccountSettingsTab } from '../features/settings/AccountSettingsTab';
 
 export function SettingsPage({ route }: { route: Route }) {
   const { t, locale, setLocale, locales, meta } = useI18n();
@@ -522,627 +524,58 @@ export function SettingsPage({ route }: { route: Route }) {
                 </SettingsPanel>
 
 
-                <SettingsPanel id="mcp" active={tab === 'mcp'}>
-                  <div className="settings-stack">
-
-                    <SettingsCard className="settings-card-mcp-prompt">
-                      <SettingsBlock
-                        title={t('settings.mcpAiPromptTitle')}
-                        desc={t('settings.mcpAiPromptDesc')}
-                      >
-                        <p className="settings-inline-hint">
-                          {t('settings.mcpAiPromptHint')}
-                        </p>
-                        <div className="settings-prompt-actions">
-                          <button
-                            type="button"
-                            className="nl-btn nl-btn-primary settings-prompt-copy-btn"
-                            onClick={() =>
-                              void copyText(
-                                mcpInstall?.aiPrompt || '',
-                                t('settings.mcpAiPromptCopied'),
-                              )
-                            }
-                            disabled={!mcpInstall?.aiPrompt}
-                          >
-                            {t('settings.mcpCopyAiPrompt')}
-                          </button>
-                        </div>
-                        <details className="settings-prompt-details">
-                          <summary>{t('settings.mcpAiPromptPreview')}</summary>
-                          <pre className="settings-code-block settings-code-block-tall">
-                            {mcpInstall?.aiPrompt ||
-                              (mcpLoading
-                                ? t('settings.mcpLoading')
-                                : '')}
-                          </pre>
-                        </details>
-                      </SettingsBlock>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.mcpTitle')}
-                        desc={t('settings.mcpDesc')}
-                      >
-                        <p className="settings-inline-hint">
-                          {t('settings.mcpAutoToken')}
-                        </p>
-                        {mcpLoading && !mcpInstall ? (
-                          <PageLoader label={t('settings.mcpLoading')} variant="block" />
-                        ) : (
-                          <div className="settings-fields">
-                            <label className="auth-field">
-                              <span>{t('settings.mcpEndpoint')}</span>
-                              <div className="settings-inline-row">
-                                <input
-                                  type="text"
-                                  readOnly
-                                  value={
-                                    mcpInstall?.endpoint ||
-                                    mcpStatus?.endpoint ||
-                                    ''
-                                  }
-                                  spellCheck={false}
-                                />
-                                <button
-                                  type="button"
-                                  className="nl-btn nl-btn-secondary"
-                                  onClick={() =>
-                                    void copyText(
-                                      mcpInstall?.endpoint ||
-                                        mcpStatus?.endpoint ||
-                                        '',
-                                    )
-                                  }
-                                >
-                                  {t('settings.mcpCopyEndpoint')}
-                                </button>
-                              </div>
-                            </label>
-                            <label className="auth-field">
-                              <span>{t('settings.mcpToken')}</span>
-                              <div className="settings-inline-row">
-                                <input
-                                  type={mcpShowToken ? 'text' : 'password'}
-                                  readOnly
-                                  value={
-                                    mcpInstall?.token ||
-                                    mcpStatus?.token ||
-                                    mcpStatus?.tokenHint ||
-                                    ''
-                                  }
-                                  spellCheck={false}
-                                />
-                                <button
-                                  type="button"
-                                  className="nl-btn nl-btn-ghost"
-                                  onClick={() => setMcpShowToken((v) => !v)}
-                                >
-                                  {mcpShowToken
-                                    ? t('settings.mcpHideToken')
-                                    : t('settings.mcpShowToken')}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="nl-btn nl-btn-secondary"
-                                  onClick={() =>
-                                    void copyText(
-                                      mcpInstall?.token ||
-                                        mcpStatus?.token ||
-                                        '',
-                                    )
-                                  }
-                                >
-                                  {t('settings.mcpCopyToken')}
-                                </button>
-                              </div>
-                              <em className="settings-field-meta">
-                                {t('settings.mcpTokenHint')}
-                              </em>
-                            </label>
-                            <div className="settings-meta-list is-inline">
-                              <div className="settings-meta-row">
-                                <dt>{t('settings.mcpLastUsed')}</dt>
-                                <dd>
-                                  {mcpStatus?.lastUsedAt ||
-                                    t('settings.mcpNeverUsed')}
-                                </dd>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </SettingsBlock>
-                      <div className="settings-card-actions">
-                        <span className="settings-card-hint">
-                          {mcpStatus?.tokenHint
-                            ? `hint: ${mcpStatus.tokenHint}`
-                            : ''}
-                        </span>
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-danger"
-                          onClick={() => void onRegenerateMcp()}
-                          disabled={mcpBusy}
-                        >
-                          {mcpBusy
-                            ? t('settings.mcpRegenerating')
-                            : t('settings.mcpRegenerate')}
-                        </button>
-                      </div>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.mcpBaseUrl')}
-                        desc={t('settings.mcpBaseUrlDesc')}
-                      >
-                        <div className="settings-inline-row">
-                          <input
-                            type="url"
-                            value={mcpBaseUrl}
-                            onChange={(e) => setMcpBaseUrl(e.target.value)}
-                            placeholder={t('settings.mcpBaseUrlPlaceholder')}
-                            spellCheck={false}
-                          />
-                          <button
-                            type="button"
-                            className="nl-btn nl-btn-secondary"
-                            onClick={() => void loadMcpInstall(mcpBaseUrl)}
-                            disabled={mcpLoading}
-                          >
-                            {t('settings.mcpReloadInstall')}
-                          </button>
-                        </div>
-                      </SettingsBlock>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.mcpHowTo')}
-                        desc={t('settings.mcpInstallDesc')}
-                      >
-                        <ol className="settings-steps">
-                          <li>{t('settings.mcpHowTo1')}</li>
-                          <li>{t('settings.mcpHowTo2')}</li>
-                          <li>{t('settings.mcpHowTo3')}</li>
-                        </ol>
-                      </SettingsBlock>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.mcpInstallTitle')}
-                        desc={t('settings.mcpInstallDesc')}
-                      >
-                        <div className="settings-chip-row" role="tablist">
-                          {(
-                            [
-                              {
-                                id: 'cursor' as const,
-                                label: t('settings.mcpClientCursor'),
-                              },
-                              {
-                                id: 'claude' as const,
-                                label: t('settings.mcpClientClaude'),
-                              },
-                              {
-                                id: 'codex' as const,
-                                label: t('settings.mcpClientCodex'),
-                              },
-                            ] as const
-                          ).map((item) => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              role="tab"
-                              aria-selected={mcpActiveClient === item.id}
-                              className={[
-                                'settings-chip',
-                                mcpActiveClient === item.id ? 'is-active' : '',
-                              ].join(' ')}
-                              onClick={() => setMcpActiveClient(item.id)}
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                        <pre className="settings-code-block">
-                          {mcpActiveClient === 'cursor'
-                            ? mcpInstall?.snippets.cursorJson || ''
-                            : mcpActiveClient === 'claude'
-                              ? mcpInstall?.snippets.claudeDesktopJson || ''
-                              : mcpInstall?.snippets.codexJson ||
-                                mcpInstall?.snippets.openclawJson ||
-                                ''}
-                        </pre>
-                      </SettingsBlock>
-                      <div className="settings-card-actions">
-                        <span className="settings-card-hint">
-                          {mcpInstall?.endpoint || ''}
-                        </span>
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-primary"
-                          onClick={() => {
-                            const snippet =
-                              mcpActiveClient === 'cursor'
-                                ? mcpInstall?.snippets.cursorJson
-                                : mcpActiveClient === 'claude'
-                                  ? mcpInstall?.snippets.claudeDesktopJson
-                                  : mcpInstall?.snippets.codexJson;
-                            if (snippet) void copyText(snippet);
-                          }}
-                          disabled={!mcpInstall}
-                        >
-                          {t('settings.mcpCopyConfig')}
-                        </button>
-                      </div>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.mcpToolsTitle')}
-                        desc={t('settings.mcpToolsDesc')}
-                      >
-                        <ul className="settings-tool-list">
-                          {(mcpStatus?.tools || []).map((tool) => (
-                            <li key={tool.name}>
-                              <code>{tool.name}</code>
-                              <span>{tool.description}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </SettingsBlock>
-                    </SettingsCard>
-                  </div>
-                </SettingsPanel>
-
-                <SettingsPanel id="site" active={tab === 'site'}>
-                  <div className="settings-stack">
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.siteBrand')}
-                        desc={t('settings.siteBrandDesc')}
-                      >
-                        <div className="settings-fields">
-                          <label className="auth-field settings-field-span">
-                            <span>{t('settings.siteName')}</span>
-                            <input
-                              type="text"
-                              value={siteName}
-                              onChange={(e) => setSiteName(e.target.value)}
-                              placeholder={t('settings.siteNamePlaceholder')}
-                              maxLength={48}
-                              spellCheck={false}
-                            />
-                          </label>
-                          <label className="auth-field settings-field-span">
-                            <span>{t('settings.seoTitle')}</span>
-                            <input
-                              type="text"
-                              value={seoTitle}
-                              onChange={(e) => setSeoTitle(e.target.value)}
-                              placeholder={t('settings.seoTitlePlaceholder')}
-                              maxLength={80}
-                              spellCheck={false}
-                            />
-                          </label>
-                          <label className="auth-field settings-field-span">
-                            <span>{t('settings.seoDescription')}</span>
-                            <textarea
-                              className="nl-textarea"
-                              value={seoDescription}
-                              onChange={(e) =>
-                                setSeoDescription(e.target.value)
-                              }
-                              placeholder={t(
-                                'settings.seoDescriptionPlaceholder',
-                              )}
-                              maxLength={300}
-                              rows={3}
-                            />
-                          </label>
-                          <label className="auth-field settings-field-span">
-                            <span>{t('settings.seoKeywords')}</span>
-                            <input
-                              type="text"
-                              value={seoKeywords}
-                              onChange={(e) => setSeoKeywords(e.target.value)}
-                              placeholder={t(
-                                'settings.seoKeywordsPlaceholder',
-                              )}
-                              maxLength={200}
-                              spellCheck={false}
-                            />
-                          </label>
-                        </div>
-
-                        <div
-                          className="settings-seo-preview"
-                          aria-label={t('settings.seoPreview')}
-                        >
-                          <div className="settings-seo-preview-label">
-                            {t('settings.seoPreview')}
-                          </div>
-                          <div className="settings-seo-preview-title">
-                            {seoPreview.title}
-                          </div>
-                          <div className="settings-seo-preview-desc">
-                            {seoPreview.description}
-                          </div>
-                          <div className="settings-seo-preview-kw">
-                            {seoPreview.keywords}
-                          </div>
-                        </div>
-                      </SettingsBlock>
-
-                      <div className="settings-card-actions">
-                        <span />
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-primary"
-                          onClick={() => void onSaveSite()}
-                          disabled={savingSite}
-                        >
-                          {savingSite ? t('common.saving') : t('common.save')}
-                        </button>
-                      </div>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.guestHome')}
-                        desc={t('settings.guestHomeDesc')}
-                      >
-                        <label
-                          className={[
-                            'upload-switch-row',
-                            savingAccess ? 'is-busy' : '',
-                          ]
-                            .filter(Boolean)
-                            .join(' ')}
-                        >
-                          <span className="upload-switch-copy">
-                            <span className="title">
-                              {t('settings.guestHomeToggle')}
-                            </span>
-                            <span className="desc">
-                              {t('settings.guestHomeToggleDesc')}
-                            </span>
-                          </span>
-                          <span
-                            className={[
-                              'upload-switch',
-                              guestHomePublic ? 'is-on' : '',
-                            ]
-                              .filter(Boolean)
-                              .join(' ')}
-                          >
-                            <i />
-                            <input
-                              type="checkbox"
-                              className="upload-switch-input"
-                              checked={guestHomePublic}
-                              disabled={savingAccess}
-                              onChange={(e) =>
-                                void onToggleGuestHome(e.target.checked)
-                              }
-                              aria-label={t('settings.guestHomeToggle')}
-                            />
-                          </span>
-                        </label>
-                      </SettingsBlock>
-                    </SettingsCard>
-                  </div>
-                </SettingsPanel>
-
-                <SettingsPanel id="account" active={tab === 'account'}>
-                  <div className="settings-stack">
-                    <SettingsCard>
-                      <div className="settings-profile">
-                        <div className="settings-profile-meta">
-                          <div className="settings-profile-kicker">
-                            {t('settings.profileKicker')}
-                          </div>
-                          <div className="settings-profile-name">
-                            {username || '—'}
-                          </div>
-                          <div className="settings-profile-sub">
-                            {t('common.admin')}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-secondary"
-                          onClick={() => void onLogout()}
-                        >
-                          {t('auth.logout')}
-                        </button>
-                      </div>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.language')}
-                        desc={t('settings.languageDesc')}
-                      >
-                        <div
-                          className="theme-pref-grid"
-                          role="radiogroup"
-                          aria-label={t('settings.languageAria')}
-                        >
-                          {locales.map((code) => {
-                            const item = meta[code];
-                            const active = locale === code;
-                            return (
-                              <button
-                                key={code}
-                                type="button"
-                                role="radio"
-                                aria-checked={active}
-                                className={[
-                                  'theme-pref-card',
-                                  active ? 'is-active' : '',
-                                ].join(' ')}
-                                onClick={() => setLocale(code)}
-                              >
-                                <span
-                                  className="theme-pref-swatch lang-pref-swatch"
-                                  data-tone={code}
-                                  aria-hidden
-                                >
-                                  {item.short}
-                                </span>
-                                <span className="theme-pref-copy">
-                                  <strong>{item.nativeLabel}</strong>
-                                  <em>{item.label}</em>
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </SettingsBlock>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.theme')}
-                        desc={t('settings.themeDesc')}
-                      >
-                        <div
-                          className="theme-pref-grid"
-                          role="radiogroup"
-                          aria-label={t('settings.themeAria')}
-                        >
-                          {(
-                            [
-                              {
-                                id: 'light' as const,
-                                label: t('settings.themeLight'),
-                                desc: t('settings.themeLightDesc'),
-                              },
-                              {
-                                id: 'dark' as const,
-                                label: t('settings.themeDark'),
-                                desc: t('settings.themeDarkDesc'),
-                              },
-                            ] as const
-                          ).map((item) => {
-                            const active = themePref === item.id;
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                role="radio"
-                                aria-checked={active}
-                                className={[
-                                  'theme-pref-card',
-                                  active ? 'is-active' : '',
-                                ].join(' ')}
-                                onClick={() => onThemeChange(item.id)}
-                              >
-                                <span
-                                  className="theme-pref-swatch"
-                                  data-tone={item.id}
-                                  aria-hidden
-                                />
-                                <span className="theme-pref-copy">
-                                  <strong>{item.label}</strong>
-                                  <em>{item.desc}</em>
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </SettingsBlock>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.changePassword')}
-                        desc={t('settings.changePasswordDesc')}
-                      >
-                        <div className="settings-fields">
-                          <label className="auth-field">
-                            <span>{t('settings.currentPassword')}</span>
-                            <input
-                              type="password"
-                              value={currentPassword}
-                              onChange={(e) =>
-                                setCurrentPassword(e.target.value)
-                              }
-                              autoComplete="current-password"
-                            />
-                          </label>
-                          <div className="settings-fields-2">
-                            <label className="auth-field">
-                              <span>{t('settings.newPassword')}</span>
-                              <input
-                                type="password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                autoComplete="new-password"
-                              />
-                            </label>
-                            <label className="auth-field">
-                              <span>{t('settings.confirmPassword')}</span>
-                              <input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) =>
-                                  setConfirmPassword(e.target.value)
-                                }
-                                autoComplete="new-password"
-                              />
-                            </label>
-                          </div>
-                        </div>
-                      </SettingsBlock>
-                      <div className="settings-card-actions">
-                        <span className="settings-card-hint">
-                          {t('settings.passwordHint')}
-                        </span>
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-primary"
-                          onClick={() => void onChangePassword()}
-                          disabled={savingPw}
-                        >
-                          {savingPw
-                            ? t('settings.updatingPassword')
-                            : t('settings.updatePassword')}
-                        </button>
-                      </div>
-                    </SettingsCard>
-
-                    <SettingsCard>
-                      <SettingsBlock
-                        title={t('settings.aboutOpenSource')}
-                        desc={t('settings.aboutOpenSourceDesc')}
-                      >
-                        <div className="settings-oss-row">
-                          <div className="settings-oss-meta">
-                            <span className="settings-oss-badge">
-                              {t('app.openSourceBadge')}
-                            </span>
-                            <span>
-                              {t('settings.licenseLabel')}: {PROJECT_LICENSE_SPDX}
-                            </span>
-                          </div>
-                          <a
-                            className="nl-btn nl-btn-secondary"
-                            href={PROJECT_GITHUB_URL}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                          >
-                            {t('settings.openGithub')}
-                          </a>
-                        </div>
-                      </SettingsBlock>
-                    </SettingsCard>
-                  </div>
-                </SettingsPanel>
+                <McpSettingsTab
+                  active={tab === 'mcp'}
+                  mcpStatus={mcpStatus}
+                  mcpInstall={mcpInstall}
+                  mcpLoading={mcpLoading}
+                  mcpBusy={mcpBusy}
+                  mcpShowToken={mcpShowToken}
+                  mcpBaseUrl={mcpBaseUrl}
+                  mcpActiveClient={mcpActiveClient}
+                  onBaseUrlChange={setMcpBaseUrl}
+                  onShowTokenToggle={() => setMcpShowToken((v) => !v)}
+                  onActiveClientChange={setMcpActiveClient}
+                  onReloadInstall={() => void loadMcpInstall(mcpBaseUrl)}
+                  onRegenerate={() => void onRegenerateMcp()}
+                  copyText={copyText}
+                />
+                <SiteSettingsTab
+                  active={tab === 'site'}
+                  guestHomePublic={guestHomePublic}
+                  siteName={siteName}
+                  seoTitle={seoTitle}
+                  seoDescription={seoDescription}
+                  seoKeywords={seoKeywords}
+                  seoPreview={seoPreview}
+                  savingAccess={savingAccess}
+                  savingSite={savingSite}
+                  onToggleGuestHome={(next) => void onToggleGuestHome(next)}
+                  onSiteNameChange={setSiteName}
+                  onSeoTitleChange={setSeoTitle}
+                  onSeoDescriptionChange={setSeoDescription}
+                  onSeoKeywordsChange={setSeoKeywords}
+                  onSaveSite={() => void onSaveSite()}
+                />
+                <AccountSettingsTab
+                  active={tab === 'account'}
+                  username={username}
+                  locale={locale}
+                  locales={locales}
+                  meta={meta}
+                  themePref={themePref}
+                  currentPassword={currentPassword}
+                  newPassword={newPassword}
+                  confirmPassword={confirmPassword}
+                  savingPw={savingPw}
+                  onLocaleChange={setLocale}
+                  onThemeChange={onThemeChange}
+                  onCurrentPasswordChange={setCurrentPassword}
+                  onNewPasswordChange={setNewPassword}
+                  onConfirmPasswordChange={setConfirmPassword}
+                  onChangePassword={() => void onChangePassword()}
+                  onLogout={() => void onLogout()}
+                />
               </div>
             )}
           </div>

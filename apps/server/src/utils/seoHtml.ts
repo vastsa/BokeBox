@@ -1,4 +1,4 @@
-import type { PublicSiteSeo } from '../services/settingsStore.js';
+import type { PublicSiteSeo } from '../services/settings/index.js';
 
 function escapeHtml(s: string): string {
   return s

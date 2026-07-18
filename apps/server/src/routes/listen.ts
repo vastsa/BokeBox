@@ -9,14 +9,14 @@ import {
   toListPublic,
   toPublic,
   withScriptTiming,
-} from '../services/jobStore.js';
+} from '../services/job/jobStore.js';
 import { getRequestLocale, t } from '../i18n/index.js';
 import {
   getListenRecord,
   listListenHistoryPage,
   listListenRecordsByJobIds,
   upsertListenProgress,
-} from '../services/listenStore.js';
+} from '../services/job/listenStore.js';
 import { parsePageQuery } from '../utils/pagination.js';
 import { getRequestUser } from './auth.js';
 

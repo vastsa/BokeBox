@@ -9,7 +9,7 @@ import {
   setPluginConfig,
 } from '../plugin-kit/persist.js';
 import type { PluginConfigField, PluginConfigMap } from '../plugin-kit/types.js';
-import { getAiConfig } from '../services/settingsStore.js';
+import { getAiConfig } from '../services/settings/index.js';
 
 export type PluginServiceNs = 'asr' | 'tts';
 

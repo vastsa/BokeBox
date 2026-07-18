@@ -15,11 +15,11 @@ import {
   getAiPromptBundle,
   saveAiPromptTemplate,
   type AiPromptKind,
-} from '../services/aiPromptTemplates.js';
+} from '../services/content/aiPromptTemplates.js';
 import {
   COVER_PROMPT_VARIABLES,
   DEFAULT_COVER_PROMPT_TEMPLATE,
-} from '../services/coverGenerator.js';
+} from '../services/media/coverGenerator.js';
 import {
   getCoverPromptTemplateStored,
   getGlobalScriptPrompt,
@@ -36,8 +36,8 @@ import {
   withProviderCatalog,
   type AiConfig,
   type SiteSeoInput,
-} from '../services/settingsStore.js';
-import { summarizeScriptPrompt } from '../services/scriptPrompt.js';
+} from '../services/settings/index.js';
+import { summarizeScriptPrompt } from '../services/content/scriptPrompt.js';
 import { listAsrProviderDescriptors } from '../providers/asr/index.js';
 import { listTtsProviderDescriptors } from '../providers/tts/index.js';
 import type { ScriptPromptOptions, TtsOptions } from '../types/job.js';

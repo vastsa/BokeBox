@@ -15,16 +15,16 @@ import {
   setAlbumItems,
   setAlbumOwnCoverImage,
   updateAlbum,
-} from '../services/albumStore.js';
+} from '../services/album/albumStore.js';
 import {
   generateAlbumCover,
-} from '../services/coverGenerator.js';
+} from '../services/media/coverGenerator.js';
 import {
   parseCoverImageSize,
   resolveCoverDelivery,
-} from '../services/imageOptimize.js';
+} from '../services/media/imageOptimize.js';
 import { albumPaths } from '../utils/paths.js';
-import { listListenRecords } from '../services/listenStore.js';
+import { listListenRecords } from '../services/job/listenStore.js';
 import {
   hasApiKey,
   hasImageModel,

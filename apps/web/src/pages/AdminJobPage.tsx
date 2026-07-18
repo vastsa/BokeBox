@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
   deleteJob,
@@ -31,7 +31,16 @@ import {
 import { coverGradientFor, formatSize, formatSourceLabel, formatTime } from '../lib/format';
 import { CoverArt } from '../components/ui/CoverArt';
 import { navigate, type Route } from '../lib/router';
-import type { Job, JobStatus, PipelineFromStep } from '../types/job';
+import type { Job, PipelineFromStep } from '../types/job';
+import {
+  ACTIVE_STATUSES,
+  PIPELINE,
+  RERUN_STEPS,
+  canSelectFromStep,
+  pickDefaultFromStep,
+  pipelineIndex,
+} from '../features/admin-job/pipelineSteps';
+import { AssetRow } from '../features/admin-job/AssetRow';
 import { AppShell } from '../layouts/AppShell';
 import { AdminChrome } from '../components/admin/AdminChrome';
 import { ContentLocaleSelect } from '../components/admin/ContentLocaleSelect';
@@ -50,115 +59,6 @@ const CONTENT_TABS: Array<{ key: ContentTab; labelKey: string }> = [
   { key: 'transcript', labelKey: 'job.tabTranscript' },
   { key: 'source', labelKey: 'job.tabSource' },
 ];
-
-const PIPELINE: Array<{ key: string; labelKey: string; match: JobStatus[] }> = [
-  { key: 'queued', labelKey: 'statusShort.queued', match: ['queued'] },
-  { key: 'extracting_audio', labelKey: 'statusShort.extracting_audio', match: ['extracting_audio'] },
-  { key: 'transcribing', labelKey: 'statusShort.transcribing', match: ['transcribing'] },
-  { key: 'generating_podcast', labelKey: 'statusShort.generating_podcast', match: ['generating_podcast'] },
-  { key: 'generating_cover', labelKey: 'statusShort.generating_cover', match: ['generating_cover'] },
-  { key: 'synthesizing_audio', labelKey: 'statusShort.synthesizing_audio', match: ['synthesizing_audio'] },
-  { key: 'done', labelKey: 'statusShort.done', match: ['done'] },
-];
-
-const ACTIVE_STATUSES: JobStatus[] = [
-  'queued',
-  'extracting_audio',
-  'transcribing',
-  'generating_podcast',
-  'generating_cover',
-  'synthesizing_audio',
-];
-
-const RERUN_STEPS: Array<{
-  key: PipelineFromStep;
-  labelKey: string;
-  descKey: string;
-  /** 需要哪些已有资产才能选该起点 */
-  requires: Array<'audio' | 'transcript' | 'script'>;
-}> = [
-  {
-    key: 'extract',
-    labelKey: 'job.stepExtract',
-    descKey: 'job.stepExtractDesc',
-    requires: [],
-  },
-  {
-    key: 'transcribe',
-    labelKey: 'job.stepTranscribe',
-    descKey: 'job.stepTranscribeDesc',
-    requires: ['audio'],
-  },
-  {
-    key: 'script',
-    labelKey: 'job.stepGenerate',
-    descKey: 'job.stepGenerateDesc',
-    requires: ['audio', 'transcript'],
-  },
-  {
-    key: 'cover',
-    labelKey: 'job.stepCover',
-    descKey: 'job.stepCoverDesc',
-    requires: ['script'],
-  },
-  {
-    key: 'flashcards',
-    labelKey: 'job.stepFlashcards',
-    descKey: 'job.stepFlashcardsDesc',
-    requires: ['transcript', 'script'],
-  },
-  {
-    key: 'synthesize',
-    labelKey: 'job.stepSynthesize',
-    descKey: 'job.stepSynthesizeDesc',
-    requires: ['audio', 'script'],
-  },
-];
-
-function pickDefaultFromStep(job: Job): PipelineFromStep {
-  const hasAudio = Boolean(job.hasSourceAudio);
-  const hasTranscript = Boolean(job.hasTranscript || job.transcript?.trim());
-  const hasScript = Boolean(job.podcast?.script?.trim());
-  const hasCards = Boolean(job.podcast?.flashcards?.length);
-  const hasCover = Boolean(job.podcast?.hasCoverImage);
-  // 有脚本无封面时优先补封面
-  if (hasScript && !hasCover) return 'cover';
-  // 有脚本无闪卡时，默认补闪卡更省时
-  if (hasScript && hasTranscript && !hasCards) return 'flashcards';
-  if (hasScript && hasAudio) return 'synthesize';
-  if (hasTranscript && hasAudio) return 'script';
-  if (hasAudio) return 'transcribe';
-  return 'extract';
-}
-
-function canSelectFromStep(job: Job, step: PipelineFromStep): boolean {
-  const meta = RERUN_STEPS.find((s) => s.key === step);
-  if (!meta) return false;
-  const hasAudio = Boolean(job.hasSourceAudio);
-  const hasTranscript = Boolean(job.hasTranscript || job.transcript?.trim());
-  const hasScript = Boolean(job.podcast?.script?.trim());
-  // 文本任务无源音频也可生成脚本/闪卡；合成仍建议有占位音频，但后端可处理
-  const kind = job.sourceKind || 'video';
-  for (const req of meta.requires) {
-    if (req === 'audio') {
-      if (!hasAudio && kind !== 'text') return false;
-      // 闪卡不需要 audio；script 在 text 下也不强制
-      if (!hasAudio && kind === 'text' && step === 'synthesize') {
-        // 允许：演示/真实 TTS 多数不依赖源音频内容
-      }
-    }
-    if (req === 'transcript' && !hasTranscript) return false;
-    if (req === 'script' && !hasScript) return false;
-  }
-  return true;
-}
-
-function pipelineIndex(status: JobStatus): number {
-  if (status === 'failed') return -1;
-  if (status === 'done') return PIPELINE.length - 1;
-  const idx = PIPELINE.findIndex((s) => s.match.includes(status));
-  return idx >= 0 ? idx : 0;
-}
 
 export function AdminJobPage({ id, route }: { id: string; route: Route }) {
   const { t } = useI18n();
@@ -960,21 +860,3 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
   );
 }
 
-function AssetRow({
-  icon,
-  label,
-  ready,
-}: {
-  icon: ReactNode;
-  label: string;
-  ready: boolean;
-}) {
-  const { t } = useI18n();
-  return (
-    <div className={['jd-asset', ready ? 'is-ready' : ''].join(' ')}>
-      <span className="ic">{icon}</span>
-      <span className="lb">{label}</span>
-      <span className="st">{ready ? t('common.ready') : t('common.unreadied')}</span>
-    </div>
-  );
-}
