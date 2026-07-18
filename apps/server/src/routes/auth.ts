@@ -365,8 +365,8 @@ function isGuestHomePublicPath(method: string, url: string): boolean {
   if (m !== 'GET' && m !== 'HEAD') return false;
   if (url === '/api/listen/library') return true;
   if (url === '/api/listen/albums') return true;
-  // 专辑详情：/api/listen/albums/:id
-  if (/^\/api\/listen\/albums\/[^/]+$/.test(url)) return true;
+  // 专辑详情 / 封面：/api/listen/albums/:id[/cover]
+  if (/^\/api\/listen\/albums\/[^/]+(?:\/cover)?$/.test(url)) return true;
 
   // 仅开放 listen 详情，排除 history 等管理向路径（防进度/历史泄露）
   const listenMatch = url.match(/^\/api\/listen\/([^/]+)$/);

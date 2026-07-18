@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Masonry } from 'react-plock';
 import {
+  albumCoverUrl,
   coverImageUrl,
   fetchHistory,
   fetchJobs,
@@ -342,12 +343,14 @@ export function ListenHomePage({ route }: { route: Route }) {
                         preferred={album.coverGradient}
                         title={album.title}
                         imageUrl={
-                          album.hasCoverImage && album.resolvedCoverJobId
-                            ? coverImageUrl(
-                                album.resolvedCoverJobId,
-                                album.updatedAt,
-                              )
-                            : null
+                          album.hasOwnCoverImage
+                            ? albumCoverUrl(album.id, album.updatedAt)
+                            : album.hasCoverImage && album.resolvedCoverJobId
+                              ? coverImageUrl(
+                                  album.resolvedCoverJobId,
+                                  album.updatedAt,
+                                )
+                              : null
                         }
                         className="lh-album-cover"
                       />

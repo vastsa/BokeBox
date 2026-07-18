@@ -13,6 +13,9 @@ export const STORAGE_DIR = path.join(ROOT_DIR, 'storage');
 /** 任务媒体根：每个 job 独占一个子目录 */
 export const JOBS_DIR = path.join(STORAGE_DIR, 'jobs');
 
+/** 专辑媒体根：每个 album 独占一个子目录（封面等） */
+export const ALBUMS_DIR = path.join(STORAGE_DIR, 'albums');
+
 /**
  * 外部 Source 插件目录（仅本地加载，不支持远程安装）
  * storage/plugins/source/<plugin-dir>/plugin.json + entry
@@ -66,6 +69,24 @@ export interface JobPaths {
 
 export function jobDir(jobId: string): string {
   return path.join(JOBS_DIR, jobId);
+}
+
+export function albumDir(albumId: string): string {
+  return path.join(ALBUMS_DIR, albumId);
+}
+
+export type AlbumPaths = {
+  dir: string;
+  /** 默认封面路径（png）；实际可能是 jpg/webp */
+  cover: string;
+};
+
+export function albumPaths(albumId: string): AlbumPaths {
+  const dir = albumDir(albumId);
+  return {
+    dir,
+    cover: path.join(dir, 'cover.png'),
+  };
 }
 
 export function jobPaths(jobId: string): JobPaths {

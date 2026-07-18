@@ -57,6 +57,9 @@ const zhCN = {
   'listen.notReady': '播客不存在或尚未完成',
   'album.notFound': '专辑不存在',
   'album.titleRequired': '请填写专辑标题',
+  'album.coverMissing': '专辑封面不存在',
+  'album.coverNoModel': '未配置图片模型，无法生成专辑封面',
+  'album.coverFailed': '专辑封面生成失败',
   'listen.notFound': '播客不存在',
 
   // source kinds
@@ -151,6 +154,9 @@ const enUS: Record<keyof typeof zhCN, string> = {
   'job.notFound': 'Job not found',
   'album.notFound': 'Album not found',
   'album.titleRequired': 'Album title is required',
+  'album.coverMissing': 'Album cover not found',
+  'album.coverNoModel': 'Image model not configured for album covers',
+  'album.coverFailed': 'Failed to generate album cover',
   'job.podcastAudioMissing': 'Podcast audio is not ready',
   'job.sourceAudioMissing': 'Source audio not found',
   'job.videoMissing': 'Video not found',

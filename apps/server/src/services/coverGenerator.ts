@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ensureDir, pathExists, removeIfExists } from '../utils/fs.js';
-import { jobPaths } from '../utils/paths.js';
+import { albumPaths, jobPaths } from '../utils/paths.js';
 import type { PodcastContent } from '../types/job.js';
 import {
   aiFetch,
@@ -437,5 +437,179 @@ export async function maybeGeneratePodcastCover(
     const msg = err instanceof Error ? err.message : String(err);
     console.warn(`[cover] job=${jobId} generate failed:`, msg);
     return { ...podcast, hasCoverImage: false };
+  }
+}
+
+// ---------- 专辑专属封面 ----------
+
+export async function findAlbumCoverFile(albumId: string): Promise<string | null> {
+  const dir = albumPaths(albumId).dir;
+  for (const name of COVER_CANDIDATES) {
+    const p = path.join(dir, name);
+    if (await pathExists(p)) return p;
+  }
+  return null;
+}
+
+function resolveAlbumCoverPath(albumId: string, preferredExt?: string): string {
+  const dir = albumPaths(albumId).dir;
+  if (preferredExt) {
+    const ext = preferredExt.startsWith('.') ? preferredExt : `.${preferredExt}`;
+    return path.join(dir, `cover${ext}`);
+  }
+  return path.join(dir, 'cover.png');
+}
+
+async function cleanupOldAlbumCovers(
+  albumId: string,
+  keepPath?: string,
+): Promise<void> {
+  const dir = albumPaths(albumId).dir;
+  for (const name of COVER_CANDIDATES) {
+    const p = path.join(dir, name);
+    if (keepPath && path.resolve(p) === path.resolve(keepPath)) continue;
+    await removeIfExists(p);
+  }
+}
+
+async function writeAlbumCoverBytes(
+  albumId: string,
+  bytes: Buffer,
+  ext: string,
+): Promise<string> {
+  const out = resolveAlbumCoverPath(albumId, ext);
+  await ensureDir(path.dirname(out));
+  await cleanupOldAlbumCovers(albumId, out);
+  await fs.writeFile(out, bytes);
+  return out;
+}
+
+/** 把专辑元信息映射为封面生成用的 PodcastContent 形状 */
+function albumAsPodcastContent(input: {
+  title: string;
+  summary?: string;
+}): PodcastContent {
+  return {
+    title: input.title,
+    summary: (input.summary || '').trim() || input.title,
+    tags: ['album', 'series', '播客专辑'],
+    hostIntro: 'Album series cover',
+    outline: [],
+    script: '',
+    showNotes: '',
+    estimatedMinutes: 0,
+  };
+}
+
+/**
+ * 生成专辑专属 AI 封面（固定优先 1:1，系列感更强）
+ */
+export async function generateAlbumCover(
+  albumId: string,
+  input: { title: string; summary?: string },
+): Promise<boolean> {
+  if (!hasApiKey('image') || !hasImageModel()) return false;
+
+  const model = getImageModel();
+  // 专辑封面优先方形，便于网格展示
+  const base =
+    COVER_FRAMES.find((f) => f.aspect === '1:1') || pickRandomCoverFrame(albumId);
+  const sizes = SIZE_FALLBACKS[base.aspect] || [base.size];
+  const template = getCoverPromptTemplateStored() || DEFAULT_COVER_PROMPT_TEMPLATE;
+  const podcast = albumAsPodcastContent(input);
+
+  let lastError = '';
+  let finalRes: Response | null = null;
+  let usedSize = sizes[0]!;
+
+  for (const size of sizes) {
+    usedSize = size;
+    let res = await requestCoverImage({
+      model,
+      prompt: buildCoverPrompt(podcast, { ...base, size }, template),
+      size,
+      withResponseFormat: true,
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      lastError = body;
+      if (isLikelySizeError(res.status, body)) {
+        console.warn(
+          `[album-cover] album=${albumId} size=${size} rejected, try fallback`,
+        );
+        continue;
+      }
+      res = await requestCoverImage({
+        model,
+        prompt: buildCoverPrompt(podcast, { ...base, size }, template),
+        size,
+        withResponseFormat: false,
+      });
+      if (!res.ok) {
+        lastError = await res.text();
+        if (isLikelySizeError(res.status, lastError)) {
+          console.warn(
+            `[album-cover] album=${albumId} size=${size} rejected (retry), try fallback`,
+          );
+          continue;
+        }
+        throw new Error(`专辑封面生成失败 (${res.status}): ${lastError}`);
+      }
+    }
+
+    finalRes = res;
+    break;
+  }
+
+  if (!finalRes) {
+    throw new Error(
+      `专辑封面生成失败：画幅 ${base.aspect} 无可用尺寸。${lastError.slice(0, 200)}`,
+    );
+  }
+
+  const data = (await finalRes.json()) as {
+    data?: Array<{
+      b64_json?: string;
+      url?: string;
+    }>;
+  };
+  const item = data.data?.[0];
+  if (!item) throw new Error('专辑封面生成结果为空');
+
+  console.info(
+    `[album-cover] album=${albumId} aspect=${base.aspect} size=${usedSize} ok`,
+  );
+
+  if (item.b64_json) {
+    const bytes = Buffer.from(item.b64_json, 'base64');
+    await writeAlbumCoverBytes(albumId, bytes, '.png');
+    return true;
+  }
+  if (item.url) {
+    const imgRes = await fetch(item.url);
+    if (!imgRes.ok) {
+      throw new Error(`专辑封面下载失败 (${imgRes.status})`);
+    }
+    const buf = Buffer.from(await imgRes.arrayBuffer());
+    const mime = imgRes.headers.get('content-type');
+    const ext = extFromMime(mime) || extFromUrl(item.url);
+    await writeAlbumCoverBytes(albumId, buf, ext);
+    return true;
+  }
+  throw new Error('专辑封面生成结果缺少 b64_json/url');
+}
+
+export async function maybeGenerateAlbumCover(
+  albumId: string,
+  input: { title: string; summary?: string },
+): Promise<boolean> {
+  if (!hasImageModel() || !hasApiKey('image')) return false;
+  try {
+    return await generateAlbumCover(albumId, input);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[album-cover] album=${albumId} generate failed:`, msg);
+    return false;
   }
 }

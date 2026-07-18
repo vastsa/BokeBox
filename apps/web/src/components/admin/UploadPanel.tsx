@@ -3,9 +3,11 @@ import {
   createJob,
   createJobFromUrl,
   fetchAiSettings,
+  fetchAlbums,
   fetchSourcePlugins,
   type SourcePluginDescriptor,
 } from '../../api/client';
+import type { AlbumSummary } from '../../types/album';
 import { formatSize, formatSourceLabel } from '../../lib/format';
 import {
   emptyScriptPrompt,
@@ -57,6 +59,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const ttsRef = useRef<TtsOptions>(DEFAULT_GLOBAL_TTS);
   const ttsSourceModeRef = useRef<TtsSourceMode>('global');
   const publishedRef = useRef(true);
+  const albumIdRef = useRef('');
 
   const [sourceMode, setSourceMode] = useState<SourceMode>('file');
   const [sourceUrl, setSourceUrl] = useState('');
@@ -75,6 +78,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const [globalTts, setGlobalTts] = useState<TtsOptions>(DEFAULT_GLOBAL_TTS);
   const [ttsReady, setTtsReady] = useState(false);
   const [published, setPublished] = useState(true);
+  const [albumId, setAlbumId] = useState('');
+  const [albums, setAlbums] = useState<AlbumSummary[]>([]);
+  const [albumsLoading, setAlbumsLoading] = useState(false);
   const [contentLocale, setContentLocale] = useState<Locale>('zh-CN');
   const [globalContentLocale, setGlobalContentLocale] =
     useState<Locale>('zh-CN');
@@ -94,6 +100,29 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const scriptPromptModeRef = useRef<ScriptPromptMode>('global');
   const scriptPromptRef = useRef<ScriptPromptOptions>(emptyScriptPrompt());
   const contentLocaleRef = useRef<Locale>('zh-CN');
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setAlbumsLoading(true);
+    void fetchAlbums()
+      .then((list) => {
+        if (!cancelled) setAlbums(list);
+      })
+      .catch(() => {
+        if (!cancelled) setAlbums([]);
+      })
+      .finally(() => {
+        if (!cancelled) setAlbumsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    albumIdRef.current = albumId;
+  }, [albumId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -209,6 +238,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
           scriptPrompt:
             currentPromptMode === 'custom' ? currentPrompt : undefined,
           locale: contentLocaleRef.current,
+          albumId: albumIdRef.current || undefined,
           onProgress: setProgress,
         });
         onCreated(job);
@@ -258,6 +288,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
           currentPromptMode === 'custom' ? currentPrompt : undefined,
         locale: contentLocaleRef.current,
         pluginId: currentPluginId,
+        albumId: albumIdRef.current || undefined,
       });
       setProgress(100);
       onCreated(job);
@@ -539,6 +570,34 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               />
             </span>
           </label>
+
+          <div className="upload-album-row">
+            <div className="upload-locale-head">
+              <span className="title">{t('upload.album')}</span>
+              <span className="desc">
+                {albumsLoading
+                  ? t('upload.albumLoading')
+                  : albums.length
+                    ? t('upload.albumHint')
+                    : t('upload.albumEmpty')}
+              </span>
+            </div>
+            <select
+              className="nl-input upload-locale-select"
+              value={albumId}
+              disabled={uploading || albumsLoading}
+              onChange={(e) => setAlbumId(e.target.value)}
+              aria-label={t('upload.album')}
+            >
+              <option value="">{t('upload.albumNone')}</option>
+              {albums.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
+                  {!a.published ? ` (${t('album.draft')})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="upload-locale-row">
             <div className="upload-locale-head">

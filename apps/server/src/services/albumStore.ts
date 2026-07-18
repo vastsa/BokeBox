@@ -19,6 +19,7 @@ export type AlbumRow = {
   title: string;
   summary: string;
   cover_job_id: string | null;
+  has_cover_image: number | null;
   published: number;
   created_at: string;
   updated_at: string;
@@ -36,6 +37,7 @@ export function rowToAlbum(row: AlbumRow): Album {
     title: row.title,
     summary: row.summary || '',
     coverJobId: row.cover_job_id || null,
+    hasOwnCoverImage: Boolean(row.has_cover_image),
     published: row.published !== 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -48,6 +50,7 @@ export function albumToRow(album: Album): AlbumRow {
     title: album.title,
     summary: album.summary || '',
     cover_job_id: album.coverJobId,
+    has_cover_image: album.hasOwnCoverImage ? 1 : 0,
     published: album.published ? 1 : 0,
     created_at: album.createdAt,
     updated_at: album.updatedAt,
@@ -201,6 +204,7 @@ export async function createAlbum(input: {
     title: input.title.trim(),
     summary: (input.summary || '').trim(),
     coverJobId: input.coverJobId || null,
+    hasOwnCoverImage: false,
     published: input.published !== false,
     createdAt: now,
     updatedAt: now,
@@ -211,9 +215,9 @@ export async function createAlbum(input: {
   try {
     db.prepare(
       `INSERT INTO albums (
-        id, title, summary, cover_job_id, published, created_at, updated_at
+        id, title, summary, cover_job_id, has_cover_image, published, created_at, updated_at
       ) VALUES (
-        @id, @title, @summary, @cover_job_id, @published, @created_at, @updated_at
+        @id, @title, @summary, @cover_job_id, @has_cover_image, @published, @created_at, @updated_at
       )`,
     ).run(albumToRow(album));
     const jobIds = (input.jobIds || []).filter(Boolean);
@@ -262,6 +266,7 @@ export async function updateAlbum(
         title = @title,
         summary = @summary,
         cover_job_id = @cover_job_id,
+        has_cover_image = @has_cover_image,
         published = @published,
         updated_at = @updated_at
        WHERE id = @id`,
@@ -420,3 +425,31 @@ export async function filterExistingJobIds(jobIds: string[]): Promise<string[]> 
 }
 
 export type { Job };
+
+/** 把任务追加到专辑末尾（已存在则不动顺序） */
+export async function appendJobToAlbum(
+  albumId: string,
+  jobId: string,
+): Promise<AlbumDetail | undefined> {
+  const detail = await getAlbumDetail(albumId);
+  if (!detail) return undefined;
+  const ids = detail.items.map((it) => it.jobId);
+  if (!ids.includes(jobId)) ids.push(jobId);
+  return setAlbumItems(albumId, ids);
+}
+
+/** 标记 / 清除专辑专属封面 */
+export async function setAlbumOwnCoverImage(
+  albumId: string,
+  hasOwnCoverImage: boolean,
+): Promise<AlbumDetail | undefined> {
+  const prev = await getAlbum(albumId);
+  if (!prev) return undefined;
+  const now = new Date().toISOString();
+  getDb()
+    .prepare(
+      `UPDATE albums SET has_cover_image = ?, updated_at = ? WHERE id = ?`,
+    )
+    .run(hasOwnCoverImage ? 1 : 0, now, albumId);
+  return getAlbumDetail(albumId);
+}
