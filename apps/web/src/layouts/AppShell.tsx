@@ -21,6 +21,8 @@ import { navigate, type Route } from '../lib/router';
 
 function prefetchTagCloud() {
   void import('../pages/TagCloudPage');
+  // 星图 three.js 体积大，悬停预取独立 chunk
+  void import('../components/tags/TagUniverse');
 }
 
 function prefetchAlbums() {

@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { coverImageUrl, fetchAllLibrary } from '../api/client';
 import { StarMapLoader } from '../components/tags/StarMapLoader';
-import { TagUniverse, type TagStar } from '../components/tags/TagUniverse';
+import type { TagStar } from '../components/tags/types';
+
+const TagUniverse = lazy(() =>
+  import('../components/tags/TagUniverse').then((m) => ({ default: m.TagUniverse })),
+);
 import { CoverArt } from '../components/ui/CoverArt';
 import { EmptyState } from '../components/ui/EmptyState';
 import { IconClose, IconPause, IconPlay, IconStars } from '../components/icons';
@@ -154,12 +158,14 @@ export function TagCloudPage({ route }: { route: Route }) {
       <div className="tc-page">
         <div className="tc-universe">
           {!empty && hasStars ? (
+            <Suspense fallback={null}>
             <TagUniverse
               tags={tags}
               selected={selected}
               onSelect={setSelected}
               onReady={handleSceneReady}
             />
+            </Suspense>
           ) : (
             <div className="tu-stage" aria-hidden>
               <div className="tu-vignette" />
