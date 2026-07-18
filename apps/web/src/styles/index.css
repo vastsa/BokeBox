@@ -403,7 +403,9 @@
   /* ===== Layout / safe area ===== */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  /* 底栏：内容约 54px + 底部安全区；预留 4px 防止字重差异撑破 */
   --bottom-nav-h: calc(58px + env(safe-area-inset-bottom, 0px));
+  /* 迷你播放条默认高度；body:has(.global-player) 时覆写 */
   --global-player-h: 0px;
   --container-max: 1040px;
   --container-admin: 900px;
@@ -1128,13 +1130,14 @@ body:has(.global-player) {
   right: 0;
   bottom: 0;
   z-index: var(--z-player);
+  box-sizing: border-box;
+  /* 与 --bottom-nav-h 对齐，避免与迷你播放条高度估算漂移 */
+  min-height: var(--bottom-nav-h);
   padding: var(--space-1) var(--space-2_5) calc(4px + var(--safe-bottom));
   background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border-top: var(--space-px) solid var(--separator);
   backdrop-filter: blur(var(--blur-2xl)) saturate(1.15);
   -webkit-backdrop-filter: blur(var(--blur-2xl)) saturate(1.15);
-  border-top: var(--space-px) solid var(--separator);
-  backdrop-filter: blur(var(--blur-xl));
-  -webkit-backdrop-filter: blur(var(--blur-xl));
 }
 html[data-theme="dark"] .bottom-nav { background: var(--surface-nav-dark); }
 html[data-theme="dark"] .topbar-action-btn {
@@ -4396,12 +4399,15 @@ html[data-theme="dark"] .jd-tabs {
 
 /* =========================
    Global mini player bar
+   手机端：贴合底栏上方停靠（Spotify 式 chrome 叠层）
+   桌面端：居中浮动卡片
+   位置由 :has(.bottom-nav) 决定，不再依赖路由 class 名单
    ========================= */
 .global-player {
   position: fixed;
   left: var(--space-2_5);
   right: var(--space-2_5);
-  bottom: calc(var(--bottom-nav-h) + 8px);
+  bottom: calc(10px + var(--safe-bottom));
   z-index: var(--z-top);
   border-radius: var(--radius-xl);
   background:
@@ -4414,9 +4420,12 @@ html[data-theme="dark"] .jd-tabs {
   overflow: hidden;
   animation: gp-rise 0.28s var(--ease) both;
 }
-.global-player:not(.with-bottom-nav) {
-  bottom: calc(10px + var(--safe-bottom));
+
+/* 有底部导航时抬到导航上方，杜绝重叠 */
+body:has(.bottom-nav) .global-player {
+  bottom: calc(var(--bottom-nav-h) + 8px);
 }
+
 @keyframes gp-rise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -4547,13 +4556,62 @@ html[data-theme="dark"] .jd-tabs {
   transition: width 0.2s linear;
 }
 
+/* 手机端：与底栏贴合为统一底栏 chrome，节省空间且零重叠 */
+@media (max-width: 767.98px) {
+  body:has(.bottom-nav) .global-player {
+    left: 0;
+    right: 0;
+    bottom: var(--bottom-nav-h);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    box-shadow:
+      0 -8px 24px color-mix(in srgb, var(--ink-a08) 70%, transparent),
+      0 -1px 0 color-mix(in srgb, var(--separator) 80%, transparent);
+  }
+
+  /* 与播放条衔接：去掉顶部分割线，形成连续面板 */
+  body:has(.global-player) .bottom-nav {
+    border-top-color: transparent;
+    box-shadow: 0 -1px 0 color-mix(in srgb, var(--separator) 55%, transparent);
+  }
+
+  body:has(.global-player) {
+    --global-player-h: 64px;
+  }
+
+  /* 窄屏压缩内边距，避免控件把高度撑破内容留白 */
+  .global-player-inner {
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
+    gap: var(--space-1_5);
+    padding: var(--space-1_5) var(--space-2) var(--space-1);
+  }
+  .global-player-cover {
+    width: var(--control-3xl);
+    height: var(--control-3xl);
+    border-radius: var(--radius-md-minus);
+  }
+  .global-ctrl {
+    width: var(--control-3xl);
+    height: var(--control-3xl);
+  }
+  .global-ctrl.is-main {
+    width: var(--control-5xl);
+    height: var(--control-5xl);
+  }
+  .global-player-side .global-rate { display: none; }
+}
+
 @media (min-width: 768px) {
-  .global-player,
-  .global-player.with-bottom-nav {
+  .global-player {
     left: 50%;
     right: auto;
     width: min(560px, calc(100% - 40px));
     transform: translateX(-50%);
+    bottom: var(--space-5);
+  }
+  body:has(.bottom-nav) .global-player {
     bottom: var(--space-5);
   }
   @keyframes gp-rise {
@@ -4569,22 +4627,6 @@ html[data-theme="dark"] .global-player {
     border-color: var(--separator-soft);
   }
 
-@media (max-width: 420px) {
-  .global-player-side .global-rate { display: none; }
-  .global-player-inner {
-    grid-template-columns: 36px minmax(0, 1fr) auto auto;
-    gap: var(--space-1_5);
-  }
-  .global-player-cover { width: var(--control-3xl); height: var(--control-3xl); border-radius: var(--radius-md-minus); }
-  .global-ctrl {
-    width: var(--control-3xl);
-    height: var(--control-3xl);
-  }
-  .global-ctrl.is-main {
-    width: var(--control-5xl);
-    height: var(--control-5xl);
-  }
-}
 
 /* =========================
    Listen home · cover grid
@@ -10164,7 +10206,7 @@ html:has(.tc-page) .global-player , html[data-route="tags"] .global-player {
     linear-gradient(180deg, rgba(79, 142, 247, 0.12), transparent 58%),
     rgba(10, 14, 24, 0.94) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.4);
 }
 
 html:has(.tc-page) .global-player-title , html[data-route="tags"] .global-player-title {
