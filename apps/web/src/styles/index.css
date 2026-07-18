@@ -11467,8 +11467,8 @@ html[data-theme="dark"] .settings-seo-preview-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px 12px;
+  gap: 8px;
+  padding: 8px 12px 10px;
   border-top: 1px solid color-mix(in srgb, var(--separator) 88%, transparent);
   background: color-mix(in srgb, var(--surface-2) 40%, transparent);
 }
@@ -11478,14 +11478,16 @@ html[data-theme="dark"] .settings-seo-preview-title {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
-  padding: 0 12px 0 8px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--separator) 92%, transparent);
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px 0 6px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--separator) 90%, transparent);
   background: var(--surface);
   color: var(--text-2);
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -11494,8 +11496,8 @@ html[data-theme="dark"] .settings-seo-preview-title {
 }
 
 .admin-job-publish > i {
-  width: 28px;
-  height: 16px;
+  width: 30px;
+  height: 18px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--text) 16%, var(--surface-2));
   position: relative;
@@ -11508,18 +11510,18 @@ html[data-theme="dark"] .settings-seo-preview-title {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--surface);
   box-shadow: 0 1px 2px rgb(0 0 0 / 16%);
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .admin-job-publish.is-on {
-  color: var(--success);
-  border-color: color-mix(in srgb, var(--success) 24%, var(--separator));
-  background: color-mix(in srgb, var(--success-soft) 55%, var(--surface));
+  color: var(--text-2);
+  border-color: color-mix(in srgb, var(--success) 22%, var(--separator));
+  background: color-mix(in srgb, var(--success-soft) 36%, var(--surface));
 }
 
 .admin-job-publish.is-on > i {
@@ -11534,6 +11536,12 @@ html[data-theme="dark"] .settings-seo-preview-title {
 .admin-job-publish:hover:not(:disabled) {
   color: var(--text);
   border-color: color-mix(in srgb, var(--text) 14%, var(--separator));
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+}
+
+.admin-job-publish.is-on:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--success-soft) 48%, var(--surface));
+  border-color: color-mix(in srgb, var(--success) 28%, var(--separator));
 }
 
 .admin-job-publish:disabled {
@@ -11552,8 +11560,8 @@ html[data-theme="dark"] .settings-seo-preview-title {
   appearance: none;
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--separator) 90%, transparent);
   background: var(--surface);
