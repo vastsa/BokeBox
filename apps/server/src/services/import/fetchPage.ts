@@ -17,6 +17,7 @@ import {
   stripTagsToText,
 } from './html.js';
 import { kindFromExt, kindFromMime } from './mediaDetect.js';
+import { safeFetch, UnsafeUrlError } from '../../utils/ssrf.js';
 
 export const MAX_BYTES = 500 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 120_000;
@@ -223,23 +224,24 @@ async function rawFetch(
   options: { timeoutMs?: number } = {},
 ): Promise<Response> {
   const timeoutMs = options.timeoutMs ?? FETCH_TIMEOUT_MS;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, {
+    // 每跳重定向都会做 SSRF 校验，避免公网跳板打内网
+    return await safeFetch(url, {
       method: 'GET',
-      redirect: 'follow',
-      signal: controller.signal,
       headers,
+      timeoutMs,
     });
   } catch (err) {
+    if (err instanceof UnsafeUrlError) throw err;
     const msg = err instanceof Error ? err.message : String(err);
-    if (/abort/i.test(msg)) {
-      throw new Error(`下载超时（超过 ${Math.round(timeoutMs / 1000)} 秒）`);
+    if (/abort/i.test(msg) || /超时/.test(msg)) {
+      throw new Error(
+        msg.startsWith('下载超时')
+          ? msg
+          : `下载超时（超过 ${Math.round(timeoutMs / 1000)} 秒）`,
+      );
     }
-    throw new Error(`下载失败: ${msg}`);
-  } finally {
-    clearTimeout(timer);
+    throw new Error(msg.startsWith('下载失败') ? msg : `下载失败: ${msg}`);
   }
 }
 

@@ -21,6 +21,7 @@ import {
   isValidHttpUrl,
   type ImportResult,
 } from './kinds.js';
+import { assertSafeOutboundUrl, UnsafeUrlError } from '../../utils/ssrf.js';
 import {
   extOf,
   filenameFromUrl,
@@ -59,6 +60,14 @@ export async function importUrlContent(
 ): Promise<ImportResult> {
   if (!isValidHttpUrl(url)) {
     throw new Error('请输入有效的 http/https 链接');
+  }
+
+  // DNS 级 SSRF 校验：拒绝解析到私网/本机/元数据的目标
+  try {
+    await assertSafeOutboundUrl(url);
+  } catch (err) {
+    if (err instanceof UnsafeUrlError) throw err;
+    throw new Error(err instanceof Error ? err.message : String(err));
   }
 
   const requestUrl = url.trim();

@@ -2,6 +2,7 @@
  * URL 导入：素材类型识别与轻量校验（纯函数）
  */
 import type { SourceKind } from '../../types/job.js';
+import { isSafeHttpUrl } from '../../utils/ssrf.js';
 
 export const VIDEO_EXT = new Set([
   '.mp4',
@@ -104,13 +105,12 @@ export interface ImportResult {
   finalUrl?: string;
 }
 
+/**
+ * 协议 + 同步 SSRF 粗检（字面量私网 / localhost 等）。
+ * DNS 解析级校验在 importUrlContent / safeFetch 中异步完成。
+ */
 export function isValidHttpUrl(raw: string): boolean {
-  try {
-    const u = new URL(raw.trim());
-    return u.protocol === 'http:' || u.protocol === 'https:';
-  } catch {
-    return false;
-  }
+  return isSafeHttpUrl(raw);
 }
 
 /** 是否像占位任务标题（应用网页真实标题覆盖） */

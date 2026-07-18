@@ -8,6 +8,7 @@ import {
   hasImageModel,
 } from '../../utils/aiConfig.js';
 import { getCoverPromptTemplateStored } from '../settings/index.js';
+import { safeFetch } from '../../utils/ssrf.js';
 import {
   findCoverMasterFile,
   writeOptimizedCover,
@@ -391,7 +392,7 @@ export async function generatePodcastCover(
   }
 
   if (item.url) {
-    const imgRes = await fetch(item.url);
+    const imgRes = await safeFetch(item.url);
     if (!imgRes.ok) {
       throw new Error(`封面下载失败 (${imgRes.status})`);
     }
@@ -548,7 +549,7 @@ export async function generateAlbumCover(
     return true;
   }
   if (item.url) {
-    const imgRes = await fetch(item.url);
+    const imgRes = await safeFetch(item.url);
     if (!imgRes.ok) {
       throw new Error(`专辑封面下载失败 (${imgRes.status})`);
     }
