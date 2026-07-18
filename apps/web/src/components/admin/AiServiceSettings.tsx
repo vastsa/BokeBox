@@ -574,6 +574,10 @@ export function AiServiceSettings({
         </p>
       </ServiceCard>
 
+      <p className="settings-inline-hint ai-plugin-manage-tip">
+        {t('settings.aiPluginManageTip')}
+      </p>
+
       <section className="settings-card settings-card-wide">
         <div className="settings-card-actions">
           <span className="settings-card-hint">{t('settings.adminOnly')}</span>
