@@ -2847,8 +2847,10 @@ html[data-theme="dark"] .studio-job-live {
 .upload-studio {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-3_5);
   width: 100%;
+  max-width: 860px;
+  margin-inline: auto;
 }
 
 .upload-studio-main,
@@ -8977,12 +8979,62 @@ html[data-theme="dark"] .settings-toast {
 .upload-options-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2_5);
-  padding: var(--space-3);
+  gap: var(--space-3);
+  padding: var(--space-3_5);
   border-radius: var(--radius-xl);
   border: var(--bw-1) solid var(--separator);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
+}
+.upload-options-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 2px;
+}
+.upload-options-head strong {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.upload-options-head span {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+.upload-basics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .upload-basics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+  }
+}
+.upload-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.upload-field-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.upload-field-head .title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.upload-field-head .desc {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.35;
 }
 .upload-switch-row-compact {
   min-height: var(--control-5xl);
@@ -9082,9 +9134,9 @@ html[data-theme="dark"] .settings-toast {
   grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-1_5);
-  min-height: var(--control-6xl);
-  padding: var(--space-2) var(--space-2_5);
-  border-radius: var(--radius-md);
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
   border: var(--bw-1) solid var(--separator);
   background: var(--surface-2);
   color: var(--text-2);
@@ -9093,6 +9145,27 @@ html[data-theme="dark"] .settings-toast {
     border-color var(--dur-fast) var(--ease),
     background var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease);
+}
+@media (max-width: 559px) {
+  .upload-option-chip {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon label caret"
+      "icon value caret";
+    row-gap: 2px;
+    column-gap: 8px;
+  }
+  .upload-option-chip > svg,
+  .upload-option-chip > :first-child {
+    grid-area: icon;
+    align-self: center;
+  }
+  .upload-option-chip .chip-label { grid-area: label; }
+  .upload-option-chip .chip-value {
+    grid-area: value;
+    white-space: nowrap;
+  }
+  .upload-option-chip .chip-caret { grid-area: caret; align-self: center; }
 }
 .upload-option-chip:hover:not(:disabled) {
   border-color: var(--brand-ring);

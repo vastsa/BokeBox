@@ -546,9 +546,14 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
         )}
       </div>
 
-      {/* 2. 精简选项：默认折叠，按需展开 */}
+      {/* 2. 制作选项：基础设置 + 可展开高级项 */}
       <aside className="upload-options" aria-label={t('upload.optionsAria')}>
         <div className="upload-options-card">
+          <div className="upload-options-head">
+            <strong>{t('upload.optionsAria')}</strong>
+            <span>{t('upload.subtitle')}</span>
+          </div>
+
           <label
             className={[
               'upload-switch-row upload-switch-row-compact',
@@ -557,6 +562,9 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
           >
             <div className="upload-switch-copy">
               <div className="title">{t('upload.autoPublish')}</div>
+              <div className="desc">
+                {published ? t('upload.publishOn') : t('upload.publishOff')}
+              </div>
             </div>
             <span className={['upload-switch', published ? 'is-on' : ''].join(' ')}>
               <i />
@@ -571,51 +579,53 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
             </span>
           </label>
 
-          <div className="upload-album-row">
-            <div className="upload-locale-head">
-              <span className="title">{t('upload.album')}</span>
-              <span className="desc">
-                {albumsLoading
-                  ? t('upload.albumLoading')
-                  : albums.length
-                    ? t('upload.albumHint')
-                    : t('upload.albumEmpty')}
-              </span>
+          <div className="upload-basics-grid">
+            <div className="upload-field">
+              <div className="upload-field-head">
+                <span className="title">{t('upload.album')}</span>
+                <span className="desc">
+                  {albumsLoading
+                    ? t('upload.albumLoading')
+                    : albums.length
+                      ? t('upload.albumHint')
+                      : t('upload.albumEmpty')}
+                </span>
+              </div>
+              <select
+                className="nl-input upload-locale-select"
+                value={albumId}
+                disabled={uploading || albumsLoading}
+                onChange={(e) => setAlbumId(e.target.value)}
+                aria-label={t('upload.album')}
+              >
+                <option value="">{t('upload.albumNone')}</option>
+                {albums.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                    {!a.published ? ` (${t('album.draft')})` : ''}
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              className="nl-input upload-locale-select"
-              value={albumId}
-              disabled={uploading || albumsLoading}
-              onChange={(e) => setAlbumId(e.target.value)}
-              aria-label={t('upload.album')}
-            >
-              <option value="">{t('upload.albumNone')}</option>
-              {albums.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.title}
-                  {!a.published ? ` (${t('album.draft')})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
 
-          <div className="upload-locale-row">
-            <div className="upload-locale-head">
-              <span className="title">{t('upload.contentLocale')}</span>
-              <span className="desc">
-                {contentLocaleReady
-                  ? contentLocaleHint
-                  : t('upload.localeLoading')}
-              </span>
+            <div className="upload-field">
+              <div className="upload-field-head">
+                <span className="title">{t('upload.contentLocale')}</span>
+                <span className="desc">
+                  {contentLocaleReady
+                    ? contentLocaleHint
+                    : t('upload.localeLoading')}
+                </span>
+              </div>
+              <ContentLocaleSelect
+                className="upload-locale-select"
+                value={contentLocale}
+                options={contentLocaleOptions}
+                disabled={uploading || !contentLocaleReady}
+                aria-label={t('upload.contentLocaleAria')}
+                onChange={updateContentLocale}
+              />
             </div>
-            <ContentLocaleSelect
-              className="upload-locale-select"
-              value={contentLocale}
-              options={contentLocaleOptions}
-              disabled={uploading || !contentLocaleReady}
-              aria-label={t('upload.contentLocaleAria')}
-              onChange={updateContentLocale}
-            />
           </div>
 
           <div className="upload-option-chips" role="group" aria-label={t('upload.advancedAria')}>
