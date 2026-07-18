@@ -34,10 +34,7 @@ import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus, PipelineFromStep } from '../types/job';
 import { AppShell } from '../layouts/AppShell';
 import { AdminChrome } from '../components/admin/AdminChrome';
-import {
-  ContentLocaleSelect,
-  contentLocaleLabel,
-} from '../components/admin/ContentLocaleSelect';
+import { ContentLocaleSelect } from '../components/admin/ContentLocaleSelect';
 import {
   resolveContentLocale,
   useI18n,
@@ -319,11 +316,11 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
     <AppShell route={route}>
       <AdminChrome
         route={route}
-        title={title}
+        title={t('admin.jobDetailTitle')}
         subtitle={t('admin.jobDetailSub')}
       >
       <div className="admin-container nl-enter jd-page">
-        {/* 顶栏信息 */}
+        {/* 状态总览：标题只在此出现一次，避免与页头重复 */}
         <header className="jd-hero">
           <CoverArt
             seed={job.id}
@@ -340,7 +337,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
             <div className="jd-badges">
               <StatusBadge status={job.status} />
               <span className={['nl-tag', job.published ? 'nl-tag-success' : ''].join(' ')}>
-                {job.published ? t('admin.published') : t('admin.unpublished')}
+                {job.published ? t('admin.published') : t('admin.draft')}
               </span>
             </div>
             <h1 className="jd-title">{title}</h1>
@@ -356,7 +353,6 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               </span>
               <span>{formatSize(job.size)}</span>
               <span>{formatTime(job.createdAt)}</span>
-              <span className="mono">#{job.id}</span>
             </p>
           </div>
 
@@ -372,7 +368,10 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
             )}
             <button
               type="button"
-              className="nl-btn nl-btn-secondary"
+              className={[
+                'nl-btn',
+                job.published ? 'nl-btn-secondary' : 'nl-btn-primary',
+              ].join(' ')}
               disabled={busy === 'publish'}
               onClick={() =>
                 void runAction('publish', () =>
@@ -383,13 +382,15 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               {busy === 'publish'
                 ? t('job.updating')
                 : job.published
-                  ? t('job.unpublish')
-                   : t('job.publishToLib')}
+                  ? t('admin.unpublishAction')
+                  : t('admin.publishAction')}
             </button>
             <button
               type="button"
-              className="nl-btn nl-btn-ghost"
+              className="nl-btn nl-btn-ghost jd-icon-btn"
               onClick={() => void refresh()}
+              aria-label={t('common.refresh')}
+              title={t('common.refresh')}
             >
               <IconRefresh size={15} />
             </button>
@@ -740,33 +741,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               </div>
             </section>
 
-            <section className="jd-panel">
-              <div className="jd-side-head">
-                <h2 className="jd-side-title">{t('job.contentLocale')}</h2>
-                <span className="nl-chip">
-                  {contentLocaleLabel(job.locale)}
-                </span>
-              </div>
-              <p className="jd-hint jd-hint-top">{t('job.contentLocaleHint')}</p>
-            </section>
-
-            <section className="jd-panel">
-              <div className="jd-side-head">
-                <h2 className="jd-side-title">{t('job.ttsConfig')}</h2>
-                <span className="nl-chip">{t('common.readonly')}</span>
-              </div>
-              <TtsSummary value={job.tts} />
-            </section>
-
-            <section className="jd-panel">
-              <div className="jd-side-head">
-                <h2 className="jd-side-title">{t('job.persona')}</h2>
-                <span className="nl-chip">{t('common.readonly')}</span>
-              </div>
-              <ScriptPromptSummary value={job.scriptPrompt} />
-            </section>
-
-            <section className="jd-panel">
+            <section className="jd-panel" id="jd-reprocess-panel">
               <h2 className="jd-side-title">{t('job.reprocess')}</h2>
               <div className="jd-ops">
                 <p className="jd-hint jd-hint-top">
@@ -887,6 +862,22 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               </div>
             </section>
 
+            <section className="jd-panel">
+              <div className="jd-side-head">
+                <h2 className="jd-side-title">{t('job.ttsConfig')}</h2>
+                <span className="nl-chip">{t('common.readonly')}</span>
+              </div>
+              <TtsSummary value={job.tts} />
+            </section>
+
+            <section className="jd-panel">
+              <div className="jd-side-head">
+                <h2 className="jd-side-title">{t('job.persona')}</h2>
+                <span className="nl-chip">{t('common.readonly')}</span>
+              </div>
+              <ScriptPromptSummary value={job.scriptPrompt} />
+            </section>
+
             <section className="jd-panel jd-meta-panel">
               <div>
                 <span>{t('job.created')}</span>
@@ -910,6 +901,58 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               </div>
             </section>
           </aside>
+        </div>
+
+        <div className="jd-mobile-bar" role="toolbar" aria-label={t('admin.jobDetailTitle')}>
+          <button
+            type="button"
+            className={[
+              'nl-btn',
+              job.published ? 'nl-btn-secondary' : 'nl-btn-primary',
+            ].join(' ')}
+            disabled={busy === 'publish'}
+            onClick={() =>
+              void runAction('publish', () =>
+                updateJob(job.id, { published: !job.published }),
+              )
+            }
+          >
+            {busy === 'publish'
+              ? t('job.updating')
+              : job.published
+                ? t('admin.unpublishAction')
+                : t('admin.publishAction')}
+          </button>
+          {canListen ? (
+            <button
+              type="button"
+              className="nl-btn nl-btn-primary"
+              onClick={() => navigate({ name: 'player', id: job.id })}
+            >
+              {t('job.openPlayer')}
+            </button>
+          ) : canRerun ? (
+            <button
+              type="button"
+              className="nl-btn nl-btn-secondary"
+              onClick={() => {
+                document
+                  .getElementById('jd-reprocess-panel')
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              {t('job.reprocess')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="nl-btn nl-btn-ghost"
+              onClick={() => void refresh()}
+            >
+              <IconRefresh size={15} />
+              {t('common.refresh')}
+            </button>
+          )}
         </div>
       </div>
       </AdminChrome>

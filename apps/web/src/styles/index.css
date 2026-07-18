@@ -9149,6 +9149,61 @@ html[data-theme="dark"] .settings-toast {
   line-height: var(--lh-snug);
   color: var(--text-3);
 }
+
+.upload-options-toggle {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.upload-options-toggle-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.upload-options-toggle-copy strong {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.upload-options-toggle-copy span {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+.upload-options-toggle em {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand-2);
+}
+.upload-options-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--separator) 88%, transparent);
+}
+.upload-options-card.is-collapsed {
+  gap: 0;
+}
+.upload-options-card.is-collapsed .upload-options-body {
+  display: none;
+}
+
 .upload-basics-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -10952,6 +11007,18 @@ html[data-theme="dark"] .settings-seo-preview-title {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+  position: sticky;
+  top: calc(var(--safe-top, 0px) + 56px);
+  z-index: 5;
+  padding: 8px 0;
+  margin: -8px 0 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg, var(--surface)) 92%, transparent) 60%,
+    transparent
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .admin-filters {

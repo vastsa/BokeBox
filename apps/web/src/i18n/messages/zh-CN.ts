@@ -383,7 +383,7 @@ export const zhCN = {
   },
   admin: {
     title: '制作台',
-    subtitle: '管理制作任务、发布状态与生成资产',
+    subtitle: '创建节目、跟踪进度、发布到节目库',
     upload: '新建任务',
     metricsAria: '任务统计',
     filtersAria: '任务筛选',
@@ -422,6 +422,7 @@ export const zhCN = {
     ttsDefault: '自然口播',
     ttsCustom: '自定义',
     backToLibrary: '返回任务库',
+    jobDetailTitle: '任务详情',
     jobDetailSub: '查看制作进度、发布状态与生成成果',
   },
   job: {

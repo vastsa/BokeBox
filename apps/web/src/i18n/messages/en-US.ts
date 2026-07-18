@@ -388,7 +388,7 @@ export const enUS: MessageTree = {
   },
   admin: {
     title: 'Studio',
-    subtitle: 'Manage production jobs, publish state, and generated assets',
+    subtitle: 'Create shows, track progress, and publish to your library',
     upload: 'New job',
     metricsAria: 'Job stats',
     filtersAria: 'Job filters',
@@ -427,6 +427,7 @@ export const enUS: MessageTree = {
     ttsDefault: 'Natural voice',
     ttsCustom: 'Custom',
     backToLibrary: 'Back to library',
+    jobDetailTitle: 'Job detail',
     jobDetailSub: 'Production progress, publish state, and generated results',
   },
   job: {

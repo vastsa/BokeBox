@@ -96,6 +96,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
     useState<ScriptPromptOptions>(emptyScriptPrompt());
   const [scriptPromptReady, setScriptPromptReady] = useState(false);
   const [openPanel, setOpenPanel] = useState<OptionPanel>('none');
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   const scriptPromptModeRef = useRef<ScriptPromptMode>('global');
   const scriptPromptRef = useRef<ScriptPromptOptions>(emptyScriptPrompt());
@@ -548,12 +549,25 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
 
       {/* 2. 制作选项：基础设置 + 可展开高级项 */}
       <aside className="upload-options" aria-label={t('upload.optionsAria')}>
-        <div className="upload-options-card">
-          <div className="upload-options-head">
-            <strong>{t('upload.optionsAria')}</strong>
-            <span>{t('upload.subtitle')}</span>
-          </div>
+        <div className={['upload-options-card', optionsOpen ? 'is-open' : 'is-collapsed'].join(' ')}>
+          <button
+            type="button"
+            className="upload-options-toggle"
+            aria-expanded={optionsOpen}
+            onClick={() => setOptionsOpen((v) => !v)}
+          >
+            <span className="upload-options-toggle-copy">
+              <strong>{t('upload.optionsAria')}</strong>
+              <span>
+                {published ? t('upload.publishOn') : t('upload.publishOff')}
+                {' · '}
+                {ttsModeLabel} · {contentLocaleDisplay}
+              </span>
+            </span>
+            <em>{optionsOpen ? t('common.collapse') : t('common.adjust')}</em>
+          </button>
 
+          <div className="upload-options-body" hidden={!optionsOpen}>
           <label
             className={[
               'upload-switch-row upload-switch-row-compact',
@@ -723,6 +737,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
               />
             </div>
           )}
+          </div>
         </div>
       </aside>
     </div>
