@@ -11581,25 +11581,27 @@ html[data-theme="dark"] .source-risk-dot.is-high {
   min-height: 36px;
 }
 .al-back:hover { color: var(--text); }
+/* Album detail skeleton — compact podcast-header style */
 .al-detail-skel {
   display: grid;
-  gap: 16px;
-  justify-items: center;
-  padding: 8px 0 4px;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 12px 14px;
+  align-items: center;
+  padding: 2px 0 6px;
 }
 .al-detail-skel-cover {
-  width: 132px;
+  width: 88px;
   aspect-ratio: 1 / 1;
-  border-radius: 18px;
+  border-radius: 12px;
   background: linear-gradient(90deg, var(--surface-2), var(--surface), var(--surface-2));
   background-size: 200% 100%;
   animation: shimmer 1.2s linear infinite;
 }
 .al-detail-skel-copy {
-  width: min(100%, 280px);
+  min-width: 0;
   display: grid;
-  gap: 10px;
-  justify-items: center;
+  gap: 8px;
+  align-content: center;
 }
 .al-detail-skel-copy > i {
   display: block;
@@ -11608,223 +11610,197 @@ html[data-theme="dark"] .source-risk-dot.is-high {
   background-size: 200% 100%;
   animation: shimmer 1.2s linear infinite;
 }
-.al-detail-skel-kicker { width: 36px; height: 8px; }
-.al-detail-skel-title { width: 68%; height: 16px; }
-.al-detail-skel-meta { width: 28%; height: 10px; }
-.al-detail-skel-btn { width: 148px; height: 36px; border-radius: 999px; margin-top: 4px; }
+.al-detail-skel-meta { width: 42%; height: 8px; }
+.al-detail-skel-title { width: 78%; height: 14px; }
+.al-detail-skel-btn { width: 92px; height: 28px; border-radius: 999px; }
 @media (min-width: 720px) {
   .al-detail-skel {
-    grid-template-columns: 160px minmax(0, 1fr);
-    align-items: center;
-    justify-items: start;
-    gap: 22px;
-    padding: 4px 0;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 16px 18px;
   }
   .al-detail-skel-cover {
-    width: 160px;
-    border-radius: 20px;
-  }
-  .al-detail-skel-copy {
-    width: 100%;
-    justify-items: start;
+    width: 112px;
+    border-radius: 14px;
   }
 }
 
-/* ---- Album detail hero (redesign) ---- */
+/*
+  Album hero — 参考 Apple Podcasts / 小宇宙：
+  左封面 + 右信息，小字号元信息，紧凑主按钮，次操作为文字链
+*/
 .al-hero {
   display: grid;
-  gap: 16px;
-  justify-items: center;
-  text-align: center;
-  padding: 4px 0 8px;
+  gap: 12px;
+  padding: 2px 0 4px;
   border: 0;
   background: transparent;
   box-shadow: none;
 }
+
+.al-hero-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 12px 14px;
+  align-items: center;
+}
 @media (min-width: 720px) {
-  .al-hero {
-    grid-template-columns: 160px minmax(0, 1fr);
-    align-items: center;
-    justify-items: start;
-    text-align: left;
-    gap: 22px 24px;
-    padding: 6px 0 10px;
+  .al-hero-row {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 16px 18px;
+    align-items: start;
   }
 }
 
-.al-hero-media {
-  display: grid;
-  place-items: center;
-}
 .al-hero-cover {
-  width: 132px;
-  height: 132px;
+  width: 88px;
+  height: 88px;
   aspect-ratio: 1 / 1;
-  border-radius: 18px;
-  box-shadow:
-    0 10px 28px color-mix(in srgb, var(--black) 14%, transparent),
-    0 1px 0 color-mix(in srgb, var(--white) 35%, transparent) inset;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--black) 10%, transparent);
 }
 @media (min-width: 720px) {
   .al-hero-cover {
-    width: 160px;
-    height: 160px;
-    border-radius: 20px;
+    width: 112px;
+    height: 112px;
+    border-radius: 14px;
   }
 }
 
 .al-hero-main {
   min-width: 0;
-  width: 100%;
   display: grid;
-  gap: 10px;
-  justify-items: center;
+  gap: 8px;
+  align-content: center;
 }
 @media (min-width: 720px) {
-  .al-hero-main {
-    justify-items: start;
-    gap: 12px;
-  }
-}
-
-.al-hero-kicker {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--brand-2);
-  line-height: 1;
+  .al-hero-main { gap: 10px; }
 }
 
 .al-hero-copy {
+  min-width: 0;
   display: grid;
-  gap: 6px;
-  justify-items: center;
-  max-width: 36rem;
-}
-@media (min-width: 720px) {
-  .al-hero-copy {
-    justify-items: start;
-  }
-}
-
-.al-hero-title {
-  margin: 0;
-  font-size: clamp(22px, 5.6vw, 28px);
-  font-weight: 780;
-  letter-spacing: -0.03em;
-  line-height: 1.18;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-@media (min-width: 720px) {
-  .al-hero-title {
-    font-size: clamp(24px, 2.6vw, 32px);
-  }
+  gap: 3px;
 }
 
 .al-hero-meta {
   margin: 0;
-  font-size: 13px;
-  font-weight: 550;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--text-3);
+  line-height: 1.2;
+}
+.al-hero-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
 }
 
-.al-hero-summary {
-  margin: 2px 0 0;
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: var(--text-2);
-  max-width: 40ch;
+.al-hero-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.28;
+  color: var(--text);
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   overflow: hidden;
 }
 @media (min-width: 720px) {
-  .al-hero-summary {
-    max-width: 48ch;
-    -webkit-line-clamp: 4;
+  .al-hero-title {
+    font-size: 20px;
+    font-weight: 680;
+    -webkit-line-clamp: 3;
+  }
+}
+
+/* 手机：简介单独一行，避免挤在窄列；桌面：放在标题下 */
+.al-hero-summary {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.al-hero-summary-inline {
+  display: none;
+  margin-top: 2px;
+  max-width: 48ch;
+  -webkit-line-clamp: 2;
+}
+.al-hero-summary-block {
+  -webkit-line-clamp: 3;
+  padding: 0 1px;
+}
+@media (min-width: 720px) {
+  .al-hero-summary-inline {
+    display: -webkit-box;
+  }
+  .al-hero-summary-block {
+    display: none;
   }
 }
 
 .al-hero-actions {
-  width: 100%;
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-  margin-top: 2px;
-}
-@media (min-width: 720px) {
-  .al-hero-actions {
-    width: auto;
-    justify-items: start;
-    gap: 12px;
-    margin-top: 4px;
-  }
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
 }
 
-/* Primary action: solid brand pill, not FAB */
+/* 主按钮：精致小胶囊，对齐播客 App */
 .al-hero-play {
   appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 22px;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px 0 10px;
   border: 0;
   border-radius: 999px;
-  background: var(--brand-grad);
+  background: var(--brand);
   color: var(--text-inv);
   font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0;
   cursor: pointer;
   box-shadow: none;
+  flex: 0 0 auto;
   transition:
     transform var(--dur-fast) var(--ease),
     opacity var(--dur-fast) var(--ease),
     filter var(--dur-fast) var(--ease);
 }
-.al-hero-play:hover { filter: brightness(1.03); }
+.al-hero-play:hover { filter: brightness(1.04); }
 .al-hero-play:active { transform: scale(0.98); opacity: 0.94; }
 .al-hero-play:disabled {
-  opacity: 0.42;
+  opacity: 0.4;
   cursor: not-allowed;
   filter: none;
 }
-@media (max-width: 719px) {
-  .al-hero-play {
-    width: min(100%, 260px);
-  }
-}
 
-/* Secondary tools: quiet text actions */
 .al-hero-tools {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  max-width: 100%;
-}
-@media (min-width: 720px) {
-  .al-hero-tools {
-    justify-content: flex-start;
-  }
+  gap: 0;
+  min-width: 0;
 }
 .al-hero-tools.is-editing {
-  display: inline-flex;
   gap: 8px;
-}
-.al-hero-tools.is-editing .al-hero-play {
-  width: auto;
-  min-width: 96px;
-  min-height: 38px;
-  padding-inline: 18px;
-  font-size: 13.5px;
 }
 .al-hero-tool {
   appearance: none;
@@ -11832,11 +11808,11 @@ html[data-theme="dark"] .source-risk-dot.is-high {
   background: transparent;
   color: var(--text-2);
   font: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  min-height: 34px;
-  padding: 0 11px;
-  border-radius: 999px;
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
   cursor: pointer;
   transition:
     background var(--dur-fast) var(--ease),
@@ -11844,36 +11820,19 @@ html[data-theme="dark"] .source-risk-dot.is-high {
 }
 .al-hero-tool:hover {
   color: var(--text);
-  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 90%, transparent);
 }
 .al-hero-tool:disabled {
   opacity: 0.4;
   pointer-events: none;
 }
-.al-hero-tool + .al-hero-tool {
-  position: relative;
-}
-.al-hero-tool + .al-hero-tool::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 1px;
-  height: 12px;
-  transform: translateY(-50%);
-  background: var(--separator);
-  opacity: 0.9;
-}
 .al-hero-tools.is-editing .al-hero-tool {
   border: var(--bw-1) solid var(--separator);
-  background: color-mix(in srgb, var(--surface) 92%, var(--surface-2));
-  padding-inline: 14px;
-}
-.al-hero-tools.is-editing .al-hero-tool::before {
-  display: none;
+  background: color-mix(in srgb, var(--surface) 94%, var(--surface-2));
+  border-radius: 999px;
+  padding-inline: 12px;
 }
 
-/* 桌面完整文案 / 手机短文案 */
 .al-btn-label-short { display: inline; }
 .al-btn-label-full { display: none; }
 @media (min-width: 720px) {
@@ -11883,26 +11842,19 @@ html[data-theme="dark"] .source-risk-dot.is-high {
 
 .al-edit-fields {
   display: grid;
-  gap: 10px;
-  width: min(100%, 420px);
+  gap: 8px;
+  width: 100%;
   text-align: left;
-  justify-self: center;
-}
-@media (min-width: 720px) {
-  .al-edit-fields {
-    width: min(100%, 460px);
-    justify-self: start;
-  }
 }
 .al-edit-title {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 650;
 }
 .al-check {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--text-2);
 }
 
