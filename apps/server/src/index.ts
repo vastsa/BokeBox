@@ -35,7 +35,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 
 async function main() {
   // 启动即输出开源信息（纯 ASCII，不依赖 listen 成功）
-  printOpenSourceBanner({ version: '1.0.0', host: HOST, port: PORT });
+  printOpenSourceBanner({ version: '1.0.0' });
 
   await ensureDir(JOBS_DIR);
 

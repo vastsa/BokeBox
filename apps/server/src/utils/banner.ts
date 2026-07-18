@@ -30,12 +30,8 @@ function padLine(text: string, width: number): string {
  */
 export function buildOpenSourceBanner(options?: {
   version?: string;
-  host?: string;
-  port?: number;
 }): string {
   const version = options?.version ?? '1.0.0';
-  const host = options?.host;
-  const port = options?.port;
   const innerWidth = 60;
 
   const lines: string[] = [];
@@ -54,9 +50,6 @@ export function buildOpenSourceBanner(options?: {
   lines.push(row(`  Version  : ${version}`));
   lines.push(row(`  License  : ${PROJECT_LICENSE}`));
   lines.push(row(`  Open Src : ${PROJECT_REPO}`));
-  if (host != null && port != null) {
-    lines.push(row(`  Listen   : http://${host}:${port}`));
-  }
   lines.push(empty);
   lines.push(
     row('  Free software | LGPL-3.0 | keep license & attribution'),
@@ -70,8 +63,6 @@ export function buildOpenSourceBanner(options?: {
 /** 向 stdout 打印开源信息横幅 */
 export function printOpenSourceBanner(options?: {
   version?: string;
-  host?: string;
-  port?: number;
 }): void {
   const banner = buildOpenSourceBanner(options);
   // 直接写 stdout，避免被 pino 日志格式包裹
