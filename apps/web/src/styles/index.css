@@ -11128,8 +11128,7 @@ html[data-theme="dark"] .settings-seo-preview-title {
 @media (max-width: 767px) {
   .admin-search input {
     font-size: var(--fs-2xl);
-    font-weight: var(--fw-normal);
-    line-height: 1.25;
+    line-height: var(--lh-tight);
     min-height: var(--control-5xl);
   }
 }
