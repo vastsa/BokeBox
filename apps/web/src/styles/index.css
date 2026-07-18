@@ -11897,3 +11897,10 @@ html[data-theme="dark"] .source-risk-dot.is-high {
   font-size: 11.5px;
   color: var(--text-3);
 }
+
+
+/* ASR/TTS 当前激活插件高亮 */
+.source-plugin-row.is-active {
+  border-color: color-mix(in oklab, var(--accent, #5b8cff) 45%, transparent);
+  background: color-mix(in oklab, var(--accent, #5b8cff) 8%, transparent);
+}

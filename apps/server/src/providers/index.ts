@@ -1,30 +1,64 @@
 /**
- * AI 能力提供方（ASR / TTS）热插拔入口
+ * AI 能力插件入口（ASR / TTS）
  *
- * 扩展新源：
- * 1. 实现 AsrProvider / TtsProvider
- * 2. registerAsrProvider / registerTtsProvider
- * 3. 设置页选择 asrProvider / ttsProvider 即可切换（无需重启）
+ * 与 Source 插件同一套机制：
+ * - 内置插件代码注册
+ * - 外部插件：storage/plugins/{asr|tts}/<dir>/plugin.json + entry
+ * - 启停 / 配置 / rescan 热加载
+ * - 设置页 asrProvider / ttsProvider 选择激活插件
  */
 export {
+  registerAsrPlugin,
   registerAsrProvider,
+  listAsrPlugins,
   listAsrProviders,
+  listAsrPluginDescriptors,
   listAsrProviderDescriptors,
+  listAsrPluginsPublic,
+  getAsrPlugin,
   getAsrProviderById,
+  resolveAsrPlugin,
   resolveAsrProvider,
+  refreshExternalAsrPlugins,
+  ensureBuiltinAsrPlugins,
+  isAsrPluginEnabled,
+  setAsrPluginEnabled,
+  resetAsrPluginEnabled,
+  createAsrContext,
+  updateAsrPluginConfigForId,
+  resetAsrPluginConfigForId,
+  assertAsrPluginConfigReady,
 } from './asr/index.js';
 export type {
+  AsrPlugin,
   AsrProvider,
+  AsrPluginContext,
+  AsrPluginDescriptor,
   AsrTranscribeInput,
   AsrTranscribeResult,
 } from './asr/index.js';
 
 export {
+  registerTtsPlugin,
   registerTtsProvider,
+  listTtsPlugins,
   listTtsProviders,
+  listTtsPluginDescriptors,
   listTtsProviderDescriptors,
+  listTtsPluginsPublic,
+  getTtsPlugin,
   getTtsProviderById,
+  resolveTtsPlugin,
   resolveTtsProvider,
+  refreshExternalTtsPlugins,
+  ensureBuiltinTtsPlugins,
+  isTtsPluginEnabled,
+  setTtsPluginEnabled,
+  resetTtsPluginEnabled,
+  createTtsContext,
+  updateTtsPluginConfigForId,
+  resetTtsPluginConfigForId,
+  assertTtsPluginConfigReady,
   MIMO_PRESET_VOICES,
   MIMO_SPEECH_STYLE_TAGS,
   MIMO_AUDIO_TAG_EXAMPLES,
@@ -39,7 +73,10 @@ export {
   detectAudioFormat,
 } from './tts/index.js';
 export type {
+  TtsPlugin,
   TtsProvider,
+  TtsPluginContext,
+  TtsPluginDescriptor,
   TtsProviderMeta,
   TtsChunkInput,
   TtsChunkResult,

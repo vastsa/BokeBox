@@ -1,5 +1,27 @@
+/**
+ * TTS 插件契约（与 Source / ASR 同一套机制）
+ */
 import type { TtsMode, TtsOptions } from '../../types/job.js';
+import type {
+  PluginConfigField,
+  PluginConfigMap,
+  PluginConfigValue,
+  PluginDescriptorBase,
+  PluginManifestBase,
+  PluginOrigin,
+  PluginPermission,
+  PluginRiskLevel,
+} from '../../plugin-kit/index.js';
 import type { ProviderDescriptor, ProviderId } from '../types.js';
+
+export type {
+  PluginConfigField,
+  PluginConfigMap,
+  PluginConfigValue,
+  PluginOrigin,
+  PluginPermission,
+  PluginRiskLevel,
+};
 
 export type TtsAudioFormat = 'wav' | 'mp3' | 'ogg' | 'unknown';
 
@@ -54,17 +76,66 @@ export interface TtsChunkResult {
   demo?: boolean;
 }
 
+/** 宿主注入的运行上下文 */
+export interface TtsPluginContext {
+  storageDir: string;
+  config: PluginConfigMap;
+  getConfig(key: string): PluginConfigValue | undefined;
+  signal?: AbortSignal;
+}
+
+/**
+ * 核心合成能力（内置实现文件可只声明此接口）
+ */
 export interface TtsProvider {
   readonly id: ProviderId;
   readonly meta: TtsProviderMeta;
-  /**
-   * 为 true 时：用户明确选择该源且当前不可用，resolve 仍返回自身，
-   * 由 synthesizeChunk 抛出明确错误。
-   */
   readonly strictAvailability?: boolean;
   isAvailable(): boolean;
-  /** 合成单段文本（门面负责切段/拼接/落盘） */
-  synthesizeChunk(input: TtsChunkInput): Promise<TtsChunkResult>;
+  synthesizeChunk(
+    input: TtsChunkInput,
+    ctx?: TtsPluginContext,
+  ): Promise<TtsChunkResult>;
+}
+
+/**
+ * TTS 插件 = 核心能力 + 插件元数据
+ */
+export interface TtsPlugin extends TtsProvider {
+  readonly version: string;
+  readonly riskLevel: PluginRiskLevel;
+  readonly defaultEnabled: boolean;
+  readonly configSchema?: readonly PluginConfigField[];
+  /** 顶层 name/description 便于列表；缺省回落 meta */
+  readonly name?: string;
+  readonly description?: string;
+}
+
+export interface TtsPluginManifest extends PluginManifestBase {
+  kind?: 'tts';
+}
+
+export interface TtsPluginDescriptor extends PluginDescriptorBase {
+  kind: 'tts';
+  supportsStyleTags?: boolean;
+  supportsVoiceDesign?: boolean;
+  modes?: TtsModeMeta[];
+  voices?: TtsVoiceMeta[];
+  suggestedModels?: TtsProviderMeta['suggestedModels'];
+  active?: boolean;
+}
+
+export interface TtsPluginRegistration {
+  plugin?: TtsPlugin;
+  origin: PluginOrigin;
+  dirName?: string;
+  dirPath?: string;
+  permissions?: PluginPermission[];
+  apiVersion?: number;
+  loadError?: string;
+  configSchema?: PluginConfigField[];
+  manifestSnapshot?: Partial<TtsPluginManifest>;
+  loadedAt?: string;
 }
 
 export function toTtsDescriptor(p: TtsProvider): ProviderDescriptor {

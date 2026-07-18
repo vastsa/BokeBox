@@ -1,0 +1,20 @@
+{
+  "id": "tts.echo",
+  "name": "Echo TTS",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "apiVersion": 1,
+  "description": "演示 TTS 插件：返回极短静音 WAV，标记 demo",
+  "riskLevel": "low",
+  "defaultEnabled": false,
+  "permissions": ["config"],
+  "configSchema": [
+    {
+      "key": "note",
+      "label": "备注",
+      "type": "string",
+      "required": false,
+      "default": "echo"
+    }
+  ]
+}

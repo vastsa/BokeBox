@@ -22,6 +22,18 @@ export const ALBUMS_DIR = path.join(STORAGE_DIR, 'albums');
  */
 export const SOURCE_PLUGINS_DIR = path.join(STORAGE_DIR, 'plugins', 'source');
 
+/**
+ * 外部 ASR 插件目录
+ * storage/plugins/asr/<plugin-dir>/plugin.json + entry
+ */
+export const ASR_PLUGINS_DIR = path.join(STORAGE_DIR, 'plugins', 'asr');
+
+/**
+ * 外部 TTS 插件目录
+ * storage/plugins/tts/<plugin-dir>/plugin.json + entry
+ */
+export const TTS_PLUGINS_DIR = path.join(STORAGE_DIR, 'plugins', 'tts');
+
 /** SQLite 主库 */
 export const SQLITE_DB = path.join(STORAGE_DIR, 'app.db');
 
