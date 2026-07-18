@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { coverImageUrl, fetchLibrary } from '../api/client';
+import { coverImageUrl, fetchAllLibrary } from '../api/client';
 import { StarMapLoader } from '../components/tags/StarMapLoader';
 import { TagUniverse, type TagStar } from '../components/tags/TagUniverse';
 import { CoverArt } from '../components/ui/CoverArt';
@@ -50,7 +50,7 @@ export function TagCloudPage({ route }: { route: Route }) {
 
   const refresh = useCallback(async () => {
     try {
-      const lib = await fetchLibrary();
+      const lib = await fetchAllLibrary();
       const authed = Boolean(getToken());
       setLibrary(
         lib.map((it) => ({

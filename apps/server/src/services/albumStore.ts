@@ -13,6 +13,11 @@ import {
   toPublic,
   withScriptTiming,
 } from './jobStore.js';
+import {
+  likePattern,
+  pageResult,
+  type PageResult,
+} from '../utils/pagination.js';
 
 export type AlbumRow = {
   id: string;
@@ -165,6 +170,48 @@ export async function listAlbums(opts?: {
     out.push(await toSummary(album, itemMap.get(album.id) || []));
   }
   return out;
+}
+
+/** 专辑列表分页（管理端 / 前台） */
+export async function listAlbumsPage(opts: {
+  page: number;
+  pageSize: number;
+  offset: number;
+  publishedOnly?: boolean;
+  q?: string;
+}): Promise<PageResult<AlbumSummary>> {
+  const pattern = likePattern(opts.q || '');
+  const where: string[] = [];
+  const params: Array<string | number> = [];
+  if (opts.publishedOnly) {
+    where.push('published = 1');
+  }
+  if (pattern) {
+    where.push(
+      "(title LIKE ? ESCAPE '\\' OR IFNULL(summary, '') LIKE ? ESCAPE '\\')",
+    );
+    params.push(pattern, pattern);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const totalRow = getDb()
+    .prepare(`SELECT COUNT(*) AS c FROM albums ${whereSql}`)
+    .get(...params) as { c: number };
+  const total = Number(totalRow?.c) || 0;
+  const rows = getDb()
+    .prepare(
+      `SELECT * FROM albums
+       ${whereSql}
+       ORDER BY updated_at DESC
+       LIMIT ? OFFSET ?`,
+    )
+    .all(...params, opts.pageSize, opts.offset) as AlbumRow[];
+  const albums = rows.map(rowToAlbum);
+  const itemMap = listItemRowsMany(albums.map((a) => a.id));
+  const items: AlbumSummary[] = [];
+  for (const album of albums) {
+    items.push(await toSummary(album, itemMap.get(album.id) || []));
+  }
+  return pageResult(items, total, opts.page, opts.pageSize);
 }
 
 export async function getAlbum(id: string): Promise<Album | undefined> {

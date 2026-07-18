@@ -3,7 +3,7 @@ import {
   createJob,
   createJobFromUrl,
   fetchAiSettings,
-  fetchAlbums,
+  fetchAllAlbums,
   fetchSourcePlugins,
   type SourcePluginDescriptor,
 } from '../../api/client';
@@ -105,7 +105,7 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   useEffect(() => {
     let cancelled = false;
     setAlbumsLoading(true);
-    void fetchAlbums()
+    void fetchAllAlbums()
       .then((list) => {
         if (!cancelled) setAlbums(list);
       })

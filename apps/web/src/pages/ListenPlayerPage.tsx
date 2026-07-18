@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
-  fetchLibrary,
+  fetchAllLibrary,
   fetchListenItem,
   podcastAudioUrl,
   coverImageUrl,
@@ -97,7 +97,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
 
   // 曲库 / 专辑队列：用于上一集 / 下一集
   useEffect(() => {
-    void fetchLibrary()
+    void fetchAllLibrary()
       .then((items) => {
         const list = Array.isArray(items) ? items : [];
         const albumQ = loadAlbumQueue();

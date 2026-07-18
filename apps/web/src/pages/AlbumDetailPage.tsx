@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   albumCoverUrl,
   coverImageUrl,
-  fetchJobs,
+  fetchAllJobs,
   fetchListenAlbum,
   generateAlbumCoverApi,
   setAlbumItemsApi,
@@ -144,7 +144,7 @@ export function AlbumDetailPage({
     setPickerOpen(true);
     setPickerLoading(true);
     try {
-      const jobs = await fetchJobs();
+      const jobs = await fetchAllJobs({ filter: 'done' });
       const ready = jobs.filter(
         (j) => j.status === 'done' && j.podcast && j.published !== false,
       );

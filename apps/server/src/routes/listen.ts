@@ -2,7 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import {
   getJob,
   isPubliclyListenable,
-  listPublishedJobs,
+  listLibraryPage,
+  type LibraryListFilter,
   toGuestPublic,
   toPublic,
   withScriptTiming,
@@ -10,31 +11,67 @@ import {
 import { getRequestLocale, t } from '../i18n/index.js';
 import {
   getListenRecord,
-  listListenRecords,
+  listListenHistoryPage,
+  listListenRecordsByJobIds,
   upsertListenProgress,
 } from '../services/listenStore.js';
+import { parsePageQuery } from '../utils/pagination.js';
 import { getRequestUser } from './auth.js';
 
 export async function listenRoutes(app: FastifyInstance): Promise<void> {
-  /** 前台可听播客库 */
-  app.get('/listen/library', async (req) => {
+  /** 前台可听播客库（分页） */
+  app.get<{
+    Querystring: {
+      page?: string;
+      pageSize?: string;
+      q?: string;
+      filter?: string;
+    };
+  }>('/listen/library', async (req) => {
     const authed = Boolean(getRequestUser(req));
-    const jobs = await listPublishedJobs();
-    // 游客不返回管理员服务端进度，避免污染游客续播
-    const records = authed ? await listListenRecords() : [];
-    const recordMap = Object.fromEntries(records.map((r) => [r.jobId, r]));
+    const page = parsePageQuery(req.query, { pageSize: 24 });
+    const q = typeof req.query.q === 'string' ? req.query.q : '';
+    const rawFilter = String(req.query.filter || 'all').trim();
+    const allowed: LibraryListFilter[] = ['all', 'unplayed', 'progress', 'done'];
+    const filter = (allowed.includes(rawFilter as LibraryListFilter)
+      ? rawFilter
+      : 'all') as LibraryListFilter;
+
+    const result = await listLibraryPage({
+      ...page,
+      q,
+      filter,
+    });
+
+    const recordMap = authed
+      ? await listListenRecordsByJobIds(result.items.map((x) => x.jobId))
+      : new Map();
+
     const items = [];
-    for (const job of jobs) {
-      const enriched = await withScriptTiming(job);
+    for (const row of result.items) {
+      const enriched = await withScriptTiming(row.job);
       items.push({
         job: authed ? toPublic(enriched) : toGuestPublic(enriched),
-        listen: authed ? recordMap[job.id] || null : null,
+        listen: authed ? recordMap.get(row.jobId) || null : null,
       });
     }
-    return { items };
+
+    return {
+      items,
+      page: result.page,
+      pageSize: result.pageSize,
+      total: result.total,
+      totalPages: result.totalPages,
+      facets: result.facets,
+    };
   });
 
-  app.get('/listen/history', async (req, reply) => {
+  app.get<{
+    Querystring: {
+      page?: string;
+      pageSize?: string;
+    };
+  }>('/listen/history', async (req, reply) => {
     // 收听历史含管理员进度，仅登录可访问
     if (!getRequestUser(req)) {
       return reply.code(401).send({
@@ -42,16 +79,23 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
         code: 'UNAUTHORIZED',
       });
     }
-    const records = await listListenRecords();
+    const page = parsePageQuery(req.query, { pageSize: 20 });
+    const result = await listListenHistoryPage(page);
     const items = [];
-    for (const rec of records) {
+    for (const rec of result.items) {
       const job = await getJob(rec.jobId);
       // 管理员历史保留未发布已完成条目；仅校验可听内容就绪
       if (!job || job.status !== 'done' || !job.podcast) continue;
       const enriched = await withScriptTiming(job);
       items.push({ job: toPublic(enriched), listen: rec });
     }
-    return { items };
+    return {
+      items,
+      page: result.page,
+      pageSize: result.pageSize,
+      total: result.total,
+      totalPages: result.totalPages,
+    };
   });
 
   app.get<{ Params: { id: string } }>('/listen/:id', async (req, reply) => {

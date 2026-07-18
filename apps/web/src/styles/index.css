@@ -12116,3 +12116,80 @@ html[data-theme="dark"] .source-risk-dot.is-high {
   font-size: 11.5px;
   color: var(--text-3);
 }
+
+
+/* ---------- Pagination ---------- */
+.pg-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-2) 0 var(--space-1);
+}
+
+.pg-pages {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pg-btn,
+.pg-num {
+  appearance: none;
+  border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  color: var(--text);
+  border-radius: 999px;
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.pg-num {
+  min-width: 34px;
+  padding: 0 8px;
+}
+
+.pg-btn:hover:not(:disabled),
+.pg-num:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--brand) 12%, var(--surface));
+  border-color: color-mix(in oklab, var(--brand) 35%, var(--border));
+}
+
+.pg-num.is-active,
+.pg-num[aria-current="page"] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-contrast, #fff);
+  cursor: default;
+}
+
+.pg-btn:disabled,
+.pg-num:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pg-ellipsis {
+  color: var(--muted);
+  padding: 0 2px;
+  user-select: none;
+}
+
+.pg-meta {
+  width: 100%;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+html[data-theme="dark"] .pg-btn,
+html[data-theme="dark"] .pg-num {
+  background: color-mix(in oklab, var(--surface) 80%, #000);
+}

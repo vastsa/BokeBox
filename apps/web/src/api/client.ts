@@ -14,6 +14,17 @@ import type {
   AlbumListenDetail,
   AlbumSummary,
 } from '../types/album';
+import type {
+  AlbumListResult,
+  HistoryListResult,
+  JobListFacets,
+  JobListFilter,
+  JobListResult,
+  LibraryListFacets,
+  LibraryListFilter,
+  LibraryListResult,
+  ListQuery,
+} from '../types/pagination';
 import { getLocale, tOutside } from '../i18n';
 import { clearAuthSession, getToken } from '../lib/auth';
 
@@ -67,13 +78,85 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+
+function toQuery(params: Record<string, string | number | undefined | null>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === '') continue;
+    q.set(k, String(v));
+  }
+  const s = q.toString();
+  return s ? `?${s}` : '';
+}
+
+async function fetchAllPages<T>(
+  load: (page: number, pageSize: number) => Promise<{
+    items: T[];
+    totalPages: number;
+  }>,
+  pageSize = 100,
+): Promise<T[]> {
+  const all: T[] = [];
+  let page = 1;
+  // 安全上限，防止异常循环
+  for (let i = 0; i < 50; i += 1) {
+    const res = await load(page, pageSize);
+    all.push(...res.items);
+    if (page >= res.totalPages || res.items.length === 0) break;
+    page += 1;
+  }
+  return all;
+}
+
 export async function fetchHealth(): Promise<HealthInfo> {
   return request('/health');
 }
 
-export async function fetchJobs(): Promise<Job[]> {
-  const data = await request<{ jobs: Job[] }>('/jobs');
-  return data.jobs;
+export async function fetchJobs(
+  params: ListQuery & { filter?: JobListFilter } = {},
+): Promise<JobListResult> {
+  const data = await request<
+    {
+      jobs: Job[];
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+      facets?: JobListFacets;
+    }
+  >(
+    `/jobs${toQuery({
+      page: params.page,
+      pageSize: params.pageSize,
+      q: params.q,
+      filter: params.filter,
+    })}`,
+  );
+  return {
+    jobs: data.jobs || [],
+    page: data.page || 1,
+    pageSize: data.pageSize || params.pageSize || 20,
+    total: data.total ?? (data.jobs || []).length,
+    totalPages: data.totalPages || 1,
+    facets: data.facets || {
+      all: data.total ?? 0,
+      active: 0,
+      published: 0,
+      draft: 0,
+      failed: 0,
+      done: 0,
+    },
+  };
+}
+
+/** 拉全部分页任务（选择器 / 轮询活跃任务等） */
+export async function fetchAllJobs(
+  params: Omit<ListQuery, 'page' | 'pageSize'> & { filter?: JobListFilter } = {},
+): Promise<Job[]> {
+  return fetchAllPages(async (page, pageSize) => {
+    const res = await fetchJobs({ ...params, page, pageSize });
+    return { items: res.jobs, totalPages: res.totalPages };
+  });
 }
 
 export async function fetchJob(id: string): Promise<Job> {
@@ -246,14 +329,75 @@ export async function updateJob(
   return data.job;
 }
 
-export async function fetchLibrary(): Promise<LibraryItem[]> {
-  const data = await request<{ items: LibraryItem[] }>('/listen/library');
-  return data.items;
+export async function fetchLibrary(
+  params: ListQuery & { filter?: LibraryListFilter } = {},
+): Promise<LibraryListResult> {
+  const data = await request<
+    {
+      items: LibraryItem[];
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+      facets?: LibraryListFacets;
+    }
+  >(
+    `/listen/library${toQuery({
+      page: params.page,
+      pageSize: params.pageSize,
+      q: params.q,
+      filter: params.filter,
+    })}`,
+  );
+  return {
+    items: data.items || [],
+    page: data.page || 1,
+    pageSize: data.pageSize || params.pageSize || 24,
+    total: data.total ?? (data.items || []).length,
+    totalPages: data.totalPages || 1,
+    facets: data.facets || {
+      all: data.total ?? 0,
+      unplayed: 0,
+      progress: 0,
+      done: 0,
+    },
+  };
 }
 
-export async function fetchHistory(): Promise<LibraryItem[]> {
-  const data = await request<{ items: LibraryItem[] }>('/listen/history');
-  return data.items;
+/** 拉全部曲库（标签星图 / 播放队列） */
+export async function fetchAllLibrary(
+  params: Omit<ListQuery, 'page' | 'pageSize'> & {
+    filter?: LibraryListFilter;
+  } = {},
+): Promise<LibraryItem[]> {
+  return fetchAllPages(async (page, pageSize) => {
+    const res = await fetchLibrary({ ...params, page, pageSize });
+    return { items: res.items, totalPages: res.totalPages };
+  });
+}
+
+export async function fetchHistory(
+  params: ListQuery = {},
+): Promise<HistoryListResult> {
+  const data = await request<{
+    items: LibraryItem[];
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  }>(
+    `/listen/history${toQuery({
+      page: params.page,
+      pageSize: params.pageSize,
+    })}`,
+  );
+  return {
+    items: data.items || [],
+    page: data.page || 1,
+    pageSize: data.pageSize || params.pageSize || 20,
+    total: data.total ?? (data.items || []).length,
+    totalPages: data.totalPages || 1,
+  };
 }
 
 export async function fetchListenItem(id: string): Promise<LibraryItem> {
@@ -281,9 +425,38 @@ export async function reportProgress(
 
 // ---------- Albums ----------
 
-export async function fetchListenAlbums(): Promise<AlbumSummary[]> {
-  const data = await request<{ albums: AlbumSummary[] }>('/listen/albums');
-  return data.albums;
+export async function fetchListenAlbums(
+  params: ListQuery = {},
+): Promise<AlbumListResult> {
+  const data = await request<{
+    albums: AlbumSummary[];
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  }>(
+    `/listen/albums${toQuery({
+      page: params.page,
+      pageSize: params.pageSize,
+      q: params.q,
+    })}`,
+  );
+  return {
+    albums: data.albums || [],
+    page: data.page || 1,
+    pageSize: data.pageSize || params.pageSize || 20,
+    total: data.total ?? (data.albums || []).length,
+    totalPages: data.totalPages || 1,
+  };
+}
+
+export async function fetchAllListenAlbums(
+  params: Omit<ListQuery, 'page' | 'pageSize'> = {},
+): Promise<AlbumSummary[]> {
+  return fetchAllPages(async (page, pageSize) => {
+    const res = await fetchListenAlbums({ ...params, page, pageSize });
+    return { items: res.albums, totalPages: res.totalPages };
+  });
 }
 
 export async function fetchListenAlbum(id: string): Promise<AlbumListenDetail> {
@@ -293,9 +466,38 @@ export async function fetchListenAlbum(id: string): Promise<AlbumListenDetail> {
   return data.album;
 }
 
-export async function fetchAlbums(): Promise<AlbumSummary[]> {
-  const data = await request<{ albums: AlbumSummary[] }>('/albums');
-  return data.albums;
+export async function fetchAlbums(
+  params: ListQuery = {},
+): Promise<AlbumListResult> {
+  const data = await request<{
+    albums: AlbumSummary[];
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  }>(
+    `/albums${toQuery({
+      page: params.page,
+      pageSize: params.pageSize,
+      q: params.q,
+    })}`,
+  );
+  return {
+    albums: data.albums || [],
+    page: data.page || 1,
+    pageSize: data.pageSize || params.pageSize || 20,
+    total: data.total ?? (data.albums || []).length,
+    totalPages: data.totalPages || 1,
+  };
+}
+
+export async function fetchAllAlbums(
+  params: Omit<ListQuery, 'page' | 'pageSize'> = {},
+): Promise<AlbumSummary[]> {
+  return fetchAllPages(async (page, pageSize) => {
+    const res = await fetchAlbums({ ...params, page, pageSize });
+    return { items: res.albums, totalPages: res.totalPages };
+  });
 }
 
 export async function fetchAlbum(id: string): Promise<AlbumDetail> {

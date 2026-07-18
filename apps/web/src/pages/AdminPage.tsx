@@ -6,6 +6,9 @@ import {
   retryJob,
   updateJob,
 } from '../api/client';
+import { Pagination } from '../components/ui/Pagination';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import type { JobListFacets, JobListFilter } from '../types/pagination';
 import { AdminChrome } from '../components/admin/AdminChrome';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
@@ -34,7 +37,18 @@ const ACTIVE: JobStatus[] = [
   'synthesizing_audio',
 ];
 
-type FilterKey = 'all' | 'active' | 'published' | 'draft' | 'failed' | 'done';
+type FilterKey = JobListFilter;
+
+const EMPTY_FACETS: JobListFacets = {
+  all: 0,
+  active: 0,
+  published: 0,
+  draft: 0,
+  failed: 0,
+  done: 0,
+};
+
+const PAGE_SIZE = 20;
 
 export function AdminPage({ route }: { route: Route }) {
   const { t } = useI18n();
@@ -44,68 +58,66 @@ export function AdminPage({ route }: { route: Route }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(query, 300);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [facets, setFacets] = useState<JobListFacets>(EMPTY_FACETS);
 
   const refresh = useCallback(async () => {
     try {
-      const list = await fetchJobs();
-      setJobs(list);
+      const res = await fetchJobs({
+        page,
+        pageSize: PAGE_SIZE,
+        q: debouncedQuery,
+        filter,
+      });
+      setJobs(res.jobs);
+      setTotal(res.total);
+      setTotalPages(res.totalPages);
+      setFacets(res.facets || EMPTY_FACETS);
+      // 页码越界时回退
+      if (res.page !== page && res.page >= 1) {
+        setPage(res.page);
+      }
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, debouncedQuery, filter]);
 
   useEffect(() => {
+    setLoading(true);
     void refresh();
   }, [refresh]);
 
+  // 筛选 / 搜索变化时回到第一页
   useEffect(() => {
-    const active = jobs.some((j) => ACTIVE.includes(j.status));
+    setPage(1);
+  }, [filter, debouncedQuery]);
+
+  useEffect(() => {
+    const active = facets.active > 0 || jobs.some((j) => ACTIVE.includes(j.status));
     if (!active) return;
     const timer = window.setInterval(() => void refresh(), 1500);
     return () => window.clearInterval(timer);
-  }, [jobs, refresh]);
+  }, [facets.active, jobs, refresh]);
 
-  const stats = useMemo(() => {
-    const activeCount = jobs.filter((j) => ACTIVE.includes(j.status)).length;
-    const publishedCount = jobs.filter((j) => j.published).length;
-    const draftCount = jobs.filter((j) => !j.published).length;
-    const failedCount = jobs.filter((j) => j.status === 'failed').length;
-    const doneCount = jobs.filter((j) => j.status === 'done').length;
-    return {
-      total: jobs.length,
-      activeCount,
-      publishedCount,
-      draftCount,
-      failedCount,
-      doneCount,
-    };
-  }, [jobs]);
+  const stats = useMemo(
+    () => ({
+      total: facets.all,
+      activeCount: facets.active,
+      publishedCount: facets.published,
+      draftCount: facets.draft,
+      failedCount: facets.failed,
+      doneCount: facets.done,
+    }),
+    [facets],
+  );
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return jobs.filter((job) => {
-      if (filter === 'active' && !ACTIVE.includes(job.status)) return false;
-      if (filter === 'published' && !job.published) return false;
-      if (filter === 'draft' && job.published) return false;
-      if (filter === 'failed' && job.status !== 'failed') return false;
-      if (filter === 'done' && job.status !== 'done') return false;
-      if (!q) return true;
-      const hay = [
-        job.podcast?.title || '',
-        job.title || '',
-        job.originalFilename || '',
-        job.sourceUrl || '',
-        job.message || '',
-        ...(job.podcast?.tags || []),
-      ]
-        .join(' ')
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [jobs, filter, query]);
+  const filtered = jobs;
 
   const runJobAction = async (id: string, fn: () => Promise<unknown>) => {
     setBusyId(id);
@@ -226,8 +238,8 @@ export function AdminPage({ route }: { route: Route }) {
               <p>
                 {loading
                   ? t('common.loading')
-                  : filtered.length
-                    ? t('admin.jobCount', { n: filtered.length })
+                  : total
+                    ? t('admin.jobCount', { n: total })
                     : t('admin.noJobs')}
               </p>
             </div>
@@ -244,51 +256,64 @@ export function AdminPage({ route }: { route: Route }) {
               <EmptyState
                 icon={<IconDashboard size={22} />}
                 title={
-                  jobs.length === 0
+                  total === 0 && filter === 'all' && !debouncedQuery
                     ? t('admin.emptyTitle')
                     : t('admin.emptyFilterTitle')
                 }
                 description={
-                  jobs.length === 0
+                  total === 0 && filter === 'all' && !debouncedQuery
                     ? t('admin.emptyDesc')
                     : t('admin.emptyFilterDesc')
                 }
                 actionLabel={
-                  jobs.length === 0 ? t('admin.emptyAction') : t('admin.clearFilter')
+                  total === 0 && filter === 'all' && !debouncedQuery
+                    ? t('admin.emptyAction')
+                    : t('admin.clearFilter')
                 }
                 onAction={() => {
-                  if (jobs.length === 0) navigate({ name: 'create' });
-                  else {
+                  if (total === 0 && filter === 'all' && !debouncedQuery) {
+                    navigate({ name: 'create' });
+                  } else {
                     setFilter('all');
                     setQuery('');
+                    setPage(1);
                   }
                 }}
               />
             </div>
           ) : (
-            <div className="admin-job-list">
-              {filtered.map((job, i) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  index={i}
-                  busy={busyId === job.id}
-                  onOpen={() => navigate({ name: 'job', id: job.id })}
-                  onTogglePublish={() =>
-                    void runJobAction(job.id, () =>
-                      updateJob(job.id, { published: !job.published }),
-                    )
-                  }
-                  onRetry={() =>
-                    void runJobAction(job.id, () => retryJob(job.id))
-                  }
-                  onDelete={() => {
-                    if (!confirm(t('admin.confirmDelete'))) return;
-                    void runJobAction(job.id, () => deleteJob(job.id));
-                  }}
-                />
-              ))}
-            </div>
+            <>
+              <div className="admin-job-list">
+                {filtered.map((job, i) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    index={i}
+                    busy={busyId === job.id}
+                    onOpen={() => navigate({ name: 'job', id: job.id })}
+                    onTogglePublish={() =>
+                      void runJobAction(job.id, () =>
+                        updateJob(job.id, { published: !job.published }),
+                      )
+                    }
+                    onRetry={() =>
+                      void runJobAction(job.id, () => retryJob(job.id))
+                    }
+                    onDelete={() => {
+                      if (!confirm(t('admin.confirmDelete'))) return;
+                      void runJobAction(job.id, () => deleteJob(job.id));
+                    }}
+                  />
+                ))}
+              </div>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                disabled={loading}
+                onChange={setPage}
+              />
+            </>
           )}
         </section>
       </AdminChrome>

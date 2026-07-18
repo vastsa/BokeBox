@@ -11,7 +11,7 @@ import {
   getAlbum,
   getAlbumDetail,
   getAlbumListenDetail,
-  listAlbums,
+  listAlbumsPage,
   setAlbumItems,
   setAlbumOwnCoverImage,
   updateAlbum,
@@ -26,6 +26,7 @@ import {
   hasImageModel,
 } from '../utils/aiConfig.js';
 import { getRequestUser } from './auth.js';
+import { parsePageQuery } from '../utils/pagination.js';
 
 function requireAuth(req: Parameters<typeof getRequestUser>[0], reply: {
   code: (n: number) => { send: (b: unknown) => unknown };
@@ -41,10 +42,28 @@ function requireAuth(req: Parameters<typeof getRequestUser>[0], reply: {
 }
 
 export async function albumRoutes(app: FastifyInstance): Promise<void> {
-  /** 前台专辑列表（仅已发布） */
-  app.get('/listen/albums', async () => {
-    const albums = await listAlbums({ publishedOnly: true });
-    return { albums };
+  /** 前台专辑列表（仅已发布，分页） */
+  app.get<{
+    Querystring: {
+      page?: string;
+      pageSize?: string;
+      q?: string;
+    };
+  }>('/listen/albums', async (req) => {
+    const page = parsePageQuery(req.query, { pageSize: 20 });
+    const q = typeof req.query.q === 'string' ? req.query.q : '';
+    const result = await listAlbumsPage({
+      ...page,
+      publishedOnly: true,
+      q,
+    });
+    return {
+      albums: result.items,
+      page: result.page,
+      pageSize: result.pageSize,
+      total: result.total,
+      totalPages: result.totalPages,
+    };
   });
 
   /** 前台专辑详情（含可听单集） */
@@ -120,11 +139,28 @@ export async function albumRoutes(app: FastifyInstance): Promise<void> {
   );
 
 
-  /** 管理端：全部专辑 */
-  app.get('/albums', async (req, reply) => {
+  /** 管理端：全部专辑（分页） */
+  app.get<{
+    Querystring: {
+      page?: string;
+      pageSize?: string;
+      q?: string;
+    };
+  }>('/albums', async (req, reply) => {
     if (!requireAuth(req, reply)) return;
-    const albums = await listAlbums();
-    return { albums };
+    const page = parsePageQuery(req.query, { pageSize: 20 });
+    const q = typeof req.query.q === 'string' ? req.query.q : '';
+    const result = await listAlbumsPage({
+      ...page,
+      q,
+    });
+    return {
+      albums: result.items,
+      page: result.page,
+      pageSize: result.pageSize,
+      total: result.total,
+      totalPages: result.totalPages,
+    };
   });
 
   app.get<{ Params: { id: string } }>('/albums/:id', async (req, reply) => {

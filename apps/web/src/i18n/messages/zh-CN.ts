@@ -63,6 +63,10 @@ export const zhCN = {
     copyFromGlobal: '从全局复制',
     goSettings: '去设置编辑',
     notFilled: '未填写',
+    prevPage: '上一页',
+    nextPage: '下一页',
+    pagination: '分页',
+    pageMeta: '第 {page}/{totalPages} 页 · 共 {total} 条',
     confirmDelete: '确认删除',
   },
   nav: {
