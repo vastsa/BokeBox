@@ -214,9 +214,9 @@ export function AppShell({
         </nav>
       )}
 
-      <div className="page-container open-source-shell">
+      <footer className="open-source-shell" role="contentinfo">
         <OpenSourceMark compact />
-      </div>
+      </footer>
     </div>
   );
 }

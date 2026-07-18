@@ -683,10 +683,18 @@ html[data-theme="dark"] ::selection {
 /* layout
  * 顶部安全区由 sticky .topbar / .qq-top 自行 padding，
  * page-shell 不再叠加 --safe-top，避免 QQ/微信内置浏览器顶部出现空白带。
+ *
+ * page-shell 使用 min-height + column flex：
+ * 内容不足一屏时，main 撑开，footer 贴底；内容超出时自然增高滚动。
  */
 .page-shell {
   min-height: 100vh;
   min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.page-shell > main {
+  flex: 1 0 auto;
 }
 .page-container {
   width: min(var(--container-max), calc(100% - 2 * var(--page-x)));
@@ -9349,13 +9357,29 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
   border-top: var(--bw-1) solid var(--separator);
 }
 .open-source-shell {
-  padding-top: 0.25rem;
-  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
+  width: min(var(--container-max), calc(100% - 2 * var(--page-x)));
+  max-width: 100%;
+  margin-inline: auto;
+  margin-top: auto; /* 内容不足时贴底 */
+  padding-top: var(--space-5);
+  padding-bottom: calc(
+    var(--space-4) + var(--global-player-h, 0px) + env(safe-area-inset-bottom, 0px)
+  );
 }
+/* 有底部导航时抬高，避免被 fixed 底栏遮挡（--bottom-nav-h 已含 safe-area） */
 .page-shell:has(.bottom-nav) .open-source-shell {
-  /* 底栏上方轻量露出 */
-  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
-  margin-top: -0.5rem;
+  padding-bottom: calc(
+    var(--bottom-nav-h) + var(--global-player-h, 0px) + var(--space-3)
+  );
+}
+/* 桌面端底栏隐藏，仅预留迷你播放条高度 */
+@media (min-width: 768px) {
+  .page-shell:has(.bottom-nav) .open-source-shell {
+    padding-bottom: calc(
+      var(--space-5) + var(--global-player-h, 0px) + env(safe-area-inset-bottom, 0px)
+    );
+  }
 }
 .topbar-end {
   display: flex;
