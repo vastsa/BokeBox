@@ -19,8 +19,8 @@ export function EmptyState({
       <div className="nl-empty-icon mb-3" aria-hidden>
         {icon}
       </div>
-      <h3 className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--text)]">{title}</h3>
-      <p className="mt-1.5 max-w-sm text-[12.5px] leading-relaxed text-[var(--text-3)]">
+      <h3 className="text-[var(--fs-xl)] font-semibold tracking-[var(--tracking-snug)] text-[var(--text)]">{title}</h3>
+      <p className="mt-1.5 max-w-sm text-[var(--fs-base-plus)] leading-relaxed text-[var(--text-3)]">
         {description}
       </p>
       {actionLabel && onAction && (

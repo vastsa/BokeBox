@@ -76,10 +76,10 @@ export function AppShell({
           >
             <BrandMark size={32} />
             <span className="text-left">
-              <span className="block text-[14.5px] font-semibold leading-none tracking-[-0.02em] text-[var(--text)]">
+              <span className="block text-[var(--fs-lg-plus)] font-semibold leading-none tracking-[var(--tracking-snug)] text-[var(--text)]">
                 {siteTitle}
               </span>
-              <span className="mt-0.5 hidden text-[10.5px] text-[var(--text-3)] sm:block">
+              <span className="mt-0.5 hidden text-[var(--fs-xs-plus)] text-[var(--text-3)] sm:block">
                 {t('app.tagline')}
               </span>
             </span>
@@ -262,7 +262,7 @@ function TopNavItem({
       onFocus={onIntent}
       onTouchStart={onIntent}
       className={[
-        'topbar-nav-item inline-flex min-h-[30px] items-center gap-1.5 rounded-full px-3 text-[12.5px] font-semibold transition',
+        'topbar-nav-item inline-flex min-h-[30px] items-center gap-1.5 rounded-full px-3 text-[var(--fs-base-plus)] font-semibold transition',
         active
           ? 'is-active bg-[var(--brand-soft)] text-[var(--brand-2)]'
           : 'text-[var(--text-2)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]',
@@ -325,7 +325,7 @@ function BottomNavItem({
       onFocus={onIntent}
       onTouchStart={onIntent}
       className={[
-        'bottom-nav-item flex min-h-[46px] flex-col items-center justify-center gap-0.5 rounded-[12px] text-[10.5px] font-semibold transition',
+        'bottom-nav-item flex min-h-[46px] flex-col items-center justify-center gap-0.5 rounded-[12px] text-[var(--fs-xs-plus)] font-semibold transition',
         active ? 'is-active bg-[var(--brand-soft)] text-[var(--brand-2)]' : 'text-[var(--text-3)]',
       ].join(' ')}
     >

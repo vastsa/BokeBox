@@ -238,7 +238,7 @@ export function TtsModePicker({
 
       {showPreset && (
         <div>
-          <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
+          <div className="mb-1.5 text-[var(--fs-sm-plus)] font-medium text-[var(--text-2)]">
             {t('tts.presetVoices')}
           </div>
           <div className="tts-voice-grid">
@@ -272,7 +272,7 @@ export function TtsModePicker({
 
       {advanced && value.mode === 'default' && (
         <div className="tts-sing-panel">
-          <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
+          <div className="mb-1.5 text-[var(--fs-sm-plus)] font-medium text-[var(--text-2)]">
             {t('tts.styleTags')}
             <span className="ml-1 font-normal text-[var(--text-3)]">{t('common.optional')}</span>
           </div>
@@ -340,7 +340,7 @@ export function TtsModePicker({
 
       {advanced && value.mode === 'voicedesign' && (
         <label className="block">
-          <div className="mb-1.5 text-[11.5px] font-medium text-[var(--text-2)]">
+          <div className="mb-1.5 text-[var(--fs-sm-plus)] font-medium text-[var(--text-2)]">
             {t('tts.voiceDesc')}
           </div>
           <textarea
@@ -350,7 +350,7 @@ export function TtsModePicker({
             placeholder={t('tts.voiceDescPlaceholder')}
             className="nl-textarea"
           />
-          <div className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-3)]">
+          <div className="mt-1.5 text-[var(--fs-sm)] leading-relaxed text-[var(--text-3)]">
             {t('tts.voiceDesignNote')}
           </div>
         </label>
