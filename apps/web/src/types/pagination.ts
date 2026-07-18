@@ -12,9 +12,18 @@ export type JobListFilter =
   | 'published'
   | 'draft'
   | 'failed'
-  | 'done';
+  | 'done'
+  /** 首页流水线：制作中 + 失败 */
+  | 'pipeline';
 
-export type JobListFacets = Record<JobListFilter, number>;
+export type JobListFacets = {
+  all: number;
+  active: number;
+  published: number;
+  draft: number;
+  failed: number;
+  done: number;
+};
 
 export type LibraryListFilter = 'all' | 'unplayed' | 'progress' | 'done';
 

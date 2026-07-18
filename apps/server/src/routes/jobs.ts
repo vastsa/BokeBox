@@ -512,6 +512,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       'draft',
       'failed',
       'done',
+      'pipeline',
     ];
     const filter = (allowed.includes(rawFilter as JobListFilter)
       ? rawFilter

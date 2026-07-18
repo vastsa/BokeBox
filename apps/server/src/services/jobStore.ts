@@ -124,9 +124,19 @@ export type JobListFilter =
   | 'published'
   | 'draft'
   | 'failed'
-  | 'done';
+  | 'done'
+  /** 首页流水线：制作中 + 失败（不含 done） */
+  | 'pipeline';
 
-export type JobListFacets = Record<JobListFilter, number>;
+/** 列表 facet 计数（不含 pipeline 组合筛选） */
+export type JobListFacets = {
+  all: number;
+  active: number;
+  published: number;
+  draft: number;
+  failed: number;
+  done: number;
+};
 
 export const ACTIVE_JOB_STATUSES = [
   'queued',
@@ -166,6 +176,9 @@ function jobFilterClause(filter: JobListFilter | undefined): string {
       return " AND status = 'failed'";
     case 'done':
       return " AND status = 'done'";
+    case 'pipeline':
+      // 首页侧栏：进行中 + 失败，一次请求替代 active/failed 双拉
+      return ` AND (status IN (${ACTIVE_STATUS_SQL}) OR status = 'failed')`;
     default:
       return '';
   }

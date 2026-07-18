@@ -269,17 +269,12 @@ export function ListenHomePage({ route }: { route: Route }) {
       return;
     }
 
-    const [activeRes, failedRes, alRes] = await Promise.all([
+    // 一次 pipeline 请求拿制作中 + 失败；轮询仍只打 active。
+    const [pipelineRes, alRes] = await Promise.all([
       fetchJobs({
         page: 1,
         pageSize: 50,
-        filter: 'active',
-        includeFacets: false,
-      }).catch(() => null),
-      fetchJobs({
-        page: 1,
-        pageSize: 20,
-        filter: 'failed',
+        filter: 'pipeline',
         includeFacets: false,
       }).catch(() => null),
       fetchListenAlbums({ page: 1, pageSize: 12 }).catch(() => null),
@@ -287,18 +282,7 @@ export function ListenHomePage({ route }: { route: Route }) {
     if (refreshId !== refreshIdRef.current) return;
 
     setAlbums(alRes?.albums || []);
-    const pipeline = [
-      ...(activeRes?.jobs || []),
-      ...(failedRes?.jobs || []),
-    ];
-    const seen = new Set<string>();
-    setJobs(
-      pipeline.filter((j) => {
-        if (seen.has(j.id)) return false;
-        seen.add(j.id);
-        return true;
-      }),
-    );
+    setJobs(pipelineRes?.jobs || []);
   }, []);
 
   /**
