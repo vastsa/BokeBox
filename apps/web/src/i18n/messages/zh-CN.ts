@@ -267,6 +267,9 @@ export const zhCN = {
     playTitle: '播放 {title}',
     manageTitle: '管理 {title}',
     producing: '制作中',
+    loadingMore: '正在加载更多…',
+    loadMore: '加载更多',
+    noMore: '已显示全部 {n} 档',
   },
   player: {
     globalAria: '全局播放器',

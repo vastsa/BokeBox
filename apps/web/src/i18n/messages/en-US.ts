@@ -271,6 +271,9 @@ export const enUS: MessageTree = {
     playTitle: 'Play {title}',
     manageTitle: 'Manage {title}',
     producing: 'In production',
+    loadingMore: 'Loading more…',
+    loadMore: 'Load more',
+    noMore: 'All {n} episodes shown',
   },
   player: {
     globalAria: 'Global player',

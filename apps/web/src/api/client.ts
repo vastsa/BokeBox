@@ -419,7 +419,7 @@ export async function fetchLibrary(
   return {
     items: data.items || [],
     page: data.page || 1,
-    pageSize: data.pageSize || params.pageSize || 24,
+    pageSize: data.pageSize || params.pageSize || 10,
     total: data.total ?? (data.items || []).length,
     totalPages: data.totalPages || 1,
     facets: data.facets || {

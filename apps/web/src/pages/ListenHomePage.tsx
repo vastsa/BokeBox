@@ -7,7 +7,6 @@ import {
   fetchLibrary,
   fetchListenAlbums,
 } from '../api/client';
-import { Pagination } from '../components/ui/Pagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import type { LibraryListFacets, LibraryListFilter } from '../types/pagination';
 import { ProgressBar } from '../components/ProgressBar';
@@ -64,7 +63,7 @@ const MASONRY_CONFIG = {
   useBalancedLayout: true,
 };
 
-const SKEL_ITEMS = Array.from({ length: 6 }, (_, i) => i);
+const SKEL_ITEMS = Array.from({ length: 8 }, (_, i) => i);
 
 function itemTitle(item: LibraryItem): string {
   return item.job.podcast?.title || item.job.title;
@@ -102,7 +101,8 @@ const EMPTY_LIB_FACETS: LibraryListFacets = {
   done: 0,
 };
 
-const LIBRARY_PAGE_SIZE = 24;
+/** 首页瀑布流每次拉取数量：首屏轻量，触底再追加 */
+const LIBRARY_PAGE_SIZE = 10;
 
 export function ListenHomePage({ route }: { route: Route }) {
   const { t } = useI18n();
@@ -110,123 +110,243 @@ export function ListenHomePage({ route }: { route: Route }) {
   const [library, setLibrary] = useState<LibraryItem[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [albums, setAlbums] = useState<AlbumSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  /** 首屏/筛选重置加载 */
+  const [initialLoading, setInitialLoading] = useState(true);
+  /** 触底追加加载 */
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, 300);
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [facets, setFacets] = useState<LibraryListFacets>(EMPTY_LIB_FACETS);
-  const criteriaRef = useRef({ filter, query: debouncedQuery });
   const refreshIdRef = useRef(0);
+  const pageRef = useRef(1);
+  const loadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const refresh = useCallback(async () => {
-    const refreshId = ++refreshIdRef.current;
-    try {
-      const authed = Boolean(getToken());
-      if (!authed) {
-        // 游客：曲库分页；进度只用浏览器本地
-        const [libRes, alRes] = await Promise.all([
-          fetchLibrary({
-            page,
-            pageSize: LIBRARY_PAGE_SIZE,
-            q: debouncedQuery,
-            filter: filter as LibraryListFilter,
-          }),
-          fetchListenAlbums({ page: 1, pageSize: 12 }).catch(() => null),
-        ]);
-        if (refreshId !== refreshIdRef.current) return;
-        setLibrary(
-          libRes.items.map((it) => ({
-            ...it,
-            listen: mergeListenRecord(it.job.id, null),
-          })),
-        );
-        setTotal(libRes.total);
-        setTotalPages(libRes.totalPages);
-        setFacets(libRes.facets || EMPTY_LIB_FACETS);
-        setAlbums(alRes?.albums || []);
-        setJobs([]);
-        setError(null);
+  const mapLibraryItems = useCallback(
+    (items: LibraryItem[], authed: boolean): LibraryItem[] =>
+      items.map((it) => ({
+        ...it,
+        listen: mergeListenRecord(it.job.id, authed ? it.listen : null),
+      })),
+    [],
+  );
+
+  const applyLibraryPage = useCallback(
+    (
+      libRes: Awaited<ReturnType<typeof fetchLibrary>>,
+      mode: 'replace' | 'append',
+      authed: boolean,
+    ) => {
+      const items = mapLibraryItems(libRes.items, authed);
+      setTotal(libRes.total);
+      setFacets(libRes.facets || EMPTY_LIB_FACETS);
+      const nextPage = libRes.page || 1;
+      // 空页直接视为到底，避免哨兵反复触发
+      const nextHasMore =
+        items.length > 0 && nextPage < (libRes.totalPages || 1);
+      pageRef.current = nextPage;
+      setHasMore(nextHasMore);
+      hasMoreRef.current = nextHasMore;
+
+      if (mode === 'replace') {
+        setLibrary(items);
         return;
       }
 
-      const [libRes, activeRes, failedRes, alRes] = await Promise.all([
+      if (!items.length) return;
+
+      setLibrary((prev) => {
+        if (!prev.length) return items;
+        const seen = new Set(prev.map((it) => it.job.id));
+        const extra = items.filter((it) => !seen.has(it.job.id));
+        return extra.length ? [...prev, ...extra] : prev;
+      });
+    },
+    [mapLibraryItems],
+  );
+
+  /** 拉曲库单页；replace=首屏/筛选重置，append=瀑布流触底 */
+  const fetchLibrarySlice = useCallback(
+    async (targetPage: number, mode: 'replace' | 'append', refreshId: number) => {
+      const authed = Boolean(getToken());
+      const libRes = await fetchLibrary({
+        page: targetPage,
+        pageSize: LIBRARY_PAGE_SIZE,
+        q: debouncedQuery,
+        filter: filter as LibraryListFilter,
+      });
+      if (refreshId !== refreshIdRef.current) return null;
+      applyLibraryPage(libRes, mode, authed);
+      return { authed, libRes };
+    },
+    [applyLibraryPage, debouncedQuery, filter],
+  );
+
+  /** 拉取制作中/失败任务 + 专辑横条（仅首屏或任务完成时） */
+  const fetchSidePanels = useCallback(async (refreshId: number) => {
+    const authed = Boolean(getToken());
+    if (!authed) {
+      const alRes = await fetchListenAlbums({ page: 1, pageSize: 12 }).catch(
+        () => null,
+      );
+      if (refreshId !== refreshIdRef.current) return;
+      setAlbums(alRes?.albums || []);
+      setJobs([]);
+      return;
+    }
+
+    const [activeRes, failedRes, alRes] = await Promise.all([
+      fetchJobs({
+        page: 1,
+        pageSize: 50,
+        filter: 'active',
+        includeFacets: false,
+      }).catch(() => null),
+      fetchJobs({
+        page: 1,
+        pageSize: 20,
+        filter: 'failed',
+        includeFacets: false,
+      }).catch(() => null),
+      fetchListenAlbums({ page: 1, pageSize: 12 }).catch(() => null),
+    ]);
+    if (refreshId !== refreshIdRef.current) return;
+
+    setAlbums(alRes?.albums || []);
+    const pipeline = [
+      ...(activeRes?.jobs || []),
+      ...(failedRes?.jobs || []),
+    ];
+    const seen = new Set<string>();
+    setJobs(
+      pipeline.filter((j) => {
+        if (seen.has(j.id)) return false;
+        seen.add(j.id);
+        return true;
+      }),
+    );
+  }, []);
+
+  /**
+   * 重置并加载第 1 页（筛选/搜索/首屏/任务完成）。
+   * withSidePanels：同时刷新制作中任务与专辑。
+   */
+  const reloadFromStart = useCallback(
+    async (opts?: { withSidePanels?: boolean }) => {
+      const refreshId = ++refreshIdRef.current;
+      const withSide = opts?.withSidePanels !== false;
+      setInitialLoading(true);
+      setLoadingMore(false);
+      loadingMoreRef.current = false;
+      setHasMore(true);
+      hasMoreRef.current = true;
+      pageRef.current = 1;
+
+      try {
+        const tasks: Promise<unknown>[] = [
+          fetchLibrarySlice(1, 'replace', refreshId),
+        ];
+        if (withSide) tasks.push(fetchSidePanels(refreshId));
+        await Promise.all(tasks);
+        if (refreshId !== refreshIdRef.current) return;
+        setError(null);
+      } catch (e) {
+        if (refreshId !== refreshIdRef.current) return;
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (refreshId === refreshIdRef.current) setInitialLoading(false);
+      }
+    },
+    [fetchLibrarySlice, fetchSidePanels],
+  );
+
+  /** 任务完成后：保留已滚动深度，按已加载条数一次回填，避免跳回顶部 */
+  const softRefreshLibrary = useCallback(async () => {
+    const refreshId = ++refreshIdRef.current;
+    const loaded = Math.max(pageRef.current * LIBRARY_PAGE_SIZE, LIBRARY_PAGE_SIZE);
+    const pageSize = Math.min(100, loaded);
+    try {
+      const authed = Boolean(getToken());
+      const [libRes] = await Promise.all([
         fetchLibrary({
-          page,
-          pageSize: LIBRARY_PAGE_SIZE,
+          page: 1,
+          pageSize,
           q: debouncedQuery,
           filter: filter as LibraryListFilter,
         }),
-        fetchJobs({
-          page: 1,
-          pageSize: 50,
-          filter: 'active',
-          includeFacets: false,
-        }).catch(() => null),
-        fetchJobs({
-          page: 1,
-          pageSize: 20,
-          filter: 'failed',
-          includeFacets: false,
-        }).catch(() => null),
-        fetchListenAlbums({ page: 1, pageSize: 12 }).catch(() => null),
+        fetchSidePanels(refreshId),
       ]);
       if (refreshId !== refreshIdRef.current) return;
-      setAlbums(alRes?.albums || []);
-      setLibrary(
-        libRes.items.map((it) => ({
-          ...it,
-          listen: mergeListenRecord(it.job.id, it.listen),
-        })),
-      );
+
+      const items = mapLibraryItems(libRes.items, authed);
+      setLibrary(items);
       setTotal(libRes.total);
-      setTotalPages(libRes.totalPages);
       setFacets(libRes.facets || EMPTY_LIB_FACETS);
-      const pipeline = [
-        ...(activeRes?.jobs || []),
-        ...(failedRes?.jobs || []),
-      ];
-      // 去重
-      const seen = new Set<string>();
-      setJobs(
-        pipeline.filter((j) => {
-          if (seen.has(j.id)) return false;
-          seen.add(j.id);
-          return true;
-        }),
-      );
+      // 用「已加载条数」反推页码，继续触底分页
+      const approxPage = Math.max(1, Math.ceil(items.length / LIBRARY_PAGE_SIZE));
+      pageRef.current = approxPage;
+      const nextHasMore = items.length < (libRes.total || 0);
+      setHasMore(nextHasMore);
+      hasMoreRef.current = nextHasMore;
+      setError(null);
+    } catch (e) {
+      if (refreshId !== refreshIdRef.current) return;
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [debouncedQuery, fetchSidePanels, filter, mapLibraryItems]);
+
+  const loadMore = useCallback(async () => {
+    if (initialLoading || loadingMoreRef.current || !hasMoreRef.current) return;
+    const nextPage = pageRef.current + 1;
+    const refreshId = refreshIdRef.current;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    try {
+      await fetchLibrarySlice(nextPage, 'append', refreshId);
+      if (refreshId !== refreshIdRef.current) return;
       setError(null);
     } catch (e) {
       if (refreshId !== refreshIdRef.current) return;
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      if (refreshId === refreshIdRef.current) setLoading(false);
+      if (refreshId === refreshIdRef.current) {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
     }
-  }, [page, debouncedQuery, filter]);
+  }, [fetchLibrarySlice, initialLoading]);
 
+  // 筛选 / 搜索变化：重置瀑布流
   useEffect(() => {
-    const previous = criteriaRef.current;
-    const criteriaChanged =
-      previous.filter !== filter || previous.query !== debouncedQuery;
-    criteriaRef.current = { filter, query: debouncedQuery };
-
-    // 翻页后切换筛选或搜索时，直接等待第 1 页请求，避免先请求一次旧页。
-    if (criteriaChanged && page !== 1) {
-      setPage(1);
-      return;
-    }
-    setLoading(true);
-    void refresh();
+    void reloadFromStart({ withSidePanels: true });
     return () => {
-      // 使上一页、旧筛选条件或 StrictMode 首轮请求失效。
       refreshIdRef.current += 1;
     };
-  }, [debouncedQuery, filter, page, refresh]);
+  }, [debouncedQuery, filter, reloadFromStart]);
 
-  // 有进行中任务时只轮询活跃任务，避免每 2 秒重复刷新曲库、失败任务与专辑。
+  // 触底哨兵：进入视口后追加下一页
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || initialLoading) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMore();
+        }
+      },
+      { root: null, rootMargin: '320px 0px', threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [initialLoading, loadMore, library.length, hasMore]);
+
+  // 有进行中任务时只轮询活跃任务，避免每 2 秒重复刷新曲库。
   useEffect(() => {
     const previousActive = jobs.filter((j) => ACTIVE.includes(j.status));
     if (previousActive.length === 0) return;
@@ -249,8 +369,8 @@ export function ListenHomePage({ route }: { route: Route }) {
         const hasFinished = previousActive.some((job) => !nextIds.has(job.id));
 
         if (hasFinished) {
-          // 完成或失败会影响曲库/失败列表，只在状态跃迁时完整刷新一次。
-          await refresh();
+          // 完成或失败会影响曲库/失败列表，保留滚动深度做一次回填。
+          await softRefreshLibrary();
           return;
         }
 
@@ -270,7 +390,7 @@ export function ListenHomePage({ route }: { route: Route }) {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [jobs, refresh]);
+  }, [jobs, softRefreshLibrary]);
 
   const pipelineJobs = useMemo(
     () =>
@@ -318,7 +438,7 @@ export function ListenHomePage({ route }: { route: Route }) {
   const isPlaying = player.playing;
 
   const libraryCount = total;
-  const headSub = loading
+  const headSub = initialLoading
     ? t('home.loading')
     : libraryCount
       ? t('home.count', { n: libraryCount })
@@ -332,7 +452,7 @@ export function ListenHomePage({ route }: { route: Route }) {
 
           {error && <div className="lh-error">{error}</div>}
 
-          {!loading && pipelineJobs.length > 0 && (
+          {!initialLoading && pipelineJobs.length > 0 && (
             <section className="lh-pipeline">
               <div className="lh-section-head">
                 <h2 className="lh-section-title">{t('home.producing')}</h2>
@@ -378,7 +498,7 @@ export function ListenHomePage({ route }: { route: Route }) {
             </section>
           )}
 
-          {!loading && albums.length > 0 && (
+          {!initialLoading && albums.length > 0 && (
             <section className="lh-albums">
               <div className="lh-section-head">
                 <h2 className="lh-section-title">{t('album.homeTitle')}</h2>
@@ -428,7 +548,7 @@ export function ListenHomePage({ route }: { route: Route }) {
             </section>
           )}
 
-                    {loading ? (
+          {initialLoading ? (
             <Masonry
               className="lh-masonry"
               items={SKEL_ITEMS}
@@ -506,7 +626,6 @@ export function ListenHomePage({ route }: { route: Route }) {
                     onClick={() => {
                       setFilter('all');
                       setQuery('');
-                      setPage(1);
                     }}
                   >
                     {t('home.clearFilters')}
@@ -536,13 +655,27 @@ export function ListenHomePage({ route }: { route: Route }) {
                 />
               )}
 
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                total={total}
-                disabled={loading}
-                onChange={setPage}
-              />
+              <div className="lh-infinite-foot" aria-live="polite">
+                <div ref={sentinelRef} className="lh-infinite-sentinel" aria-hidden />
+                {loadingMore ? (
+                  <div className="lh-infinite-status">
+                    <span className="lh-infinite-spinner" aria-hidden />
+                    <span>{t('home.loadingMore')}</span>
+                  </div>
+                ) : hasMore ? (
+                  <button
+                    type="button"
+                    className="lh-infinite-more"
+                    onClick={() => void loadMore()}
+                  >
+                    {t('home.loadMore')}
+                  </button>
+                ) : filtered.length > 0 ? (
+                  <div className="lh-infinite-status is-done">
+                    {t('home.noMore', { n: total })}
+                  </div>
+                ) : null}
+              </div>
             </>
           )}
         </div>
