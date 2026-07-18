@@ -569,6 +569,17 @@ export function SettingsPage({ route }: { route: Route }) {
                       onMessage={setMsg}
                       onError={setError}
                     />
+
+                    <CapabilityPluginSettings
+                      kind="asr"
+                      onMessage={setMsg}
+                      onError={setError}
+                    />
+                    <CapabilityPluginSettings
+                      kind="tts"
+                      onMessage={setMsg}
+                      onError={setError}
+                    />
                   </div>
                 </SettingsPanel>
 
