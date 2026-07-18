@@ -11381,16 +11381,16 @@ html[data-theme="dark"] .settings-seo-preview-title {
   display: inline-flex;
   align-items: center;
   min-height: 20px;
-  padding: 0 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   line-height: 1.2;
 }
 
 .admin-publish-pill.is-on {
   color: var(--success);
-  background: color-mix(in srgb, var(--success-soft) 78%, transparent);
+  background: var(--success-soft);
 }
 
 .admin-publish-pill.is-off {
@@ -11462,136 +11462,80 @@ html[data-theme="dark"] .settings-seo-preview-title {
   overflow: hidden;
 }
 
-/* 底栏操作：发布开关 + 图标操作 */
+/* 底栏操作：沿用 nl-btn 体系，避免自定义开关风格突兀 */
 .admin-job-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px 10px;
-  border-top: 1px solid color-mix(in srgb, var(--separator) 88%, transparent);
-  background: color-mix(in srgb, var(--surface-2) 40%, transparent);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-2_5);
+  border-top: var(--bw-1) solid var(--separator);
+  background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
 }
 
-.admin-job-publish {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 32px;
-  min-height: 32px;
-  padding: 0 10px 0 6px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--separator) 90%, transparent);
-  background: var(--surface);
+.admin-job-action-btn.nl-btn {
+  min-height: var(--control-xl, 32px);
+  height: var(--control-xl, 32px);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md-minus);
+  font-size: var(--fs-sm-plus, 12.5px);
+  font-weight: var(--fw-semibold);
+  box-shadow: none;
+}
+
+.admin-job-action-btn.nl-btn-primary {
+  background: var(--brand);
+  color: var(--brand-contrast, var(--text-inv));
+}
+
+.admin-job-action-btn.nl-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.03);
+  background: var(--brand-2);
+}
+
+.admin-job-action-btn.is-published.nl-btn-secondary {
   color: var(--text-2);
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.admin-job-publish > i {
-  width: 30px;
-  height: 18px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 16%, var(--surface-2));
-  position: relative;
-  flex: 0 0 auto;
-  transition: background 0.15s ease;
-}
-
-.admin-job-publish > i::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
   background: var(--surface);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 16%);
-  transition: transform 0.15s ease, background 0.15s ease;
+  border-color: var(--separator-strong);
 }
 
-.admin-job-publish.is-on {
-  color: var(--text-2);
-  border-color: color-mix(in srgb, var(--success) 22%, var(--separator));
-  background: color-mix(in srgb, var(--success-soft) 36%, var(--surface));
-}
-
-.admin-job-publish.is-on > i {
-  background: var(--success);
-}
-
-.admin-job-publish.is-on > i::after {
-  transform: translateX(12px);
-  background: #fff;
-}
-
-.admin-job-publish:hover:not(:disabled) {
+.admin-job-action-btn.is-published.nl-btn-secondary:hover:not(:disabled) {
   color: var(--text);
-  border-color: color-mix(in srgb, var(--text) 14%, var(--separator));
-  background: color-mix(in srgb, var(--text) 3%, var(--surface));
-}
-
-.admin-job-publish.is-on:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--success-soft) 48%, var(--surface));
-  border-color: color-mix(in srgb, var(--success) 28%, var(--separator));
-}
-
-.admin-job-publish:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--brand) 22%, var(--separator-strong));
 }
 
 .admin-job-icon-actions {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1_5);
   margin-left: auto;
 }
 
-.admin-job-icon-btn {
-  appearance: none;
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--separator) 90%, transparent);
-  background: var(--surface);
-  color: var(--text-2);
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
+.admin-job-icon-btn.nl-btn {
+  width: var(--control-xl, 32px);
+  min-width: var(--control-xl, 32px);
+  height: var(--control-xl, 32px);
+  min-height: var(--control-xl, 32px);
+  padding: 0;
+  border-radius: var(--radius-md-minus);
+  border: var(--bw-1) solid transparent;
+  color: var(--text-3);
+  background: transparent;
 }
 
-.admin-job-icon-btn:hover:not(:disabled) {
+.admin-job-icon-btn.nl-btn:hover:not(:disabled) {
   color: var(--text);
-  border-color: color-mix(in srgb, var(--text) 14%, var(--separator));
-  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  background: color-mix(in srgb, var(--surface-3) 70%, transparent);
 }
 
-.admin-job-icon-btn.is-danger {
+.admin-job-icon-btn.nl-btn.is-danger {
+  color: var(--text-3);
+}
+
+.admin-job-icon-btn.nl-btn.is-danger:hover:not(:disabled) {
   color: var(--danger);
-}
-
-.admin-job-icon-btn.is-danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--danger-soft) 70%, var(--surface));
-  border-color: color-mix(in srgb, var(--danger) 18%, transparent);
-  color: var(--danger);
-}
-
-.admin-job-icon-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  background: var(--danger-soft);
 }
 
 .admin-upload-panel {
@@ -11753,7 +11697,6 @@ html[data-theme="dark"] .admin-library,
 html[data-theme="dark"] .admin-job-card,
 html[data-theme="dark"] .admin-filter,
 html[data-theme="dark"] .admin-search input,
-html[data-theme="dark"] .admin-job-publish,
 html[data-theme="dark"] .admin-job-icon-btn {
   background: color-mix(in srgb, var(--surface) 96%, #000);
 }

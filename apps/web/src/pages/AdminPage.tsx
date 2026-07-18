@@ -448,27 +448,23 @@ function JobCard({
         <button
           type="button"
           className={[
-            'admin-job-publish',
-            job.published ? 'is-on' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
+            'nl-btn',
+            'admin-job-action-btn',
+            job.published ? 'nl-btn-secondary is-published' : 'nl-btn-primary',
+          ].join(' ')}
           disabled={busy}
           onClick={onTogglePublish}
         >
-          <i aria-hidden />
-          <span>
-            {job.published
-              ? t('admin.unpublishAction')
-              : t('admin.publishAction')}
-          </span>
+          {job.published
+            ? t('admin.unpublishAction')
+            : t('admin.publishAction')}
         </button>
 
         <div className="admin-job-icon-actions">
           {canRetry ? (
             <button
               type="button"
-              className="admin-job-icon-btn"
+              className="nl-btn nl-btn-ghost admin-job-icon-btn"
               disabled={busy}
               onClick={onRetry}
               aria-label={t('admin.rerun')}
@@ -479,7 +475,7 @@ function JobCard({
           ) : null}
           <button
             type="button"
-            className="admin-job-icon-btn is-danger"
+            className="nl-btn nl-btn-ghost admin-job-icon-btn is-danger"
             disabled={busy}
             onClick={onDelete}
             aria-label={t('common.delete')}
