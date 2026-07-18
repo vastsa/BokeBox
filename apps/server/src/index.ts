@@ -23,6 +23,7 @@ import { initDatabase } from './db/sqlite.js';
 import { migrateStorageLayout } from './services/storageMigrator.js';
 import { buildPublicSiteSeo } from './services/settingsStore.js';
 import { injectSeoIntoHtml } from './utils/seoHtml.js';
+import { printOpenSourceBanner } from './utils/banner.js';
 
 loadEnv({ path: path.join(ROOT_DIR, '.env') });
 
@@ -33,6 +34,9 @@ const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || '0.0.0.0';
 
 async function main() {
+  // 启动即输出开源信息（纯 ASCII，不依赖 listen 成功）
+  printOpenSourceBanner({ version: '1.0.0', host: HOST, port: PORT });
+
   await ensureDir(JOBS_DIR);
 
   // 初始化 SQLite，必要时从旧 JSON 迁移

@@ -27,6 +27,30 @@ ok()   { printf "%s✓%s %s\n" "$GREEN" "$NC" "$*"; }
 warn() { printf "%s!%s %s\n" "$YELLOW" "$NC" "$*"; }
 err()  { printf "%s✗%s %s\n" "$RED" "$NC" "$*" >&2; }
 
+# 纯 ASCII 开源信息横幅（LGPL-3.0 + 仓库归属）
+print_oss_banner() {
+  cat <<'BANNER'
+
++--------------------------------------------------------------+
+|                                                              |
+|   ____        _        ____                                  |
+|  |  _ \      | |      |  _ \                                 |
+|  | |_) | ___ | | _____| |_) | _____  __                      |
+|  |  _ < / _ \| |/ / _ \  _ < / _ \ \/ /                      |
+|  | |_) | (_) |   <  __/ |_) | (_) >  <                       |
+|  |____/ \___/|_|\_\___|____/ \___/_/\_\                      |
+|                                                              |
+|   BokeBox  |  Private AI Podcast Studio                      |
+|   License  : LGPL-3.0                                        |
+|   Open Src : https://github.com/vastsa/BokeBox/              |
+|                                                              |
+|   Free software | LGPL-3.0 | keep license & attribution      |
+|                                                              |
++--------------------------------------------------------------+
+
+BANNER
+}
+
 ensure_env() {
   if [[ ! -f .env ]]; then
     if [[ -f .env.example ]]; then
@@ -93,6 +117,7 @@ install_deps() {
 }
 
 start_dev() {
+  print_oss_banner
   ensure_env
   ensure_storage
   ensure_node
@@ -108,6 +133,7 @@ start_dev() {
 }
 
 start_prod() {
+  print_oss_banner
   ensure_env
   ensure_storage
   ensure_node
@@ -141,6 +167,7 @@ resolve_compose() {
 
 # 推荐：拉取 GHCR 预构建镜像
 docker_up() {
+  print_oss_banner
   ensure_env
   ensure_storage
   resolve_compose
@@ -164,6 +191,7 @@ docker_up() {
 
 # 本地构建：使用 docker-compose.local.yml
 docker_local() {
+  print_oss_banner
   ensure_env
   ensure_storage
   resolve_compose
@@ -185,6 +213,7 @@ docker_local() {
 
 # 国内镜像构建：Docker Hub / apt / npm 全走国内源，系统 ffmpeg
 docker_cn() {
+  print_oss_banner
   ensure_env
   ensure_storage
   resolve_compose
@@ -242,6 +271,7 @@ docker_down() {
 }
 
 docker_prod() {
+  print_oss_banner
   ensure_env
   ensure_storage
   if command -v docker >/dev/null 2>&1; then
