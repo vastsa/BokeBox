@@ -8,7 +8,6 @@ import {
   type SourcePluginDescriptor,
 } from '../../api/client';
 import type { AlbumSummary } from '../../types/album';
-import { formatSize, formatSourceLabel } from '../../lib/format';
 import {
   emptyScriptPrompt,
   summarizeScriptPrompt,
@@ -20,38 +19,25 @@ import type {
   TtsOptions,
   TtsSourceMode,
 } from '../../types/job';
-import { ProgressBar } from '../ProgressBar';
-import {
-  IconCheck,
-  IconMic,
-  IconSpark,
-  IconUpload,
-  IconVideo,
-} from '../icons';
-import {
-  loadGlobalScriptPrompt,
-  ScriptPromptPicker,
-} from './ScriptPromptPicker';
+import { loadGlobalScriptPrompt } from './ScriptPromptPicker';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from './GlobalTtsSettings';
-import { loadGlobalTts, TtsPicker } from './TtsPicker';
-import { ContentLocaleSelect, contentLocaleLabel } from './ContentLocaleSelect';
+import { loadGlobalTts } from './TtsPicker';
+import { contentLocaleLabel } from './ContentLocaleSelect';
 import {
   resolveContentLocale,
   useI18n,
   type Locale,
 } from '../../i18n';
 
-const ACCEPT = [
-  // 视频
-  '.mp4,.mov,.webm,.mkv,.avi,.m4v,.mpeg,.mpg,.ts,.flv,video/*',
-  // 音频
-  '.mp3,.m4a,.wav,.aac,.ogg,.flac,.opus,.wma,audio/*',
-  // 文本
-  '.txt,.md,.markdown,.html,.htm,.json,.csv,.xml,.log,.srt,.vtt,text/*',
-].join(',');
-
-type SourceMode = 'file' | 'url';
-type OptionPanel = 'none' | 'tts' | 'prompt';
+import {
+  type OptionPanel,
+  type SourceMode,
+} from '../../features/upload/constants';
+import { UploadSourceTabs } from '../../features/upload/UploadSourceTabs';
+import { UploadFileDropzone } from '../../features/upload/UploadFileDropzone';
+import { UploadUrlPanel } from '../../features/upload/UploadUrlPanel';
+import { UploadProgressCard } from '../../features/upload/UploadProgressCard';
+import { UploadOptionsAside } from '../../features/upload/UploadOptionsAside';
 
 export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
   const { t } = useI18n();
@@ -325,206 +311,50 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
 
   return (
     <div className="upload-studio">
-      {/* 1. 主操作：导入内容 */}
       <div className="upload-studio-main">
-        <div className="upload-source-tabs" role="tablist" aria-label={t('upload.sourceAria')}>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={sourceMode === 'file'}
-            className={['upload-source-tab', sourceMode === 'file' ? 'is-active' : ''].join(' ')}
-            disabled={uploading}
-            onClick={() => {
-              setSourceMode('file');
-              setError(null);
-            }}
-          >
-            {t('upload.localFile')}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={sourceMode === 'url'}
-            className={['upload-source-tab', sourceMode === 'url' ? 'is-active' : ''].join(' ')}
-            disabled={uploading}
-            onClick={() => {
-              setSourceMode('url');
-              setError(null);
-            }}
-          >
-            {t('upload.urlImport')}
-          </button>
-        </div>
+        <UploadSourceTabs
+          sourceMode={sourceMode}
+          uploading={uploading}
+          onChange={(mode) => {
+            setSourceMode(mode);
+            setError(null);
+          }}
+        />
 
         {sourceMode === 'file' ? (
-          <div
-            role="button"
-            tabIndex={0}
-            aria-label={t('upload.dropAria')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                openPicker();
-              }
-            }}
-            onClick={openPicker}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              if (!uploading) void handleFile(e.dataTransfer.files?.[0]);
-            }}
-            className={[
-              'upload-dropzone',
-              dragOver ? 'is-dragover' : '',
-              uploading ? 'is-uploading' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          >
-            <div className="upload-dropzone-glow" aria-hidden />
-            <div className="upload-dropzone-inner">
-              <div className="upload-dropzone-icon">
-                <IconUpload size={24} />
-              </div>
-
-              <div className="upload-dropzone-copy">
-                <h2>{uploading ? t('upload.dropping') : t('upload.dropTitle')}</h2>
-                <p>{t('upload.dropHint')}</p>
-              </div>
-
-              {!uploading && (
-                <button
-                  type="button"
-                  className="nl-btn nl-btn-primary upload-dropzone-cta"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openPicker();
-                  }}
-                >
-                  <IconUpload size={15} />
-                  {t('upload.chooseFile')}
-                </button>
-              )}
-            </div>
-
-            <input
-              ref={inputRef}
-              type="file"
-              accept={ACCEPT}
-              className="hidden"
-              disabled={uploading}
-              onChange={(e) => void handleFile(e.target.files?.[0])}
-            />
-          </div>
+          <UploadFileDropzone
+            uploading={uploading}
+            dragOver={dragOver}
+            inputRef={inputRef}
+            onOpenPicker={openPicker}
+            onDragOver={setDragOver}
+            onDropFile={(file) => void handleFile(file)}
+            onPickFile={(file) => void handleFile(file)}
+          />
         ) : (
-          <div className={['upload-url-panel', uploading ? 'is-uploading' : ''].join(' ')}>
-            <label className="upload-url-field">
-              <span className="label">{t('upload.contentUrl')}</span>
-              <input
-                type="text"
-                inputMode="url"
-                className="nl-input"
-                placeholder={t('upload.urlPlaceholder')}
-                value={sourceUrl}
-                disabled={uploading}
-                onChange={(e) => setSourceUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    void handleUrl();
-                  }
-                }}
-              />
-            </label>
-
-            <label className="upload-url-field">
-              <span className="label">{t('upload.sourcePlugin')}</span>
-              <select
-                className="nl-input upload-source-plugin-select"
-                value={sourcePluginId}
-                disabled={uploading || sourcePluginsLoading}
-                onChange={(e) => setSourcePluginId(e.target.value)}
-                aria-label={t('upload.sourcePlugin')}
-              >
-                <option value="">{t('upload.sourcePluginAuto')}</option>
-                {sourcePlugins.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                    {p.origin === 'builtin' ? ' · builtin' : ''}
-                    {p.riskLevel === 'high' ? ' · high' : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <p className="upload-url-hint">
-              {sourcePluginsLoading
-                ? t('upload.sourcePluginLoading')
-                : sourcePlugins.length === 0
-                  ? t('upload.sourcePluginUnavailable')
-                  : t('upload.sourcePluginHint')}
-              {!sourcePluginId ? ` ${t('upload.urlHint')}` : ''}
-            </p>
-
-            <button
-              type="button"
-              className="nl-btn nl-btn-primary upload-dropzone-cta"
-              disabled={uploading || !sourceUrl.trim()}
-              onClick={() => void handleUrl()}
-            >
-              <IconUpload size={15} />
-              {uploading ? t('upload.submitting') : t('upload.start')}
-            </button>
-          </div>
+          <UploadUrlPanel
+            uploading={uploading}
+            sourceUrl={sourceUrl}
+            sourcePluginId={sourcePluginId}
+            sourcePlugins={sourcePlugins}
+            sourcePluginsLoading={sourcePluginsLoading}
+            onUrlChange={setSourceUrl}
+            onPluginChange={setSourcePluginId}
+            onSubmit={() => void handleUrl()}
+          />
         )}
 
         {(uploading || fileName) && (
-          <div className="upload-progress-card">
-            <div className="upload-file-row">
-              <div className="upload-file-icon">
-                <IconVideo size={18} />
-              </div>
-              <div className="upload-file-meta">
-                <div className="upload-file-name" title={fileName || undefined}>{formatSourceLabel(fileName, 64)}</div>
-                <div className="upload-file-sub">
-                  {fileSize != null
-                    ? formatSize(fileSize)
-                    : sourceMode === 'url'
-                      ? t('upload.urlImport')
-                      : '—'}
-                  <span className="dot">·</span>
-                  {ttsSummary}
-                  <span className="dot">·</span>
-                  {contentLocaleDisplay}
-                  <span className="dot">·</span>
-                  {published ? t('upload.publishOn') : t('upload.publishOff')}
-                </div>
-              </div>
-              <div className="upload-file-status">
-                {uploading ? (
-                  <span className="pct">{progress}%</span>
-                ) : (
-                  <span className="done">
-                    <IconCheck size={14} />
-                    {t('upload.submitted')}
-                  </span>
-                )}
-              </div>
-            </div>
-            <ProgressBar value={uploading ? progress : 100} />
-            <div className="upload-progress-hint">
-              {uploading
-                ? sourceMode === 'url'
-                  ? t('upload.submittedUrl')
-                   : t('upload.submittedUpload')
-                 : t('upload.submittedRedirect')}
-            </div>
-          </div>
+          <UploadProgressCard
+            uploading={uploading}
+            progress={progress}
+            fileName={fileName}
+            fileSize={fileSize}
+            sourceMode={sourceMode}
+            ttsSummary={ttsSummary}
+            contentLocaleDisplay={contentLocaleDisplay}
+            published={published}
+          />
         )}
 
         {error && (
@@ -547,199 +377,43 @@ export function UploadPanel({ onCreated }: { onCreated: (job: Job) => void }) {
         )}
       </div>
 
-      {/* 2. 制作选项：基础设置 + 可展开高级项 */}
-      <aside className="upload-options" aria-label={t('upload.optionsAria')}>
-        <div className={['upload-options-card', optionsOpen ? 'is-open' : 'is-collapsed'].join(' ')}>
-          <button
-            type="button"
-            className="upload-options-toggle"
-            aria-expanded={optionsOpen}
-            onClick={() => setOptionsOpen((v) => !v)}
-          >
-            <span className="upload-options-toggle-copy">
-              <strong>{t('upload.optionsAria')}</strong>
-              <span>
-                {published ? t('upload.publishOn') : t('upload.publishOff')}
-                {' · '}
-                {ttsModeLabel} · {contentLocaleDisplay}
-              </span>
-            </span>
-            <em>{optionsOpen ? t('common.collapse') : t('common.adjust')}</em>
-          </button>
+      <UploadOptionsAside
+        uploading={uploading}
+        optionsOpen={optionsOpen}
+        setOptionsOpen={setOptionsOpen}
+        published={published}
+        updatePublished={updatePublished}
+        albumId={albumId}
+        setAlbumId={setAlbumId}
+        albums={albums}
+        albumsLoading={albumsLoading}
+        contentLocale={contentLocale}
+        contentLocaleOptions={contentLocaleOptions}
+        contentLocaleReady={contentLocaleReady}
+        contentLocaleHint={contentLocaleHint}
+        contentLocaleDisplay={contentLocaleDisplay}
+        updateContentLocale={updateContentLocale}
+        openPanel={openPanel}
+        setOpenPanel={setOpenPanel}
+        togglePanel={togglePanel}
+        ttsModeLabel={ttsModeLabel}
+        ttsSummary={ttsSummary}
+        ttsSourceMode={ttsSourceMode}
+        tts={tts}
+        globalTts={globalTts}
+        ttsReady={ttsReady}
+        updateTtsSourceMode={updateTtsSourceMode}
+        updateTts={updateTts}
+        promptModeLabel={promptModeLabel}
+        promptSummary={promptSummary}
+        scriptPromptMode={scriptPromptMode}
+        scriptPrompt={scriptPrompt}
+        globalScriptPrompt={globalScriptPrompt}
+        scriptPromptReady={scriptPromptReady}
+        updateScriptPromptMode={updateScriptPromptMode}
+        updateScriptPrompt={updateScriptPrompt}
+      />
 
-          <div className="upload-options-body" hidden={!optionsOpen}>
-          <label
-            className={[
-              'upload-switch-row upload-switch-row-compact',
-              uploading ? 'is-locked' : '',
-            ].join(' ')}
-          >
-            <div className="upload-switch-copy">
-              <div className="title">{t('upload.autoPublish')}</div>
-              <div className="desc">
-                {published ? t('upload.publishOn') : t('upload.publishOff')}
-              </div>
-            </div>
-            <span className={['upload-switch', published ? 'is-on' : ''].join(' ')}>
-              <i />
-              <input
-                type="checkbox"
-                className="upload-switch-input"
-                checked={published}
-                disabled={uploading}
-                onChange={(e) => updatePublished(e.target.checked)}
-                aria-label={t('upload.autoPublish')}
-              />
-            </span>
-          </label>
-
-          <div className="upload-basics-grid">
-            <div className="upload-field">
-              <div className="upload-field-head">
-                <span className="title">{t('upload.album')}</span>
-                <span className="desc">
-                  {albumsLoading
-                    ? t('upload.albumLoading')
-                    : albums.length
-                      ? t('upload.albumHint')
-                      : t('upload.albumEmpty')}
-                </span>
-              </div>
-              <select
-                className="nl-input upload-locale-select"
-                value={albumId}
-                disabled={uploading || albumsLoading}
-                onChange={(e) => setAlbumId(e.target.value)}
-                aria-label={t('upload.album')}
-              >
-                <option value="">{t('upload.albumNone')}</option>
-                {albums.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.title}
-                    {!a.published ? ` (${t('album.draft')})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="upload-field">
-              <div className="upload-field-head">
-                <span className="title">{t('upload.contentLocale')}</span>
-                <span className="desc">
-                  {contentLocaleReady
-                    ? contentLocaleHint
-                    : t('upload.localeLoading')}
-                </span>
-              </div>
-              <ContentLocaleSelect
-                className="upload-locale-select"
-                value={contentLocale}
-                options={contentLocaleOptions}
-                disabled={uploading || !contentLocaleReady}
-                aria-label={t('upload.contentLocaleAria')}
-                onChange={updateContentLocale}
-              />
-            </div>
-          </div>
-
-          <div className="upload-option-chips" role="group" aria-label={t('upload.advancedAria')}>
-            <button
-              type="button"
-              className={[
-                'upload-option-chip',
-                openPanel === 'tts' ? 'is-open' : '',
-              ].join(' ')}
-              disabled={uploading || !ttsReady}
-              aria-expanded={openPanel === 'tts'}
-              onClick={() => togglePanel('tts')}
-            >
-              <IconMic size={13} />
-              <span className="chip-label">{t('upload.voice')}</span>
-              <span className="chip-value" title={`${ttsModeLabel} · ${ttsSummary}`}>
-                {ttsModeLabel} · {ttsSummary}
-              </span>
-              <span className="chip-caret" aria-hidden>
-                {openPanel === 'tts' ? t('common.collapse') : t('common.adjust')}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              className={[
-                'upload-option-chip',
-                openPanel === 'prompt' ? 'is-open' : '',
-              ].join(' ')}
-              disabled={uploading || !scriptPromptReady}
-              aria-expanded={openPanel === 'prompt'}
-              onClick={() => togglePanel('prompt')}
-            >
-              <IconSpark size={13} />
-              <span className="chip-label">{t('upload.persona')}</span>
-              <span className="chip-value" title={`${promptModeLabel} · ${promptSummary}`}>
-                {promptModeLabel} · {promptSummary}
-              </span>
-              <span className="chip-caret" aria-hidden>
-                {openPanel === 'prompt' ? t('common.collapse') : t('common.adjust')}
-              </span>
-            </button>
-          </div>
-
-          {openPanel === 'tts' && (
-            <div className="upload-option-panel" onClick={(e) => e.stopPropagation()}>
-              <div className="upload-option-panel-head">
-                <div className="left">
-                  <IconMic size={14} />
-                  <span>{t('upload.voice')}</span>
-                </div>
-                <button
-                  type="button"
-                  className="upload-option-close"
-                  onClick={() => setOpenPanel('none')}
-                >
-                  {t('common.done')}
-                </button>
-              </div>
-              <TtsPicker
-                mode={ttsSourceMode}
-                value={tts}
-                globalValue={globalTts}
-                disabled={uploading || !ttsReady}
-                compact
-                onModeChange={updateTtsSourceMode}
-                onChange={updateTts}
-              />
-            </div>
-          )}
-
-          {openPanel === 'prompt' && (
-            <div className="upload-option-panel">
-              <div className="upload-option-panel-head">
-                <div className="left">
-                  <IconSpark size={14} />
-                  <span>{t('upload.scriptPersona')}</span>
-                </div>
-                <button
-                  type="button"
-                  className="upload-option-close"
-                  onClick={() => setOpenPanel('none')}
-                >
-                  {t('common.done')}
-                </button>
-              </div>
-              <ScriptPromptPicker
-                mode={scriptPromptMode}
-                value={scriptPrompt}
-                globalValue={globalScriptPrompt}
-                disabled={uploading || !scriptPromptReady}
-                compact
-                onModeChange={updateScriptPromptMode}
-                onChange={updateScriptPrompt}
-              />
-            </div>
-          )}
-          </div>
-        </div>
-      </aside>
     </div>
   );
 }
