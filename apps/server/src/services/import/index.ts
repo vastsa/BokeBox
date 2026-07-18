@@ -17,6 +17,8 @@ export {
   extractPageTitle,
   extractArticleContent,
   extractReadableText,
-  detectAntiBot,
-  importUrlContent,
-} from './urlImporter.js';
+} from './html.js';
+
+export { detectAntiBot } from './fetchPage.js';
+
+export { importUrlContent } from './urlImporter.js';
