@@ -9,6 +9,11 @@ import {
   resetPluginConfigStore,
 } from '../../plugin-kit/index.js';
 import { STORAGE_DIR } from '../../utils/paths.js';
+import {
+  EDGE_SCHEMA,
+  cloudEndpointSchema,
+  migrateAsrTtsSecretsFromGlobalOnce,
+} from '../pluginEndpoint.js';
 import { demoTtsProvider } from './demoTts.js';
 import { edgeTtsProvider } from './edgeTts.js';
 import { scanAndLoadExternalTtsPlugins, type TtsPluginScanResult } from './loader.js';
@@ -44,17 +49,24 @@ export function ensureBuiltinTtsPlugins(): void {
   if (builtinsRegistered) return;
 
   registerTtsPlugin(
-    asBuiltin(mimoTtsProvider, { defaultEnabled: true }),
+    asBuiltin(mimoTtsProvider, {
+      defaultEnabled: true,
+      configSchema: cloudEndpointSchema('mimo-v2.5-tts'),
+    }),
     { origin: 'builtin', apiVersion: 1 },
   );
   registerTtsPlugin(
-    asBuiltin(openaiTtsProvider, { defaultEnabled: true }),
+    asBuiltin(openaiTtsProvider, {
+      defaultEnabled: true,
+      configSchema: cloudEndpointSchema('tts-1'),
+    }),
     { origin: 'builtin', apiVersion: 1 },
   );
   registerTtsPlugin(
     asBuiltin(edgeTtsProvider, {
       defaultEnabled: true,
       description: '微软 Edge 神经音色（免费，无需 API Key）',
+      configSchema: EDGE_SCHEMA,
     }),
     { origin: 'builtin', apiVersion: 1 },
   );
@@ -67,6 +79,7 @@ export function ensureBuiltinTtsPlugins(): void {
   );
 
   builtinsRegistered = true;
+  migrateAsrTtsSecretsFromGlobalOnce();
 }
 
 export function createTtsContext(

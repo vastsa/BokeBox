@@ -9,6 +9,11 @@ import {
   resetPluginConfigStore,
 } from '../../plugin-kit/index.js';
 import { STORAGE_DIR } from '../../utils/paths.js';
+import {
+  WHISPER_SCHEMA,
+  cloudEndpointSchema,
+  migrateAsrTtsSecretsFromGlobalOnce,
+} from '../pluginEndpoint.js';
 import { demoAsrProvider } from './demoAsr.js';
 import { localWhisperAsrProvider } from './localWhisperAsr.js';
 import { scanAndLoadExternalAsrPlugins, type AsrPluginScanResult } from './loader.js';
@@ -46,6 +51,7 @@ export function ensureBuiltinAsrPlugins(): void {
     asBuiltin(mimoAsrProvider, {
       defaultEnabled: true,
       description: '小米 MiMo：chat/completions + input_audio（长音频自动分段）',
+      configSchema: cloudEndpointSchema('mimo-v2.5-asr'),
     }),
     { origin: 'builtin', apiVersion: 1 },
   );
@@ -53,6 +59,7 @@ export function ensureBuiltinAsrPlugins(): void {
     asBuiltin(openaiAsrProvider, {
       defaultEnabled: true,
       description: 'OpenAI 兼容 /audio/transcriptions',
+      configSchema: cloudEndpointSchema('whisper-1'),
     }),
     { origin: 'builtin', apiVersion: 1 },
   );
@@ -62,6 +69,7 @@ export function ensureBuiltinAsrPlugins(): void {
       defaultEnabled: true,
       strictAvailability: true,
       description: '本地 whisper / whisper.cpp，无需云端密钥',
+      configSchema: WHISPER_SCHEMA,
     }),
     { origin: 'builtin', apiVersion: 1 },
   );
@@ -74,6 +82,7 @@ export function ensureBuiltinAsrPlugins(): void {
   );
 
   builtinsRegistered = true;
+  migrateAsrTtsSecretsFromGlobalOnce();
 }
 
 export function createAsrContext(

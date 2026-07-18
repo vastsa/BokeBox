@@ -4,11 +4,21 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { aiFetch, getAsrModel, hasApiKey } from '../../utils/aiConfig.js';
+import { getAsrModel } from '../../utils/aiConfig.js';
 import { resolveFfmpegPath } from '../../utils/ffmpeg.js';
 import { ensureDir, pathExists, removeDirIfExists } from '../../utils/fs.js';
 import { probeAudioDurationSec } from '../../services/scriptTiming.js';
-import type { AsrProvider, AsrTranscribeInput, AsrTranscribeResult } from './types.js';
+import {
+  isCloudEndpointReady,
+  pluginFetch,
+  resolveCloudEndpoint,
+} from '../pluginEndpoint.js';
+import type {
+  AsrPluginContext,
+  AsrProvider,
+  AsrTranscribeInput,
+  AsrTranscribeResult,
+} from './types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -138,7 +148,9 @@ async function callMimoAsrOnce(opts: {
   }
   const b64 = fileBuffer.toString('base64');
 
-  const res = await aiFetch(
+  const res = await pluginFetch(
+    'asr',
+    'mimo',
     '/chat/completions',
     {
       method: 'POST',
@@ -163,7 +175,6 @@ async function callMimoAsrOnce(opts: {
         max_tokens: MAX_COMPLETION_TOKENS,
       }),
     },
-    'asr',
   );
 
   if (!res.ok) {
@@ -285,10 +296,19 @@ export const mimoAsrProvider: AsrProvider = {
   description: '小米 MiMo：chat/completions + input_audio（长音频自动分段）',
   suggestedModel: 'mimo-v2.5-asr',
   isAvailable() {
-    return hasApiKey('asr');
+    return isCloudEndpointReady('asr', 'mimo');
   },
-  async transcribe(input: AsrTranscribeInput): Promise<AsrTranscribeResult> {
-    const model = input.model?.trim() || getAsrModel();
+  async transcribe(
+    input: AsrTranscribeInput,
+    ctx?: AsrPluginContext,
+  ): Promise<AsrTranscribeResult> {
+    const ep = resolveCloudEndpoint('asr', 'mimo');
+    const model =
+      input.model?.trim() ||
+      String(ctx?.getConfig?.('model') ?? '').trim() ||
+      ep.model ||
+      getAsrModel() ||
+      'mimo-v2.5-asr';
     const format = normalizeFormat(input);
     const audioPath = input.audioPath;
 

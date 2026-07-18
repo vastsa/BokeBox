@@ -7,7 +7,6 @@ import {
 } from '../../api/client';
 import {
   EDGE_VOICE_OPTIONS,
-  WHISPER_LANG_OPTIONS,
   WHISPER_MODEL_OPTIONS,
 } from '../../lib/providerOptions';
 import { useI18n } from '../../i18n';
@@ -77,7 +76,7 @@ function ServiceCard({
 
 /**
  * AI 服务设置：按 LLM / ASR / TTS / 图片分卡片配置
- * 各服务可独立端点与密钥；留空则继承「默认连接」
+ * LLM / 图片可独立端点与密钥；ASR / TTS 密钥在「插件」页配置
  */
 export function AiServiceSettings({
   onMessage,
@@ -101,8 +100,6 @@ export function AiServiceSettings({
 
   const [asrProvider, setAsrProvider] = useState('mimo');
   const [ttsProvider, setTtsProvider] = useState('mimo');
-  const [whisperBin, setWhisperBin] = useState('');
-  const [whisperLang, setWhisperLang] = useState('');
   const [voiceDesignModel, setVoiceDesignModel] = useState('');
   const [defaultVoice, setDefaultVoice] = useState('');
 
@@ -120,12 +117,12 @@ export function AiServiceSettings({
         model: cfg.llm?.model || cfg.chatModel || '',
       });
       setAsr({
-        baseUrl: cfg.asr?.baseUrl || '',
+        baseUrl: '',
         apiKey: '',
         model: cfg.asr?.model || cfg.asrModel || '',
       });
       setTts({
-        baseUrl: cfg.tts?.baseUrl || '',
+        baseUrl: '',
         apiKey: '',
         model: cfg.tts?.model || cfg.ttsModel || '',
       });
@@ -136,8 +133,6 @@ export function AiServiceSettings({
       });
       setAsrProvider(cfg.asr?.provider || cfg.asrProvider || 'mimo');
       setTtsProvider(cfg.tts?.provider || cfg.ttsProvider || 'mimo');
-      setWhisperBin(cfg.asr?.whisperBin || cfg.whisperBin || '');
-      setWhisperLang(cfg.asr?.whisperLang || cfg.whisperLang || '');
       setVoiceDesignModel(
         cfg.tts?.voiceDesignModel || cfg.voiceDesignModel || '',
       );
@@ -169,14 +164,8 @@ export function AiServiceSettings({
         defaultVoice: defaultVoice.trim(),
         asrProvider: asrProvider.trim() || 'mimo',
         ttsProvider: ttsProvider.trim() || 'mimo',
-        whisperBin: whisperBin.trim(),
-        whisperLang: whisperLang.trim(),
         llmBaseUrl: llm.baseUrl.trim(),
         llmApiKey: llm.apiKey.trim(),
-        asrBaseUrl: asr.baseUrl.trim(),
-        asrApiKey: asr.apiKey.trim(),
-        ttsBaseUrl: tts.baseUrl.trim(),
-        ttsApiKey: tts.apiKey.trim(),
         imageBaseUrl: image.baseUrl.trim(),
         imageApiKey: image.apiKey.trim(),
       });
@@ -404,60 +393,9 @@ export function AiServiceSettings({
             ) : null}
           </label>
 
-          {asrProvider !== 'local-whisper' ? (
-            <>
-              <label className="auth-field">
-                <span>{t('settings.svcEndpoint')}</span>
-                <input
-                  value={asr.baseUrl}
-                  onChange={(e) =>
-                    setAsr((s) => ({ ...s, baseUrl: e.target.value }))
-                  }
-                  placeholder={inheritHint}
-                  spellCheck={false}
-                />
-              </label>
-              <label className="auth-field">
-                <span>{t('settings.svcApiKey')}</span>
-                <input
-                  value={asr.apiKey}
-                  onChange={(e) =>
-                    setAsr((s) => ({ ...s, apiKey: e.target.value }))
-                  }
-                  placeholder={keyPlaceholder(ai?.asr?.apiKeySet)}
-                  autoComplete="off"
-                />
-              </label>
-            </>
-          ) : (
-            <>
-              <label className="auth-field auth-field-span2">
-                <span>{t('settings.whisperBin')}</span>
-                <input
-                  value={whisperBin}
-                  onChange={(e) => setWhisperBin(e.target.value)}
-                  placeholder={t('settings.whisperBinPlaceholder')}
-                  spellCheck={false}
-                />
-              </label>
-              <label className="auth-field">
-                <span>{t('settings.whisperLang')}</span>
-                <select
-                  value={whisperLang}
-                  onChange={(e) => setWhisperLang(e.target.value)}
-                >
-                  {WHISPER_LANG_OPTIONS.map((opt) => (
-                    <option key={opt.id || 'auto'} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <p className="settings-field-tip auth-field-span2">
-                {t('settings.whisperHint')}
-              </p>
-            </>
-          )}
+          <p className="settings-field-tip auth-field-span2">
+            {t('settings.asrPluginSecretTip')}
+          </p>
         </div>
       </ServiceCard>
 
@@ -511,30 +449,9 @@ export function AiServiceSettings({
           </label>
 
           {ttsProvider !== 'edge' ? (
-            <>
-              <label className="auth-field">
-                <span>{t('settings.svcEndpoint')}</span>
-                <input
-                  value={tts.baseUrl}
-                  onChange={(e) =>
-                    setTts((s) => ({ ...s, baseUrl: e.target.value }))
-                  }
-                  placeholder={inheritHint}
-                  spellCheck={false}
-                />
-              </label>
-              <label className="auth-field">
-                <span>{t('settings.svcApiKey')}</span>
-                <input
-                  value={tts.apiKey}
-                  onChange={(e) =>
-                    setTts((s) => ({ ...s, apiKey: e.target.value }))
-                  }
-                  placeholder={keyPlaceholder(ai?.tts?.apiKeySet)}
-                  autoComplete="off"
-                />
-              </label>
-            </>
+            <p className="settings-field-tip auth-field-span2">
+              {t('settings.ttsPluginSecretTip')}
+            </p>
           ) : null}
 
           {ttsProvider === 'mimo' ? (
@@ -630,7 +547,7 @@ export function AiServiceSettings({
       </ServiceCard>
 
       <p className="settings-inline-hint ai-plugin-manage-tip">
-        {t('settings.aiPluginGoPluginsTip')}
+        {t('settings.aiPluginSecretsTip')}
       </p>
 
       <section className="settings-card settings-card-wide">

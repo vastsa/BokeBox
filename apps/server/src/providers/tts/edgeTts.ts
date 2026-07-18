@@ -1,6 +1,12 @@
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 import { getDefaultTtsVoice } from '../../utils/aiConfig.js';
-import type { TtsProvider, TtsChunkInput, TtsChunkResult } from './types.js';
+import { getPluginConfig } from '../../plugin-kit/persist.js';
+import type {
+  TtsChunkInput,
+  TtsChunkResult,
+  TtsPluginContext,
+  TtsProvider,
+} from './types.js';
 
 /** Edge 神经音色（常用中英） */
 export const EDGE_PRESET_VOICES = [
@@ -162,8 +168,19 @@ function stripLeadingStyleTags(text: string): string {
     .trim();
 }
 
-export function resolveEdgeVoice(voice?: string): string {
-  const candidate = (voice || getDefaultTtsVoice() || '').trim();
+export function resolveEdgeVoice(
+  voice?: string,
+  ctx?: TtsPluginContext,
+): string {
+  const pluginDefault =
+    String(ctx?.getConfig?.('defaultVoice') ?? '').trim() ||
+    String(getPluginConfig('tts', 'edge').defaultVoice || '').trim();
+  const candidate = (
+    voice ||
+    pluginDefault ||
+    getDefaultTtsVoice() ||
+    ''
+  ).trim();
   if (candidate && EDGE_VOICE_IDS.has(candidate as (typeof EDGE_PRESET_VOICES)[number]['id'])) {
     return candidate;
   }
@@ -217,8 +234,11 @@ export const edgeTtsProvider: TtsProvider = {
     // 需要外网；此处不探测网络，失败在合成时报错
     return true;
   },
-  async synthesizeChunk(input: TtsChunkInput): Promise<TtsChunkResult> {
-    const voice = resolveEdgeVoice(input.tts?.voice);
+  async synthesizeChunk(
+    input: TtsChunkInput,
+    ctx?: TtsPluginContext,
+  ): Promise<TtsChunkResult> {
+    const voice = resolveEdgeVoice(input.tts?.voice, ctx);
     const raw = stripLeadingStyleTags(input.text);
     if (!raw) throw new Error('Edge TTS 文本为空');
 
