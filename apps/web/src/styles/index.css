@@ -44,6 +44,8 @@
   --text-2: #5b6575;
   --text-3: #8b95a7;
   --text-inv: #ffffff;
+  /* 品牌实心按钮/高对比表面上的文字色 */
+  --brand-contrast: #ffffff;
   --muted: #8b93a7;
 
   /* ===== Color · Absolute ===== */
@@ -13021,7 +13023,7 @@ html[data-theme="dark"] .source-plugin-action-btn.is-active {
 .pg-num[aria-current="page"] {
   background: var(--brand);
   border-color: var(--brand);
-  color: var(--brand-contrast, #fff);
+  color: var(--brand-contrast);
   cursor: default;
 }
 

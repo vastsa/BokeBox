@@ -303,7 +303,7 @@ OPENAI_TTS_MODEL=mimo-v2.5-tts
 OPENAI_TTS_DEFAULT_VOICE=冰糖
 ```
 
-Full variables: `.env.example`. CI/CD & image publish: [`docs/ci-cd.md`](docs/ci-cd.md).
+Full variables: `.env.example`. CI/CD & image publish: [`docs/ci-cd.md`](docs/ci-cd.md). Web font/color tokens: [`docs/web-design-tokens.md`](docs/web-design-tokens.md).
 
 ### Pipeline (sketch)
 
@@ -340,4 +340,5 @@ BokeBox is **not locked to one media type**. Beyond built-in video / link / draf
 - Developer guide: [docs/source-plugin-development.md](./docs/source-plugin-development.md)
 - Architecture notes: [docs/source-plugins.md](./docs/source-plugins.md)
 - Example plugin: [examples/source-plugin-echo](./examples/source-plugin-echo)
+- Web design tokens (font/color): [docs/web-design-tokens.md](./docs/web-design-tokens.md)
 
