@@ -285,8 +285,8 @@ export function podcastFallbackCopy(
     return {
       title: `[Podcast] ${sourceTitle}`,
       summary: 'A condensed listen-first rewrite of the source material.',
-      tags: ['video-to-podcast'],
-      hostIntro: 'The host reconstructs the source into a short podcast episode.',
+      tags: ['content-to-podcast'],
+      hostIntro: 'The host turns the source into a concise private podcast episode.',
       outlineTitle: 'This episode',
       outlineSummary: 'Key ideas and takeaways',
     };
@@ -295,7 +295,7 @@ export function podcastFallbackCopy(
     title: `【播客】${sourceTitle}`,
     summary: '本期精华播客。',
     tags: ['内容转播客'],
-    hostIntro: '主持人重构视频精华。',
+    hostIntro: '主持人将源内容重构为可收听的精华口播。',
     outlineTitle: '本期内容',
     outlineSummary: '核心观点与建议',
   };

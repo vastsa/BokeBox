@@ -136,7 +136,7 @@ function buildInstallBundle(baseUrl: string, token: string) {
 
   /** 直接粘贴给 AI 的安装提示词（含端点 / Token / 配置） */
   const aiPrompt = [
-    '请帮我把 BokeBox 安装为可用的 MCP 服务器，安装完成后你就能直接调用它制作私人播客。',
+    '请将 BokeBox 安装为可用的 MCP 服务器。安装完成后即可调用其能力，将多源内容转化为可收听的私人播客。',
     '',
     '## 目标',
     '在当前 AI 客户端（Cursor / Claude Desktop / Codex / OpenClaw / 其他支持 MCP 的工具）中新增名为 `bokebox` 的 MCP 连接，并验证可用。',
@@ -154,7 +154,7 @@ function buildInstallBundle(baseUrl: string, token: string) {
     '2. 若客户端区分 transport，优先使用 url + headers；也可用 type: "http" 或 streamableHttp。',
     '3. 保存配置并在需要时重启 / 重载 MCP。',
     '4. 安装后调用 `get_system_health` 或 `list_jobs` 验证连通。',
-    '5. 验证成功后，用一句话告诉我可以开始用 BokeBox 了。',
+    '5. 验证成功后，用一句话确认 BokeBox 已可正常使用。',
     '',
     '## Cursor 配置（推荐直接用这份）',
     '```json',

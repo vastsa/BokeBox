@@ -89,7 +89,7 @@ function demoPodcast(
     const title = `[Podcast] ${base}: From source to a listen-first episode`;
     const summary =
       'This episode rewrites the source into about 10 minutes of highlight listening, with key ideas and practical next steps.';
-    const tags = ['video-to-podcast', 'repurposing', 'spoken script', 'personal brand'];
+    const tags = ['content-to-podcast', 'knowledge reuse', 'spoken content', 'private podcast'];
     const outline = [
       { title: 'Opening hook', summary: 'Why rewrite the source as a podcast.' },
       { title: 'Core ideas', summary: 'Three to five memorable points.' },
