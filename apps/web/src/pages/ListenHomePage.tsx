@@ -63,7 +63,77 @@ const MASONRY_CONFIG = {
   useBalancedLayout: true,
 };
 
-const SKEL_ITEMS = Array.from({ length: 8 }, (_, i) => i);
+/** 与卡片 is-s / is-m / is-t 的 aspect-ratio 对应：1/1、3/4、2/3 */
+const CARD_HEIGHT_RATIOS = [1, 4 / 3, 3 / 2] as const;
+const AVG_CARD_HEIGHT_RATIO =
+  CARD_HEIGHT_RATIOS.reduce((sum, r) => sum + r, 0) / CARD_HEIGHT_RATIOS.length;
+
+/** 服务端 pageSize 上限 100；首屏过小会立刻触底，过大浪费带宽 */
+const LIBRARY_PAGE_MIN = 6;
+const LIBRARY_PAGE_MAX = 48;
+/** 多拉 1 行，避免首屏刚够高就立刻触发哨兵 */
+const LIBRARY_OVERSCAN_ROWS = 1;
+/** 页头 + 筛选条 + 间距（不含专辑/制作中，首屏骨架时通常尚未占位） */
+const LIBRARY_CHROME_TOP_PX = 168;
+/** 底栏 + 迷你播放条预留 */
+const LIBRARY_CHROME_BOTTOM_PX = 120;
+/** 内容区左右 padding 粗估（--page-x * 2） */
+const LIBRARY_PAGE_PAD_X = 40;
+/** 与 .page-container 的 --container-max 大致对齐 */
+const LIBRARY_CONTAINER_MAX = 1120;
+
+function masonryLayoutForWidth(width: number): { columns: number; gap: number } {
+  // 与 react-plock 一致：累计命中的 min-width 数量作为 columns/gap 下标
+  let hits = 0;
+  for (const bp of MASONRY_CONFIG.media) {
+    if (width >= bp) hits += 1;
+    else break;
+  }
+  const index = Math.min(
+    Math.max(hits, 0),
+    MASONRY_CONFIG.columns.length - 1,
+  );
+  return {
+    columns: MASONRY_CONFIG.columns[index],
+    gap: MASONRY_CONFIG.gap[index],
+  };
+}
+
+/**
+ * 按当前视口估算「一屏可见 + 1 行 overscan」的条数。
+ * 用于首屏与触底追加的 pageSize，避免固定 10 条在宽屏不够 / 窄屏过多。
+ */
+function estimateLibraryPageSize(
+  viewport?: { width: number; height: number },
+): number {
+  const width =
+    viewport?.width ??
+    (typeof window !== 'undefined' ? window.innerWidth : 390);
+  const height =
+    viewport?.height ??
+    (typeof window !== 'undefined' ? window.innerHeight : 844);
+
+  const { columns, gap } = masonryLayoutForWidth(width);
+  const contentWidth = Math.max(
+    280,
+    Math.min(width - LIBRARY_PAGE_PAD_X, LIBRARY_CONTAINER_MAX),
+  );
+  const colWidth = (contentWidth - gap * (columns - 1)) / columns;
+  const avgCardH = Math.max(120, colWidth * AVG_CARD_HEIGHT_RATIO);
+  const availableH = Math.max(
+    avgCardH,
+    height - LIBRARY_CHROME_TOP_PX - LIBRARY_CHROME_BOTTOM_PX,
+  );
+  const rows = Math.max(1, Math.ceil(availableH / (avgCardH + gap)));
+  const count = (rows + LIBRARY_OVERSCAN_ROWS) * columns;
+  return Math.min(LIBRARY_PAGE_MAX, Math.max(LIBRARY_PAGE_MIN, count));
+}
+
+const DEFAULT_LIBRARY_PAGE_SIZE = estimateLibraryPageSize();
+const SKEL_ITEMS = Array.from(
+  { length: Math.min(12, DEFAULT_LIBRARY_PAGE_SIZE) },
+  (_, i) => i,
+);
 
 function itemTitle(item: LibraryItem): string {
   return item.job.podcast?.title || item.job.title;
@@ -101,9 +171,6 @@ const EMPTY_LIB_FACETS: LibraryListFacets = {
   done: 0,
 };
 
-/** 首页瀑布流每次拉取数量：首屏轻量，触底再追加 */
-const LIBRARY_PAGE_SIZE = 10;
-
 export function ListenHomePage({ route }: { route: Route }) {
   const { t } = useI18n();
   const player = usePlayer();
@@ -123,6 +190,8 @@ export function ListenHomePage({ route }: { route: Route }) {
   const [facets, setFacets] = useState<LibraryListFacets>(EMPTY_LIB_FACETS);
   const refreshIdRef = useRef(0);
   const pageRef = useRef(1);
+  /** 本轮分页统一 pageSize：重置时按视口重算，滚动中途不改，避免页码错位 */
+  const pageSizeRef = useRef(DEFAULT_LIBRARY_PAGE_SIZE);
   const loadingMoreRef = useRef(false);
   const hasMoreRef = useRef(true);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -176,7 +245,7 @@ export function ListenHomePage({ route }: { route: Route }) {
       const authed = Boolean(getToken());
       const libRes = await fetchLibrary({
         page: targetPage,
-        pageSize: LIBRARY_PAGE_SIZE,
+        pageSize: pageSizeRef.current,
         q: debouncedQuery,
         filter: filter as LibraryListFilter,
       });
@@ -246,6 +315,8 @@ export function ListenHomePage({ route }: { route: Route }) {
       setHasMore(true);
       hasMoreRef.current = true;
       pageRef.current = 1;
+      // 筛选/搜索/首屏重置时按当前视口重算每页条数
+      pageSizeRef.current = estimateLibraryPageSize();
 
       try {
         const tasks: Promise<unknown>[] = [
@@ -268,7 +339,8 @@ export function ListenHomePage({ route }: { route: Route }) {
   /** 任务完成后：保留已滚动深度，按已加载条数一次回填，避免跳回顶部 */
   const softRefreshLibrary = useCallback(async () => {
     const refreshId = ++refreshIdRef.current;
-    const loaded = Math.max(pageRef.current * LIBRARY_PAGE_SIZE, LIBRARY_PAGE_SIZE);
+    const unit = Math.max(1, pageSizeRef.current);
+    const loaded = Math.max(pageRef.current * unit, unit);
     const pageSize = Math.min(100, loaded);
     try {
       const authed = Boolean(getToken());
@@ -288,7 +360,7 @@ export function ListenHomePage({ route }: { route: Route }) {
       setTotal(libRes.total);
       setFacets(libRes.facets || EMPTY_LIB_FACETS);
       // 用「已加载条数」反推页码，继续触底分页
-      const approxPage = Math.max(1, Math.ceil(items.length / LIBRARY_PAGE_SIZE));
+      const approxPage = Math.max(1, Math.ceil(items.length / unit));
       pageRef.current = approxPage;
       const nextHasMore = items.length < (libRes.total || 0);
       setHasMore(nextHasMore);
