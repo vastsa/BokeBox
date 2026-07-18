@@ -5,15 +5,8 @@ import { clearAuthSession, getToken } from './lib/auth';
 import { setCachedSiteName } from './lib/site';
 import { setCachedSeo } from './lib/seo';
 import { navigate, parseHash, type Route } from './lib/router';
-import { AdminJobPage } from './pages/AdminJobPage';
-import { AdminPage } from './pages/AdminPage';
-import { AdminUploadPage } from './pages/AdminUploadPage';
-import { AlbumsPage } from './pages/AlbumsPage';
-import { AlbumDetailPage } from './pages/AlbumDetailPage';
 import { ListenHomePage } from './pages/ListenHomePage';
-import { ListenPlayerPage } from './pages/ListenPlayerPage';
 import { LoginPage } from './pages/LoginPage';
-import { SettingsPage } from './pages/SettingsPage';
 import { SetupPage } from './pages/SetupPage';
 import { useI18n } from './i18n';
 import { PlayerProvider } from './player/PlayerContext';
@@ -22,6 +15,27 @@ import { PageLoader } from './components/ui/PageLoader';
 
 const TagCloudPage = lazy(() =>
   import('./pages/TagCloudPage').then((m) => ({ default: m.TagCloudPage })),
+);
+const AdminJobPage = lazy(() =>
+  import('./pages/AdminJobPage').then((m) => ({ default: m.AdminJobPage })),
+);
+const AdminPage = lazy(() =>
+  import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })),
+);
+const AdminUploadPage = lazy(() =>
+  import('./pages/AdminUploadPage').then((m) => ({ default: m.AdminUploadPage })),
+);
+const AlbumsPage = lazy(() =>
+  import('./pages/AlbumsPage').then((m) => ({ default: m.AlbumsPage })),
+);
+const AlbumDetailPage = lazy(() =>
+  import('./pages/AlbumDetailPage').then((m) => ({ default: m.AlbumDetailPage })),
+);
+const ListenPlayerPage = lazy(() =>
+  import('./pages/ListenPlayerPage').then((m) => ({ default: m.ListenPlayerPage })),
+);
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
 
 type Gate = 'checking' | 'setup' | 'login' | 'guest' | 'app';
@@ -240,7 +254,6 @@ export default function App() {
         break;
       case 'home':
       case 'listen':
-      case 'admin':
       default:
         page = <ListenHomePage route={route} />;
         break;
@@ -255,7 +268,11 @@ export default function App() {
 
   return (
     <PlayerProvider>
-      {page}
+      <Suspense
+        fallback={<PageLoader label={t('common.loading')} variant="screen" />}
+      >
+        {page}
+      </Suspense>
       {showPlayer && <GlobalPlayerBar route={route} />}
     </PlayerProvider>
   );

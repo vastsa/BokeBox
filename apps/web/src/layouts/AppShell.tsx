@@ -23,6 +23,18 @@ function prefetchTagCloud() {
   void import('../pages/TagCloudPage');
 }
 
+function prefetchAlbums() {
+  void import('../pages/AlbumsPage');
+}
+
+function prefetchCreate() {
+  void import('../pages/AdminPage');
+}
+
+function prefetchSettings() {
+  void import('../pages/SettingsPage');
+}
+
 export function AppShell({
   route,
   children,
@@ -91,6 +103,7 @@ export function AppShell({
               active={albumsActive}
               label={t('nav.albums')}
               onClick={() => navigate({ name: 'albums' })}
+              onIntent={prefetchAlbums}
               icon={<IconAlbum size={14} />}
             />
             {!isGuest && (
@@ -98,6 +111,7 @@ export function AppShell({
                 active={createActive}
                 label={t('nav.create')}
                 onClick={() => navigate({ name: 'admin' })}
+                onIntent={prefetchCreate}
                 icon={<IconUpload size={14} />}
               />
             )}
@@ -106,6 +120,7 @@ export function AppShell({
                 active={settingsActive}
                 label={t('nav.settings')}
                 onClick={() => navigate({ name: 'settings' })}
+                onIntent={prefetchSettings}
                 icon={<IconSpark size={14} />}
               />
             ) : (
@@ -135,6 +150,7 @@ export function AppShell({
                   active={createActive}
                   label={t('nav.create')}
                   onClick={() => navigate({ name: 'admin' })}
+                  onIntent={prefetchCreate}
                   icon={<IconUpload size={15} />}
                 />
               )}
@@ -143,6 +159,7 @@ export function AppShell({
                   active={settingsActive}
                   label={t('nav.settings')}
                   onClick={() => navigate({ name: 'settings' })}
+                  onIntent={prefetchSettings}
                   icon={<IconSpark size={15} />}
                 />
               ) : (
@@ -185,6 +202,7 @@ export function AppShell({
               active={albumsActive}
               label={t('nav.albums')}
               onClick={() => navigate({ name: 'albums' })}
+              onIntent={prefetchAlbums}
               icon={<IconAlbum size={18} />}
             />
             {!isGuest && (
@@ -192,6 +210,7 @@ export function AppShell({
                 active={createActive}
                 label={t('nav.create')}
                 onClick={() => navigate({ name: 'admin' })}
+                onIntent={prefetchCreate}
                 icon={<IconUpload size={18} />}
               />
             )}
@@ -200,6 +219,7 @@ export function AppShell({
                 active={settingsActive}
                 label={t('nav.settings')}
                 onClick={() => navigate({ name: 'settings' })}
+                onIntent={prefetchSettings}
                 icon={<IconSpark size={18} />}
               />
             ) : (
@@ -258,17 +278,22 @@ function TopActionButton({
   active,
   label,
   onClick,
+  onIntent,
   icon,
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
+  onIntent?: () => void;
   icon: ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      onMouseEnter={onIntent}
+      onFocus={onIntent}
+      onTouchStart={onIntent}
       aria-label={label}
       title={label}
       className={['topbar-action-btn', active ? 'is-active' : ''].join(' ')}

@@ -144,6 +144,33 @@ function countJobs(whereSql: string, params: Array<string | number>): number {
   return Number(row?.c) || 0;
 }
 
+function queryJobFacets(
+  whereSql: string,
+  params: Array<string | number>,
+): JobListFacets {
+  const row = getDb()
+    .prepare(
+      `SELECT
+         COUNT(*) AS all_count,
+         SUM(CASE WHEN status IN (${ACTIVE_STATUS_SQL}) THEN 1 ELSE 0 END) AS active_count,
+         SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published_count,
+         SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS draft_count,
+         SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
+         SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) AS done_count
+       FROM jobs
+       WHERE 1=1${whereSql}`,
+    )
+    .get(...params) as Record<string, number | null>;
+  return {
+    all: Number(row?.all_count) || 0,
+    active: Number(row?.active_count) || 0,
+    published: Number(row?.published_count) || 0,
+    draft: Number(row?.draft_count) || 0,
+    failed: Number(row?.failed_count) || 0,
+    done: Number(row?.done_count) || 0,
+  };
+}
+
 /** 全量任务（内部 / MCP 使用） */
 export async function listJobs(): Promise<Job[]> {
   const rows = getDb()
@@ -166,7 +193,14 @@ export async function listJobsPage(opts: {
   const whereSql = `${search.sql}${filterSql}`;
   const params = [...search.params];
 
-  const total = countJobs(whereSql, params);
+  const facets =
+    opts.includeFacets === false
+      ? emptyFacets()
+      : queryJobFacets(search.sql, search.params);
+  const total =
+    opts.includeFacets !== false && (!opts.filter || opts.filter === 'all')
+      ? facets.all
+      : countJobs(whereSql, params);
   const rows = getDb()
     .prepare(
       `SELECT * FROM jobs
@@ -175,22 +209,6 @@ export async function listJobsPage(opts: {
        LIMIT ? OFFSET ?`,
     )
     .all(...params, opts.pageSize, opts.offset) as JobRow[];
-
-  const facets = emptyFacets();
-  if (opts.includeFacets !== false) {
-    // facet 只受搜索影响，不受当前 filter tab 影响
-    const facetBase = search.sql;
-    const facetParams = [...search.params];
-    facets.all = countJobs(facetBase, facetParams);
-    facets.active = countJobs(
-      `${facetBase} AND status IN (${ACTIVE_STATUS_SQL})`,
-      facetParams,
-    );
-    facets.published = countJobs(`${facetBase} AND published = 1`, facetParams);
-    facets.draft = countJobs(`${facetBase} AND published = 0`, facetParams);
-    facets.failed = countJobs(`${facetBase} AND status = 'failed'`, facetParams);
-    facets.done = countJobs(`${facetBase} AND status = 'done'`, facetParams);
-  }
 
   return {
     ...pageResult(rows.map(rowToJob), total, opts.page, opts.pageSize),
@@ -264,6 +282,34 @@ function countLibrary(whereExtra: string, params: Array<string | number>): numbe
   return Number(row?.c) || 0;
 }
 
+function queryLibraryFacets(
+  whereExtra: string,
+  params: Array<string | number>,
+): LibraryListFacets {
+  const row = getDb()
+    .prepare(
+      `SELECT
+         COUNT(*) AS all_count,
+         SUM(CASE WHEN l.job_id IS NULL OR (
+           IFNULL(l.completed, 0) = 0 AND IFNULL(l.progress_sec, 0) <= 0.5
+         ) THEN 1 ELSE 0 END) AS unplayed_count,
+         SUM(CASE WHEN
+           IFNULL(l.completed, 0) = 0 AND IFNULL(l.progress_sec, 0) > 0.5
+         THEN 1 ELSE 0 END) AS progress_count,
+         SUM(CASE WHEN IFNULL(l.completed, 0) = 1 THEN 1 ELSE 0 END) AS done_count
+       FROM jobs j
+       LEFT JOIN listen_records l ON l.job_id = j.id
+       WHERE ${LIBRARY_BASE_WHERE}${whereExtra}`,
+    )
+    .get(...params) as Record<string, number | null>;
+  return {
+    all: Number(row?.all_count) || 0,
+    unplayed: Number(row?.unplayed_count) || 0,
+    progress: Number(row?.progress_count) || 0,
+    done: Number(row?.done_count) || 0,
+  };
+}
+
 /** 前台曲库分页（可听 + 可选进度筛选） */
 export async function listLibraryPage(opts: {
   page: number;
@@ -279,7 +325,11 @@ export async function listLibraryPage(opts: {
   const whereExtra = `${search.sql}${filterSql}`;
   const params = [...search.params];
 
-  const total = countLibrary(whereExtra, params);
+  const facets = queryLibraryFacets(search.sql, search.params);
+  const total =
+    !opts.filter || opts.filter === 'all'
+      ? facets.all
+      : countLibrary(whereExtra, params);
   const rows = getDb()
     .prepare(
       `SELECT j.*
@@ -290,28 +340,6 @@ export async function listLibraryPage(opts: {
        LIMIT ? OFFSET ?`,
     )
     .all(...params, opts.pageSize, opts.offset) as JobRow[];
-
-  const facets: LibraryListFacets = {
-    all: 0,
-    unplayed: 0,
-    progress: 0,
-    done: 0,
-  };
-  const facetBase = search.sql;
-  const facetParams = [...search.params];
-  facets.all = countLibrary(facetBase, facetParams);
-  facets.unplayed = countLibrary(
-    `${facetBase}${libraryFilterClause('unplayed')}`,
-    facetParams,
-  );
-  facets.progress = countLibrary(
-    `${facetBase}${libraryFilterClause('progress')}`,
-    facetParams,
-  );
-  facets.done = countLibrary(
-    `${facetBase}${libraryFilterClause('done')}`,
-    facetParams,
-  );
 
   const jobs = rows
     .map(rowToJob)
@@ -333,6 +361,26 @@ export async function getJob(id: string): Promise<Job | undefined> {
     .prepare('SELECT * FROM jobs WHERE id = ?')
     .get(id) as JobRow | undefined;
   return row ? rowToJob(row) : undefined;
+}
+
+/** 批量读取任务，供专辑等聚合列表避免逐条查询。 */
+export function getJobsByIds(ids: string[]): Map<string, Job> {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  if (uniqueIds.length === 0) return new Map();
+  const jobs = new Map<string, Job>();
+  // 留出 SQLite 绑定参数余量，大列表按块读取。
+  for (let offset = 0; offset < uniqueIds.length; offset += 400) {
+    const chunk = uniqueIds.slice(offset, offset + 400);
+    const placeholders = chunk.map(() => '?').join(',');
+    const rows = getDb()
+      .prepare(`SELECT * FROM jobs WHERE id IN (${placeholders})`)
+      .all(...chunk) as JobRow[];
+    for (const row of rows) {
+      const job = rowToJob(row);
+      jobs.set(job.id, job);
+    }
+  }
+  return jobs;
 }
 
 export async function createJob(job: Job): Promise<Job> {

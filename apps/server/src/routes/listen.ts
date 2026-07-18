@@ -49,9 +49,9 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
 
     const items = [];
     for (const row of result.items) {
-      const enriched = await withScriptTiming(row.job);
       items.push({
-        job: authed ? toPublic(enriched) : toGuestPublic(enriched),
+        // 列表卡片不消费逐行时间轴；详情接口再按需读取 script-timing.json。
+        job: authed ? toPublic(row.job) : toGuestPublic(row.job),
         listen: authed ? recordMap.get(row.jobId) || null : null,
       });
     }

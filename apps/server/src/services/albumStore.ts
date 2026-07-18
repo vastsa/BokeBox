@@ -8,6 +8,7 @@ import type {
 import type { Job, JobPublic } from '../types/job.js';
 import {
   getJob,
+  getJobsByIds,
   isPubliclyListenable,
   toGuestPublic,
   toPublic,
@@ -100,14 +101,15 @@ function listItemRowsMany(albumIds: string[]): Map<string, AlbumItemRow[]> {
   return map;
 }
 
-async function resolveCoverMeta(
+function resolveCoverMeta(
   album: Album,
   itemRows: AlbumItemRow[],
-): Promise<{
+  jobs: Map<string, Job>,
+): {
   resolvedCoverJobId: string | null;
   hasCoverImage?: boolean;
   coverGradient?: string;
-}> {
+} {
   const preferred =
     album.coverJobId ||
     itemRows[0]?.job_id ||
@@ -115,12 +117,12 @@ async function resolveCoverMeta(
   if (!preferred) {
     return { resolvedCoverJobId: null };
   }
-  const job = await getJob(preferred);
+  const job = jobs.get(preferred);
   if (!job?.podcast) {
     // 封面 job 不可用时回落首集
     const fallbackId = itemRows.find((r) => r.job_id !== preferred)?.job_id;
     if (!fallbackId) return { resolvedCoverJobId: preferred };
-    const fb = await getJob(fallbackId);
+    const fb = jobs.get(fallbackId);
     return {
       resolvedCoverJobId: fallbackId,
       hasCoverImage: Boolean(fb?.podcast?.hasCoverImage),
@@ -134,16 +136,27 @@ async function resolveCoverMeta(
   };
 }
 
-async function toSummary(
-  album: Album,
-  itemRows: AlbumItemRow[],
-): Promise<AlbumSummary> {
-  const cover = await resolveCoverMeta(album, itemRows);
-  return {
-    ...album,
-    itemCount: itemRows.length,
-    ...cover,
-  };
+function summarizeAlbums(
+  albums: Album[],
+  itemMap: Map<string, AlbumItemRow[]>,
+): AlbumSummary[] {
+  const jobIds = new Set<string>();
+  for (const album of albums) {
+    const itemRows = itemMap.get(album.id) || [];
+    const preferred = album.coverJobId || itemRows[0]?.job_id;
+    if (preferred) jobIds.add(preferred);
+    const fallback = itemRows.find((row) => row.job_id !== preferred)?.job_id;
+    if (fallback) jobIds.add(fallback);
+  }
+  const jobs = getJobsByIds([...jobIds]);
+  return albums.map((album) => {
+    const itemRows = itemMap.get(album.id) || [];
+    return {
+      ...album,
+      itemCount: itemRows.length,
+      ...resolveCoverMeta(album, itemRows, jobs),
+    };
+  });
 }
 
 export async function listAlbums(opts?: {
@@ -165,11 +178,7 @@ export async function listAlbums(opts?: {
   );
   const albums = rows.map(rowToAlbum);
   const itemMap = listItemRowsMany(albums.map((a) => a.id));
-  const out: AlbumSummary[] = [];
-  for (const album of albums) {
-    out.push(await toSummary(album, itemMap.get(album.id) || []));
-  }
-  return out;
+  return summarizeAlbums(albums, itemMap);
 }
 
 /** 专辑列表分页（管理端 / 前台） */
@@ -207,10 +216,7 @@ export async function listAlbumsPage(opts: {
     .all(...params, opts.pageSize, opts.offset) as AlbumRow[];
   const albums = rows.map(rowToAlbum);
   const itemMap = listItemRowsMany(albums.map((a) => a.id));
-  const items: AlbumSummary[] = [];
-  for (const album of albums) {
-    items.push(await toSummary(album, itemMap.get(album.id) || []));
-  }
+  const items = summarizeAlbums(albums, itemMap);
   return pageResult(items, total, opts.page, opts.pageSize);
 }
 
@@ -227,7 +233,8 @@ export async function getAlbumDetail(
   const album = await getAlbum(id);
   if (!album) return undefined;
   const itemRows = listItemRows(id);
-  const summary = await toSummary(album, itemRows);
+  const itemMap = new Map([[album.id, itemRows]]);
+  const summary = summarizeAlbums([album], itemMap)[0]!;
   return {
     ...summary,
     items: itemRows.map((r) => ({
