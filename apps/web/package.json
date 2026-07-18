@@ -6,14 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
     "react-plock": "^3.6.1",
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "@bokebox/shared": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.10",

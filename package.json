@@ -16,7 +16,10 @@
     "docker:prod": "./start.sh docker",
     "docker:prod:pull": "docker compose pull",
     "docker:local": "./start.sh docker.local",
-    "docker:cn": "./start.sh docker.cn"
+    "docker:cn": "./start.sh docker.cn",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @bokebox/server test",
+    "lint": "pnpm -r typecheck"
   },
   "engines": {
     "node": ">=22.5"

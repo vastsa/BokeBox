@@ -19,17 +19,10 @@ import {
   getAuthAccount,
   getDefaultAiConfigForSetup,
   getPublicSiteProfile,
-  getSiteBrand,
   isGuestHomePublic,
   isSetupCompleted,
-  setAiConfig,
-  setGuestHomePublic,
-  setSiteName,
-  setSiteSeo,
   toPublicAiConfig,
   withProviderCatalog,
-  type AiConfig,
-  type SiteSeoInput,
 } from '../services/settingsStore.js';
 import { listAsrProviderDescriptors } from '../providers/asr/index.js';
 import { listTtsProviderDescriptors } from '../providers/tts/index.js';
@@ -274,89 +267,6 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  /** AI 配置 */
-  app.get('/settings/ai', async (req, reply) => {
-    const user = getRequestUser(req);
-    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
-    return { ai: publicAiWithProviders() };
-  });
-
-  app.put<{ Body: Partial<AiConfig> }>('/settings/ai', async (req, reply) => {
-    const user = getRequestUser(req);
-    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
-    try {
-      const body = req.body || {};
-      const next = setAiConfig({
-        apiKey: body.apiKey,
-        baseUrl: body.baseUrl,
-        chatModel: body.chatModel,
-        asrModel: body.asrModel,
-        asrProvider: body.asrProvider,
-        ttsModel: body.ttsModel,
-        ttsProvider: body.ttsProvider,
-        whisperBin: body.whisperBin,
-        whisperLang: body.whisperLang,
-        llmBaseUrl: body.llmBaseUrl,
-        llmApiKey: body.llmApiKey,
-        asrBaseUrl: body.asrBaseUrl,
-        asrApiKey: body.asrApiKey,
-        ttsBaseUrl: body.ttsBaseUrl,
-        ttsApiKey: body.ttsApiKey,
-        imageBaseUrl: body.imageBaseUrl,
-        imageApiKey: body.imageApiKey,
-        voiceDesignModel: body.voiceDesignModel,
-        imageModel: body.imageModel,
-        defaultVoice: body.defaultVoice,
-        contentLocale: body.contentLocale as import('../i18n/types.js').Locale | undefined,
-      });
-      return { ai: publicAiWithProviders(next) };
-    } catch (err) {
-      return sendError(reply, err, getRequestLocale(req));
-    }
-  });
-
-  /** 站点访问 / 品牌 / SEO（挂在现有设置体系，不新增管理模块） */
-  app.get('/settings/access', async (req, reply) => {
-    const user = getRequestUser(req);
-    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
-    const profile = getPublicSiteProfile(true);
-    return {
-      guestHomePublic: profile.guestHomePublic,
-      siteName: profile.siteName,
-      siteTitle: profile.siteTitle,
-      seo: profile.seo,
-      seoInput: profile.seoInput,
-    };
-  });
-
-  app.put<{
-    Body: {
-      guestHomePublic?: boolean;
-      siteName?: string | null;
-      seo?: Partial<SiteSeoInput> | null;
-    };
-  }>('/settings/access', async (req, reply) => {
-    const user = getRequestUser(req);
-    if (!user) return reply.code(401).send({ error: t(getRequestLocale(req), 'auth.notLoggedIn') });
-    const body = req.body || {};
-    if (typeof body.guestHomePublic === 'boolean') {
-      setGuestHomePublic(body.guestHomePublic);
-    }
-    if (body.siteName !== undefined) {
-      setSiteName(body.siteName);
-    }
-    if (body.seo !== undefined) {
-      setSiteSeo(body.seo);
-    }
-    const profile = getPublicSiteProfile(true);
-    return {
-      guestHomePublic: profile.guestHomePublic,
-      siteName: profile.siteName,
-      siteTitle: profile.siteTitle,
-      seo: profile.seo,
-      seoInput: profile.seoInput,
-    };
-  });
 }
 
 /** 游客开放首页时允许的只读接口（曲库 / 详情 / 已发布媒体） */

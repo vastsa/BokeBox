@@ -16,6 +16,7 @@ import {
 import { sourceRoutes } from './routes/sources.js';
 import { aiPluginRoutes } from './routes/aiPlugins.js';
 import { albumRoutes } from './routes/albums.js';
+import { settingsRoutes } from './routes/settings.js';
 import { refreshExternalSourcePlugins } from './sources/index.js';
 import { refreshExternalAsrPlugins } from './providers/asr/index.js';
 import { refreshExternalTtsPlugins } from './providers/tts/index.js';
@@ -135,6 +136,7 @@ async function main() {
 
   await app.register(authRoutes, { prefix: '/api' });
   registerAuthGuard(app);
+  await app.register(settingsRoutes, { prefix: '/api' });
   await app.register(jobRoutes, { prefix: '/api' });
   await app.register(albumRoutes, { prefix: '/api' });
   await app.register(listenRoutes, { prefix: '/api' });

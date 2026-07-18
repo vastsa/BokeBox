@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/**/*.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.0.1",
@@ -19,7 +21,8 @@
     "msedge-tts": "^2.0.7",
     "nanoid": "^5.1.5",
     "sharp": "^0.35.3",
-    "zod": "^3.25.67"
+    "zod": "^3.25.67",
+    "@bokebox/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/fluent-ffmpeg": "^2.1.27",

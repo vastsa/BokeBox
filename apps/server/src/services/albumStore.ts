@@ -3,6 +3,8 @@ import type {
   Album,
   AlbumDetail,
   AlbumItem,
+  AlbumListenDetail,
+  AlbumListenItem,
   AlbumSummary,
 } from '../types/album.js';
 import type { Job, JobPublic } from '../types/job.js';
@@ -417,15 +419,6 @@ export function removeJobFromAllAlbums(jobId: string): void {
   }
 }
 
-export type AlbumListenItem = {
-  job: JobPublic;
-  listen: import('../types/job.js').ListenRecord | null;
-  position: number;
-};
-
-export type AlbumListenDetail = AlbumSummary & {
-  items: AlbumListenItem[];
-};
 
 /** 前台可听专辑详情：仅 done + published 的条目 */
 export async function getAlbumListenDetail(

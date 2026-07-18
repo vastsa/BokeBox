@@ -1,0 +1,90 @@
+/**
+ * settings 子域聚合导出
+ */
+export {
+  KEY_SCRIPT_PROMPT,
+  KEY_COVER_PROMPT,
+  KEY_PODCAST_SYSTEM_PROMPT,
+  KEY_REWRITE_SYSTEM_PROMPT,
+  KEY_FLASHCARD_SYSTEM_PROMPT,
+  KEY_TTS_OPTIONS,
+  KEY_AUTH,
+  KEY_AI,
+  KEY_SESSIONS,
+  KEY_SETUP,
+  KEY_GUEST_HOME_PUBLIC,
+  KEY_SITE_NAME,
+  KEY_SITE_SEO,
+  getSettingRaw,
+  setSettingRaw,
+  deleteSetting,
+  parseJson,
+} from './kv.js';
+
+export {
+  isSetupCompleted,
+  markSetupCompleted,
+  isGuestHomePublic,
+  setGuestHomePublic,
+  normalizeSiteName,
+  getSiteName,
+  setSiteName,
+  formatSiteTitle,
+  getSiteBrand,
+  SITE_GITHUB_URL,
+  SITE_ATTRIBUTION,
+  DEFAULT_SEO_TITLE,
+  DEFAULT_SITE_SEO_INPUT,
+  normalizeSeoTitle,
+  normalizeSeoDescription,
+  normalizeSeoKeywords,
+  withSeoAttribution,
+  getSiteSeoInput,
+  setSiteSeo,
+  buildSeoTitle,
+  buildPublicSiteSeo,
+  getPublicSiteProfile,
+  type SiteSeoInput,
+  type PublicSiteSeo,
+  type PublicSiteProfile,
+} from './site.js';
+
+export {
+  getAuthAccount,
+  setAuthAccount,
+  createSession,
+  getSession,
+  revokeSession,
+  revokeAllSessions,
+  type AuthAccount,
+  type SessionRecord,
+} from './auth.js';
+
+export {
+  DEFAULT_AI,
+  getAiConfig,
+  getStoredAiConfig,
+  setAiConfig,
+  maskApiKey,
+  toPublicAiConfig,
+  withProviderCatalog,
+  getDefaultAiConfigForSetup,
+  getContentLocale,
+  setContentLocale,
+  type AiConfig,
+  type PublicServiceEndpoint,
+  type PublicAiConfig,
+} from './ai.js';
+
+export {
+  normalizeTtsOptions,
+  getGlobalTtsOptions,
+  setGlobalTtsOptions,
+  getGlobalScriptPrompt,
+  setGlobalScriptPrompt,
+  getCoverPromptTemplateStored,
+  setCoverPromptTemplate,
+  getAiPromptTemplateStored,
+  setAiPromptTemplateStored,
+  type AiPromptKind,
+} from './prompts.js';

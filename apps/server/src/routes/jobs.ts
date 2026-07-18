@@ -61,17 +61,12 @@ import type {
   TtsOptions,
 } from '../types/job.js';
 import {
-  getCoverPromptTemplateStored,
   getGlobalScriptPrompt,
   getGlobalTtsOptions,
   normalizeTtsOptions,
-  setCoverPromptTemplate,
-  setGlobalScriptPrompt,
-  setGlobalTtsOptions,
 } from '../services/settingsStore.js';
 import {
   normalizeScriptPrompt,
-  summarizeScriptPrompt,
 } from '../services/scriptPrompt.js';
 import { deleteListenRecord } from '../services/listenStore.js';
 import {
@@ -87,20 +82,12 @@ import {
   hasApiKey,
 } from '../utils/aiConfig.js';
 import {
-  COVER_PROMPT_VARIABLES,
-  DEFAULT_COVER_PROMPT_TEMPLATE,
   findCoverFile,
 } from '../services/coverGenerator.js';
 import {
   parseCoverImageSize,
   resolveCoverDelivery,
 } from '../services/imageOptimize.js';
-import {
-  getAllAiPromptBundles,
-  getAiPromptBundle,
-  saveAiPromptTemplate,
-  type AiPromptKind,
-} from '../services/aiPromptTemplates.js';
 import {
   errorMessage,
   getRequestLocale,
@@ -387,111 +374,6 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       time: new Date().toISOString(),
     };
   });
-
-
-  // ── 全局口播提示词设置 ──
-  app.get('/settings/script-prompt', async () => {
-    const scriptPrompt = getGlobalScriptPrompt();
-    return {
-      scriptPrompt,
-      summary: summarizeScriptPrompt(scriptPrompt),
-    };
-  });
-
-  app.put<{ Body: { scriptPrompt?: ScriptPromptOptions | null } }>(
-    '/settings/script-prompt',
-    async (req) => {
-      const scriptPrompt = setGlobalScriptPrompt(req.body?.scriptPrompt);
-      return {
-        scriptPrompt,
-        summary: summarizeScriptPrompt(scriptPrompt),
-      };
-    },
-  );
-
-  // ── 全局 TTS 音色设置 ──
-  app.get('/settings/tts', async () => {
-    const tts = getGlobalTtsOptions();
-    return { tts };
-  });
-
-  // ── 全局封面提示词 ──
-  app.get('/settings/cover-prompt', async () => {
-    const stored = getCoverPromptTemplateStored();
-    return {
-      template: stored || DEFAULT_COVER_PROMPT_TEMPLATE,
-      stored,
-      defaultTemplate: DEFAULT_COVER_PROMPT_TEMPLATE,
-      isCustom: Boolean(stored),
-      variables: COVER_PROMPT_VARIABLES,
-    };
-  });
-
-  app.put<{ Body: { template?: string | null; reset?: boolean } }>(
-    '/settings/cover-prompt',
-    async (req) => {
-      const reset = Boolean(req.body?.reset);
-      const incoming = String(req.body?.template ?? '').trim();
-      // 与默认模板完全一致时不落库，保持「系统默认」状态
-      const stored = reset || incoming === DEFAULT_COVER_PROMPT_TEMPLATE.trim()
-        ? setCoverPromptTemplate('')
-        : setCoverPromptTemplate(req.body?.template);
-      return {
-        template: stored || DEFAULT_COVER_PROMPT_TEMPLATE,
-        stored,
-        defaultTemplate: DEFAULT_COVER_PROMPT_TEMPLATE,
-        isCustom: Boolean(stored),
-        variables: COVER_PROMPT_VARIABLES,
-      };
-    },
-  );
-
-
-  // ── AI 系统提示词（口播 / 改写 / 闪卡） ──
-  app.get('/settings/ai-prompts', async () => {
-    return { prompts: getAllAiPromptBundles() };
-  });
-
-  app.get<{ Params: { kind: string } }>(
-    '/settings/ai-prompts/:kind',
-    async (req, reply) => {
-      const kind = req.params.kind as AiPromptKind;
-      if (
-        kind !== 'podcastSystem' &&
-        kind !== 'rewriteSystem' &&
-        kind !== 'flashcardSystem'
-      ) {
-        return reply.code(400).send({ error: 'unknown prompt kind' });
-      }
-      return getAiPromptBundle(kind);
-    },
-  );
-
-  app.put<{
-    Params: { kind: string };
-    Body: { template?: string | null; reset?: boolean };
-  }>('/settings/ai-prompts/:kind', async (req, reply) => {
-    const kind = req.params.kind as AiPromptKind;
-    if (
-      kind !== 'podcastSystem' &&
-      kind !== 'rewriteSystem' &&
-      kind !== 'flashcardSystem'
-    ) {
-      return reply.code(400).send({ error: 'unknown prompt kind' });
-    }
-    return saveAiPromptTemplate(kind, {
-      template: req.body?.template,
-      reset: req.body?.reset,
-    });
-  });
-
-  app.put<{ Body: { tts?: TtsOptions | null } }>(
-    '/settings/tts',
-    async (req) => {
-      const tts = setGlobalTtsOptions(req.body?.tts);
-      return { tts };
-    },
-  );
 
   app.get<{
     Querystring: {
