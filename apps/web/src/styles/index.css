@@ -6950,12 +6950,12 @@ html[data-theme="dark"] .qq-lyrics-focus {
   pointer-events: none;
   user-select: none;
 }
-/* 渐进加载：先最小图（可轻微模糊），再淡入清晰图 */
+/* 渐进加载：先 sm.webp（轻模糊），同步 full 后淡入 */
 .pb-cover-image.is-preview {
   z-index: var(--z-base);
   opacity: 0;
-  filter: blur(12px);
-  transform: scale(1.08);
+  filter: blur(6px);
+  transform: scale(1.03);
   transition:
     opacity 0.16s ease,
     filter 0.28s ease,
@@ -6964,10 +6964,12 @@ html[data-theme="dark"] .qq-lyrics-focus {
 }
 .pb-cover-image.is-preview.is-ready {
   opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
 }
 .pb-cover-image.is-preview.is-fading {
   opacity: 0;
-  filter: blur(16px);
+  filter: blur(8px);
 }
 .pb-cover-image.is-final {
   z-index: var(--z-raised);

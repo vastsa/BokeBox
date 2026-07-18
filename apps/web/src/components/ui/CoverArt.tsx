@@ -6,10 +6,7 @@ import {
   type HTMLAttributes,
   type ReactNode,
 } from 'react';
-import {
-  readCoverImageSize,
-  withCoverImageSize,
-} from '../../api/client';
+import { withCoverImageSize } from '../../api/client';
 import {
   coverGradientFor,
   coverLabelFrom,
@@ -25,15 +22,15 @@ type CoverBase = {
   /** 用于封面标题排版的标题文案 */
   title?: string;
   /**
-   * 目标清晰封面 URL（通常 sm/md/full）。
-   * 默认会先加载 thumb，再同步加载本 URL，就绪后淡入替换。
+   * 封面 URL（可带 size=sm|md|full）。
+   * progressive 开启时：先出 sm.webp，同步加载 full 原图 webp 并淡入。
    */
   imageUrl?: string | null;
   /** 浏览器 sizes 提示，辅助响应式选图 */
   sizes?: string;
   /**
    * 是否启用渐进加载（默认 true）：
-   * 先 thumb 占位，同时拉清晰图，避免列表白屏/闪大图。
+   * 先 sm 占位，同时拉 full 原图，确保最终显示质量。
    */
   progressive?: boolean;
   /** 关键封面（首屏/播放器）优先加载预览图 */
@@ -65,7 +62,7 @@ export type CoverArtProps = CoverDivProps | CoverButtonProps | CoverSpanProps;
 
 /**
  * 全局占位封面：渐变 + 纹理变体 + 标题排版
- * 若传入 imageUrl：先出最小 thumb，再同步加载清晰图并淡入
+ * 若传入 imageUrl 且 progressive：先出 sm.webp，同步加载 full 原图并淡入
  */
 export function CoverArt(props: CoverArtProps) {
   const {
@@ -84,15 +81,22 @@ export function CoverArt(props: CoverArtProps) {
     ...rest
   } = props;
 
-  const targetUrl = imageUrl || null;
+  const sourceUrl = imageUrl || null;
 
-  // 目标不是 thumb 时，派生最小预览 URL
+  // 最终图：progressive 时统一升到 full，保证显示质量
+  const finalUrl = useMemo(() => {
+    if (!sourceUrl) return null;
+    if (!progressive) return sourceUrl;
+    return withCoverImageSize(sourceUrl, 'full');
+  }, [sourceUrl, progressive]);
+
+  // 预览图：sm.webp，与 full 同步请求
   const previewUrl = useMemo(() => {
-    if (!targetUrl || !progressive) return null;
-    const current = readCoverImageSize(targetUrl);
-    if (current === 'thumb') return null;
-    return withCoverImageSize(targetUrl, 'thumb');
-  }, [targetUrl, progressive]);
+    if (!sourceUrl || !progressive || !finalUrl) return null;
+    const preview = withCoverImageSize(sourceUrl, 'sm');
+    if (preview === finalUrl) return null;
+    return preview;
+  }, [sourceUrl, progressive, finalUrl]);
 
   const [previewReady, setPreviewReady] = useState(false);
   const [finalReady, setFinalReady] = useState(false);
@@ -107,7 +111,7 @@ export function CoverArt(props: CoverArtProps) {
     setPreviewFailed(false);
     setFinalFailed(false);
     setDropPreview(false);
-  }, [targetUrl, previewUrl]);
+  }, [finalUrl, previewUrl]);
 
   useEffect(() => {
     if (!finalReady || !previewUrl) return;
@@ -117,13 +121,13 @@ export function CoverArt(props: CoverArtProps) {
 
   const showPreview =
     Boolean(previewUrl) && !previewFailed && !dropPreview;
-  const showFinal = Boolean(targetUrl) && !finalFailed;
+  const showFinal = Boolean(finalUrl) && !finalFailed;
   // 真正露出像素后再隐藏渐变文案，避免加载期空洞
   const imagePainted =
     (showPreview && previewReady) || (showFinal && finalReady);
   // 预览与清晰图都失败时回落渐变底
   const imageUnavailable =
-    Boolean(targetUrl) &&
+    Boolean(finalUrl) &&
     finalFailed &&
     (previewFailed || !previewUrl);
 
@@ -134,7 +138,7 @@ export function CoverArt(props: CoverArtProps) {
   const classes = [
     'pb-cover',
     // 有目标 URL 就切 has-image 底色，避免大图下载期间花哨渐变闪一下
-    targetUrl && !imageUnavailable ? 'has-image' : `bg-gradient-to-br ${grad}`,
+    finalUrl && !imageUnavailable ? 'has-image' : `bg-gradient-to-br ${grad}`,
     imagePainted ? 'has-image-ready' : '',
     className,
   ]
@@ -166,7 +170,7 @@ export function CoverArt(props: CoverArtProps) {
           onError={() => setPreviewFailed(true)}
         />
       )}
-      {showFinal && targetUrl && (
+      {showFinal && finalUrl && (
         <img
           className={[
             'pb-cover-image',
@@ -175,9 +179,9 @@ export function CoverArt(props: CoverArtProps) {
           ]
             .filter(Boolean)
             .join(' ')}
-          src={targetUrl}
+          src={finalUrl}
           alt=""
-          // 与预览同步拉取清晰图（不 lazy 卡第二阶段）
+          // 与 sm 预览同步拉取 full 原图（不 lazy 卡第二阶段）
           loading={previewUrl ? 'eager' : loadingMode}
           decoding="async"
           fetchPriority={priority ? 'high' : previewUrl ? 'low' : undefined}

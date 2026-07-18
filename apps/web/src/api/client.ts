@@ -628,7 +628,7 @@ export async function deleteAlbumApi(id: string): Promise<void> {
   await request(`/albums/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
-/** 封面尺寸：列表默认 sm，详情/播放器 md，下载 full */
+/** 封面尺寸：列表默认 sm；CoverArt 渐进加载 sm→full；下载/原图 full */
 export type CoverImageSize = 'thumb' | 'sm' | 'md' | 'full';
 
 /** 读取封面 URL 上的 size 参数 */
@@ -643,7 +643,7 @@ export function readCoverImageSize(url: string): CoverImageSize | null {
   }
 }
 
-/** 改写封面 URL 的 size（用于渐进加载：先 thumb 再清晰档） */
+/** 改写封面 URL 的 size（用于渐进加载：先 sm 再 full 原图） */
 export function withCoverImageSize(url: string, size: CoverImageSize): string {
   const abs = /^https?:\/\//i.test(url);
   const u = new URL(url, 'http://local.invalid');
@@ -815,7 +815,7 @@ export function videoUrl(id: string): string {
   return appendQuery(`${BASE}/jobs/${id}/video`, {});
 }
 
-/** AI 播客封面图（hasCoverImage 时可用；默认 sm 加速列表加载） */
+/** AI 播客封面图（hasCoverImage 时可用；默认 sm，CoverArt 会再同步拉 full） */
 export function coverImageUrl(
   id: string,
   cacheKey?: string,

@@ -1,9 +1,9 @@
 /**
  * 封面图片压缩与缩略图
  *
- * - 写入时：原图压缩为 WebP，并预生成 thumb/sm/md
- * - 读取时：按 size 出变体；缺失则按需生成并落盘缓存
- * - 目标：列表/播放条默认用小图，显著降低首屏体积
+ * - 写入时：PNG/JPG 等原图压缩为 cover.webp，并预生成 thumb/sm/md
+ * - 读取时：若主图仍是非 webp，按需转 cover.webp；再按 size 出变体
+ * - 前台策略：先 sm.webp 快速上屏，同步加载 full 原图 webp 保质量
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -144,32 +144,34 @@ export async function writeOptimizedCover(
 
 /**
  * 解析要下发的文件路径：
- * - full → 主图（若为非 webp 且可优化，按需生成 cover.webp 并优先返回）
+ * - 任意 size：若主图仍是 png/jpg，先转 cover.webp 再出图（生成后统一 webp）
+ * - full → 主图 cover.webp（或回退原主图）
  * - thumb/sm/md → 对应变体（缺失则按需生成）
  */
 export async function resolveCoverDelivery(
   dir: string,
   size: CoverImageSize = 'full',
 ): Promise<{ filePath: string; mime: string; size: CoverImageSize } | null> {
-  const master = await findCoverMasterFile(dir);
+  let master = await findCoverMasterFile(dir);
   if (!master) return null;
 
-  if (size === 'full') {
-    // 非 webp 主图：按需转一份 cover.webp，加速后续 full 请求
-    const webpMaster = path.join(dir, 'cover.webp');
-    if (path.resolve(master) !== path.resolve(webpMaster)) {
-      try {
-        if (!(await pathExists(webpMaster))) {
-          await ensureOptimizedMaster(master, webpMaster);
-        }
-        if (await pathExists(webpMaster)) {
-          return { filePath: webpMaster, mime: 'image/webp', size: 'full' };
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.warn(`[image] full optimize skip: ${msg}`);
+  // 非 webp 主图：任意请求都尽量转成 cover.webp，并清理旧 png/jpg
+  const webpMaster = path.join(dir, 'cover.webp');
+  if (path.resolve(master) !== path.resolve(webpMaster)) {
+    try {
+      if (!(await pathExists(webpMaster))) {
+        await ensureOptimizedMaster(master, webpMaster);
       }
+      if (await pathExists(webpMaster)) {
+        master = webpMaster;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[image] master webp optimize skip: ${msg}`);
     }
+  }
+
+  if (size === 'full') {
     return {
       filePath: master,
       mime: mimeFromPath(master),
@@ -243,6 +245,12 @@ async function ensureOptimizedMaster(
         await removeIfExists(p);
       }
     }
+    // 后台预热 sm 等变体，配合前台 sm→full 渐进加载
+    void Promise.allSettled([
+      materializeVariant(webpPath, 'thumb'),
+      materializeVariant(webpPath, 'sm'),
+      materializeVariant(webpPath, 'md'),
+    ]);
     return webpPath;
   })().finally(() => {
     inflight.delete(key);
