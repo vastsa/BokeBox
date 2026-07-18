@@ -13,14 +13,14 @@ import {
 } from '../utils/pagination.js';
 import { readScriptTiming } from './scriptTiming.js';
 
-
-function truncateListText(text: string, max = 180): string {
+function truncateListText(text: string, max = 160): string {
   const s = text.trim();
   if (!s) return '';
   if (s.length <= max) return s;
   return `${s.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
 
+/** 详情 / 写操作响应：去掉本地路径，补齐资产标记 */
 export function toPublic(job: Job): JobPublic {
   const { videoPath, audioPath, podcastAudioPath, ...rest } = job;
   const kind = job.sourceKind || 'video';
@@ -44,7 +44,8 @@ export function isPubliclyListenable(job: Job): boolean {
 }
 
 /**
- * 游客可见字段：仅保留前台收听所需内容，剥离源文稿 / TTS / 提示词 / 源地址等管理信息
+ * 游客详情：仅保留前台收听所需内容，
+ * 剥离源文稿 / TTS / 提示词 / 源地址等管理信息。
  */
 export function toGuestPublic(job: Job): JobPublic {
   const base = toPublic(job);
@@ -65,83 +66,87 @@ export function toGuestPublic(job: Job): JobPublic {
 }
 
 /**
- * 列表卡片用播客摘要：只保留卡片展示字段。
- * 不回填 script/showNotes/outline/flashcards 等空壳，避免 JSON 体积膨胀。
- * 详情页再通过 toPublic / toGuestPublic 拉取完整内容。
+ * 列表卡片播客字段：只保留封面/标题/简介/时长/少量标签。
+ * 不回填 script/showNotes/outline/flashcards 等空壳。
  */
 export function slimPodcastForList(
   podcast?: PodcastContent,
 ): PodcastContent | undefined {
   if (!podcast) return undefined;
-  const summary = podcast.summary?.trim() || '';
-  const hostIntro = podcast.hostIntro?.trim() || '';
-  const tags = (podcast.tags || []).filter(Boolean);
-  // 用 Partial 组装后断言：列表响应有意缺少正文级字段
-  const slim: Partial<PodcastContent> = {
+  const summary = truncateListText(podcast.summary || '', 160);
+  const hostIntro = truncateListText(podcast.hostIntro || '', 120);
+  const tags = (podcast.tags || []).filter(Boolean).slice(0, 6);
+
+  const slim: Record<string, unknown> = {
     title: podcast.title,
   };
   if (summary) slim.summary = summary;
-  // 仅当没有 summary 时才带回 hostIntro，作为卡片文案兜底
+  // 没有 summary 时才用 hostIntro 兜底卡片文案
   if (!summary && hostIntro) slim.hostIntro = hostIntro;
   if (tags.length) slim.tags = tags;
   if (podcast.estimatedMinutes) slim.estimatedMinutes = podcast.estimatedMinutes;
   if (podcast.coverGradient) slim.coverGradient = podcast.coverGradient;
   if (podcast.hasCoverImage) slim.hasCoverImage = true;
-  return slim as PodcastContent;
+  return slim as unknown as PodcastContent;
 }
 
 /**
- * 列表接口最小返回：白名单字段，不做全量 spread。
- * 管理端卡片 / 听播库卡片 / 专辑条目共用；详情与写操作仍走 toPublic。
+ * 列表最小白名单：严格按卡片 UI 依赖返回，空值字段直接省略。
+ * 管理端列表 / 听播库 / 专辑条目共用；详情与写操作仍走 toPublic。
+ *
+ * 刻意不返回：tts / locale / mimeType / sourceKind / sourcePluginId /
+ * transcript / script* / 资产四元组（除可选 hasPodcastAudio）。
  */
 export function toListPublic(job: Job): JobPublic {
-  const kind = job.sourceKind || 'video';
   const podcast = slimPodcastForList(job.podcast);
-  const out: JobPublic = {
+  const out: Record<string, unknown> = {
     id: job.id,
     title: job.title,
-    // 列表用于来源展示；本地上传时有文件名
-    originalFilename: job.originalFilename || '',
-    mimeType: job.mimeType || '',
-    size: job.size || 0,
     status: job.status,
-    progress: job.progress || 0,
-    // 完成态完成语对列表无帮助且偏长；处理中/失败才回传
-    message:
-      job.status === 'done' ? '' : truncateListText(job.message || '', 180),
     published: job.published !== false,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
-    hasVideo: Boolean(job.videoPath) && kind === 'video',
-    hasSourceAudio: Boolean(job.audioPath) || kind === 'audio',
-    hasPodcastAudio: Boolean(job.podcastAudioPath),
-    hasTranscript: Boolean(job.transcript?.trim()),
   };
 
-  if (podcast) out.podcast = podcast;
+  // 进度仅处理中 / 失败需要；完成态固定 100，列表可不传
+  if (job.status !== 'done') out.progress = job.progress || 0;
+
+  // 来源展示（管理端卡片）
+  if (job.originalFilename) out.originalFilename = job.originalFilename;
   if (job.sourceUrl) out.sourceUrl = job.sourceUrl;
-  if (job.error) out.error = truncateListText(job.error, 240);
-  // sourceKind 仅在非默认 video 时返回，减少噪声
-  if (kind !== 'video') out.sourceKind = kind;
+  if (job.size) out.size = job.size;
 
-  return out;
+  // 处理中 / 失败才需要状态文案
+  if (job.status !== 'done') {
+    const msg = truncateListText(job.message || '', 140);
+    if (msg) out.message = msg;
+  }
+  if (job.status === 'failed' && job.error) {
+    out.error = truncateListText(job.error, 180);
+  }
+
+  if (podcast) out.podcast = podcast;
+
+  // 听播入口只需知道有没有成品音频；其余资产标记列表不用
+  if (job.podcastAudioPath) out.hasPodcastAudio = true;
+
+  return out as unknown as JobPublic;
 }
 
-/** 游客列表最小返回：在列表白名单基础上再剥管理信息 */
+/** 游客列表：重建对象，去掉源信息 / 错误 / 本地文件名 */
 export function toGuestListPublic(job: Job): JobPublic {
-  const base = toListPublic(job);
-  // 游客不看源文件名 / 源链接 / 错误细节 / 处理消息
-  base.originalFilename = '';
-  base.message = '';
-  delete base.sourceUrl;
-  delete base.error;
-  base.hasTranscript = false;
-  base.hasVideo = false;
-  base.hasSourceAudio = false;
-  return base;
+  const base = toListPublic(job) as Record<string, unknown>;
+  const {
+    originalFilename: _originalFilename,
+    sourceUrl: _sourceUrl,
+    error: _error,
+    message: _message,
+    size: _size,
+    ...rest
+  } = base;
+  return rest as unknown as JobPublic;
 }
 
-/** 把磁盘上的 script-timing.json 合并进 podcast（磁盘优先，不改库） */
 export async function withScriptTiming(job: Job): Promise<Job> {
   if (!job.podcast) return job;
   const timing = await readScriptTiming(job.id);
