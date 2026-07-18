@@ -249,7 +249,14 @@ export function AlbumDetailPage({
           {error && <div className="lh-error">{error}</div>}
 
           {loading ? (
-            <div className="al-detail-skel" />
+            <div className="al-detail-skel" aria-hidden="true">
+              <div className="al-detail-skel-cover" />
+              <div className="al-detail-skel-lines">
+                <i />
+                <i />
+                <i />
+              </div>
+            </div>
           ) : !album ? (
             <EmptyState
               icon={<span>∅</span>}
@@ -310,50 +317,67 @@ export function AlbumDetailPage({
                   )}
 
                   <div className="al-hero-actions">
-                    <button
-                      type="button"
-                      className="nl-btn nl-btn-primary"
-                      disabled={!album.items.length}
-                      onClick={playAll}
-                    >
-                      <IconPlay size={14} />
-                      {t('album.playAll')}
-                    </button>
-                    {authed && !editing && (
-                      <>
+                    {!editing ? (
+                      <button
+                        type="button"
+                        className="nl-btn nl-btn-primary al-hero-play"
+                        disabled={!album.items.length}
+                        onClick={playAll}
+                      >
+                        <IconPlay size={15} />
+                        {t('album.playAll')}
+                      </button>
+                    ) : null}
+                    {authed && !editing ? (
+                      <div className="al-hero-tools" role="toolbar" aria-label={t('album.manageItems')}>
                         <button
                           type="button"
-                          className="nl-btn"
+                          className="nl-btn nl-btn-secondary al-hero-tool"
                           onClick={() => setEditing(true)}
                         >
                           {t('common.edit')}
                         </button>
                         <button
                           type="button"
-                          className="nl-btn"
+                          className="nl-btn nl-btn-secondary al-hero-tool"
                           onClick={() => void openPicker()}
                         >
-                          {t('album.manageItems')}
+                          <span className="al-btn-label-full">{t('album.manageItems')}</span>
+                          <span className="al-btn-label-short">{t('album.manageItemsShort')}</span>
                         </button>
                         <button
                           type="button"
-                          className="nl-btn"
+                          className="nl-btn nl-btn-secondary al-hero-tool"
                           disabled={generatingCover}
                           onClick={() => void generateCover()}
+                          title={
+                            generatingCover
+                              ? t('album.generatingCover')
+                              : album.hasOwnCoverImage
+                                ? t('album.regenerateCover')
+                                : t('album.generateCover')
+                          }
                         >
-                          {generatingCover
-                            ? t('album.generatingCover')
-                            : album.hasOwnCoverImage
-                              ? t('album.regenerateCover')
-                              : t('album.generateCover')}
+                          <span className="al-btn-label-full">
+                            {generatingCover
+                              ? t('album.generatingCover')
+                              : album.hasOwnCoverImage
+                                ? t('album.regenerateCover')
+                                : t('album.generateCover')}
+                          </span>
+                          <span className="al-btn-label-short">
+                            {generatingCover
+                              ? t('album.generatingCoverShort')
+                              : t('album.coverShort')}
+                          </span>
                         </button>
-                      </>
-                    )}
-                    {authed && editing && (
-                      <>
+                      </div>
+                    ) : null}
+                    {authed && editing ? (
+                      <div className="al-hero-tools is-editing">
                         <button
                           type="button"
-                          className="nl-btn nl-btn-primary"
+                          className="nl-btn nl-btn-primary al-hero-play"
                           disabled={busy}
                           onClick={() => void saveMeta()}
                         >
@@ -361,7 +385,7 @@ export function AlbumDetailPage({
                         </button>
                         <button
                           type="button"
-                          className="nl-btn"
+                          className="nl-btn nl-btn-secondary al-hero-tool"
                           onClick={() => {
                             setEditing(false);
                             setTitle(album.title);
@@ -371,16 +395,27 @@ export function AlbumDetailPage({
                         >
                           {t('common.cancel')}
                         </button>
-                      </>
-                    )}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </section>
 
               <section className="al-tracklist">
-                <div className="lh-section-head">
-                  <h2 className="lh-section-title">{t('album.tracklist')}</h2>
-                  <span className="lh-section-meta">{album.items.length}</span>
+                <div className="lh-section-head al-tracklist-head">
+                  <div className="al-tracklist-title-wrap">
+                    <h2 className="lh-section-title">{t('album.tracklist')}</h2>
+                    <span className="lh-section-meta">{album.items.length}</span>
+                  </div>
+                  {authed && album.items.length ? (
+                    <button
+                      type="button"
+                      className="al-tracklist-manage"
+                      onClick={() => void openPicker()}
+                    >
+                      {t('album.manageItemsShort')}
+                    </button>
+                  ) : null}
                 </div>
 
                 {!album.items.length ? (
@@ -471,14 +506,15 @@ export function AlbumDetailPage({
                           <div className="al-track-actions">
                             <button
                               type="button"
-                              className="al-icon-btn"
+                              className="al-icon-btn al-track-open"
                               onClick={() => playItem(item, true)}
                               title={t('player.openPage')}
+                              aria-label={t('player.openPage')}
                             >
                               <IconPlay size={14} />
                             </button>
                             {authed ? (
-                              <>
+                              <div className="al-track-manage">
                                 <button
                                   type="button"
                                   className="al-icon-btn"
@@ -508,7 +544,7 @@ export function AlbumDetailPage({
                                 >
                                   <IconTrash size={14} />
                                 </button>
-                              </>
+                              </div>
                             ) : null}
                           </div>
                         </li>
