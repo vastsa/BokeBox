@@ -223,6 +223,7 @@ export function AdminPage({ route }: { route: Route }) {
             <span className="sr-only">{t('admin.search')}</span>
             <input
               type="search"
+              className="nl-input"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('admin.searchPlaceholder')}

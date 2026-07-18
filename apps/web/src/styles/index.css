@@ -11107,39 +11107,9 @@ html[data-theme="dark"] .settings-seo-preview-title {
   min-width: 0;
 }
 
-.admin-search input {
+/* 复用全局 .nl-input 字号/字重/高度，避免制作台搜索框与表单输入漂移 */
+.admin-search .nl-input {
   width: 100%;
-  min-height: var(--control-4xl);
-  padding: 0 var(--space-2_75);
-  border-radius: var(--radius-md);
-  border: var(--bw-1) solid var(--separator-strong);
-  background: var(--surface);
-  color: var(--text);
-  font-family: inherit;
-  font-size: var(--fs-md);
-  font-weight: var(--fw-medium);
-  line-height: var(--lh-snug);
-  outline: none;
-  box-sizing: border-box;
-  transition:
-    border-color var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease);
-}
-@media (max-width: 767px) {
-  .admin-search input {
-    font-size: var(--fs-2xl);
-    line-height: var(--lh-tight);
-    min-height: var(--control-5xl);
-  }
-}
-
-.admin-search input::placeholder {
-  color: var(--text-3);
-}
-
-.admin-search input:focus {
-  border-color: color-mix(in srgb, var(--brand) 55%, var(--separator));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent);
 }
 
 /* 任务库容器 */
@@ -11686,16 +11656,12 @@ html[data-theme="dark"] .settings-seo-preview-title {
   .admin-library-head {
     padding: 12px 12px 10px;
   }
-
-  .admin-search input {
-    min-height: var(--control-5xl);
-  }
 }
 
 html[data-theme="dark"] .admin-library,
 html[data-theme="dark"] .admin-job-card,
 html[data-theme="dark"] .admin-filter,
-html[data-theme="dark"] .admin-search input,
+html[data-theme="dark"] .admin-search .nl-input,
 html[data-theme="dark"] .admin-job-icon-btn {
   background: color-mix(in srgb, var(--surface) 96%, #000);
 }
