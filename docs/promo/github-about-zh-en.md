@@ -13,7 +13,7 @@
 ### 推荐：中英双语（默认写入 GitHub）
 
 ```text
-BokeBox: multi-source private AI podcast studio — videos/links/articles/notes → spoken episodes. Custom persona & voice, MCP + pluggable sources, self-hosted. BokeBox（播匣）：内容进匣，AI 成播；多源输入、MCP、插件源、私有部署。
+BokeBox: private AI podcast studio — videos/links/articles/notes → spoken episodes. Custom persona & voice, MCP + pluggable sources, self-hosted. BokeBox（播匣）：私人 AI 播客工作室；多源内容成播，MCP 与插件源，本地私有部署。
 ```
 
 字符数：200
@@ -29,7 +29,7 @@ BokeBox: Content in, private podcasts out. Multi-source AI podcast studio (video
 ### 简体中文 only
 
 ```text
-BokeBox（播匣）：内容进匣，AI 成播。多源私人 AI 播客工作室（视频/链接/文稿/会议课程），人设音色可自定义，MCP + 插件式内容源，自托管。LGPL-3.0
+BokeBox（播匣）：私人 AI 播客工作室。将视频、链接、文稿、会议与课程等内容转化为可收听的私人播客；人设与音色可自定义，支持 MCP 与插件式内容源，本地私有部署。LGPL-3.0
 ```
 
 字符数：86
@@ -214,7 +214,7 @@ https://github.com/vastsa/BokeBox
 
 ```bash
 gh repo edit vastsa/BokeBox \
-  --description "BokeBox: multi-source private AI podcast studio — videos/links/articles/notes → spoken episodes. Custom persona & voice, MCP + pluggable sources, self-hosted. BokeBox（播匣）：内容进匣，AI 成播；多源输入、MCP、插件源、私有部署。" \
+  --description "BokeBox: private AI podcast studio — videos/links/articles/notes → spoken episodes. Custom persona & voice, MCP + pluggable sources, self-hosted. BokeBox（播匣）：私人 AI 播客工作室；多源内容成播，MCP 与插件源，本地私有部署。" \
   --homepage "https://bokebox.aiuo.net" \
   --add-topic ai \
   --add-topic podcast \

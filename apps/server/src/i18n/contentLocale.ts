@@ -294,7 +294,7 @@ export function podcastFallbackCopy(
   return {
     title: `【播客】${sourceTitle}`,
     summary: '本期精华播客。',
-    tags: ['视频转播客'],
+    tags: ['内容转播客'],
     hostIntro: '主持人重构视频精华。',
     outlineTitle: '本期内容',
     outlineSummary: '核心观点与建议',

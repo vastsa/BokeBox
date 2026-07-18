@@ -150,7 +150,7 @@ function demoPodcast(
   const title = `【播客】${base}：从视频到可收听的内容`;
   const summary =
     '本期把原视频内容重构成一档约 10 分钟的精华播客，提炼核心观点并给出行动建议，适合通勤收听。';
-  const tags = ['视频转播客', '内容复用', '口播脚本', '个人品牌'];
+  const tags = ['内容转播客', '知识复用', '智能口播', '私人播客'];
   const outline = [
     { title: '开场钩子', summary: '点明为什么要把视频做成播客。' },
     { title: '核心观点', summary: '三到五个可记忆的重点。' },

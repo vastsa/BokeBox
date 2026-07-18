@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>内容进匣，AI 成播</b><br/>
-  <sub>视频、链接、文稿、会议与课程……多源内容变成能听完的私人播客 —— 人设、音色、风格，全都由你定</sub>
+  <sub>将视频、链接、文稿、会议与课程等多源内容，转化为可收听的私人播客 —— 人设、音色与风格均可自定义</sub>
 </p>
 
 <p align="center">
@@ -235,7 +235,7 @@ cp .env.example .env
 
 ## 💬 一句话安利（可转发）
 
-> BokeBox（播匣）：把视频、链接、文稿、会议与课程等多种内容，变成听得进的私人播客。AI 生成口播，人设和音色可自定义；支持 MCP 与插件式内容源，数据只留在你自己的机器上。
+> BokeBox（播匣）：将视频、链接、文稿、会议与课程等多源内容，转化为可收听的私人播客。支持自定义主播人设与音色，内置 MCP 与插件式内容源，本地私有部署，数据自主可控。
 
 如果这个方向戳中你：
 
@@ -322,6 +322,6 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
 <p align="center">
   <b>BokeBox</b><br/>
-  <sub>私人 AI 播客匣 · 开源 · LGPL-3.0</sub><br/>
+  <sub>私人 AI 播客工作室 · 开源 · LGPL-3.0</sub><br/>
   <sub><a href="https://github.com/vastsa/BokeBox/">github.com/vastsa/BokeBox</a></sub>
 </p>

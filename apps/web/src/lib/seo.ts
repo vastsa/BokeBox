@@ -26,14 +26,15 @@ export type PublicSiteSeo = {
 export const SITE_ATTRIBUTION = `Powered by ${PROJECT_NAME} · ${PROJECT_GITHUB_URL}`;
 
 /** 未自定义时的默认 SEO 标题 */
-export const DEFAULT_SEO_TITLE = 'BokeBox · 私人播客';
+export const DEFAULT_SEO_TITLE = 'BokeBox · 私人 AI 播客工作室';
 
 /** 未自定义时的默认 SEO 原文（不含 Powered by） */
 export const DEFAULT_SITE_SEO_INPUT: SiteSeoInput = {
   title: '',
   description:
-    '把看不完的视频，变成听得进的私人播客。AI 生成口播，人设与音色可自定义，数据只留在你自己的机器上。',
-  keywords: 'BokeBox, 播客, AI播客, 私人播客, 视频转播客, 开源',
+    'BokeBox 将视频、链接、文稿等多元内容转化为可收听的私人播客。支持自定义主播人设与音色，内置 MCP 与可扩展内容源，支持本地私有部署，数据自主可控。',
+  keywords:
+    'BokeBox, AI播客, 私人播客, 智能口播, 多源内容, 内容转播客, MCP, 自托管, 开源',
 };
 
 const SEO_CACHE_KEY = 'pb:site-seo';

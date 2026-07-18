@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Content in. Private podcasts out.</b><br/>
-  <sub>Turn videos, links, articles, meetings, and courses into private podcasts you can actually finish — host persona, voice, and style, all yours.</sub>
+  <sub>Turn videos, links, articles, meetings, and courses into private podcasts you can listen to anytime — host persona, voice, and style fully customizable.</sub>
 </p>
 
 <p align="center">
@@ -224,7 +224,7 @@ cp .env.example .env
 
 ## 💬 One-liner (shareable)
 
-> BokeBox: turn videos, links, articles, meetings, and courses into private podcasts you’ll actually listen to. AI spoken scripts, custom persona & voice, MCP + pluggable sources, data stays on your machine.
+> BokeBox: turn videos, links, articles, meetings, and courses into private podcasts you can listen to anytime. Customize host persona and voice, with MCP and pluggable sources. Self-hosted — your data stays under your control.
 
 If that resonates:
 
