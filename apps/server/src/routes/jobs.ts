@@ -16,10 +16,12 @@ import {
   deleteJob,
   getJob,
   isPubliclyListenable,
-  listJobs,
+  listJobsPage,
+  type JobListFilter,
   toPublic,
   updateJob,
 } from '../services/jobStore.js';
+import { parsePageQuery } from '../utils/pagination.js';
 import {
   appendJobToAlbum,
   getAlbum,
@@ -482,9 +484,41 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  app.get('/jobs', async () => {
-    const jobs = await listJobs();
-    return { jobs: jobs.map(toPublic) };
+  app.get<{
+    Querystring: {
+      page?: string;
+      pageSize?: string;
+      q?: string;
+      filter?: string;
+    };
+  }>('/jobs', async (req) => {
+    const page = parsePageQuery(req.query, { pageSize: 20 });
+    const q = typeof req.query.q === 'string' ? req.query.q : '';
+    const rawFilter = String(req.query.filter || 'all').trim();
+    const allowed: JobListFilter[] = [
+      'all',
+      'active',
+      'published',
+      'draft',
+      'failed',
+      'done',
+    ];
+    const filter = (allowed.includes(rawFilter as JobListFilter)
+      ? rawFilter
+      : 'all') as JobListFilter;
+    const result = await listJobsPage({
+      ...page,
+      q,
+      filter,
+    });
+    return {
+      jobs: result.items.map(toPublic),
+      page: result.page,
+      pageSize: result.pageSize,
+      total: result.total,
+      totalPages: result.totalPages,
+      facets: result.facets,
+    };
   });
 
   app.get<{ Params: { id: string } }>('/jobs/:id', async (req, reply) => {

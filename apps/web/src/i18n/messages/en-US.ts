@@ -65,6 +65,10 @@ export const enUS: MessageTree = {
     copyFromGlobal: 'Copy from global',
     goSettings: 'Edit in settings',
     notFilled: 'Not filled',
+    prevPage: 'Previous',
+    nextPage: 'Next',
+    pagination: 'Pagination',
+    pageMeta: 'Page {page}/{totalPages} · {total} items',
     confirmDelete: 'Confirm delete',
   },
   nav: {

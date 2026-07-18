@@ -6,6 +6,11 @@ import {
   type JobRow,
 } from '../db/sqlite.js';
 import type { Job, JobPublic } from '../types/job.js';
+import {
+  likePattern,
+  pageResult,
+  type PageResult,
+} from '../utils/pagination.js';
 import { readScriptTiming } from './scriptTiming.js';
 
 export function toPublic(job: Job): JobPublic {
@@ -67,11 +72,127 @@ export async function withScriptTiming(job: Job): Promise<Job> {
   return job;
 }
 
+/** 管理端任务列表筛选 */
+export type JobListFilter =
+  | 'all'
+  | 'active'
+  | 'published'
+  | 'draft'
+  | 'failed'
+  | 'done';
+
+export type JobListFacets = Record<JobListFilter, number>;
+
+export const ACTIVE_JOB_STATUSES = [
+  'queued',
+  'extracting_audio',
+  'transcribing',
+  'generating_podcast',
+  'generating_cover',
+  'synthesizing_audio',
+] as const;
+
+const ACTIVE_STATUS_SQL = ACTIVE_JOB_STATUSES.map((s) => `'${s}'`).join(', ');
+
+function jobSearchClause(q: string): { sql: string; params: string[] } {
+  const pattern = likePattern(q);
+  if (!pattern) return { sql: '', params: [] };
+  return {
+    sql: ` AND (
+      title LIKE ? ESCAPE '\\'
+      OR original_filename LIKE ? ESCAPE '\\'
+      OR IFNULL(source_url, '') LIKE ? ESCAPE '\\'
+      OR IFNULL(message, '') LIKE ? ESCAPE '\\'
+      OR IFNULL(podcast_json, '') LIKE ? ESCAPE '\\'
+    )`,
+    params: [pattern, pattern, pattern, pattern, pattern],
+  };
+}
+
+function jobFilterClause(filter: JobListFilter | undefined): string {
+  switch (filter) {
+    case 'active':
+      return ` AND status IN (${ACTIVE_STATUS_SQL})`;
+    case 'published':
+      return ' AND published = 1';
+    case 'draft':
+      return ' AND published = 0';
+    case 'failed':
+      return " AND status = 'failed'";
+    case 'done':
+      return " AND status = 'done'";
+    default:
+      return '';
+  }
+}
+
+function emptyFacets(): JobListFacets {
+  return {
+    all: 0,
+    active: 0,
+    published: 0,
+    draft: 0,
+    failed: 0,
+    done: 0,
+  };
+}
+
+function countJobs(whereSql: string, params: Array<string | number>): number {
+  const row = getDb()
+    .prepare(`SELECT COUNT(*) AS c FROM jobs WHERE 1=1${whereSql}`)
+    .get(...params) as { c: number };
+  return Number(row?.c) || 0;
+}
+
+/** 全量任务（内部 / MCP 使用） */
 export async function listJobs(): Promise<Job[]> {
   const rows = getDb()
     .prepare('SELECT * FROM jobs ORDER BY created_at DESC')
     .all() as JobRow[];
   return rows.map(rowToJob);
+}
+
+/** 管理端分页任务列表 + 筛选 facet */
+export async function listJobsPage(opts: {
+  page: number;
+  pageSize: number;
+  offset: number;
+  q?: string;
+  filter?: JobListFilter;
+}): Promise<PageResult<Job> & { facets: JobListFacets }> {
+  const search = jobSearchClause(opts.q || '');
+  const filterSql = jobFilterClause(opts.filter);
+  const whereSql = `${search.sql}${filterSql}`;
+  const params = [...search.params];
+
+  const total = countJobs(whereSql, params);
+  const rows = getDb()
+    .prepare(
+      `SELECT * FROM jobs
+       WHERE 1=1${whereSql}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+    )
+    .all(...params, opts.pageSize, opts.offset) as JobRow[];
+
+  const facets = emptyFacets();
+  // facet 只受搜索影响，不受当前 filter tab 影响
+  const facetBase = search.sql;
+  const facetParams = [...search.params];
+  facets.all = countJobs(facetBase, facetParams);
+  facets.active = countJobs(
+    `${facetBase} AND status IN (${ACTIVE_STATUS_SQL})`,
+    facetParams,
+  );
+  facets.published = countJobs(`${facetBase} AND published = 1`, facetParams);
+  facets.draft = countJobs(`${facetBase} AND published = 0`, facetParams);
+  facets.failed = countJobs(`${facetBase} AND status = 'failed'`, facetParams);
+  facets.done = countJobs(`${facetBase} AND status = 'done'`, facetParams);
+
+  return {
+    ...pageResult(rows.map(rowToJob), total, opts.page, opts.pageSize),
+    facets,
+  };
 }
 
 /** 可听任务：单用户端不再强依赖 published，完成即可听 */
@@ -85,7 +206,123 @@ export async function listPublishedJobs(): Promise<Job[]> {
     .all() as JobRow[];
   return rows
     .map(rowToJob)
-    .filter((j) => Boolean(j.podcast) && (j.published !== false));
+    .filter((j) => Boolean(j.podcast) && j.published !== false);
+}
+
+export type LibraryListFilter = 'all' | 'unplayed' | 'progress' | 'done';
+
+export type LibraryListFacets = Record<LibraryListFilter, number>;
+
+function librarySearchClause(q: string): { sql: string; params: string[] } {
+  const pattern = likePattern(q);
+  if (!pattern) return { sql: '', params: [] };
+  return {
+    sql: ` AND (
+      j.title LIKE ? ESCAPE '\\'
+      OR j.original_filename LIKE ? ESCAPE '\\'
+      OR IFNULL(j.source_url, '') LIKE ? ESCAPE '\\'
+      OR IFNULL(j.podcast_json, '') LIKE ? ESCAPE '\\'
+    )`,
+    params: [pattern, pattern, pattern, pattern],
+  };
+}
+
+function libraryFilterClause(filter: LibraryListFilter | undefined): string {
+  switch (filter) {
+    case 'unplayed':
+      return ` AND (
+        l.job_id IS NULL
+        OR (IFNULL(l.completed, 0) = 0 AND IFNULL(l.progress_sec, 0) <= 0.5)
+      )`;
+    case 'progress':
+      return ` AND IFNULL(l.completed, 0) = 0 AND IFNULL(l.progress_sec, 0) > 0.5`;
+    case 'done':
+      return ' AND IFNULL(l.completed, 0) = 1';
+    default:
+      return '';
+  }
+}
+
+const LIBRARY_BASE_WHERE = `
+  j.status = 'done'
+  AND j.podcast_json IS NOT NULL
+  AND j.published != 0
+`;
+
+function countLibrary(whereExtra: string, params: Array<string | number>): number {
+  const row = getDb()
+    .prepare(
+      `SELECT COUNT(*) AS c
+       FROM jobs j
+       LEFT JOIN listen_records l ON l.job_id = j.id
+       WHERE ${LIBRARY_BASE_WHERE}${whereExtra}`,
+    )
+    .get(...params) as { c: number };
+  return Number(row?.c) || 0;
+}
+
+/** 前台曲库分页（可听 + 可选进度筛选） */
+export async function listLibraryPage(opts: {
+  page: number;
+  pageSize: number;
+  offset: number;
+  q?: string;
+  filter?: LibraryListFilter;
+}): Promise<
+  PageResult<{ job: Job; jobId: string }> & { facets: LibraryListFacets }
+> {
+  const search = librarySearchClause(opts.q || '');
+  const filterSql = libraryFilterClause(opts.filter);
+  const whereExtra = `${search.sql}${filterSql}`;
+  const params = [...search.params];
+
+  const total = countLibrary(whereExtra, params);
+  const rows = getDb()
+    .prepare(
+      `SELECT j.*
+       FROM jobs j
+       LEFT JOIN listen_records l ON l.job_id = j.id
+       WHERE ${LIBRARY_BASE_WHERE}${whereExtra}
+       ORDER BY j.created_at DESC
+       LIMIT ? OFFSET ?`,
+    )
+    .all(...params, opts.pageSize, opts.offset) as JobRow[];
+
+  const facets: LibraryListFacets = {
+    all: 0,
+    unplayed: 0,
+    progress: 0,
+    done: 0,
+  };
+  const facetBase = search.sql;
+  const facetParams = [...search.params];
+  facets.all = countLibrary(facetBase, facetParams);
+  facets.unplayed = countLibrary(
+    `${facetBase}${libraryFilterClause('unplayed')}`,
+    facetParams,
+  );
+  facets.progress = countLibrary(
+    `${facetBase}${libraryFilterClause('progress')}`,
+    facetParams,
+  );
+  facets.done = countLibrary(
+    `${facetBase}${libraryFilterClause('done')}`,
+    facetParams,
+  );
+
+  const jobs = rows
+    .map(rowToJob)
+    .filter((j) => Boolean(j.podcast) && j.published !== false);
+
+  return {
+    ...pageResult(
+      jobs.map((job) => ({ job, jobId: job.id })),
+      total,
+      opts.page,
+      opts.pageSize,
+    ),
+    facets,
+  };
 }
 
 export async function getJob(id: string): Promise<Job | undefined> {

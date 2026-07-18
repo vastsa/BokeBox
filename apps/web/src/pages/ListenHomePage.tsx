@@ -3,11 +3,13 @@ import { Masonry } from 'react-plock';
 import {
   albumCoverUrl,
   coverImageUrl,
-  fetchHistory,
   fetchJobs,
   fetchLibrary,
   fetchListenAlbums,
 } from '../api/client';
+import { Pagination } from '../components/ui/Pagination';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import type { LibraryListFacets, LibraryListFilter } from '../types/pagination';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
 import {
@@ -86,37 +88,21 @@ function itemPct(item: LibraryItem): number {
   return listenProgressPct(item.listen?.progressSec, item.listen?.durationSec);
 }
 
-function matchFilter(item: LibraryItem, filter: FilterKey): boolean {
-  const pct = itemPct(item);
-  const completed = Boolean(item.listen?.completed);
-  if (filter === 'all') return true;
-  if (filter === 'done') return completed;
-  if (filter === 'progress') return !completed && pct > 0;
-  // unplayed
-  return !completed && pct <= 0;
-}
-
-function matchQuery(item: LibraryItem, raw: string): boolean {
-  const q = raw.trim().toLowerCase();
-  if (!q) return true;
-  const hay = [
-    itemTitle(item),
-    item.job.podcast?.summary?.trim() ||
-      item.job.podcast?.hostIntro?.trim() ||
-      '',
-    item.job.originalFilename || '',
-    ...(item.job.podcast?.tags || []),
-  ]
-    .join(' ')
-    .toLowerCase();
-  return hay.includes(q);
-}
 
 /** 瀑布流高度变体：短 / 中 / 高 */
 function cardSize(seed: string): 's' | 'm' | 't' {
   const n = hashSeed(seed) % 3;
   return n === 0 ? 's' : n === 1 ? 'm' : 't';
 }
+
+const EMPTY_LIB_FACETS: LibraryListFacets = {
+  all: 0,
+  unplayed: 0,
+  progress: 0,
+  done: 0,
+};
+
+const LIBRARY_PAGE_SIZE = 24;
 
 export function ListenHomePage({ route }: { route: Route }) {
   const { t } = useI18n();
@@ -128,65 +114,98 @@ export function ListenHomePage({ route }: { route: Route }) {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(query, 300);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [facets, setFacets] = useState<LibraryListFacets>(EMPTY_LIB_FACETS);
 
   const refresh = useCallback(async () => {
     try {
       const authed = Boolean(getToken());
       if (!authed) {
-        // 游客：仅拉曲库，进度只用浏览器本地，绝不合并服务端管理员进度
-        const [lib, al] = await Promise.all([
-          fetchLibrary(),
-          fetchListenAlbums().catch(() => [] as AlbumSummary[]),
+        // 游客：曲库分页；进度只用浏览器本地
+        const [libRes, alRes] = await Promise.all([
+          fetchLibrary({
+            page,
+            pageSize: LIBRARY_PAGE_SIZE,
+            q: debouncedQuery,
+            filter: filter as LibraryListFilter,
+          }),
+          fetchListenAlbums({ page: 1, pageSize: 12 }).catch(() => null),
         ]);
         setLibrary(
-          lib.map((it) => ({
+          libRes.items.map((it) => ({
             ...it,
             listen: mergeListenRecord(it.job.id, null),
           })),
         );
-        setAlbums(al);
+        setTotal(libRes.total);
+        setTotalPages(libRes.totalPages);
+        setFacets(libRes.facets || EMPTY_LIB_FACETS);
+        setAlbums(alRes?.albums || []);
         setJobs([]);
         setError(null);
         return;
       }
 
-      const [lib, his, allJobs, al] = await Promise.all([
-        fetchLibrary(),
-        fetchHistory(),
-        fetchJobs(),
-        fetchListenAlbums().catch(() => [] as AlbumSummary[]),
+      const [libRes, activeRes, failedRes, alRes] = await Promise.all([
+        fetchLibrary({
+          page,
+          pageSize: LIBRARY_PAGE_SIZE,
+          q: debouncedQuery,
+          filter: filter as LibraryListFilter,
+        }),
+        fetchJobs({ page: 1, pageSize: 50, filter: 'active' }).catch(() => null),
+        fetchJobs({ page: 1, pageSize: 20, filter: 'failed' }).catch(() => null),
+        fetchListenAlbums({ page: 1, pageSize: 12 }).catch(() => null),
       ]);
-      setAlbums(al);
-      const progressMap = new Map(
-        his.map((it) => [it.job.id, mergeListenRecord(it.job.id, it.listen)]),
-      );
+      setAlbums(alRes?.albums || []);
       setLibrary(
-        lib.map((it) => ({
+        libRes.items.map((it) => ({
           ...it,
-          listen:
-            progressMap.get(it.job.id) ||
-            mergeListenRecord(it.job.id, it.listen),
+          listen: mergeListenRecord(it.job.id, it.listen),
         })),
       );
-      setJobs(allJobs);
+      setTotal(libRes.total);
+      setTotalPages(libRes.totalPages);
+      setFacets(libRes.facets || EMPTY_LIB_FACETS);
+      const pipeline = [
+        ...(activeRes?.jobs || []),
+        ...(failedRes?.jobs || []),
+      ];
+      // 去重
+      const seen = new Set<string>();
+      setJobs(
+        pipeline.filter((j) => {
+          if (seen.has(j.id)) return false;
+          seen.add(j.id);
+          return true;
+        }),
+      );
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, debouncedQuery, filter]);
 
   useEffect(() => {
+    setLoading(true);
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, debouncedQuery]);
 
   // 有进行中任务时轮询
   useEffect(() => {
     const active = jobs.some((j) => ACTIVE.includes(j.status));
     if (!active) return;
-    const t = window.setInterval(() => void refresh(), 2000);
-    return () => window.clearInterval(t);
+    const timer = window.setInterval(() => void refresh(), 2000);
+    return () => window.clearInterval(timer);
   }, [jobs, refresh]);
 
   const pipelineJobs = useMemo(
@@ -197,30 +216,10 @@ export function ListenHomePage({ route }: { route: Route }) {
     [jobs],
   );
 
-  const queried = useMemo(
-    () => library.filter((item) => matchQuery(item, query)),
-    [library, query],
-  );
+  const filterCounts = facets;
 
-  const filterCounts = useMemo(() => {
-    const counts: Record<FilterKey, number> = {
-      all: queried.length,
-      unplayed: 0,
-      progress: 0,
-      done: 0,
-    };
-    for (const item of queried) {
-      if (matchFilter(item, 'done')) counts.done += 1;
-      else if (matchFilter(item, 'progress')) counts.progress += 1;
-      else counts.unplayed += 1;
-    }
-    return counts;
-  }, [queried]);
-
-  const filtered = useMemo(
-    () => queried.filter((item) => matchFilter(item, filter)),
-    [queried, filter],
-  );
+  // 服务端已筛选；本地再合并进度后，搜索词由服务端处理
+  const filtered = library;
 
   const playItem = (item: LibraryItem, opts?: { openPlayer?: boolean }) => {
     if (opts?.openPlayer) {
@@ -254,7 +253,7 @@ export function ListenHomePage({ route }: { route: Route }) {
   const isPlayingId = player.track?.id;
   const isPlaying = player.playing;
 
-  const libraryCount = library.length;
+  const libraryCount = total;
   const headSub = loading
     ? t('home.loading')
     : libraryCount
@@ -380,7 +379,7 @@ export function ListenHomePage({ route }: { route: Route }) {
                 />
               )}
             />
-          ) : !library.length ? (
+          ) : facets.all === 0 && !debouncedQuery ? (
             <EmptyState
               icon={<BrandMascot size={56} />}
               title={t('home.emptyTitle')}
@@ -443,6 +442,7 @@ export function ListenHomePage({ route }: { route: Route }) {
                     onClick={() => {
                       setFilter('all');
                       setQuery('');
+                      setPage(1);
                     }}
                   >
                     {t('home.clearFilters')}
@@ -471,6 +471,14 @@ export function ListenHomePage({ route }: { route: Route }) {
                   )}
                 />
               )}
+
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                disabled={loading}
+                onChange={setPage}
+              />
             </>
           )}
         </div>

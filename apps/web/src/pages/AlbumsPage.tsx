@@ -7,6 +7,7 @@ import {
   fetchAlbums,
   fetchListenAlbums,
 } from '../api/client';
+import { Pagination } from '../components/ui/Pagination';
 import { CoverArt } from '../components/ui/CoverArt';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -82,28 +83,38 @@ export function AlbumsPage({ route }: { route: Route }) {
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [busy, setBusy] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const PAGE_SIZE = 20;
 
   const refresh = useCallback(async () => {
     try {
-      const list = authed ? await fetchAlbums() : await fetchListenAlbums();
-      setAlbums(list);
+      const res = authed
+        ? await fetchAlbums({ page, pageSize: PAGE_SIZE })
+        : await fetchListenAlbums({ page, pageSize: PAGE_SIZE });
+      setAlbums(res.albums);
+      setTotal(res.total);
+      setTotalPages(res.totalPages);
+      if (res.page !== page && res.page >= 1) setPage(res.page);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [authed]);
+  }, [authed, page]);
 
   useEffect(() => {
+    setLoading(true);
     void refresh();
   }, [refresh]);
 
   const headSub = useMemo(() => {
     if (loading) return t('album.loading');
-    if (!albums.length) return t('album.emptyHint');
-    return t('album.count', { n: albums.length });
-  }, [albums.length, loading, t]);
+    if (!total) return t('album.emptyHint');
+    return t('album.count', { n: total });
+  }, [total, loading, t]);
 
   const onCreate = async () => {
     const name = title.trim();
@@ -214,17 +225,26 @@ export function AlbumsPage({ route }: { route: Route }) {
               }}
             />
           ) : (
-            <div className="al-grid">
-              {albums.map((album) => (
-                <AlbumTile
-                  key={album.id}
-                  album={album}
-                  canManage={authed}
-                  onOpen={() => navigate({ name: 'album', id: album.id })}
-                  onDelete={() => void onDelete(album)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="al-grid">
+                {albums.map((album) => (
+                  <AlbumTile
+                    key={album.id}
+                    album={album}
+                    canManage={authed}
+                    onOpen={() => navigate({ name: 'album', id: album.id })}
+                    onDelete={() => void onDelete(album)}
+                  />
+                ))}
+              </div>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                disabled={loading}
+                onChange={setPage}
+              />
+            </>
           )}
         </div>
       </div>
