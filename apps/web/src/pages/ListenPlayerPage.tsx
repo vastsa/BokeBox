@@ -375,6 +375,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         title={title}
         className="qq-disc-face is-round"
         monogram
+        priority
       >
         <div className="qq-disc-ring" />
         <div className="qq-disc-label">

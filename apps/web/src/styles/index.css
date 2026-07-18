@@ -6950,11 +6950,42 @@ html[data-theme="dark"] .qq-lyrics-focus {
   pointer-events: none;
   user-select: none;
 }
+/* 渐进加载：先最小图（可轻微模糊），再淡入清晰图 */
+.pb-cover-image.is-preview {
+  z-index: var(--z-base);
+  opacity: 0;
+  filter: blur(12px);
+  transform: scale(1.08);
+  transition:
+    opacity 0.16s ease,
+    filter 0.28s ease,
+    transform 0.28s ease;
+  will-change: opacity, filter, transform;
+}
+.pb-cover-image.is-preview.is-ready {
+  opacity: 1;
+}
+.pb-cover-image.is-preview.is-fading {
+  opacity: 0;
+  filter: blur(16px);
+}
+.pb-cover-image.is-final {
+  z-index: var(--z-raised);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  will-change: opacity;
+}
+.pb-cover-image.is-final.is-ready {
+  opacity: 1;
+}
 .pb-cover.has-image {
   background: var(--surface-ink-2);
 }
 .pb-cover.has-image .pb-cover-shine {
   opacity: 0.35;
+}
+.pb-cover.has-image-ready .pb-cover-shine {
+  opacity: 0.28;
 }
 
 .pb-cover > * {

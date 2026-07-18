@@ -631,6 +631,27 @@ export async function deleteAlbumApi(id: string): Promise<void> {
 /** 封面尺寸：列表默认 sm，详情/播放器 md，下载 full */
 export type CoverImageSize = 'thumb' | 'sm' | 'md' | 'full';
 
+/** 读取封面 URL 上的 size 参数 */
+export function readCoverImageSize(url: string): CoverImageSize | null {
+  try {
+    const u = new URL(url, 'http://local.invalid');
+    const raw = (u.searchParams.get('size') || '').trim().toLowerCase();
+    if (raw === 'thumb' || raw === 'sm' || raw === 'md' || raw === 'full') return raw;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** 改写封面 URL 的 size（用于渐进加载：先 thumb 再清晰档） */
+export function withCoverImageSize(url: string, size: CoverImageSize): string {
+  const abs = /^https?:\/\//i.test(url);
+  const u = new URL(url, 'http://local.invalid');
+  u.searchParams.set('size', size);
+  if (abs) return u.toString();
+  return `${u.pathname}${u.search}`;
+}
+
 export function albumCoverUrl(
   id: string,
   cacheKey?: string,

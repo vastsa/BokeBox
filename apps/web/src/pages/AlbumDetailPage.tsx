@@ -284,6 +284,7 @@ export function AlbumDetailPage({
                         : null)
                     }
                     className="al-hero-cover"
+                    priority
                   />
 
                   <div className="al-hero-main">
