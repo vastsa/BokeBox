@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { coverImageUrl } from '../../api/client';
 import { IconCheck, IconClose, IconTrash } from '../icons';
 import { CoverArt } from '../ui/CoverArt';
@@ -118,7 +119,9 @@ export function AlbumItemsManager({
 
   const clearSelected = () => onChange([]);
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       className="al-modal-mask"
       role="dialog"
@@ -402,6 +405,7 @@ export function AlbumItemsManager({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

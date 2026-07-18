@@ -11758,12 +11758,15 @@ html[data-theme="dark"] .source-risk-dot.is-high {
 .al-modal-mask {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  /* 高于 topbar/底栏/迷你播放器，且挂到 body 后铺满视口 */
+  z-index: var(--z-max);
   display: grid;
   place-items: center;
   padding: 16px;
-  background: color-mix(in srgb, var(--black) 46%, transparent);
-  backdrop-filter: blur(8px);
+  /* 避免 color-mix(transparent) + backdrop-filter 在部分浏览器半边发白 */
+  background: var(--black-a58);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 .al-modal {
   width: min(520px, 100%);
