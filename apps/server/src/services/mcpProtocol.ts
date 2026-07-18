@@ -74,7 +74,7 @@ export async function handleMcpJsonRpc(
           },
           serverInfo: MCP_SERVER_INFO,
           instructions:
-            'BokeBox MCP：把 URL/文稿做成私人播客。优先用 create_podcast_from_url 或 create_podcast_from_text，再用 list_jobs / get_job 跟踪进度。',
+            'BokeBox MCP：将 URL / 文稿等转化为可收听的私人播客。优先使用 create_podcast_from_url 或 create_podcast_from_text，再用 list_jobs / get_job 跟踪进度。',
         });
       }
       case 'notifications/initialized':
