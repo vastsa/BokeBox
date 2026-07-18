@@ -20,7 +20,11 @@ import {
   toPublic,
   updateJob,
 } from '../services/jobStore.js';
-import { removeJobFromAllAlbums } from '../services/albumStore.js';
+import {
+  appendJobToAlbum,
+  getAlbum,
+  removeJobFromAllAlbums,
+} from '../services/albumStore.js';
 import { getRequestUser } from './auth.js';
 import {
   assertPipelinePrereqs,
@@ -322,6 +326,20 @@ async function sendMedia(
 
   reply.header('Content-Length', size);
   return reply.send(createReadStream(filePath));
+}
+
+async function attachJobToAlbumIfNeeded(
+  albumIdRaw: unknown,
+  jobId: string,
+): Promise<void> {
+  const albumId = String(albumIdRaw || '').trim();
+  if (!albumId) return;
+  const album = await getAlbum(albumId);
+  if (!album) {
+    console.warn(`[album] attach skipped, album not found: ${albumId}`);
+    return;
+  }
+  await appendJobToAlbum(albumId, jobId);
 }
 
 export async function jobRoutes(app: FastifyInstance): Promise<void> {
@@ -687,6 +705,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     };
 
     await createJob(job);
+    await attachJobToAlbumIfNeeded(fields.albumId, job.id);
     void runPipeline(id);
     return reply.code(201).send({ job: toPublic(job) });
   });
@@ -704,6 +723,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       tts?: TtsOptions;
       ttsSourceMode?: 'global' | 'custom';
       published?: boolean;
+      albumId?: string;
       title?: string;
       scriptPrompt?: ScriptPromptOptions;
       scriptPromptMode?: 'global' | 'custom';
@@ -824,6 +844,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     };
 
     await createJob(job);
+    await attachJobToAlbumIfNeeded(req.body?.albumId, job.id);
     void runPipeline(id);
     return reply.code(201).send({ job: toPublic(job) });
   });

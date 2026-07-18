@@ -4,6 +4,8 @@ export type Album = {
   summary: string;
   /** 封面用 job id；空则取首集 */
   coverJobId: string | null;
+  /** 是否有专辑专属 AI 封面文件 */
+  hasOwnCoverImage: boolean;
   published: boolean;
   createdAt: string;
   updatedAt: string;

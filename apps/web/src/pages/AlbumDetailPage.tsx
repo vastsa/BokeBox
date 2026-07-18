@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  albumCoverUrl,
   coverImageUrl,
   fetchJobs,
   fetchListenAlbum,
+  generateAlbumCoverApi,
   setAlbumItemsApi,
   updateAlbumApi,
 } from '../api/client';
@@ -49,6 +51,7 @@ export function AlbumDetailPage({
   const [summary, setSummary] = useState('');
   const [published, setPublished] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [generatingCover, setGeneratingCover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -77,6 +80,10 @@ export function AlbumDetailPage({
 
   const coverId =
     album?.resolvedCoverJobId || album?.coverJobId || album?.items[0]?.job.id;
+  const ownCoverUrl =
+    album?.hasOwnCoverImage
+      ? albumCoverUrl(album.id, album.updatedAt)
+      : null;
 
   const playItem = (item: AlbumListenItem, openPlayer = false) => {
     if (!album) return;
@@ -205,6 +212,20 @@ export function AlbumDetailPage({
   const isPlayingId = player.track?.id;
   const isPlaying = player.playing;
 
+  const generateCover = async () => {
+    if (!album || !authed || generatingCover) return;
+    setGeneratingCover(true);
+    setError(null);
+    try {
+      await generateAlbumCoverApi(album.id);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGeneratingCover(false);
+    }
+  };
+
   const headMeta = useMemo(() => {
     if (!album) return '';
     return t('album.itemCount', { n: album.itemCount });
@@ -245,9 +266,10 @@ export function AlbumDetailPage({
                   preferred={album.coverGradient}
                   title={album.title}
                   imageUrl={
-                    album.hasCoverImage && coverId
+                    ownCoverUrl ||
+                    (album.hasCoverImage && coverId
                       ? coverImageUrl(coverId, album.updatedAt)
-                      : null
+                      : null)
                   }
                   className="al-hero-cover"
                 />
@@ -312,6 +334,18 @@ export function AlbumDetailPage({
                           onClick={() => void openPicker()}
                         >
                           {t('album.manageItems')}
+                        </button>
+                        <button
+                          type="button"
+                          className="nl-btn"
+                          disabled={generatingCover}
+                          onClick={() => void generateCover()}
+                        >
+                          {generatingCover
+                            ? t('album.generatingCover')
+                            : album.hasOwnCoverImage
+                              ? t('album.regenerateCover')
+                              : t('album.generateCover')}
                         </button>
                       </>
                     )}

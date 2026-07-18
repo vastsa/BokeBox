@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  albumCoverUrl,
   coverImageUrl,
   createAlbumApi,
   deleteAlbumApi,
@@ -37,9 +38,11 @@ function AlbumTile({
           preferred={album.coverGradient}
           title={album.title}
           imageUrl={
-            album.hasCoverImage && coverId
-              ? coverImageUrl(coverId, album.updatedAt)
-              : null
+            album.hasOwnCoverImage
+              ? albumCoverUrl(album.id, album.updatedAt)
+              : album.hasCoverImage && coverId
+                ? coverImageUrl(coverId, album.updatedAt)
+                : null
           }
           className="al-card-cover"
         />

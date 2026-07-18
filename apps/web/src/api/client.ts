@@ -91,6 +91,8 @@ export async function createJob(
     scriptPromptMode?: ScriptPromptMode;
     /** 任务内容语言；不传则服务端用全局 contentLocale */
     locale?: string;
+    /** 创建后自动加入的专辑 */
+    albumId?: string;
     onProgress?: (pct: number) => void;
   } = {},
 ): Promise<Job> {
@@ -142,6 +144,9 @@ export async function createJob(
     if (options.locale) {
       form.append('locale', options.locale);
     }
+    if (options.albumId) {
+      form.append('albumId', options.albumId);
+    }
     form.append('file', file);
     xhr.send(form);
   });
@@ -159,6 +164,8 @@ export async function createJobFromUrl(
     locale?: string;
     /** 指定 Source 插件；缺省自动匹配 */
     pluginId?: string;
+    /** 创建后自动加入的专辑 */
+    albumId?: string;
   } = {},
 ): Promise<Job> {
   const ttsSourceMode = options.ttsSourceMode || 'global';
@@ -175,6 +182,7 @@ export async function createJobFromUrl(
       scriptPrompt: options.scriptPrompt,
       scriptPromptMode: options.scriptPromptMode || 'global',
       locale: options.locale,
+      albumId: options.albumId || undefined,
     }),
   });
   return data.job;
@@ -350,6 +358,23 @@ export async function setAlbumItemsApi(
 export async function deleteAlbumApi(id: string): Promise<void> {
   await request(`/albums/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
+
+export function albumCoverUrl(id: string, cacheKey?: string): string {
+  const q = new URLSearchParams();
+  if (cacheKey) q.set('v', String(cacheKey));
+  const qs = q.toString();
+  // 游客与登录统一走 listen 封面（鉴权钩子已放行）
+  return `${BASE}/listen/albums/${encodeURIComponent(id)}/cover${qs ? `?${qs}` : ''}`;
+}
+
+export async function generateAlbumCoverApi(id: string): Promise<AlbumDetail> {
+  const data = await request<{ album: AlbumDetail }>(
+    `/albums/${encodeURIComponent(id)}/generate-cover`,
+    { method: 'POST' },
+  );
+  return data.album;
+}
+
 
 export async function fetchScriptPromptSettings(): Promise<{
   scriptPrompt: ScriptPromptOptions;

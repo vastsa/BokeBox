@@ -97,6 +97,7 @@ export function initDatabase(): DatabaseSync {
       title TEXT NOT NULL,
       summary TEXT NOT NULL DEFAULT '',
       cover_job_id TEXT,
+      has_cover_image INTEGER NOT NULL DEFAULT 0,
       published INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -121,6 +122,23 @@ export function initDatabase(): DatabaseSync {
   `);
 
   ensureJobColumns();
+  const ensureAlbumColumns = () => {
+    try {
+      const cols = db!
+        .prepare(`PRAGMA table_info(albums)`)
+        .all() as Array<{ name: string }>;
+      if (!cols.length) return;
+      const names = new Set(cols.map((c) => c.name));
+      if (!names.has('has_cover_image')) {
+        db!.exec(
+          `ALTER TABLE albums ADD COLUMN has_cover_image INTEGER NOT NULL DEFAULT 0`,
+        );
+      }
+    } catch {
+      // albums 表尚未创建时忽略
+    }
+  };
+  ensureAlbumColumns();
   migrateFromJsonIfNeeded(db);
   return db;
 }
