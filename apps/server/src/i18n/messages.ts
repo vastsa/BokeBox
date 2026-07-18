@@ -55,6 +55,8 @@ const zhCN = {
 
   // listen
   'listen.notReady': '播客不存在或尚未完成',
+  'album.notFound': '专辑不存在',
+  'album.titleRequired': '请填写专辑标题',
   'listen.notFound': '播客不存在',
 
   // source kinds
@@ -147,6 +149,8 @@ const enUS: Record<keyof typeof zhCN, string> = {
   'auth.apiKeyRequired': 'API Key is required',
 
   'job.notFound': 'Job not found',
+  'album.notFound': 'Album not found',
+  'album.titleRequired': 'Album title is required',
   'job.podcastAudioMissing': 'Podcast audio is not ready',
   'job.sourceAudioMissing': 'Source audio not found',
   'job.videoMissing': 'Video not found',

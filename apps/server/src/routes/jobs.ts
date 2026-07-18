@@ -20,6 +20,7 @@ import {
   toPublic,
   updateJob,
 } from '../services/jobStore.js';
+import { removeJobFromAllAlbums } from '../services/albumStore.js';
 import { getRequestUser } from './auth.js';
 import {
   assertPipelinePrereqs,
@@ -1024,6 +1025,9 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
   app.delete<{ Params: { id: string } }>('/jobs/:id', async (req, reply) => {
     const removed = await deleteJob(req.params.id);
     if (!removed) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
+
+    // 从所有专辑中移除该任务
+    removeJobFromAllAlbums(removed.id);
 
     // 整目录删除，覆盖源文件/音频/转写/脚本/播客等全部产物
     await removeDirIfExists(jobPaths(removed.id).dir);

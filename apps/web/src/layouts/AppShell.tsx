@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { BrandMark } from '../components/BrandMark';
 import {
+  IconAlbum,
   IconGitHub,
   IconLibrary,
   IconSpark,
@@ -43,6 +44,7 @@ export function AppShell({
     route.name === 'listen' ||
     route.name === 'player';
   const tagsActive = route.name === 'tags';
+  const albumsActive = route.name === 'albums' || route.name === 'album';
   const createActive =
     route.name === 'create' ||
     route.name === 'admin-upload' ||
@@ -84,6 +86,12 @@ export function AppShell({
               onClick={() => navigate({ name: 'tags' })}
               onIntent={prefetchTagCloud}
               icon={<IconStars size={14} />}
+            />
+            <TopNavItem
+              active={albumsActive}
+              label={t('nav.albums')}
+              onClick={() => navigate({ name: 'albums' })}
+              icon={<IconAlbum size={14} />}
             />
             {!isGuest && (
               <TopNavItem
@@ -157,7 +165,7 @@ export function AppShell({
           <div
             className={[
               'mx-auto grid max-w-md gap-0.5',
-              isGuest ? 'grid-cols-3' : 'grid-cols-4',
+              isGuest ? 'grid-cols-4' : 'grid-cols-5',
             ].join(' ')}
           >
             <BottomNavItem
@@ -172,6 +180,12 @@ export function AppShell({
               onClick={() => navigate({ name: 'tags' })}
               onIntent={prefetchTagCloud}
               icon={<IconStars size={18} />}
+            />
+            <BottomNavItem
+              active={albumsActive}
+              label={t('nav.albums')}
+              onClick={() => navigate({ name: 'albums' })}
+              icon={<IconAlbum size={18} />}
             />
             {!isGuest && (
               <BottomNavItem

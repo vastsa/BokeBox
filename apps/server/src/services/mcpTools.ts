@@ -10,6 +10,7 @@ import {
   updateJob,
   withScriptTiming,
 } from './jobStore.js';
+import { removeJobFromAllAlbums } from './albumStore.js';
 import {
   assertPipelinePrereqs,
   buildRetryPatch,
@@ -553,6 +554,7 @@ async function toolDeleteJob(args: Record<string, unknown>) {
   if (!id) return errText('缺少参数 id');
   const prev = await deleteJob(id);
   if (!prev) return errText(`任务不存在: ${id}`);
+  removeJobFromAllAlbums(id);
   await deleteListenRecord(id);
   await removeDirIfExists(jobPaths(id).dir);
   return okJson({ ok: true, deletedId: id, title: prev.title });

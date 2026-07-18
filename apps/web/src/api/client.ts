@@ -9,6 +9,11 @@ import type {
   TtsOptions,
   TtsSourceMode,
 } from '../types/job';
+import type {
+  AlbumDetail,
+  AlbumListenDetail,
+  AlbumSummary,
+} from '../types/album';
 import { getLocale, tOutside } from '../i18n';
 import { clearAuthSession, getToken } from '../lib/auth';
 
@@ -264,6 +269,87 @@ export async function reportProgress(
   return data.listen;
 }
 
+
+
+// ---------- Albums ----------
+
+export async function fetchListenAlbums(): Promise<AlbumSummary[]> {
+  const data = await request<{ albums: AlbumSummary[] }>('/listen/albums');
+  return data.albums;
+}
+
+export async function fetchListenAlbum(id: string): Promise<AlbumListenDetail> {
+  const data = await request<{ album: AlbumListenDetail }>(
+    `/listen/albums/${encodeURIComponent(id)}`,
+  );
+  return data.album;
+}
+
+export async function fetchAlbums(): Promise<AlbumSummary[]> {
+  const data = await request<{ albums: AlbumSummary[] }>('/albums');
+  return data.albums;
+}
+
+export async function fetchAlbum(id: string): Promise<AlbumDetail> {
+  const data = await request<{ album: AlbumDetail }>(
+    `/albums/${encodeURIComponent(id)}`,
+  );
+  return data.album;
+}
+
+export async function createAlbumApi(body: {
+  title: string;
+  summary?: string;
+  coverJobId?: string | null;
+  published?: boolean;
+  jobIds?: string[];
+}): Promise<AlbumDetail> {
+  const data = await request<{ album: AlbumDetail }>('/albums', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return data.album;
+}
+
+export async function updateAlbumApi(
+  id: string,
+  body: {
+    title?: string;
+    summary?: string;
+    coverJobId?: string | null;
+    published?: boolean;
+  },
+): Promise<AlbumDetail> {
+  const data = await request<{ album: AlbumDetail }>(
+    `/albums/${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+  return data.album;
+}
+
+export async function setAlbumItemsApi(
+  id: string,
+  jobIds: string[],
+): Promise<AlbumDetail> {
+  const data = await request<{ album: AlbumDetail }>(
+    `/albums/${encodeURIComponent(id)}/items`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobIds }),
+    },
+  );
+  return data.album;
+}
+
+export async function deleteAlbumApi(id: string): Promise<void> {
+  await request(`/albums/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
 
 export async function fetchScriptPromptSettings(): Promise<{
   scriptPrompt: ScriptPromptOptions;

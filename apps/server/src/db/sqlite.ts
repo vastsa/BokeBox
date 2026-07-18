@@ -91,6 +91,33 @@ export function initDatabase(): DatabaseSync {
       value TEXT NOT NULL DEFAULT '',
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS albums (
+      id TEXT PRIMARY KEY NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL DEFAULT '',
+      cover_job_id TEXT,
+      published INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_albums_updated
+      ON albums(updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_albums_published
+      ON albums(published, updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS album_items (
+      album_id TEXT NOT NULL,
+      job_id TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (album_id, job_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_album_items_album
+      ON album_items(album_id, position);
+    CREATE INDEX IF NOT EXISTS idx_album_items_job
+      ON album_items(job_id);
   `);
 
   ensureJobColumns();

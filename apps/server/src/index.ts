@@ -14,6 +14,7 @@ import {
   mcpProtocolRoutes,
 } from './routes/mcp.js';
 import { sourceRoutes } from './routes/sources.js';
+import { albumRoutes } from './routes/albums.js';
 import { refreshExternalSourcePlugins } from './sources/index.js';
 import { JOBS_DIR, ROOT_DIR, SQLITE_DB } from './utils/paths.js';
 import { ensureDir, pathExists } from './utils/fs.js';
@@ -68,6 +69,7 @@ async function main() {
   await app.register(authRoutes, { prefix: '/api' });
   registerAuthGuard(app);
   await app.register(jobRoutes, { prefix: '/api' });
+  await app.register(albumRoutes, { prefix: '/api' });
   await app.register(listenRoutes, { prefix: '/api' });
   await app.register(sourceRoutes, { prefix: '/api' });
   await app.register(mcpManageRoutes, { prefix: '/api' });

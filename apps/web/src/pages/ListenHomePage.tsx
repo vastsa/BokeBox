@@ -5,6 +5,7 @@ import {
   fetchHistory,
   fetchJobs,
   fetchLibrary,
+  fetchListenAlbums,
 } from '../api/client';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
@@ -24,6 +25,7 @@ import {
 import { getToken } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
 import type { Job, JobStatus, LibraryItem } from '../types/job';
+import type { AlbumSummary } from '../types/album';
 import { useI18n, type Translator } from '../i18n';
 import { AppShell } from '../layouts/AppShell';
 import { usePlayer } from '../player/PlayerContext';
@@ -120,6 +122,7 @@ export function ListenHomePage({ route }: { route: Route }) {
   const player = usePlayer();
   const [library, setLibrary] = useState<LibraryItem[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [albums, setAlbums] = useState<AlbumSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -130,23 +133,29 @@ export function ListenHomePage({ route }: { route: Route }) {
       const authed = Boolean(getToken());
       if (!authed) {
         // 游客：仅拉曲库，进度只用浏览器本地，绝不合并服务端管理员进度
-        const lib = await fetchLibrary();
+        const [lib, al] = await Promise.all([
+          fetchLibrary(),
+          fetchListenAlbums().catch(() => [] as AlbumSummary[]),
+        ]);
         setLibrary(
           lib.map((it) => ({
             ...it,
             listen: mergeListenRecord(it.job.id, null),
           })),
         );
+        setAlbums(al);
         setJobs([]);
         setError(null);
         return;
       }
 
-      const [lib, his, allJobs] = await Promise.all([
+      const [lib, his, allJobs, al] = await Promise.all([
         fetchLibrary(),
         fetchHistory(),
         fetchJobs(),
+        fetchListenAlbums().catch(() => [] as AlbumSummary[]),
       ]);
+      setAlbums(al);
       const progressMap = new Map(
         his.map((it) => [it.job.id, mergeListenRecord(it.job.id, it.listen)]),
       );
@@ -305,7 +314,55 @@ export function ListenHomePage({ route }: { route: Route }) {
             </section>
           )}
 
-          {loading ? (
+          {!loading && albums.length > 0 && (
+            <section className="lh-albums">
+              <div className="lh-section-head">
+                <h2 className="lh-section-title">{t('album.homeTitle')}</h2>
+                <button
+                  type="button"
+                  className="lh-section-link"
+                  onClick={() => navigate({ name: 'albums' })}
+                >
+                  {t('album.viewAll')}
+                </button>
+              </div>
+              <div className="lh-album-rail">
+                {albums.slice(0, 12).map((album) => {
+                  const coverId =
+                    album.resolvedCoverJobId || album.coverJobId || album.id;
+                  return (
+                    <button
+                      key={album.id}
+                      type="button"
+                      className="lh-album-card"
+                      onClick={() => navigate({ name: 'album', id: album.id })}
+                    >
+                      <CoverArt
+                        seed={coverId}
+                        preferred={album.coverGradient}
+                        title={album.title}
+                        imageUrl={
+                          album.hasCoverImage && album.resolvedCoverJobId
+                            ? coverImageUrl(
+                                album.resolvedCoverJobId,
+                                album.updatedAt,
+                              )
+                            : null
+                        }
+                        className="lh-album-cover"
+                      />
+                      <span className="lh-album-title">{album.title}</span>
+                      <span className="lh-album-meta">
+                        {t('album.itemCount', { n: album.itemCount })}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+                    {loading ? (
             <Masonry
               className="lh-masonry"
               items={SKEL_ITEMS}
