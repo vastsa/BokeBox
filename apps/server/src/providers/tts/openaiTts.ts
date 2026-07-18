@@ -1,5 +1,15 @@
-import { aiFetch, getDefaultTtsVoice, getTtsModel, hasApiKey } from '../../utils/aiConfig.js';
-import type { TtsProvider, TtsChunkInput, TtsChunkResult } from './types.js';
+import { getDefaultTtsVoice, getTtsModel } from '../../utils/aiConfig.js';
+import {
+  isCloudEndpointReady,
+  pluginFetch,
+  resolveCloudEndpoint,
+} from '../pluginEndpoint.js';
+import type {
+  TtsChunkInput,
+  TtsChunkResult,
+  TtsPluginContext,
+  TtsProvider,
+} from './types.js';
 
 /** OpenAI TTS 预置音色 */
 export const OPENAI_PRESET_VOICES = [
@@ -55,10 +65,19 @@ export const openaiTtsProvider: TtsProvider = {
     },
   },
   isAvailable() {
-    return hasApiKey('tts');
+    return isCloudEndpointReady('tts', 'openai');
   },
-  async synthesizeChunk(input: TtsChunkInput): Promise<TtsChunkResult> {
-    const model = input.model?.trim() || getTtsModel() || 'tts-1';
+  async synthesizeChunk(
+    input: TtsChunkInput,
+    ctx?: TtsPluginContext,
+  ): Promise<TtsChunkResult> {
+    const ep = resolveCloudEndpoint('tts', 'openai');
+    const model =
+      input.model?.trim() ||
+      String(ctx?.getConfig?.('model') ?? '').trim() ||
+      ep.model ||
+      getTtsModel() ||
+      'tts-1';
     const voice = resolveOpenAiVoice(input.tts?.voice);
     // OpenAI TTS 不支持 MiMo 风格标签；清理可能残留的前导括号标签以免读出来
     const text = input.text
@@ -69,7 +88,9 @@ export const openaiTtsProvider: TtsProvider = {
       throw new Error('OpenAI TTS 文本为空');
     }
 
-    const res = await aiFetch(
+    const res = await pluginFetch(
+      'tts',
+      'openai',
       '/audio/speech',
       {
         method: 'POST',
@@ -80,7 +101,6 @@ export const openaiTtsProvider: TtsProvider = {
           response_format: 'wav',
         }),
       },
-      'tts',
     );
 
     if (!res.ok) {

@@ -1,7 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { aiFetch, getAsrModel, hasApiKey } from '../../utils/aiConfig.js';
-import type { AsrProvider, AsrTranscribeInput, AsrTranscribeResult } from './types.js';
+import { getAsrModel } from '../../utils/aiConfig.js';
+import {
+  isCloudEndpointReady,
+  pluginFetch,
+  resolveCloudEndpoint,
+} from '../pluginEndpoint.js';
+import type {
+  AsrPluginContext,
+  AsrProvider,
+  AsrTranscribeInput,
+  AsrTranscribeResult,
+} from './types.js';
 
 function mimeOf(format: string): string {
   switch (format) {
@@ -34,10 +44,19 @@ export const openaiAsrProvider: AsrProvider = {
   description: 'OpenAI /audio/transcriptions（Whisper 等兼容协议）',
   suggestedModel: 'whisper-1',
   isAvailable() {
-    return hasApiKey('asr');
+    return isCloudEndpointReady('asr', 'openai');
   },
-  async transcribe(input: AsrTranscribeInput): Promise<AsrTranscribeResult> {
-    const model = input.model?.trim() || getAsrModel() || 'whisper-1';
+  async transcribe(
+    input: AsrTranscribeInput,
+    ctx?: AsrPluginContext,
+  ): Promise<AsrTranscribeResult> {
+    const ep = resolveCloudEndpoint('asr', 'openai');
+    const model =
+      input.model?.trim() ||
+      String(ctx?.getConfig?.('model') ?? '').trim() ||
+      ep.model ||
+      getAsrModel() ||
+      'whisper-1';
     const ext =
       input.format ||
       path.extname(input.audioPath).toLowerCase().replace('.', '') ||
@@ -57,10 +76,10 @@ export const openaiAsrProvider: AsrProvider = {
       form.append('language', input.language.trim());
     }
 
-    const res = await aiFetch('/audio/transcriptions', {
+    const res = await pluginFetch('asr', 'openai', '/audio/transcriptions', {
       method: 'POST',
       body: form,
-    }, 'asr');
+    });
 
     if (!res.ok) {
       const body = await res.text();

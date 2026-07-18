@@ -3,9 +3,14 @@ import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { getAsrModel, getWhisperBin, getWhisperLang } from '../../utils/aiConfig.js';
 import { ensureDir, pathExists, removeDirIfExists, removeIfExists } from '../../utils/fs.js';
-import type { AsrProvider, AsrTranscribeInput, AsrTranscribeResult } from './types.js';
+import { getPluginConfig } from '../../plugin-kit/persist.js';
+import type {
+  AsrPluginContext,
+  AsrProvider,
+  AsrTranscribeInput,
+  AsrTranscribeResult,
+} from './types.js';
 
 type WhisperFlavor = 'openai' | 'cpp' | 'unknown';
 
@@ -14,10 +19,21 @@ interface ResolvedWhisper {
   flavor: WhisperFlavor;
 }
 
-/** 优先设置页配置，其次环境变量（兼容） */
-function configuredBin(): string {
+function pluginWhisperConfig(): { bin: string; lang: string; model: string } {
+  const cfg = getPluginConfig('asr', 'local-whisper');
+  return {
+    bin: String(cfg.bin || '').trim(),
+    lang: String(cfg.lang || '').trim(),
+    model: String(cfg.model || '').trim(),
+  };
+}
+
+/** 优先插件配置，其次环境变量（兼容） */
+function configuredBin(ctx?: AsrPluginContext): string {
+  const fromCtx = String(ctx?.getConfig?.('bin') ?? '').trim();
   return (
-    getWhisperBin() ||
+    fromCtx ||
+    pluginWhisperConfig().bin ||
     process.env.BOKEBOX_WHISPER_BIN ||
     process.env.WHISPER_BIN ||
     process.env.WHISPER_CPP_BIN ||
@@ -25,10 +41,15 @@ function configuredBin(): string {
   ).trim();
 }
 
-function configuredLang(inputLang?: string): string | undefined {
+function configuredLang(
+  inputLang?: string,
+  ctx?: AsrPluginContext,
+): string | undefined {
+  const fromCtx = String(ctx?.getConfig?.('lang') ?? '').trim();
   const lang = (
     inputLang ||
-    getWhisperLang() ||
+    fromCtx ||
+    pluginWhisperConfig().lang ||
     process.env.BOKEBOX_WHISPER_LANG ||
     ''
   ).trim();
@@ -85,8 +106,10 @@ function detectFlavor(bin: string): WhisperFlavor {
 }
 
 /** 解析本地 Whisper 可执行文件 */
-export async function resolveWhisperBinary(): Promise<ResolvedWhisper | null> {
-  const configured = configuredBin();
+export async function resolveWhisperBinary(
+  ctx?: AsrPluginContext,
+): Promise<ResolvedWhisper | null> {
+  const configured = configuredBin(ctx);
   if (configured) {
     if (await commandExists(configured)) {
       return { bin: configured, flavor: detectFlavor(configured) };
@@ -252,9 +275,9 @@ function installHint(): string {
     '安装任选其一后重试：',
     '  1) pip install -U openai-whisper   # 命令：whisper',
     '  2) 安装 whisper.cpp 并保证 whisper-cli 在 PATH',
-    '请在「设置 → 模型参数」填写 Whisper 可执行文件路径，',
+    '请在「插件 → 语音转写 → 本地 Whisper」填写可执行文件路径，',
     '或保证 whisper / whisper-cli 在系统 PATH 中。',
-    '模型名写在「转写模型」：openai-whisper 用 tiny/base/small/medium/large；',
+    '模型名写在插件「默认模型」：openai-whisper 用 tiny/base/small/medium/large；',
     'whisper.cpp 建议填 ggml 模型文件绝对路径。',
   ].join('\n');
 }
@@ -279,14 +302,20 @@ export const localWhisperAsrProvider: AsrProvider = {
     }
     return true;
   },
-  async transcribe(input: AsrTranscribeInput): Promise<AsrTranscribeResult> {
-    const resolved = await resolveWhisperBinary();
+  async transcribe(
+    input: AsrTranscribeInput,
+    ctx?: AsrPluginContext,
+  ): Promise<AsrTranscribeResult> {
+    const resolved = await resolveWhisperBinary(ctx);
     if (!resolved) {
       throw new Error(installHint());
     }
 
-    const model = (input.model?.trim() || getAsrModel() || 'base').trim();
-    const language = configuredLang(input.language);
+    const pluginModel =
+      String(ctx?.getConfig?.('model') ?? '').trim() ||
+      pluginWhisperConfig().model;
+    const model = (input.model?.trim() || pluginModel || 'base').trim();
+    const language = configuredLang(input.language, ctx);
     await ensureDir(path.dirname(input.audioPath));
 
     let text: string;

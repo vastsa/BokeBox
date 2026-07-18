@@ -2,11 +2,19 @@ import {
   getDefaultTtsVoice,
   getTtsModel,
   getVoiceDesignModel,
-  hasApiKey,
-  aiFetch,
 } from '../../utils/aiConfig.js';
 import type { TtsMode, TtsOptions } from '../../types/job.js';
-import type { TtsProvider, TtsChunkInput, TtsChunkResult } from './types.js';
+import {
+  isCloudEndpointReady,
+  pluginFetch,
+  resolveCloudEndpoint,
+} from '../pluginEndpoint.js';
+import type {
+  TtsChunkInput,
+  TtsChunkResult,
+  TtsPluginContext,
+  TtsProvider,
+} from './types.js';
 
 /**
  * mimo-v2.5-tts 预置精品音色
@@ -153,7 +161,7 @@ function buildMimoTtsBody(
   const voice = resolveMimoPresetVoice(tts?.voice);
 
   return {
-    model: opts?.model?.trim() || getTtsModel(),
+    model: opts?.model?.trim() || 'mimo-v2.5-tts',
     messages: [{ role: 'assistant', content: assistantText }],
     audio: {
       format: 'wav' as const,
@@ -195,16 +203,26 @@ export const mimoTtsProvider: TtsProvider = {
     },
   },
   isAvailable() {
-    return hasApiKey('tts');
+    return isCloudEndpointReady('tts', 'mimo');
   },
-  async synthesizeChunk(input: TtsChunkInput): Promise<TtsChunkResult> {
+  async synthesizeChunk(
+    input: TtsChunkInput,
+    ctx?: TtsPluginContext,
+  ): Promise<TtsChunkResult> {
+    const ep = resolveCloudEndpoint('tts', 'mimo');
+    const pluginModel =
+      String(ctx?.getConfig?.('model') ?? '').trim() ||
+      ep.model ||
+      getTtsModel();
     const built = buildMimoTtsBody(input.text, input.tts, {
       applyLeadingStyle: input.applyLeadingStyle,
-      model: input.model,
+      model: input.model?.trim() || pluginModel || undefined,
       voiceDesignModel: input.voiceDesignModel,
     });
 
-    const res = await aiFetch(
+    const res = await pluginFetch(
+      'tts',
+      'mimo',
       '/chat/completions',
       {
         method: 'POST',
@@ -214,7 +232,6 @@ export const mimoTtsProvider: TtsProvider = {
           audio: built.audio,
         }),
       },
-      'tts',
     );
 
     if (!res.ok) {
