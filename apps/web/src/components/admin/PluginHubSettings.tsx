@@ -556,7 +556,7 @@ export function PluginHubSettings({
           <textarea
             id={id}
             className="plugin-config-control plugin-config-textarea"
-            rows={4}
+            rows={3}
             value={value}
             placeholder={field.placeholder}
             disabled={disabled}

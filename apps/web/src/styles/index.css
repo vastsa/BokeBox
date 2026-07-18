@@ -11386,13 +11386,13 @@ html[data-theme="dark"] .admin-search input,
   color: #9a3412;
 }
 
-/* 插件参数面板（Source / ASR / TTS 共用） */
+/* 插件参数面板（Source / ASR / TTS 共用 · 紧凑密度） */
 .source-plugin-config-panel,
 .plugin-config-panel {
-  margin: 0 var(--space-4) var(--space-4);
-  padding: var(--space-3_5);
+  margin: 0 var(--space-3) var(--space-3);
+  padding: 10px;
   border: 1px solid color-mix(in oklab, var(--border, var(--separator)) 88%, transparent);
-  border-radius: calc(var(--radius-lg) + 2px);
+  border-radius: var(--radius-lg);
   background:
     linear-gradient(
       180deg,
@@ -11406,23 +11406,23 @@ html[data-theme="dark"] .admin-search input,
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-1) var(--space-2);
   flex-wrap: wrap;
-  margin-bottom: var(--space-3);
-  padding-bottom: var(--space-2_5);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 1px dashed color-mix(in srgb, var(--separator) 85%, transparent);
 }
 
 .plugin-config-panel-head strong {
-  font-size: var(--fs-sm-plus);
+  font-size: 12.5px;
   font-weight: var(--fw-semibold);
   color: var(--text);
   letter-spacing: var(--tracking-snug);
 }
 
 .plugin-config-panel-head span {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.35;
   color: var(--text-3);
 }
 
@@ -11430,17 +11430,17 @@ html[data-theme="dark"] .admin-search input,
 .source-plugin-config-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 16px;
+  gap: 8px 10px;
 }
 
 .plugin-config-field,
 .source-config-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
-  padding: 12px;
-  border-radius: var(--radius-md);
+  padding: 8px 9px;
+  border-radius: var(--radius-sm-plus, 8px);
   border: 1px solid color-mix(in srgb, var(--separator) 90%, transparent);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -11448,7 +11448,7 @@ html[data-theme="dark"] .admin-search input,
 
 .plugin-config-field:focus-within {
   border-color: color-mix(in srgb, var(--brand) 42%, var(--separator));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 12%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 12%, transparent);
 }
 
 .plugin-config-field.is-span-full {
@@ -11468,14 +11468,14 @@ html[data-theme="dark"] .admin-search input,
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
 }
 
 .plugin-config-label-wrap {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 1px;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -11484,10 +11484,10 @@ html[data-theme="dark"] .admin-search input,
 .source-config-label {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
+  gap: 3px;
+  font-size: 12px;
   font-weight: 650;
-  line-height: 1.35;
+  line-height: 1.3;
   color: var(--text);
 }
 
@@ -11499,8 +11499,8 @@ html[data-theme="dark"] .admin-search input,
 
 .plugin-config-desc,
 .source-config-desc {
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.35;
   color: var(--text-3);
 }
 
@@ -11510,11 +11510,11 @@ html[data-theme="dark"] .admin-search input,
   display: inline-flex;
   align-items: center;
   max-width: 46%;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 1.45;
+  line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -11535,14 +11535,16 @@ html[data-theme="dark"] .admin-search input,
 .source-config-field .nl-input {
   width: 100%;
   min-width: 0;
-  min-height: 40px;
-  border-radius: 10px;
+  min-height: 32px;
+  height: 32px;
+  border-radius: 7px;
   border: 1px solid color-mix(in srgb, var(--separator-strong, var(--separator)) 92%, transparent);
   background: var(--surface);
   color: var(--text);
-  padding: 0 12px;
+  padding: 0 10px;
   font: inherit;
-  font-size: 13.5px;
+  font-size: 13px;
+  line-height: 1.3;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -11556,7 +11558,7 @@ html[data-theme="dark"] .admin-search input,
 .plugin-config-control:focus,
 .plugin-config-field .nl-input:focus {
   border-color: color-mix(in srgb, var(--brand) 55%, var(--separator));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 14%, transparent);
 }
 
 .plugin-config-control:disabled,
@@ -11573,21 +11575,22 @@ select.plugin-config-control {
     linear-gradient(45deg, transparent 50%, var(--text-3) 50%),
     linear-gradient(135deg, var(--text-3) 50%, transparent 50%);
   background-position:
-    calc(100% - 16px) calc(50% - 2px),
-    calc(100% - 11px) calc(50% - 2px);
+    calc(100% - 14px) calc(50% - 2px),
+    calc(100% - 9px) calc(50% - 2px);
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  padding-right: 28px;
+  padding-right: 24px;
 }
 
 .plugin-config-textarea,
 .source-config-textarea {
-  min-height: 104px;
+  height: auto;
+  min-height: 76px;
   resize: vertical;
-  padding: 10px 12px;
+  padding: 7px 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12.5px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -11596,14 +11599,14 @@ select.plugin-config-control {
 .source-config-check {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: fit-content;
-  min-height: 36px;
-  padding: 4px 10px 4px 4px;
+  min-height: 28px;
+  padding: 2px 8px 2px 3px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--separator) 90%, transparent);
   background: color-mix(in srgb, var(--surface-2) 45%, var(--surface));
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-2);
   cursor: pointer;
@@ -11618,8 +11621,8 @@ select.plugin-config-control {
 
 .plugin-config-toggle > i {
   position: relative;
-  width: 40px;
-  height: 24px;
+  width: 34px;
+  height: 20px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--text) 16%, var(--surface-2));
   transition: background 0.15s ease;
@@ -11629,10 +11632,10 @@ select.plugin-config-control {
 .plugin-config-toggle > i::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--surface);
   box-shadow: 0 1px 2px rgb(0 0 0 / 16%);
@@ -11648,7 +11651,7 @@ select.plugin-config-control {
 }
 
 .plugin-config-toggle:has(input:checked) > i::after {
-  transform: translateX(16px);
+  transform: translateX(14px);
   background: var(--text-inv, #fff);
 }
 
@@ -11662,10 +11665,17 @@ select.plugin-config-control {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 10px;
-  margin-top: 14px;
-  padding-top: 12px;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid color-mix(in srgb, var(--separator) 85%, transparent);
+}
+
+.plugin-config-actions .nl-btn {
+  min-height: 32px;
+  height: 32px;
+  padding-inline: 12px;
+  font-size: 12.5px;
 }
 
 /* 兼容旧 class */
@@ -11696,14 +11706,14 @@ html[data-theme="dark"] .plugin-config-req {
 @media (max-width: 720px) {
   .source-plugin-config-panel,
   .plugin-config-panel {
-    margin-inline: var(--space-3);
-    padding: var(--space-3);
+    margin-inline: var(--space-2_5, 10px);
+    padding: 8px;
   }
 
   .plugin-config-grid,
   .source-plugin-config-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 8px;
   }
 
   .plugin-config-field.is-span-half,
