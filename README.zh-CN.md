@@ -140,6 +140,22 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 ---
 
+## ⚙️ 设置中心
+
+在一个设置中心里统一管理音色、人设、提示词模板、MCP 接入与站点信息。
+
+| 音色 | 人设 |
+| :---: | :---: |
+| <img src="docs/img/settings-voice.webp" alt="BokeBox 音色设置" /> | <img src="docs/img/settings-persona.webp" alt="BokeBox 人设设置" /> |
+| MCP | 提示词模板 |
+| <img src="docs/img/settings-mcp.webp" alt="BokeBox MCP 设置" /> | <img src="docs/img/settings-prompts.webp" alt="BokeBox 提示词模板设置" /> |
+
+<p align="center">
+  <img src="docs/img/settings-site.webp" alt="BokeBox 站点设置" width="78%" />
+</p>
+
+---
+
 ## 🪄 使用体感
 
 1. **丢进去**  

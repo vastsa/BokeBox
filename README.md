@@ -140,6 +140,22 @@ You get:
 
 ---
 
+## ⚙️ Settings at a glance
+
+Tune the voice, persona, prompt templates, MCP access, and public site details from one settings center.
+
+| Voice | Persona |
+| :---: | :---: |
+| <img src="docs/img/settings-voice.webp" alt="BokeBox voice settings" /> | <img src="docs/img/settings-persona.webp" alt="BokeBox persona settings" /> |
+| MCP | Prompt templates |
+| <img src="docs/img/settings-mcp.webp" alt="BokeBox MCP settings" /> | <img src="docs/img/settings-prompts.webp" alt="BokeBox prompt template settings" /> |
+
+<p align="center">
+  <img src="docs/img/settings-site.webp" alt="BokeBox site settings" width="78%" />
+</p>
+
+---
+
 ## 🪄 How it feels
 
 1. **Drop it in**  
