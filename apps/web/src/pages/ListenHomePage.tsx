@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Masonry } from 'react-plock';
 import {
   albumCoverUrl,
@@ -119,8 +119,11 @@ export function ListenHomePage({ route }: { route: Route }) {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [facets, setFacets] = useState<LibraryListFacets>(EMPTY_LIB_FACETS);
+  const criteriaRef = useRef({ filter, query: debouncedQuery });
+  const refreshIdRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const refreshId = ++refreshIdRef.current;
     try {
       const authed = Boolean(getToken());
       if (!authed) {
@@ -134,6 +137,7 @@ export function ListenHomePage({ route }: { route: Route }) {
           }),
           fetchListenAlbums({ page: 1, pageSize: 12 }).catch(() => null),
         ]);
+        if (refreshId !== refreshIdRef.current) return;
         setLibrary(
           libRes.items.map((it) => ({
             ...it,
@@ -156,10 +160,21 @@ export function ListenHomePage({ route }: { route: Route }) {
           q: debouncedQuery,
           filter: filter as LibraryListFilter,
         }),
-        fetchJobs({ page: 1, pageSize: 50, filter: 'active' }).catch(() => null),
-        fetchJobs({ page: 1, pageSize: 20, filter: 'failed' }).catch(() => null),
+        fetchJobs({
+          page: 1,
+          pageSize: 50,
+          filter: 'active',
+          includeFacets: false,
+        }).catch(() => null),
+        fetchJobs({
+          page: 1,
+          pageSize: 20,
+          filter: 'failed',
+          includeFacets: false,
+        }).catch(() => null),
         fetchListenAlbums({ page: 1, pageSize: 12 }).catch(() => null),
       ]);
+      if (refreshId !== refreshIdRef.current) return;
       setAlbums(alRes?.albums || []);
       setLibrary(
         libRes.items.map((it) => ({
@@ -185,27 +200,76 @@ export function ListenHomePage({ route }: { route: Route }) {
       );
       setError(null);
     } catch (e) {
+      if (refreshId !== refreshIdRef.current) return;
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (refreshId === refreshIdRef.current) setLoading(false);
     }
   }, [page, debouncedQuery, filter]);
 
   useEffect(() => {
+    const previous = criteriaRef.current;
+    const criteriaChanged =
+      previous.filter !== filter || previous.query !== debouncedQuery;
+    criteriaRef.current = { filter, query: debouncedQuery };
+
+    // 翻页后切换筛选或搜索时，直接等待第 1 页请求，避免先请求一次旧页。
+    if (criteriaChanged && page !== 1) {
+      setPage(1);
+      return;
+    }
     setLoading(true);
     void refresh();
-  }, [refresh]);
+    return () => {
+      // 使上一页、旧筛选条件或 StrictMode 首轮请求失效。
+      refreshIdRef.current += 1;
+    };
+  }, [debouncedQuery, filter, page, refresh]);
 
+  // 有进行中任务时只轮询活跃任务，避免每 2 秒重复刷新曲库、失败任务与专辑。
   useEffect(() => {
-    setPage(1);
-  }, [filter, debouncedQuery]);
+    const previousActive = jobs.filter((j) => ACTIVE.includes(j.status));
+    if (previousActive.length === 0) return;
 
-  // 有进行中任务时轮询
-  useEffect(() => {
-    const active = jobs.some((j) => ACTIVE.includes(j.status));
-    if (!active) return;
-    const timer = window.setInterval(() => void refresh(), 2000);
-    return () => window.clearInterval(timer);
+    let polling = false;
+    let cancelled = false;
+    const pollActiveJobs = async () => {
+      if (polling) return;
+      polling = true;
+      try {
+        const result = await fetchJobs({
+          page: 1,
+          pageSize: 50,
+          filter: 'active',
+          includeFacets: false,
+        });
+        if (cancelled) return;
+        const nextActive = result.jobs || [];
+        const nextIds = new Set(nextActive.map((job) => job.id));
+        const hasFinished = previousActive.some((job) => !nextIds.has(job.id));
+
+        if (hasFinished) {
+          // 完成或失败会影响曲库/失败列表，只在状态跃迁时完整刷新一次。
+          await refresh();
+          return;
+        }
+
+        setJobs((current) => [
+          ...nextActive,
+          ...current.filter((job) => job.status === 'failed'),
+        ]);
+      } catch {
+        // 短暂网络错误交给下一轮轮询恢复，首页现有内容保持不变。
+      } finally {
+        polling = false;
+      }
+    };
+
+    const timer = window.setInterval(() => void pollActiveJobs(), 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, [jobs, refresh]);
 
   const pipelineJobs = useMemo(

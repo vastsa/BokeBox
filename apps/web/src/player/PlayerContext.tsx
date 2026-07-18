@@ -97,7 +97,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setTrack(next);
   }, []);
 
-  // 启动时恢复上次曲目，小播放器默认展开（不自动播放，避免浏览器拦截）
+  // 启动时只恢复播放器 UI；等用户点击播放后再加载音频，避免首页产生 Range 请求。
   const restoredRef = useRef(false);
   useEffect(() => {
     if (restoredRef.current) return;
@@ -128,10 +128,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (resume > 0) pendingSeek.current = resume;
     setCurrent(resume > 0 ? resume : 0);
     setDuration(last.durationSec > 0 ? last.durationSec : 0);
-    audio.src = last.src;
-    audio.load();
     audio.playbackRate = rate;
   }, [setTrackBoth, rate]);
+
+  const ensureCurrentAudio = useCallback(() => {
+    const audio = audioRef.current;
+    const currentTrack = trackRef.current;
+    if (!audio || !currentTrack) return null;
+    if (audio.getAttribute('src') !== currentTrack.src) {
+      audio.src = currentTrack.src;
+      audio.load();
+    }
+    audio.playbackRate = rate;
+    return audio;
+  }, [rate]);
 
   const flushProgress = useCallback(
     (extra?: { completed?: boolean; incrementPlay?: boolean }) => {
@@ -205,6 +215,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
         pendingSeek.current = null;
       }
+      const t = trackRef.current;
+      if (
+        pendingSeek.current == null &&
+        !audio.paused &&
+        t &&
+        playCountedId.current !== t.id
+      ) {
+        playCountedId.current = t.id;
+        flushProgress({ incrementPlay: true });
+      }
     };
     const onTime = () => {
       setCurrent(audio.currentTime);
@@ -214,7 +234,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onPlay = () => {
       setPlaying(true);
       const t = trackRef.current;
-      if (t && playCountedId.current !== t.id) {
+      if (t && pendingSeek.current == null && playCountedId.current !== t.id) {
         playCountedId.current = t.id;
         flushProgress({ incrementPlay: true });
       }
@@ -274,6 +294,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
 
       const same = trackRef.current?.id === next.id && trackRef.current?.src === next.src;
+      const sourceLoaded = audio.getAttribute('src') === next.src;
       setTrackBoth(next);
       setVisible(true);
 
@@ -283,7 +304,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       if (seek != null) pendingSeek.current = seek;
 
-      if (!same) {
+      if (!same || !sourceLoaded) {
         setCurrent(seek && seek > 0 ? seek : 0);
         setDuration(0);
         audio.src = next.src;
@@ -325,21 +346,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   const play = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio || !trackRef.current) return;
+    const audio = ensureCurrentAudio();
+    if (!audio) return;
     void audio.play().catch(() => setPlaying(false));
-  }, []);
+  }, [ensureCurrentAudio]);
 
   const pause = useCallback(() => {
     audioRef.current?.pause();
   }, []);
 
   const toggle = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio || !trackRef.current) return;
+    const audio = ensureCurrentAudio();
+    if (!audio) return;
     if (audio.paused) void audio.play().catch(() => setPlaying(false));
     else audio.pause();
-  }, []);
+  }, [ensureCurrentAudio]);
 
   const stop = useCallback(() => {
     // 关闭小播放器：落盘并收起，但保留本地进度与 last-track，下次进入仍默认打开
@@ -356,9 +377,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const seekTo = useCallback(
     (sec: number) => {
       const audio = audioRef.current;
-      if (!audio) return;
+      const activeTrack = trackRef.current;
+      if (!audio || !activeTrack) return;
       const max = safeDuration(audio) || duration;
       const next = Math.max(0, max > 0 ? Math.min(max, sec) : Math.max(0, sec));
+      if (audio.getAttribute('src') !== activeTrack.src) {
+        pendingSeek.current = next;
+        setCurrent(next);
+        return;
+      }
       try {
         audio.currentTime = next;
         setCurrent(next);
@@ -374,10 +401,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const seekBy = useCallback(
     (delta: number) => {
       const audio = audioRef.current;
-      if (!audio) return;
-      seekTo(audio.currentTime + delta);
+      const activeTrack = trackRef.current;
+      if (!audio || !activeTrack) return;
+      const base =
+        audio.getAttribute('src') === activeTrack.src ? audio.currentTime : current;
+      seekTo(base + delta);
     },
-    [seekTo],
+    [current, seekTo],
   );
 
   const setRate = useCallback((next: number) => {
@@ -425,7 +455,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   return (
     <PlayerContext.Provider value={value}>
-      <audio ref={audioRef} preload="metadata" playsInline className="hidden" />
+      <audio ref={audioRef} preload="none" playsInline className="hidden" />
       {children}
     </PlayerContext.Provider>
   );

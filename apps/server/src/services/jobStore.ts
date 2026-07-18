@@ -159,6 +159,7 @@ export async function listJobsPage(opts: {
   offset: number;
   q?: string;
   filter?: JobListFilter;
+  includeFacets?: boolean;
 }): Promise<PageResult<Job> & { facets: JobListFacets }> {
   const search = jobSearchClause(opts.q || '');
   const filterSql = jobFilterClause(opts.filter);
@@ -176,18 +177,20 @@ export async function listJobsPage(opts: {
     .all(...params, opts.pageSize, opts.offset) as JobRow[];
 
   const facets = emptyFacets();
-  // facet 只受搜索影响，不受当前 filter tab 影响
-  const facetBase = search.sql;
-  const facetParams = [...search.params];
-  facets.all = countJobs(facetBase, facetParams);
-  facets.active = countJobs(
-    `${facetBase} AND status IN (${ACTIVE_STATUS_SQL})`,
-    facetParams,
-  );
-  facets.published = countJobs(`${facetBase} AND published = 1`, facetParams);
-  facets.draft = countJobs(`${facetBase} AND published = 0`, facetParams);
-  facets.failed = countJobs(`${facetBase} AND status = 'failed'`, facetParams);
-  facets.done = countJobs(`${facetBase} AND status = 'done'`, facetParams);
+  if (opts.includeFacets !== false) {
+    // facet 只受搜索影响，不受当前 filter tab 影响
+    const facetBase = search.sql;
+    const facetParams = [...search.params];
+    facets.all = countJobs(facetBase, facetParams);
+    facets.active = countJobs(
+      `${facetBase} AND status IN (${ACTIVE_STATUS_SQL})`,
+      facetParams,
+    );
+    facets.published = countJobs(`${facetBase} AND published = 1`, facetParams);
+    facets.draft = countJobs(`${facetBase} AND published = 0`, facetParams);
+    facets.failed = countJobs(`${facetBase} AND status = 'failed'`, facetParams);
+    facets.done = countJobs(`${facetBase} AND status = 'done'`, facetParams);
+  }
 
   return {
     ...pageResult(rows.map(rowToJob), total, opts.page, opts.pageSize),

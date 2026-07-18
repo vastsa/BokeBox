@@ -490,6 +490,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       pageSize?: string;
       q?: string;
       filter?: string;
+      includeFacets?: string;
     };
   }>('/jobs', async (req) => {
     const page = parsePageQuery(req.query, { pageSize: 20 });
@@ -510,6 +511,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       ...page,
       q,
       filter,
+      includeFacets: req.query.includeFacets !== 'false',
     });
     return {
       jobs: result.items.map(toPublic),
