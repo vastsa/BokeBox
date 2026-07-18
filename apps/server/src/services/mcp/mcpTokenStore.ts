@@ -1,5 +1,5 @@
-import { getDb } from '../../db/sqlite.js';
 import { getAuthAccount } from '../settings/index.js';
+import { getSettingRaw, setSettingRaw } from '../settings/kv.js';
 
 const KEY_MCP_TOKEN = 'mcp_token';
 
@@ -10,26 +10,6 @@ export type McpTokenRecord = {
   updatedAt: string;
   lastUsedAt?: string;
 };
-
-function getSettingRaw(key: string): string | null {
-  const row = getDb()
-    .prepare('SELECT value FROM app_settings WHERE key = ?')
-    .get(key) as { value: string } | undefined;
-  return row?.value ?? null;
-}
-
-function setSettingRaw(key: string, value: string): void {
-  const now = new Date().toISOString();
-  getDb()
-    .prepare(
-      `INSERT INTO app_settings (key, value, updated_at)
-       VALUES (@key, @value, @updated_at)
-       ON CONFLICT(key) DO UPDATE SET
-         value = excluded.value,
-         updated_at = excluded.updated_at`,
-    )
-    .run({ key, value, updated_at: now });
-}
 
 function parseRecord(raw: string | null): McpTokenRecord | null {
   if (!raw) return null;

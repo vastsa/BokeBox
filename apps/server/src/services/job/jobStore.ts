@@ -6,12 +6,20 @@ import {
   type JobRow,
 } from '../../db/sqlite.js';
 import type { Job, JobPublic, PodcastContent } from '../../types/job.js';
+import { getCache } from '../../utils/memoryCache.js';
 import {
   likePattern,
   pageResult,
   type PageResult,
 } from '../../utils/pagination.js';
+import { invalidateListenCache } from './listenStore.js';
 import { readScriptTiming } from './scriptTiming.js';
+
+/** 任务实体缓存：按 id 逐条管理，写路径同步回填/失效 */
+const jobCache = getCache<Job>('jobs', {
+  maxSize: 1000,
+  cacheMissing: true,
+});
 
 function truncateListText(text: string, max = 160): string {
   const s = text.trim();
@@ -460,10 +468,13 @@ export async function listLibraryPage(opts: {
 }
 
 export async function getJob(id: string): Promise<Job | undefined> {
-  const row = getDb()
-    .prepare('SELECT * FROM jobs WHERE id = ?')
-    .get(id) as JobRow | undefined;
-  return row ? rowToJob(row) : undefined;
+  if (!id) return undefined;
+  return jobCache.getOrLoad(id, () => {
+    const row = getDb()
+      .prepare('SELECT * FROM jobs WHERE id = ?')
+      .get(id) as JobRow | undefined;
+    return row ? rowToJob(row) : undefined;
+  });
 }
 
 /** 批量读取任务，供专辑等聚合列表避免逐条查询。 */
@@ -471,16 +482,33 @@ export function getJobsByIds(ids: string[]): Map<string, Job> {
   const uniqueIds = [...new Set(ids.filter(Boolean))];
   if (uniqueIds.length === 0) return new Map();
   const jobs = new Map<string, Job>();
-  // 留出 SQLite 绑定参数余量，大列表按块读取。
-  for (let offset = 0; offset < uniqueIds.length; offset += 400) {
-    const chunk = uniqueIds.slice(offset, offset + 400);
+  const missing: string[] = [];
+
+  for (const id of uniqueIds) {
+    const cached = jobCache.get(id);
+    if (cached.hit) {
+      if (cached.value) jobs.set(id, cached.value);
+      continue;
+    }
+    missing.push(id);
+  }
+
+  // 仅回源未命中 id；命中缺失占位的不再查库
+  for (let offset = 0; offset < missing.length; offset += 400) {
+    const chunk = missing.slice(offset, offset + 400);
     const placeholders = chunk.map(() => '?').join(',');
     const rows = getDb()
       .prepare(`SELECT * FROM jobs WHERE id IN (${placeholders})`)
       .all(...chunk) as JobRow[];
+    const found = new Set<string>();
     for (const row of rows) {
       const job = rowToJob(row);
       jobs.set(job.id, job);
+      jobCache.set(job.id, job);
+      found.add(job.id);
+    }
+    for (const id of chunk) {
+      if (!found.has(id)) jobCache.set(id, undefined);
     }
   }
   return jobs;
@@ -503,6 +531,7 @@ export async function createJob(job: Job): Promise<Job> {
       )`,
     )
     .run(jobToRow(next));
+  jobCache.set(next.id, next);
   return next;
 }
 
@@ -549,6 +578,7 @@ export async function updateJob(
     )
     .run(jobToRow(next));
 
+  jobCache.set(next.id, next);
   return next;
 }
 
@@ -564,5 +594,17 @@ export async function deleteJob(id: string): Promise<Job | undefined> {
     getDb().exec('ROLLBACK');
     throw e;
   }
+  // 任务与关联听播记录一并失效
+  jobCache.set(id, undefined);
+  invalidateListenCache(id);
   return prev;
+}
+
+/** 主动失效任务缓存（旁路写入 / 测试） */
+export function invalidateJobCache(id?: string): void {
+  if (id) {
+    jobCache.delete(id);
+    return;
+  }
+  jobCache.clear();
 }

@@ -5,7 +5,14 @@ import {
   type ListenRow,
 } from '../../db/sqlite.js';
 import type { ListenRecord } from '../../types/job.js';
+import { getCache } from '../../utils/memoryCache.js';
 import { pageResult, type PageResult } from '../../utils/pagination.js';
+
+/** 听播进度缓存：按 jobId 逐条管理 */
+const listenCache = getCache<ListenRecord>('listens', {
+  maxSize: 1000,
+  cacheMissing: true,
+});
 
 export async function listListenRecords(): Promise<ListenRecord[]> {
   const rows = getDb()
@@ -13,7 +20,10 @@ export async function listListenRecords(): Promise<ListenRecord[]> {
       'SELECT * FROM listen_records ORDER BY last_listened_at DESC',
     )
     .all() as ListenRow[];
-  return rows.map(rowToListen);
+  const records = rows.map(rowToListen);
+  // 全量列表顺便回填实体缓存
+  for (const rec of records) listenCache.set(rec.jobId, rec);
+  return records;
 }
 
 /** 按 jobId 批量读取收听记录 */
@@ -22,15 +32,39 @@ export async function listListenRecordsByJobIds(
 ): Promise<Map<string, ListenRecord>> {
   const map = new Map<string, ListenRecord>();
   if (!jobIds.length) return map;
-  const placeholders = jobIds.map(() => '?').join(',');
-  const rows = getDb()
-    .prepare(
-      `SELECT * FROM listen_records
-       WHERE job_id IN (${placeholders})`,
-    )
-    .all(...jobIds) as ListenRow[];
-  for (const row of rows) {
-    map.set(row.job_id, rowToListen(row));
+  const uniqueIds = [...new Set(jobIds.filter(Boolean))];
+  const missing: string[] = [];
+
+  for (const id of uniqueIds) {
+    const cached = listenCache.get(id);
+    if (cached.hit) {
+      if (cached.value) map.set(id, cached.value);
+      continue;
+    }
+    missing.push(id);
+  }
+
+  if (!missing.length) return map;
+
+  for (let offset = 0; offset < missing.length; offset += 400) {
+    const chunk = missing.slice(offset, offset + 400);
+    const placeholders = chunk.map(() => '?').join(',');
+    const rows = getDb()
+      .prepare(
+        `SELECT * FROM listen_records
+         WHERE job_id IN (${placeholders})`,
+      )
+      .all(...chunk) as ListenRow[];
+    const found = new Set<string>();
+    for (const row of rows) {
+      const rec = rowToListen(row);
+      map.set(rec.jobId, rec);
+      listenCache.set(rec.jobId, rec);
+      found.add(rec.jobId);
+    }
+    for (const id of chunk) {
+      if (!found.has(id)) listenCache.set(id, undefined);
+    }
   }
   return map;
 }
@@ -62,21 +96,22 @@ export async function listListenHistoryPage(opts: {
     )
     .all(opts.pageSize, opts.offset) as ListenRow[];
 
-  return pageResult(
-    rows.map(rowToListen),
-    total,
-    opts.page,
-    opts.pageSize,
-  );
+  const records = rows.map(rowToListen);
+  for (const rec of records) listenCache.set(rec.jobId, rec);
+
+  return pageResult(records, total, opts.page, opts.pageSize);
 }
 
 export async function getListenRecord(
   jobId: string,
 ): Promise<ListenRecord | undefined> {
-  const row = getDb()
-    .prepare('SELECT * FROM listen_records WHERE job_id = ?')
-    .get(jobId) as ListenRow | undefined;
-  return row ? rowToListen(row) : undefined;
+  if (!jobId) return undefined;
+  return listenCache.getOrLoad(jobId, () => {
+    const row = getDb()
+      .prepare('SELECT * FROM listen_records WHERE job_id = ?')
+      .get(jobId) as ListenRow | undefined;
+    return row ? rowToListen(row) : undefined;
+  });
 }
 
 export async function upsertListenProgress(input: {
@@ -125,9 +160,20 @@ export async function upsertListenProgress(input: {
     )
     .run(listenToRow(next));
 
+  listenCache.set(next.jobId, next);
   return next;
 }
 
 export async function deleteListenRecord(jobId: string): Promise<void> {
   getDb().prepare('DELETE FROM listen_records WHERE job_id = ?').run(jobId);
+  listenCache.set(jobId, undefined);
+}
+
+/** 主动失效听播缓存 */
+export function invalidateListenCache(jobId?: string): void {
+  if (jobId) {
+    listenCache.delete(jobId);
+    return;
+  }
+  listenCache.clear();
 }

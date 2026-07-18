@@ -1,7 +1,9 @@
 /**
  * settings KV 读写（SQLite app_settings）
+ * 读路径走命名内存缓存，写路径同步更新/失效，避免热点配置反复查库。
  */
 import { getDb } from '../../db/sqlite.js';
+import { getCache } from '../../utils/memoryCache.js';
 
 export const KEY_SCRIPT_PROMPT = 'script_prompt';
 export const KEY_COVER_PROMPT = 'cover_prompt';
@@ -17,11 +19,21 @@ export const KEY_GUEST_HOME_PUBLIC = 'guest_home_public';
 export const KEY_SITE_NAME = 'site_name';
 export const KEY_SITE_SEO = 'site_seo';
 
+/** settings 键值缓存：缺失也缓存，配置 key 集合稳定 */
+const settingsCache = getCache<string | null>('settings', {
+  maxSize: 256,
+  cacheMissing: true,
+});
+
 export function getSettingRaw(key: string): string | null {
-  const row = getDb()
-    .prepare('SELECT value FROM app_settings WHERE key = ?')
-    .get(key) as { value: string } | undefined;
-  return row?.value ?? null;
+  return (
+    settingsCache.getOrLoad(key, () => {
+      const row = getDb()
+        .prepare('SELECT value FROM app_settings WHERE key = ?')
+        .get(key) as { value: string } | undefined;
+      return row?.value ?? null;
+    }) ?? null
+  );
 }
 
 export function setSettingRaw(key: string, value: string): void {
@@ -35,10 +47,13 @@ export function setSettingRaw(key: string, value: string): void {
          updated_at = excluded.updated_at`,
     )
     .run({ key, value, updated_at: now });
+  // 写后立即回填，保证同进程后续读一致
+  settingsCache.set(key, value);
 }
 
 export function deleteSetting(key: string): void {
   getDb().prepare('DELETE FROM app_settings WHERE key = ?').run(key);
+  settingsCache.set(key, null);
 }
 
 export function parseJson<T>(raw: string | null): T | null {
@@ -50,3 +65,11 @@ export function parseJson<T>(raw: string | null): T | null {
   }
 }
 
+/** 主动失效单个 settings key（外部旁路写入时用） */
+export function invalidateSettingCache(key?: string): void {
+  if (key) {
+    settingsCache.delete(key);
+    return;
+  }
+  settingsCache.clear();
+}

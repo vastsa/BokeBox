@@ -1,8 +1,10 @@
 /**
  * 插件启用状态与配置的 app_settings 持久化
  * 按 namespace 隔离：source / asr / tts
+ * 与 settings/kv 共用 settings 命名缓存，避免旁路读写打穿缓存。
  */
 import { getDb } from '../db/sqlite.js';
+import { getCache } from '../utils/memoryCache.js';
 
 export type PluginEnabledMap = Record<string, boolean>;
 export type PluginConfigStore = Record<
@@ -10,11 +12,20 @@ export type PluginConfigStore = Record<
   Record<string, string | number | boolean>
 >;
 
+const settingsCache = getCache<string | null>('settings', {
+  maxSize: 256,
+  cacheMissing: true,
+});
+
 function getSettingRaw(key: string): string | null {
-  const row = getDb()
-    .prepare('SELECT value FROM app_settings WHERE key = ?')
-    .get(key) as { value: string } | undefined;
-  return row?.value ?? null;
+  return (
+    settingsCache.getOrLoad(key, () => {
+      const row = getDb()
+        .prepare('SELECT value FROM app_settings WHERE key = ?')
+        .get(key) as { value: string } | undefined;
+      return row?.value ?? null;
+    }) ?? null
+  );
 }
 
 function setSettingRaw(key: string, value: string): void {
@@ -28,6 +39,7 @@ function setSettingRaw(key: string, value: string): void {
          updated_at = excluded.updated_at`,
     )
     .run({ key, value, updated_at: now });
+  settingsCache.set(key, value);
 }
 
 function enabledKey(namespace: string): string {

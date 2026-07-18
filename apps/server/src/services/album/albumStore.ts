@@ -15,6 +15,7 @@ import {
   toGuestListPublic,
   toListPublic,
 } from '../job/jobStore.js';
+import { getCache } from '../../utils/memoryCache.js';
 import {
   likePattern,
   pageResult,
@@ -72,34 +73,79 @@ export function rowToAlbumItem(row: AlbumItemRow): AlbumItem {
   };
 }
 
+/** 专辑实体缓存：按 id 逐条管理 */
+const albumCache = getCache<Album>('albums', {
+  maxSize: 500,
+  cacheMissing: true,
+});
+
+/** 专辑条目缓存：key = albumId */
+const albumItemsCache = getCache<AlbumItemRow[]>('album-items', {
+  maxSize: 500,
+});
+
 function listItemRows(albumId: string): AlbumItemRow[] {
-  return getDb()
-    .prepare(
-      `SELECT * FROM album_items
-       WHERE album_id = ?
-       ORDER BY position ASC, job_id ASC`,
-    )
-    .all(albumId) as AlbumItemRow[];
+  return (
+    albumItemsCache.getOrLoad(albumId, () => {
+      return getDb()
+        .prepare(
+          `SELECT * FROM album_items
+           WHERE album_id = ?
+           ORDER BY position ASC, job_id ASC`,
+        )
+        .all(albumId) as AlbumItemRow[];
+    }) || []
+  );
 }
 
 function listItemRowsMany(albumIds: string[]): Map<string, AlbumItemRow[]> {
   const map = new Map<string, AlbumItemRow[]>();
   if (!albumIds.length) return map;
-  for (const id of albumIds) map.set(id, []);
-  const placeholders = albumIds.map(() => '?').join(',');
+  const uniqueIds = [...new Set(albumIds.filter(Boolean))];
+  const missing: string[] = [];
+
+  for (const id of uniqueIds) {
+    const cached = albumItemsCache.get(id);
+    if (cached.hit) {
+      map.set(id, cached.value || []);
+      continue;
+    }
+    missing.push(id);
+    map.set(id, []);
+  }
+
+  if (!missing.length) return map;
+
+  const placeholders = missing.map(() => '?').join(',');
   const rows = getDb()
     .prepare(
       `SELECT * FROM album_items
        WHERE album_id IN (${placeholders})
        ORDER BY position ASC, job_id ASC`,
     )
-    .all(...albumIds) as AlbumItemRow[];
+    .all(...missing) as AlbumItemRow[];
+
+  const grouped = new Map<string, AlbumItemRow[]>();
+  for (const id of missing) grouped.set(id, []);
   for (const row of rows) {
-    const list = map.get(row.album_id);
+    const list = grouped.get(row.album_id);
     if (list) list.push(row);
-    else map.set(row.album_id, [row]);
+    else grouped.set(row.album_id, [row]);
+  }
+  for (const [id, list] of grouped) {
+    map.set(id, list);
+    albumItemsCache.set(id, list);
   }
   return map;
+}
+
+function touchAlbumCache(album: Album): void {
+  albumCache.set(album.id, album);
+}
+
+function invalidateAlbum(id: string): void {
+  albumCache.delete(id);
+  albumItemsCache.delete(id);
 }
 
 function resolveCoverMeta(
@@ -222,10 +268,13 @@ export async function listAlbumsPage(opts: {
 }
 
 export async function getAlbum(id: string): Promise<Album | undefined> {
-  const row = getDb()
-    .prepare('SELECT * FROM albums WHERE id = ?')
-    .get(id) as AlbumRow | undefined;
-  return row ? rowToAlbum(row) : undefined;
+  if (!id) return undefined;
+  return albumCache.getOrLoad(id, () => {
+    const row = getDb()
+      .prepare('SELECT * FROM albums WHERE id = ?')
+      .get(id) as AlbumRow | undefined;
+    return row ? rowToAlbum(row) : undefined;
+  });
 }
 
 export async function getAlbumDetail(
@@ -287,6 +336,8 @@ export async function createAlbum(input: {
     throw e;
   }
 
+  touchAlbumCache(album);
+  albumItemsCache.delete(album.id);
   const detail = await getAlbumDetail(album.id);
   if (!detail) throw new Error('create album failed');
   return detail;
@@ -327,6 +378,7 @@ export async function updateAlbum(
        WHERE id = @id`,
     )
     .run(albumToRow(next));
+  touchAlbumCache(next);
   return getAlbumDetail(id);
 }
 
@@ -361,6 +413,9 @@ export async function setAlbumItems(
     db.exec('ROLLBACK');
     throw e;
   }
+  albumItemsCache.delete(id);
+  // updated_at 变更，实体缓存直接失效后由 getAlbum 回源
+  albumCache.delete(id);
   return getAlbumDetail(id);
 }
 
@@ -377,6 +432,7 @@ export async function deleteAlbum(id: string): Promise<Album | undefined> {
     db.exec('ROLLBACK');
     throw e;
   }
+  invalidateAlbum(id);
   return prev;
 }
 
@@ -393,6 +449,8 @@ export function removeJobFromAllAlbums(jobId: string): void {
   const now = new Date().toISOString();
   db.exec('BEGIN');
   try {
+    // 先失效，避免事务内读到旧缓存条目
+    for (const albumId of albumIds) albumItemsCache.delete(albumId);
     db.prepare('DELETE FROM album_items WHERE job_id = ?').run(jobId);
     for (const albumId of albumIds) {
       const rows = listItemRows(albumId);
@@ -406,6 +464,8 @@ export function removeJobFromAllAlbums(jobId: string): void {
         now,
         albumId,
       );
+      albumItemsCache.delete(albumId);
+      albumCache.delete(albumId);
     }
     // 封面指向已删任务时清空
     db.prepare(
@@ -415,6 +475,7 @@ export function removeJobFromAllAlbums(jobId: string): void {
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');
+    for (const albumId of albumIds) invalidateAlbum(albumId);
     throw e;
   }
 }
@@ -497,5 +558,20 @@ export async function setAlbumOwnCoverImage(
       `UPDATE albums SET has_cover_image = ?, updated_at = ? WHERE id = ?`,
     )
     .run(hasOwnCoverImage ? 1 : 0, now, albumId);
+  touchAlbumCache({
+    ...prev,
+    hasOwnCoverImage: Boolean(hasOwnCoverImage),
+    updatedAt: now,
+  });
   return getAlbumDetail(albumId);
+}
+
+/** 主动失效专辑缓存 */
+export function invalidateAlbumCache(id?: string): void {
+  if (id) {
+    invalidateAlbum(id);
+    return;
+  }
+  albumCache.clear();
+  albumItemsCache.clear();
 }
