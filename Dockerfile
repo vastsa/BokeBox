@@ -12,11 +12,13 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json ./apps/server/
 COPY apps/web/package.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --frozen-lockfile
 
 # ---------- 构建 ----------
 FROM deps AS build
 COPY apps ./apps
+COPY packages ./packages
 RUN pnpm --filter @bokebox/web build \
  && pnpm --filter @bokebox/server build
 
@@ -31,6 +33,7 @@ ENV NODE_ENV=production \
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json ./apps/server/
 COPY apps/web/package.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --frozen-lockfile --prod --filter @bokebox/server...
 
 COPY --from=build /app/apps/server/dist ./apps/server/dist

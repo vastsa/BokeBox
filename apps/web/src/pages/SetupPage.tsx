@@ -93,7 +93,7 @@ export function SetupPage() {
           setVoiceDesignModel(s.voiceDesignModel || DEFAULTS.voiceDesignModel);
           setImageModel(s.imageModel || DEFAULTS.imageModel);
           const voice = s.defaultVoice || DEFAULTS.defaultVoice;
-          setTts((prev) => ({
+          setTts((prev: TtsOptions) => ({
             ...prev,
             mode: 'default',
             voice,
@@ -360,7 +360,7 @@ export function SetupPage() {
                     setTtsProvider(id);
                     if (id === 'openai') {
                       setTtsModel('tts-1');
-                      setTts((prev) => ({
+                      setTts((prev: TtsOptions) => ({
                         ...prev,
                         mode: 'default',
                         voice: 'alloy',
@@ -371,7 +371,7 @@ export function SetupPage() {
                     if (id === 'mimo') {
                       setTtsModel('mimo-v2.5-tts');
                       setVoiceDesignModel('mimo-v2.5-tts-voicedesign');
-                      setTts((prev) => ({
+                      setTts((prev: TtsOptions) => ({
                         ...prev,
                         mode: 'default',
                         voice: '冰糖',
@@ -379,7 +379,7 @@ export function SetupPage() {
                     }
                     if (id === 'edge') {
                       setTtsModel('edge-neural');
-                      setTts((prev) => ({
+                      setTts((prev: TtsOptions) => ({
                         ...prev,
                         mode: 'default',
                         voice: 'zh-CN-XiaoxiaoNeural',
@@ -463,7 +463,7 @@ export function SetupPage() {
                     <select
                       value={String(tts.voice || 'zh-CN-XiaoxiaoNeural')}
                       onChange={(e) =>
-                        setTts((prev) => ({
+                        setTts((prev: TtsOptions) => ({
                           ...prev,
                           mode: 'default',
                           voice: e.target.value,
