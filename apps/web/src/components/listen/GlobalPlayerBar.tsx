@@ -31,15 +31,11 @@ export function GlobalPlayerBar({ route }: { route: Route }) {
   if (!track || !visible || route.name === 'player') return null;
 
   const pct = duration > 0 ? (current / duration) * 100 : 0;
-  const hasBottomNav =
-    route.name === 'listen' ||
-    route.name === 'admin' ||
-    route.name === 'admin-upload' ||
-    route.name === 'admin-job';
 
+  // 定位由 CSS 根据是否存在 .bottom-nav 自适应，避免路由名单漏判导致重叠
   return (
     <div
-      className={['global-player', hasBottomNav ? 'with-bottom-nav' : ''].join(' ')}
+      className="global-player"
       role="region"
       aria-label={t('player.globalAria')}
     >
