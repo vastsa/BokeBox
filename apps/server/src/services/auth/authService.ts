@@ -13,8 +13,8 @@ import {
   type AiConfig,
   type AuthAccount,
   type SessionRecord,
-} from '../settingsStore.js';
-import { ensureMcpToken } from '../mcpTokenStore.js';
+} from '../settings/index.js';
+import { ensureMcpToken } from '../mcp/mcpTokenStore.js';
 import type { TtsOptions } from '../../types/job.js';
 import { AppError, isContentLocale, isLocale } from '../../i18n/index.js';
 

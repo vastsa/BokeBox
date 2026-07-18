@@ -15,7 +15,7 @@ import {
   getAiPromptTemplateStored,
   setAiPromptTemplateStored,
   type AiPromptKind,
-} from '../settingsStore.js';
+} from '../settings/index.js';
 
 export type { AiPromptKind };
 

@@ -2,7 +2,7 @@
  * 全局口播 / TTS / 封面 / 系统提示词设置
  */
 import type { ScriptPromptOptions, TtsOptions } from '../../types/job.js';
-import { normalizeScriptPrompt } from '../scriptPrompt.js';
+import { normalizeScriptPrompt } from '../content/scriptPrompt.js';
 import { DEFAULT_AI, getAiConfig } from './ai.js';
 import {
   KEY_COVER_PROMPT,

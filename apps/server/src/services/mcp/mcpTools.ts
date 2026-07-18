@@ -9,23 +9,23 @@ import {
   toPublic,
   updateJob,
   withScriptTiming,
-} from '../jobStore.js';
-import { removeJobFromAllAlbums } from '../albumStore.js';
+} from '../job/jobStore.js';
+import { removeJobFromAllAlbums } from '../album/albumStore.js';
 import {
   assertPipelinePrereqs,
   buildRetryPatch,
   isPipelineFromStep,
   resolveDefaultFromStep,
   runPipeline,
-} from '../pipeline.js';
+} from '../job/pipeline.js';
 import {
   getGlobalScriptPrompt,
   getGlobalTtsOptions,
   normalizeTtsOptions,
   getContentLocale,
-} from '../settingsStore.js';
-import { normalizeScriptPrompt } from '../scriptPrompt.js';
-import { isValidHttpUrl } from '../urlImporter.js';
+} from '../settings/index.js';
+import { normalizeScriptPrompt } from '../content/scriptPrompt.js';
+import { isValidHttpUrl } from '../import/index.js';
 import {
   ensureBuiltinSourcePlugins,
   getSourcePluginRegistration,
@@ -34,7 +34,7 @@ import {
 } from '../../sources/index.js';
 import { jobPaths } from '../../utils/paths.js';
 import { ensureDir, removeDirIfExists } from '../../utils/fs.js';
-import { deleteListenRecord } from '../listenStore.js';
+import { deleteListenRecord } from '../job/listenStore.js';
 import {
   getAsrModel,
   getAsrProviderId,

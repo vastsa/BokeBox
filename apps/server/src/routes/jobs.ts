@@ -888,7 +888,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     });
 
     try {
-      const { synthesizePodcastAudio } = await import('../services/ttsSynthesizer.js');
+      const { synthesizePodcastAudio } = await import('../services/media/ttsSynthesizer.js');
       const { audioPath, demo, mode, voice } = await synthesizePodcastAudio({
         script: job.podcast.script,
         sourceAudioPath: job.audioPath,
@@ -945,7 +945,7 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
 
       try {
         const { generateFlashcards } = await import(
-          '../services/flashcardGenerator.js'
+          '../services/content/flashcardGenerator.js'
         );
         const { flashcards, demo } = await generateFlashcards({
           jobId: job.id,

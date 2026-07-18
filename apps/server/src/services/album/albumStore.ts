@@ -14,7 +14,7 @@ import {
   isPubliclyListenable,
   toGuestListPublic,
   toListPublic,
-} from '../jobStore.js';
+} from '../job/jobStore.js';
 import {
   likePattern,
   pageResult,

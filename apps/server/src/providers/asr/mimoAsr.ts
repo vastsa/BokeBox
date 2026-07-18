@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { getAsrModel } from '../../utils/aiConfig.js';
 import { resolveFfmpegPath } from '../../utils/ffmpeg.js';
 import { ensureDir, pathExists, removeDirIfExists } from '../../utils/fs.js';
-import { probeAudioDurationSec } from '../../services/scriptTiming.js';
+import { probeAudioDurationSec } from '../../services/job/scriptTiming.js';
 import {
   isCloudEndpointReady,
   pluginFetch,

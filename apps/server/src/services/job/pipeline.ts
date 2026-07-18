@@ -1,12 +1,12 @@
 import fs from 'node:fs/promises';
-import { extractAudio, generateSilentMp3 } from '../audioExtractor.js';
-import { transcribeAudio } from '../transcriber.js';
-import { generatePodcast } from '../podcastGenerator.js';
-import { maybeGeneratePodcastCover } from '../coverGenerator.js';
+import { extractAudio, generateSilentMp3 } from '../media/audioExtractor.js';
+import { transcribeAudio } from '../media/transcriber.js';
+import { generatePodcast } from '../content/podcastGenerator.js';
+import { maybeGeneratePodcastCover } from '../media/coverGenerator.js';
 import { hasImageModel } from '../../utils/aiConfig.js';
-import { generateFlashcards } from '../flashcardGenerator.js';
-import { synthesizePodcastAudio } from '../ttsSynthesizer.js';
-import { isPlaceholderTitle } from '../urlImporter.js';
+import { generateFlashcards } from '../content/flashcardGenerator.js';
+import { synthesizePodcastAudio } from '../media/ttsSynthesizer.js';
+import { isPlaceholderTitle } from '../import/index.js';
 import { importSource } from '../../sources/index.js';
 import { getJob, updateJob } from './jobStore.js';
 import { pathExists, writeText } from '../../utils/fs.js';
@@ -19,7 +19,7 @@ import {
   t,
   type Locale,
 } from '../../i18n/index.js';
-import { getContentLocale } from '../settingsStore.js';
+import { getContentLocale } from '../settings/index.js';
 
 const running = new Set<string>();
 

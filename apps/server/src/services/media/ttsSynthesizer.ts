@@ -22,7 +22,7 @@ import {
   buildScriptTiming,
   detectSilenceIntervals,
   writeScriptTiming,
-} from '../scriptTiming.js';
+} from '../job/scriptTiming.js';
 
 /** @deprecated 兼容旧导入：映射自当前默认 MiMo 元数据 */
 export const TTS_MODE_META: Record<
@@ -103,7 +103,7 @@ export async function synthesizePodcastAudio(options: {
   mode: TtsMode;
   voice?: string;
   provider?: string;
-  scriptTiming?: import('../scriptTiming.js').ScriptLineTiming[];
+  scriptTiming?: import('../job/scriptTiming.js').ScriptLineTiming[];
 }> {
   const paths = jobPaths(options.jobId);
   await ensureDir(paths.dir);

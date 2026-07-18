@@ -7,7 +7,7 @@ import {
   hasApiKey,
   hasImageModel,
 } from '../../utils/aiConfig.js';
-import { getCoverPromptTemplateStored } from '../settingsStore.js';
+import { getCoverPromptTemplateStored } from '../settings/index.js';
 import {
   findCoverMasterFile,
   writeOptimizedCover,

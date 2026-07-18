@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
-  deleteJob,
   fetchJob,
   generateFlashcards,
   podcastAudioUrl,
-  retryJob,
   sourceAudioUrl,
   updateJob,
   videoUrl,
@@ -16,34 +14,31 @@ import { ScriptPromptSummary } from '../components/admin/ScriptPromptSummary';
 import { TtsSummary } from '../components/admin/TtsSummary';
 import { MiniPlayer } from '../components/listen/MiniPlayer';
 import { ScriptFollow } from '../components/listen/ScriptFollow';
-import { ProgressBar } from '../components/ProgressBar';
-import { StatusBadge } from '../components/StatusBadge';
 import {
   IconDownload,
-  IconMic,
   IconRefresh,
   IconSpark,
-  IconText,
-  IconTrash,
   IconVideo,
   IconWave,
 } from '../components/icons';
-import { coverGradientFor, formatSize, formatSourceLabel, formatTime } from '../lib/format';
-import { CoverArt } from '../components/ui/CoverArt';
+import {
+  coverGradientFor,
+  formatTime,
+} from '../lib/format';
 import { navigate, type Route } from '../lib/router';
 import type { Job, PipelineFromStep } from '../types/job';
 import {
   ACTIVE_STATUSES,
-  PIPELINE,
   RERUN_STEPS,
   canSelectFromStep,
   pickDefaultFromStep,
   pipelineIndex,
 } from '../features/admin-job/pipelineSteps';
-import { AssetRow } from '../features/admin-job/AssetRow';
+import { JobDetailHero } from '../features/admin-job/JobDetailHero';
+import { JobAssetsPanel } from '../features/admin-job/JobAssetsPanel';
+import { JobReprocessPanel } from '../features/admin-job/JobReprocessPanel';
 import { AppShell } from '../layouts/AppShell';
 import { AdminChrome } from '../components/admin/AdminChrome';
-import { ContentLocaleSelect } from '../components/admin/ContentLocaleSelect';
 import {
   resolveContentLocale,
   useI18n,
@@ -221,132 +216,18 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
       >
       <div className="admin-container nl-enter jd-page">
         {/* 状态总览：标题只在此出现一次，避免与页头重复 */}
-        <header className="jd-hero">
-          <CoverArt
-            seed={job.id}
-            preferred={job.podcast?.coverGradient}
-            imageUrl={job.podcast?.hasCoverImage ? coverImageUrl(job.id, job.updatedAt, 'md') : undefined}
-            title={title}
-            className="jd-cover"
-            aria-hidden
-          >
-            <IconMic size={28} />
-          </CoverArt>
-
-          <div className="jd-hero-main">
-            <div className="jd-badges">
-              <StatusBadge status={job.status} />
-              <span className={['nl-tag', job.published ? 'nl-tag-success' : ''].join(' ')}>
-                {job.published ? t('admin.published') : t('admin.draft')}
-              </span>
-            </div>
-            <h1 className="jd-title">{title}</h1>
-            <p className="jd-sub">
-              <span>{job.message || t('job.waiting')}</span>
-            </p>
-            <p className="jd-meta">
-              <span
-                className="jd-source-label truncate"
-                title={job.sourceUrl || job.originalFilename}
-              >
-                {formatSourceLabel(job.sourceUrl || job.originalFilename)}
-              </span>
-              <span>{formatSize(job.size)}</span>
-              <span>{formatTime(job.createdAt)}</span>
-            </p>
-          </div>
-
-          <div className="jd-hero-actions">
-            {canListen && (
-              <button
-                type="button"
-                className="nl-btn nl-btn-primary"
-                onClick={() => navigate({ name: 'player', id: job.id })}
-              >
-                {t('job.openPlayer')}
-              </button>
-            )}
-            <button
-              type="button"
-              className={[
-                'nl-btn',
-                job.published ? 'nl-btn-secondary' : 'nl-btn-primary',
-              ].join(' ')}
-              disabled={busy === 'publish'}
-              onClick={() =>
-                void runAction('publish', () =>
-                  updateJob(job.id, { published: !job.published }),
-                )
-              }
-            >
-              {busy === 'publish'
-                ? t('job.updating')
-                : job.published
-                  ? t('admin.unpublishAction')
-                  : t('admin.publishAction')}
-            </button>
-            <button
-              type="button"
-              className="nl-btn nl-btn-ghost jd-icon-btn"
-              onClick={() => void refresh()}
-              aria-label={t('common.refresh')}
-              title={t('common.refresh')}
-            >
-              <IconRefresh size={15} />
-            </button>
-          </div>
-
-          {(showPipeline || job.progress < 100 || job.status === 'failed') && (
-            <div className="jd-progress">
-              <div className="jd-progress-row">
-                <span>{active ? t('job.processing') : job.status === 'failed' ? t('job.failedState') : t('job.progress')}</span>
-                <span>{Math.round(job.progress)}%</span>
-              </div>
-              <ProgressBar
-                value={job.progress}
-                tone={job.status === 'failed' ? 'danger' : 'brand'}
-              />
-              {showPipeline && (
-                <div className="jd-steps">
-                  {PIPELINE.map((step, i) => {
-                    const failed = job.status === 'failed';
-                    const done =
-                      !failed &&
-                      (job.status === 'done' || (stepIdx >= 0 && i < stepIdx));
-                    const current =
-                      !failed &&
-                      stepIdx >= 0 &&
-                      i === stepIdx &&
-                      job.status !== 'done';
-                    return (
-                      <div
-                        key={step.key}
-                        className={[
-                          'jd-step',
-                          done ? 'is-done' : '',
-                          current ? 'is-current' : '',
-                          failed ? 'is-muted' : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
-                      >
-                        <i />
-                        <span>{t(step.labelKey)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {(job.error || actionError) && (
-            <div className="jd-alert jd-break" role="alert">
-              <strong>{job.error ? t('job.processFailed') : t('job.actionFailed')}</strong>
-              <p>{job.error || actionError}</p>
-            </div>
-          )}
-        </header>
+        <JobDetailHero
+          job={job}
+          title={title}
+          canListen={canListen}
+          busy={busy}
+          active={active}
+          showPipeline={showPipeline}
+          stepIdx={stepIdx}
+          actionError={actionError}
+          onRefresh={() => void refresh()}
+          runAction={runAction}
+        />
 
         <div className="jd-layout">
           <div className="jd-main">
@@ -604,163 +485,23 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
           </div>
 
           <aside className="jd-side">
-            <section className="jd-panel">
-              <h2 className="jd-side-title">{t('job.assetsTitle')}</h2>
-              <div className="jd-assets">
-                <AssetRow
-                  icon={<IconVideo size={14} />}
-                  label={t('job.originalVideo')}
-                  ready={Boolean(job.hasVideo)}
-                />
-                <AssetRow
-                  icon={<IconWave size={14} />}
-                  label={t('job.extractedAudio')}
-                  ready={Boolean(job.hasSourceAudio)}
-                />
-                <AssetRow
-                  icon={<IconText size={14} />}
-                  label={t('job.stepTranscribe')}
-                  ready={Boolean(job.hasTranscript || job.transcript)}
-                />
-                <AssetRow
-                  icon={<IconMic size={14} />}
-                  label={t('job.podcastAudio')}
-                  ready={Boolean(job.hasPodcastAudio)}
-                />
-                <AssetRow
-                  icon={<IconSpark size={14} />}
-                  label={t('job.scriptNotes')}
-                  ready={Boolean(job.podcast?.script || job.podcast?.showNotes)}
-                />
-                <AssetRow
-                  icon={<IconSpark size={14} />}
-                  label={t('job.knowledgeCards')}
-                  ready={Boolean(job.podcast?.flashcards?.length)}
-                />
+            <JobAssetsPanel job={job} />
 
-              </div>
-            </section>
-
-            <section className="jd-panel" id="jd-reprocess-panel">
-              <h2 className="jd-side-title">{t('job.reprocess')}</h2>
-              <div className="jd-ops">
-                <p className="jd-hint jd-hint-top">
-                  {t('job.reprocessHint')}
-                </p>
-
-                <label className="jd-select-field">
-                  <span className="jd-select-label">{t('job.contentLocale')}</span>
-                  <ContentLocaleSelect
-                    value={jobContentLocale}
-                    disabled={active || Boolean(busy)}
-                    aria-label={t('job.contentLocaleAria')}
-                    onChange={setJobContentLocale}
-                  />
-                </label>
-                <p className="jd-select-desc">{t('job.contentLocaleRerunHint')}</p>
-
-                <label className="jd-select-field">
-                  <span className="jd-select-label">{t('job.fromStep')}</span>
-                  <select
-                    className="jd-select"
-                    value={fromStep}
-                    disabled={active || Boolean(busy)}
-                    aria-label={t('job.fromStepAria')}
-                    onChange={(e) =>
-                      setFromStep(e.target.value as PipelineFromStep)
-                    }
-                  >
-                    {RERUN_STEPS.map((step) => {
-                      const enabled = canSelectFromStep(job, step.key);
-                      return (
-                        <option
-                          key={step.key}
-                          value={step.key}
-                          disabled={!enabled}
-                        >
-                          {t(step.labelKey)}
-                          {!enabled ? t('job.missingPrereq') : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
-
-                {selectedMeta && (
-                  <p className="jd-select-desc">{t(selectedMeta.descKey)}</p>
-                )}
-
-                <button
-                  type="button"
-                  className="nl-btn nl-btn-primary"
-                  disabled={!canRerun || !selectedStepOk || busy === 'retry'}
-                  onClick={() =>
-                    void runAction('retry', () =>
-                      retryJob(job.id, {
-                        tts: job.tts,
-                        fromStep,
-                        locale: jobContentLocale,
-                      }),
-                    )
-                  }
-                >
-                  <IconRefresh size={14} />
-                  {busy === 'retry'
-                    ? t('common.processingEllipsis')
-                    : t('job.startFrom', { label: selectedMeta ? t(selectedMeta.labelKey) : t('job.startPoint') })}
-                </button>
-                <p className="jd-hint">
-                  {fromStep === 'extract' && t('job.hintExtract')}
-                  {fromStep === 'transcribe' && t('job.hintTranscribe')}
-                  {fromStep === 'script' &&
-                    t('job.hintGenerate')}
-                  {fromStep === 'cover' &&
-                    t('job.hintCover')}
-                  {fromStep === 'flashcards' &&
-                    t('job.hintFlashcards')}
-                  {fromStep === 'synthesize' && t('job.hintSynthesize')}
-                </p>
-
-                <div className="jd-danger">
-                  {!confirmDelete ? (
-                    <button
-                      type="button"
-                      className="nl-btn nl-btn-danger"
-                      disabled={Boolean(busy)}
-                      onClick={() => setConfirmDelete(true)}
-                    >
-                      <IconTrash size={14} />
-                      {t('job.deleteJob')}
-                    </button>
-                  ) : (
-                    <div className="jd-confirm">
-                      <strong>{t('job.deleteConfirmTitle')}</strong>
-                      <p>{t('job.deleteConfirmBody')}</p>
-                      <div className="jd-confirm-actions">
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-danger"
-                          disabled={busy === 'delete'}
-                          onClick={() =>
-                            void runAction('delete', () => deleteJob(job.id))
-                          }
-                        >
-                          {busy === 'delete' ? t('common.deleting') : t('common.confirmDelete')}
-                        </button>
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-secondary"
-                          disabled={busy === 'delete'}
-                          onClick={() => setConfirmDelete(false)}
-                        >
-                          {t('common.cancel')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
+            <JobReprocessPanel
+              job={job}
+              fromStep={fromStep}
+              jobContentLocale={jobContentLocale}
+              active={active}
+              busy={busy}
+              canRerun={canRerun}
+              selectedStepOk={selectedStepOk}
+              selectedMeta={selectedMeta}
+              confirmDelete={confirmDelete}
+              onFromStepChange={setFromStep}
+              onContentLocaleChange={setJobContentLocale}
+              onConfirmDeleteChange={setConfirmDelete}
+              runAction={runAction}
+            />
 
             <section className="jd-panel">
               <div className="jd-side-head">

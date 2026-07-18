@@ -10,12 +10,11 @@ services/
   album/        专辑
   auth/         登录 / 初始化 / 改密
   mcp/          MCP 协议、Token、工具
-  *.ts          根级兼容门面（re-export），旧 import 路径仍可用
   storageMigrator.ts  存储布局迁移（启动期）
 ```
 
 ## 约定
 
-1. **新代码**优先从子域导入：`./job/index.js`、`./settings/index.js`
-2. **根级 `jobStore.ts` 等**仅作兼容门面，不再放实现
-3. 跨子域依赖可通过根门面或对方 `index`；避免子域实现互相深链私有文件
+1. **只从子域导入**：`./job/index.js`、`./settings/index.js`、`./media/coverGenerator.js`
+2. 根级不再保留兼容门面；跨子域请引用对方子域路径
+3. 新增业务代码按子域落文件，避免再回到扁平 `services/*.ts`

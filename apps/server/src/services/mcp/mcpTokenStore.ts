@@ -1,5 +1,5 @@
 import { getDb } from '../../db/sqlite.js';
-import { getAuthAccount } from '../settingsStore.js';
+import { getAuthAccount } from '../settings/index.js';
 
 const KEY_MCP_TOKEN = 'mcp_token';
 
