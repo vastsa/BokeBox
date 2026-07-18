@@ -11,7 +11,7 @@ ASR 与 TTS 已与 **Source 插件** 使用同一套机制：
 
 ```text
 storage/plugins/
-  source/   # 内容源
+  source/   # 内容获取
   asr/      # 语音转写
   tts/      # 语音合成
 ```
@@ -29,10 +29,13 @@ storage/plugins/
 
 TTS 将前缀换成 `/api/tts-plugins`。
 
-## 激活哪个插件
+## 激活哪个插件（严格）
+
+> 运行时 **只使用** 设置中的 `asrProvider` / `ttsProvider`。
+> 未启用 / 不可用时会直接报错，**不会**静默切换到其他提供方。
 
 - 设置 → **AI 服务** 中的 `asrProvider` / `ttsProvider` 选择**激活**插件 id
-- 设置 → **内容源** 页下方可管理 ASR / TTS 插件启停与参数
+- 设置 → **插件** 页切换「语音转写 / 语音合成」管理启停与参数；「设为当前」可写入 asrProvider / ttsProvider
 - 未启用或不可用时，会回落其它已启用可用插件，最后是 `demo`
 
 ## 外部插件清单

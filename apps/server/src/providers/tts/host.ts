@@ -60,8 +60,8 @@ export function ensureBuiltinTtsPlugins(): void {
   );
   registerTtsPlugin(
     asBuiltin(demoTtsProvider, {
-      defaultEnabled: true,
-      description: '未配置 API Key 时由门面复用源音频/静音占位',
+      defaultEnabled: false,
+      description: '演示回落：复用源音频/静音占位（默认关闭，需显式启用并选中）',
     }),
     { origin: 'builtin', apiVersion: 1 },
   );

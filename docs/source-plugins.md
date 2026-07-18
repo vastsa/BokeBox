@@ -67,7 +67,7 @@ storage/plugins/source/<dir>/
 
 ## 插件参数（token 等）
 
-插件可在 `plugin.json` / 运行时声明 `configSchema`。后台 **设置 → 内容源** 展开「配置参数」填写。
+插件可在 `plugin.json` / 运行时声明 `configSchema`。后台 **设置 → 插件 → 内容获取** 展开「配置参数」填写。
 
 ```json
 {

@@ -217,15 +217,24 @@ export function listAsrPluginDescriptors(): AsrPluginDescriptor[] {
 
 /**
  * 兼容旧 ProviderDescriptor 列表（设置页下拉 / health）
+ * - 含「已启用」与「当前激活」项（即使已停用，避免 select 脏值）
+ * - 默认隐藏 demo，除非它是当前激活
  */
 export function listAsrProviderDescriptors() {
+  const activeId = (getAsrProviderId() || 'mimo').trim();
   return listAsrPlugins()
-    .filter((p) => isAsrPluginEnabled(p.id) || p.id === 'demo')
+    .filter((p) => {
+      if (p.id === activeId) return true;
+      if (p.id === 'demo') return false;
+      return isAsrPluginEnabled(p.id);
+    })
     .map((p) => ({
       id: p.id,
       name: p.name,
       description: p.description,
       available: p.isAvailable(),
+      enabled: isAsrPluginEnabled(p.id),
+      active: p.id === activeId,
       suggestedModels: p.suggestedModel
         ? { asr: p.suggestedModel }
         : undefined,
@@ -233,47 +242,41 @@ export function listAsrProviderDescriptors() {
 }
 
 /**
- * 解析当前 ASR 插件：
- * - 优先 settings.asrProvider（需已启用）
- * - 其次其它已启用且可用的插件
- * - 最后 demo
+ * 解析当前 ASR 插件（严格）：
+ * - 仅使用 settings.asrProvider / 显式 id
+ * - 未注册、未启用、不可用 → 抛错，禁止静默换源
  */
 export function resolveAsrPlugin(explicitId?: string): AsrPlugin {
   const preferredId = (explicitId || getAsrProviderId() || 'mimo').trim();
+  if (!preferredId) {
+    throw new Error('未配置 ASR 提供方（asrProvider）');
+  }
+
   const preferredReg = registry.get(preferredId);
   const preferred = preferredReg?.plugin;
 
-  if (preferred && isAsrPluginEnabled(preferred.id)) {
-    if (preferred.isAvailable()) return preferred;
-    if (preferred.strictAvailability && preferred.id === preferredId) {
-      return preferred;
-    }
+  if (!preferred) {
+    const loadError = preferredReg?.loadError;
+    throw new Error(
+      loadError
+        ? `ASR 插件加载失败: ${preferredId}（${loadError}）`
+        : `ASR 插件未注册: ${preferredId}。请在「设置 → 插件 → 语音转写」扫描/启用，或在 AI 服务中切换提供方。`,
+    );
   }
 
-  // 显式指定但未启用：若 strict 仍返回（便于报错提示）
-  if (preferred && preferred.strictAvailability && preferred.id === preferredId) {
-    return preferred;
+  if (!isAsrPluginEnabled(preferred.id)) {
+    throw new Error(
+      `ASR 插件未启用: ${preferred.name || preferred.id}。请在「设置 → 插件 → 语音转写」中启用，或改选其他提供方。`,
+    );
   }
 
-  for (const reg of registry.values()) {
-    const p = reg.plugin;
-    if (!p || p.id === 'demo') continue;
-    if (!isAsrPluginEnabled(p.id)) continue;
-    if (p.isAvailable()) return p;
+  if (!preferred.isAvailable()) {
+    throw new Error(
+      `ASR 插件「${preferred.name || preferred.id}」当前不可用。请检查 API Key / 本地依赖，或在 AI 服务中切换提供方。`,
+    );
   }
 
-  return registry.get('demo')?.plugin || {
-    id: 'demo',
-    name: '演示模式',
-    description: '未配置时的回落',
-    version: '1.0.0',
-    riskLevel: 'low',
-    defaultEnabled: true,
-    isAvailable: () => true,
-    async transcribe() {
-      return { text: '【演示转写】', provider: 'demo', demo: true };
-    },
-  };
+  return preferred;
 }
 
 /** @deprecated */

@@ -30,8 +30,21 @@ type ProviderOpt = {
   name: string;
   description: string;
   available?: boolean;
+  enabled?: boolean;
+  active?: boolean;
   suggestedModels?: Record<string, string>;
 };
+
+function providerOptionLabel(
+  p: ProviderOpt,
+  labels: { disabled: string; unavailable: string; active: string },
+): string {
+  const tags: string[] = [];
+  if (p.active) tags.push(labels.active);
+  if (p.enabled === false) tags.push(labels.disabled);
+  if (p.available === false) tags.push(labels.unavailable);
+  return tags.length ? `${p.name}（${tags.join(' · ')}）` : p.name;
+}
 
 function ServiceCard({
   badge,
@@ -199,20 +212,62 @@ export function AiServiceSettings({
     );
   }
 
-  const asrProviders: ProviderOpt[] = ai?.asrProviders?.length
-    ? ai.asrProviders
-    : [
-        { id: 'mimo', name: 'MiMo ASR', description: '' },
-        { id: 'openai', name: 'OpenAI 兼容 ASR', description: '' },
-        { id: 'local-whisper', name: '本地 Whisper', description: '' },
+  const asrProviders: ProviderOpt[] = (() => {
+    const base: ProviderOpt[] = ai?.asrProviders?.length
+      ? ai.asrProviders
+      : [
+          { id: 'mimo', name: 'MiMo ASR', description: '', enabled: true },
+          { id: 'openai', name: 'OpenAI 兼容 ASR', description: '', enabled: true },
+          { id: 'local-whisper', name: '本地 Whisper', description: '', enabled: true },
+        ];
+    if (asrProvider && !base.some((p) => p.id === asrProvider)) {
+      return [
+        {
+          id: asrProvider,
+          name: asrProvider,
+          description: '',
+          enabled: false,
+          active: true,
+          available: false,
+        },
+        ...base,
       ];
-  const ttsProviders: ProviderOpt[] = ai?.ttsProviders?.length
-    ? ai.ttsProviders
-    : [
-        { id: 'mimo', name: 'MiMo TTS', description: '' },
-        { id: 'openai', name: 'OpenAI 兼容 TTS', description: '' },
-        { id: 'edge', name: 'Edge TTS', description: '' },
+    }
+    return base.map((p) =>
+      p.id === asrProvider ? { ...p, active: true } : p,
+    );
+  })();
+  const ttsProviders: ProviderOpt[] = (() => {
+    const base: ProviderOpt[] = ai?.ttsProviders?.length
+      ? ai.ttsProviders
+      : [
+          { id: 'mimo', name: 'MiMo TTS', description: '', enabled: true },
+          { id: 'openai', name: 'OpenAI 兼容 TTS', description: '', enabled: true },
+          { id: 'edge', name: 'Edge TTS', description: '', enabled: true },
+        ];
+    if (ttsProvider && !base.some((p) => p.id === ttsProvider)) {
+      return [
+        {
+          id: ttsProvider,
+          name: ttsProvider,
+          description: '',
+          enabled: false,
+          active: true,
+          available: false,
+        },
+        ...base,
       ];
+    }
+    return base.map((p) =>
+      p.id === ttsProvider ? { ...p, active: true } : p,
+    );
+  })();
+
+  const optLabels = {
+    disabled: t('settings.providerDisabledTag'),
+    unavailable: t('settings.providerUnavailableTag'),
+    active: t('settings.providerActiveTag'),
+  };
 
   const inheritHint = t('settings.endpointInheritHint');
   const keyPlaceholder = (set?: boolean) =>
@@ -318,7 +373,7 @@ export function AiServiceSettings({
             >
               {asrProviders.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {providerOptionLabel(p, optLabels)}
                 </option>
               ))}
             </select>
@@ -439,7 +494,7 @@ export function AiServiceSettings({
             >
               {ttsProviders.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {providerOptionLabel(p, optLabels)}
                 </option>
               ))}
             </select>

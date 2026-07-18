@@ -1,6 +1,6 @@
 # Source 插件开发规范
 
-> 适用于 BokeBox 外部内容源插件（`storage/plugins/source/*`）  
+> 适用于 BokeBox 外部内容获取插件（`storage/plugins/source/*`）  
 > 仓库：<https://github.com/vastsa/BokeBox>  
 > 协议：LGPL-3.0  
 > 宿主 API 版本：`apiVersion = 1`
@@ -45,7 +45,7 @@ mkdir -p storage/plugins/source
 cp -R examples/source-plugin-echo storage/plugins/source/echo
 ```
 
-然后在 **设置 → 内容源** 点击「重新扫描」，再打开开关。
+然后在 **设置 → 插件 → 内容获取** 点击「重新扫描」，再打开开关。
 
 > 注意：`storage/plugins/**` 默认不入库，插件由用户本机放置。
 
@@ -361,7 +361,7 @@ export default plugin;
 
 ### 10.1 设置页
 
-**设置 → 内容源**
+**设置 → 插件 → 内容获取**
 
 - 查看是否加载、是否可用  
 - 启停开关  
