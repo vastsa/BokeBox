@@ -4,7 +4,9 @@ import {
   isPubliclyListenable,
   listLibraryPage,
   type LibraryListFilter,
+  toGuestListPublic,
   toGuestPublic,
+  toListPublic,
   toPublic,
   withScriptTiming,
 } from '../services/jobStore.js';
@@ -50,8 +52,8 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
     const items = [];
     for (const row of result.items) {
       items.push({
-        // 列表卡片不消费逐行时间轴；详情接口再按需读取 script-timing.json。
-        job: authed ? toPublic(row.job) : toGuestPublic(row.job),
+        // 列表只返回卡片摘要；详情接口再拉取脚本/笔记/时间轴。
+        job: authed ? toListPublic(row.job) : toGuestListPublic(row.job),
         listen: authed ? recordMap.get(row.jobId) || null : null,
       });
     }
@@ -86,8 +88,7 @@ export async function listenRoutes(app: FastifyInstance): Promise<void> {
       const job = await getJob(rec.jobId);
       // 管理员历史保留未发布已完成条目；仅校验可听内容就绪
       if (!job || job.status !== 'done' || !job.podcast) continue;
-      const enriched = await withScriptTiming(job);
-      items.push({ job: toPublic(enriched), listen: rec });
+      items.push({ job: toListPublic(job), listen: rec });
     }
     return {
       items,

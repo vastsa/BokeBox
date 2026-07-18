@@ -10,9 +10,8 @@ import {
   getJob,
   getJobsByIds,
   isPubliclyListenable,
-  toGuestPublic,
-  toPublic,
-  withScriptTiming,
+  toGuestListPublic,
+  toListPublic,
 } from './jobStore.js';
 import {
   likePattern,
@@ -442,9 +441,9 @@ export async function getAlbumListenDetail(
     const job = await getJob(it.jobId);
     if (!job || job.status !== 'done' || !job.podcast) continue;
     if (!opts.authed && !isPubliclyListenable(job)) continue;
-    const enriched = await withScriptTiming(job);
+    // 专辑详情单集列表只返回摘要；播放页 /listen/:id 再拉完整内容。
     items.push({
-      job: opts.authed ? toPublic(enriched) : toGuestPublic(enriched),
+      job: opts.authed ? toListPublic(job) : toGuestListPublic(job),
       listen: null,
       position: it.position,
     });

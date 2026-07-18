@@ -5,7 +5,7 @@ import {
   rowToJob,
   type JobRow,
 } from '../db/sqlite.js';
-import type { Job, JobPublic } from '../types/job.js';
+import type { Job, JobPublic, PodcastContent } from '../types/job.js';
 import {
   likePattern,
   pageResult,
@@ -53,6 +53,51 @@ export function toGuestPublic(job: Job): JobPublic {
     hasTranscript: false,
     hasVideo: false,
     hasSourceAudio: false,
+  };
+}
+
+/**
+ * 列表卡片用播客摘要：去掉脚本 / 笔记 / 闪卡 / 时间轴 / 大纲等大体量字段。
+ * 详情页再通过 toPublic / toGuestPublic 拉取完整内容。
+ */
+export function slimPodcastForList(
+  podcast?: PodcastContent,
+): PodcastContent | undefined {
+  if (!podcast) return undefined;
+  return {
+    title: podcast.title,
+    summary: podcast.summary,
+    tags: podcast.tags || [],
+    hostIntro: podcast.hostIntro || '',
+    outline: [],
+    script: '',
+    showNotes: '',
+    estimatedMinutes: podcast.estimatedMinutes || 0,
+    coverGradient: podcast.coverGradient,
+    hasCoverImage: podcast.hasCoverImage,
+  };
+}
+
+/**
+ * 列表接口最小返回：保留卡片 / 筛选 / 进度所需字段，剥离正文级内容。
+ * 管理端列表仍保留 tts / sourceUrl / error 等状态信息。
+ */
+export function toListPublic(job: Job): JobPublic {
+  const base = toPublic(job);
+  return {
+    ...base,
+    transcript: undefined,
+    scriptPrompt: undefined,
+    podcast: slimPodcastForList(base.podcast),
+  };
+}
+
+/** 游客列表最小返回 */
+export function toGuestListPublic(job: Job): JobPublic {
+  const base = toGuestPublic(job);
+  return {
+    ...base,
+    podcast: slimPodcastForList(base.podcast),
   };
 }
 

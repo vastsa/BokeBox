@@ -18,6 +18,7 @@ import {
   isPubliclyListenable,
   listJobsPage,
   type JobListFilter,
+  toListPublic,
   toPublic,
   updateJob,
 } from '../services/jobStore.js';
@@ -522,7 +523,8 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       includeFacets: req.query.includeFacets !== 'false',
     });
     return {
-      jobs: result.items.map(toPublic),
+      // 列表只返回卡片摘要；详情 / 写操作响应仍走 toPublic 全量字段。
+      jobs: result.items.map(toListPublic),
       page: result.page,
       pageSize: result.pageSize,
       total: result.total,
