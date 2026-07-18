@@ -76,10 +76,10 @@ export function AppShell({
           >
             <BrandMark size={32} />
             <span className="text-left">
-              <span className="block text-[var(--fs-lg-plus)] font-semibold leading-none tracking-[var(--tracking-snug)] text-[var(--text)]">
+              <span className="app-brand-title block text-[var(--fs-lg)] font-medium leading-none tracking-[var(--tracking-snug)] text-[var(--text)]">
                 {siteTitle}
               </span>
-              <span className="mt-0.5 hidden text-[var(--fs-xs-plus)] text-[var(--text-3)] sm:block">
+              <span className="app-brand-tagline mt-0.5 hidden text-[var(--fs-xs)] text-[var(--text-3)] sm:block">
                 {t('app.tagline')}
               </span>
             </span>
@@ -189,21 +189,21 @@ export function AppShell({
               active={homeActive}
               label={t('nav.home')}
               onClick={() => navigate({ name: 'home' })}
-              icon={<IconLibrary size={18} />}
+              icon={<IconLibrary size={16} />}
             />
             <BottomNavItem
               active={tagsActive}
               label={t('nav.tags')}
               onClick={() => navigate({ name: 'tags' })}
               onIntent={prefetchTagCloud}
-              icon={<IconStars size={18} />}
+              icon={<IconStars size={16} />}
             />
             <BottomNavItem
               active={albumsActive}
               label={t('nav.albums')}
               onClick={() => navigate({ name: 'albums' })}
               onIntent={prefetchAlbums}
-              icon={<IconAlbum size={18} />}
+              icon={<IconAlbum size={16} />}
             />
             {!isGuest && (
               <BottomNavItem
@@ -211,7 +211,7 @@ export function AppShell({
                 label={t('nav.create')}
                 onClick={() => navigate({ name: 'admin' })}
                 onIntent={prefetchCreate}
-                icon={<IconUpload size={18} />}
+                icon={<IconUpload size={16} />}
               />
             )}
             {!isGuest ? (
@@ -220,14 +220,14 @@ export function AppShell({
                 label={t('nav.settings')}
                 onClick={() => navigate({ name: 'settings' })}
                 onIntent={prefetchSettings}
-                icon={<IconSpark size={18} />}
+                icon={<IconSpark size={16} />}
               />
             ) : (
               <BottomNavItem
                 active={false}
                 label={t('auth.login')}
                 onClick={() => navigate({ name: 'login' })}
-                icon={<IconSpark size={18} />}
+                icon={<IconSpark size={16} />}
               />
             )}
           </div>
@@ -262,7 +262,7 @@ function TopNavItem({
       onFocus={onIntent}
       onTouchStart={onIntent}
       className={[
-        'topbar-nav-item inline-flex min-h-[30px] items-center gap-1.5 rounded-full px-3 text-[var(--fs-base-plus)] font-semibold transition',
+        'topbar-nav-item inline-flex min-h-[30px] items-center gap-1.5 rounded-full px-3 text-[var(--fs-base)] font-medium transition',
         active
           ? 'is-active bg-[var(--brand-soft)] text-[var(--brand-2)]'
           : 'text-[var(--text-2)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]',
@@ -325,7 +325,7 @@ function BottomNavItem({
       onFocus={onIntent}
       onTouchStart={onIntent}
       className={[
-        'bottom-nav-item flex min-h-[46px] flex-col items-center justify-center gap-0.5 rounded-[12px] text-[var(--fs-xs-plus)] font-semibold transition',
+        'bottom-nav-item flex min-h-[42px] flex-col items-center justify-center gap-0.5 rounded-[var(--radius-md)] text-[var(--fs-xs)] font-medium transition',
         active ? 'is-active bg-[var(--brand-soft)] text-[var(--brand-2)]' : 'text-[var(--text-3)]',
       ].join(' ')}
     >

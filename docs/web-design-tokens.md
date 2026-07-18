@@ -315,7 +315,37 @@ iOS 在输入框 `font-size < 16px` 时会聚焦缩放。
 
 ---
 
-## 6. 组件级推荐映射
+## 6. 移动端文字密度（防傻大粗）
+
+手机端优先 **克制**：字号降一档、字重少用 black/extrabold，输入框仅在防缩放时用 16px。
+
+### 6.1 规则
+
+| 区域 | 手机端约定 |
+|------|------------|
+| 页面标题 `.app-page-title` / `.lh-title` | `--fs-3xl` + `--fw-extrabold`（≥768px 升到 `--fs-display`） |
+| 底栏 `.bottom-nav-item` | `--fs-xs` + `--fw-medium`（激活 `--fw-semibold`） |
+| 顶栏品牌 `.app-brand-title` | `--fs-lg` + `--fw-medium` |
+| 设置 Tab / 区块标题 | `--fs-base` ~ `--fs-base-plus` + `--fw-semibold` |
+| 设置 label | `--fs-sm-plus` + `--fw-medium` |
+| 设置 input/select（≤899px） | **`--fs-2xl`（16px 防 iOS 缩放）** + `--fw-medium` + 高度 `--control-5xl` |
+| 通用按钮 `.nl-btn`（≤767px） | `--fs-base-plus` + `--fw-semibold` |
+
+### 6.2 不要做的事
+
+- ❌ 为了「更醒目」在底栏/表单 label 使用 `--fw-black` / `--fw-extrabold`
+- ❌ 手机端把输入框再放大到 17px+ 或加粗到 700
+- ❌ 用 `text-[15px]` 等硬编码绕过密度约定
+- ✅ 需要强调时用颜色（`--brand-2` / `--text`）而不是堆字重
+
+相关实现：
+
+- `apps/web/src/styles/index.css`（`@media (max-width: 767px|899px)` 密度块）
+- `apps/web/src/layouts/AppShell.tsx`（底栏 class）
+
+---
+
+## 7. 组件级推荐映射
 
 | UI 角色 | 字号 | 颜色 | 字重 |
 |---------|------|------|------|
@@ -334,7 +364,7 @@ iOS 在输入框 `font-size < 16px` 时会聚焦缩放。
 
 ---
 
-## 7. 新增 Token 流程
+## 8. 新增 Token 流程
 
 1. 确认现有档位无法表达（不要为 `13.2px` 这种微调开新档）。  
 2. 在 `index.css` 的 `:root` **对应分区注释下**追加，命名遵循：
@@ -352,14 +382,14 @@ iOS 在输入框 `font-size < 16px` 时会聚焦缩放。
 
 ---
 
-## 8. Review 清单（PR 自检）
+## 9. Review 清单（PR 自检）
 
 提交前端样式前勾选：
 
 - [ ] 无新增 `font-size: Npx` / `font-size: Nrem`（token / clamp token 除外）
 - [ ] 无新增 `color: #hex` / `color: rgb(...)` 作为文字色
 - [ ] TSX 无 `text-[12px]`、`text-[#...]`
-- [ ] 字号来自 §3 档位；颜色来自 §4 语义
+- [ ] 字号来自 §3 档位；颜色来自 §4 语义；手机端遵守 §6 密度
 - [ ] 暗色模式抽查：主文案 / 次文案 / 危险色可读
 - [ ] 固定暗底 UI 使用 On-ink，而非 `--text`
 - [ ] 小屏输入框 ≥ `--fs-2xl`（16px）
@@ -381,7 +411,7 @@ rg -n "text-\[[0-9]" apps/web/src --glob '*.tsx'
 
 ---
 
-## 9. 现状 Review 摘要（2026-07）
+## 10. 现状 Review 摘要（2026-07）
 
 ### 已落地
 
@@ -389,6 +419,10 @@ rg -n "text-\[[0-9]" apps/web/src --glob '*.tsx'
 - TSX 中 `text-[Npx]` 已清零，改为 `text-[var(--fs-*)]` / `text-[var(--text*)]`
 - `body` 基准字号 `--fs-md`，跨页继承一致
 - 状态 ink/bright、On-ink、语言色已入库
+
+### 已补充
+
+- 手机端文字密度：底栏 / 设置表单 / 页标题已收敛，见 §6
 
 ### 已知后续（非阻塞）
 
@@ -402,7 +436,7 @@ rg -n "text-\[[0-9]" apps/web/src --glob '*.tsx'
 
 ---
 
-## 10. 相关文件
+## 11. 相关文件
 
 | 路径 | 说明 |
 |------|------|
@@ -415,6 +449,6 @@ rg -n "text-\[[0-9]" apps/web/src --glob '*.tsx'
 
 ---
 
-## 11. 一句话
+## 12. 一句话
 
 > **字号看角色，颜色看语义；只引 token，不写魔法数。**
