@@ -16,7 +16,6 @@ import {
   IconDashboard,
   IconMic,
   IconRefresh,
-  IconSpark,
   IconTrash,
   IconUpload,
 } from '../components/icons';
@@ -76,7 +75,6 @@ export function AdminPage({ route }: { route: Route }) {
       setTotal(res.total);
       setTotalPages(res.totalPages);
       setFacets(res.facets || EMPTY_FACETS);
-      // 页码越界时回退
       if (res.page !== page && res.page >= 1) {
         setPage(res.page);
       }
@@ -93,13 +91,13 @@ export function AdminPage({ route }: { route: Route }) {
     void refresh();
   }, [refresh]);
 
-  // 筛选 / 搜索变化时回到第一页
   useEffect(() => {
     setPage(1);
   }, [filter, debouncedQuery]);
 
   useEffect(() => {
-    const active = facets.active > 0 || jobs.some((j) => ACTIVE.includes(j.status));
+    const active =
+      facets.active > 0 || jobs.some((j) => ACTIVE.includes(j.status));
     if (!active) return;
     const timer = window.setInterval(() => void refresh(), 1500);
     return () => window.clearInterval(timer);
@@ -116,8 +114,6 @@ export function AdminPage({ route }: { route: Route }) {
     }),
     [facets],
   );
-
-  const filtered = jobs;
 
   const runJobAction = async (id: string, fn: () => Promise<unknown>) => {
     setBusyId(id);
@@ -140,6 +136,9 @@ export function AdminPage({ route }: { route: Route }) {
     { key: 'failed', label: t('admin.failed'), count: stats.failedCount },
   ];
 
+  const showActiveHint = stats.activeCount > 0;
+  const showFailedHint = stats.failedCount > 0 && filter !== 'failed';
+
   return (
     <AppShell route={route}>
       <AdminChrome
@@ -154,7 +153,7 @@ export function AdminPage({ route }: { route: Route }) {
               onClick={() => navigate({ name: 'create' })}
             >
               <IconUpload size={15} />
-              {t('admin.upload')}
+              <span className="admin-action-label">{t('admin.upload')}</span>
             </button>
             <button
               type="button"
@@ -168,32 +167,37 @@ export function AdminPage({ route }: { route: Route }) {
           </>
         }
       >
-        <section className="admin-stats" aria-label={t('admin.metricsAria')}>
-          <StatCard
-            label={t('admin.all')}
-            value={stats.total}
-            tone="default"
-          />
-          <StatCard
-            label={t('admin.processing')}
-            value={stats.activeCount}
-            tone={stats.activeCount > 0 ? 'brand' : 'default'}
-            pulse={stats.activeCount > 0}
-          />
-          <StatCard
-            label={t('admin.published')}
-            value={stats.publishedCount}
-            tone={stats.publishedCount > 0 ? 'success' : 'default'}
-          />
-          <StatCard
-            label={t('admin.failed')}
-            value={stats.failedCount}
-            tone={stats.failedCount > 0 ? 'danger' : 'default'}
-          />
-        </section>
+        {/* 状态提示：替代大块统计卡片，仅在有处理中/失败时出现 */}
+        {(showActiveHint || showFailedHint) && (
+          <section className="admin-status-strip" aria-live="polite">
+            {showActiveHint ? (
+              <button
+                type="button"
+                className="admin-status-chip is-brand is-pulse"
+                onClick={() => setFilter('active')}
+              >
+                <i aria-hidden />
+                <span>
+                  {t('admin.processingHint', { n: stats.activeCount })}
+                </span>
+              </button>
+            ) : null}
+            {showFailedHint ? (
+              <button
+                type="button"
+                className="admin-status-chip is-danger"
+                onClick={() => setFilter('failed')}
+              >
+                <span>
+                  {t('admin.failedHint', { n: stats.failedCount })}
+                </span>
+              </button>
+            ) : null}
+          </section>
+        )}
 
-        <section className="admin-toolbar">
-          <div className="admin-filters" role="tablist" aria-label={t('admin.filtersAria')}>
+        <section className="admin-toolbar" aria-label={t('admin.filtersAria')}>
+          <div className="admin-filters" role="tablist">
             {filters.map((item) => (
               <button
                 key={item.key}
@@ -204,6 +208,7 @@ export function AdminPage({ route }: { route: Route }) {
                   'admin-filter',
                   filter === item.key ? 'is-active' : '',
                   item.key === 'failed' && item.count > 0 ? 'is-danger' : '',
+                  item.key === 'active' && item.count > 0 ? 'is-live' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -233,7 +238,7 @@ export function AdminPage({ route }: { route: Route }) {
 
         <section className="admin-library">
           <div className="admin-library-head">
-            <div>
+            <div className="admin-library-head-copy">
               <h2>{t('admin.library')}</h2>
               <p>
                 {loading
@@ -243,15 +248,20 @@ export function AdminPage({ route }: { route: Route }) {
                     : t('admin.noJobs')}
               </p>
             </div>
+            {!loading && total > 0 ? (
+              <span className="admin-library-count" aria-hidden>
+                {total}
+              </span>
+            ) : null}
           </div>
 
           {loading ? (
-            <div className="admin-skel">
-              <div className="nl-shimmer h-24" />
-              <div className="nl-shimmer h-24" />
-              <div className="nl-shimmer h-24" />
+            <div className="admin-skel" aria-busy="true">
+              <div className="admin-skel-card" />
+              <div className="admin-skel-card" />
+              <div className="admin-skel-card" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : jobs.length === 0 ? (
             <div className="admin-empty-wrap">
               <EmptyState
                 icon={<IconDashboard size={22} />}
@@ -284,7 +294,7 @@ export function AdminPage({ route }: { route: Route }) {
           ) : (
             <>
               <div className="admin-job-list">
-                {filtered.map((job, i) => (
+                {jobs.map((job, i) => (
                   <JobCard
                     key={job.id}
                     job={job}
@@ -321,33 +331,6 @@ export function AdminPage({ route }: { route: Route }) {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  tone = 'default',
-  pulse = false,
-}: {
-  label: string;
-  value: number | string;
-  tone?: 'default' | 'brand' | 'success' | 'danger';
-  pulse?: boolean;
-}) {
-  return (
-    <div
-      className={[
-        'admin-stat',
-        `is-${tone}`,
-        pulse ? 'is-pulse' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <b>{value}</b>
-      <span>{label}</span>
-    </div>
-  );
-}
-
 function JobCard({
   job,
   index,
@@ -367,18 +350,14 @@ function JobCard({
 }) {
   const { t } = useI18n();
   const title = job.podcast?.title || job.title;
-  const mode = job.tts?.mode || 'default';
   const active = ACTIVE.includes(job.status);
   const showProgress = active || job.status === 'failed';
   const canRetry = job.status === 'failed' || job.status === 'done';
-
-  const assets = [
-    { key: 'v', label: t('admin.assetVideo'), ok: Boolean(job.hasVideo) },
-    { key: 'a', label: t('admin.assetAudio'), ok: Boolean(job.hasSourceAudio) },
-    { key: 't', label: t('admin.assetTranscript'), ok: Boolean(job.hasTranscript) },
-    { key: 'p', label: t('admin.assetPodcast'), ok: Boolean(job.hasPodcastAudio) },
-  ];
-  const readyCount = assets.filter((a) => a.ok).length;
+  const statusText = job.message
+    ? job.error
+      ? `${job.message} · ${job.error}`
+      : job.message
+    : null;
 
   return (
     <article
@@ -387,6 +366,7 @@ function JobCard({
         active ? 'is-active' : '',
         job.status === 'failed' ? 'is-failed' : '',
         job.status === 'done' ? 'is-done' : '',
+        job.published ? 'is-published' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -407,22 +387,29 @@ function JobCard({
           >
             <IconMic size={16} />
           </CoverArt>
-          {job.published && (
+          {job.published ? (
             <i className="admin-job-live" title={t('admin.published')} />
-          )}
+          ) : null}
         </span>
 
         <div className="admin-job-body">
-          <div className="admin-job-top">
+          <div className="admin-job-title-row">
             <h3 className="admin-job-title">{title}</h3>
-            <div className="admin-job-badges">
-              <StatusBadge status={job.status} />
-              {job.published ? (
-                <span className="nl-tag nl-tag-success">{t('admin.published')}</span>
-              ) : (
-                <span className="nl-tag">{t('admin.draft')}</span>
-              )}
-            </div>
+            <span className="admin-job-open-hint" aria-hidden>
+              {t('common.details')}
+            </span>
+          </div>
+
+          <div className="admin-job-badges">
+            <StatusBadge status={job.status} />
+            <span
+              className={[
+                'admin-publish-pill',
+                job.published ? 'is-on' : 'is-off',
+              ].join(' ')}
+            >
+              {job.published ? t('admin.published') : t('admin.draft')}
+            </span>
           </div>
 
           <div className="admin-job-sub">
@@ -438,33 +425,11 @@ function JobCard({
             <span>{formatTime(job.createdAt)}</span>
           </div>
 
-          <div className="admin-job-meta">
-            <div
-              className="admin-job-assets"
-              title={t('admin.assetsTitle', { ready: readyCount })}
-            >
-              {assets.map((a) => (
-                <span
-                  key={a.key}
-                  className={['admin-asset', a.ok ? 'is-ok' : ''].join(' ')}
-                >
-                  {a.label}
-                </span>
-              ))}
-            </div>
-            <span className="admin-job-tts">
-              <IconSpark size={11} />
-              {mode === 'voicedesign' ? t('admin.ttsCustom') : t('admin.ttsDefault')}
-              {job.tts?.voice ? ` · ${job.tts.voice}` : ''}
-            </span>
-          </div>
-
-          {showProgress && (
+          {showProgress ? (
             <div className="admin-job-progress">
               <div className="admin-job-progress-row">
                 <span className="truncate">
-                  {job.message}
-                  {job.error ? ` · ${job.error}` : ''}
+                  {statusText || t('job.waiting')}
                 </span>
                 <span>{Math.round(job.progress)}%</span>
               </div>
@@ -473,48 +438,56 @@ function JobCard({
                 tone={job.status === 'failed' ? 'danger' : 'brand'}
               />
             </div>
-          )}
-
-          {!showProgress && job.message && (
-            <p className="admin-job-msg">{job.message}</p>
-          )}
+          ) : statusText ? (
+            <p className="admin-job-msg">{statusText}</p>
+          ) : null}
         </div>
       </button>
 
       <div className="admin-job-actions">
-        <button type="button" className="nl-btn nl-btn-primary" onClick={onOpen}>
-          {t('common.details')}
-        </button>
         <button
           type="button"
-          className="nl-btn nl-btn-secondary"
+          className={[
+            'admin-job-publish',
+            job.published ? 'is-on' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           disabled={busy}
           onClick={onTogglePublish}
         >
-          {job.published ? t('admin.unpublish') : t('admin.publish')}
+          <i aria-hidden />
+          <span>
+            {job.published
+              ? t('admin.unpublishAction')
+              : t('admin.publishAction')}
+          </span>
         </button>
-        {canRetry && (
+
+        <div className="admin-job-icon-actions">
+          {canRetry ? (
+            <button
+              type="button"
+              className="admin-job-icon-btn"
+              disabled={busy}
+              onClick={onRetry}
+              aria-label={t('admin.rerun')}
+              title={t('admin.rerunTitle')}
+            >
+              <IconRefresh size={15} />
+            </button>
+          ) : null}
           <button
             type="button"
-            className="nl-btn nl-btn-ghost studio-icon-btn"
+            className="admin-job-icon-btn is-danger"
             disabled={busy}
-            onClick={onRetry}
-            aria-label={t('admin.rerun')}
-            title={t('admin.rerunTitle')}
+            onClick={onDelete}
+            aria-label={t('common.delete')}
+            title={t('common.delete')}
           >
-            <IconRefresh size={14} />
+            <IconTrash size={15} />
           </button>
-        )}
-        <button
-          type="button"
-          className="nl-btn nl-btn-ghost studio-icon-btn is-danger"
-          disabled={busy}
-          onClick={onDelete}
-          aria-label={t('common.delete')}
-          title={t('common.delete')}
-        >
-          <IconTrash size={14} />
-        </button>
+        </div>
       </div>
     </article>
   );
