@@ -131,6 +131,17 @@ export function applyAssistantStyleTags(
   return `(${tags.join(' ')})${body || trimmed}`;
 }
 
+/** 拒绝把 ASR 模型误用到 TTS 请求 */
+function sanitizeMimoTtsModel(raw?: string): string {
+  const model = (raw || '').trim();
+  if (!model) return 'mimo-v2.5-tts';
+  // 常见误配：插件配置被写成 mimo-*-asr
+  if (/-asr\b/i.test(model) || (/\basr\b/i.test(model) && !/\btts\b/i.test(model))) {
+    return 'mimo-v2.5-tts';
+  }
+  return model;
+}
+
 function buildMimoTtsBody(
   text: string,
   tts?: TtsOptions,
@@ -161,7 +172,7 @@ function buildMimoTtsBody(
   const voice = resolveMimoPresetVoice(tts?.voice);
 
   return {
-    model: opts?.model?.trim() || 'mimo-v2.5-tts',
+    model: sanitizeMimoTtsModel(opts?.model),
     messages: [{ role: 'assistant', content: assistantText }],
     audio: {
       format: 'wav' as const,
@@ -211,13 +222,14 @@ export const mimoTtsProvider: TtsProvider = {
     ctx?: TtsPluginContext,
   ): Promise<TtsChunkResult> {
     const ep = resolveCloudEndpoint('tts', 'mimo');
-    const pluginModel =
+    const pluginModel = sanitizeMimoTtsModel(
       String(ctx?.getConfig?.('model') ?? '').trim() ||
-      ep.model ||
-      getTtsModel();
+        ep.model ||
+        getTtsModel(),
+    );
     const built = buildMimoTtsBody(input.text, input.tts, {
       applyLeadingStyle: input.applyLeadingStyle,
-      model: input.model?.trim() || pluginModel || undefined,
+      model: sanitizeMimoTtsModel(input.model?.trim() || pluginModel),
       voiceDesignModel: input.voiceDesignModel,
     });
 

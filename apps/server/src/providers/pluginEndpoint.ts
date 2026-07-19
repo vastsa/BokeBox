@@ -220,23 +220,32 @@ export function migrateAsrTtsSecretsFromGlobalOnce(): void {
       apiKey: asrKey,
       model: asrModel || 'whisper-1',
     });
+    // local-whisper 模型与云端 ASR 模型语义不同，避免把 mimo-*-asr 灌进去
+    const whisperModel =
+      asrModel && /^(tiny|base|small|medium|large)([.-].*)?$/i.test(asrModel)
+        ? asrModel
+        : 'base';
     fillEmptyPluginConfig('asr', 'local-whisper', {
       bin: whisperBin,
       lang: whisperLang,
-      model: asrModel || 'base',
+      model: whisperModel,
     });
 
+    // TTS 模型不得使用 ASR 模型名
+    const safeTtsModel =
+      ttsModel && !/asr/i.test(ttsModel) ? ttsModel : '';
     fillEmptyPluginConfig('tts', 'mimo', {
       baseUrl: ttsBase,
       apiKey: ttsKey,
-      model: ttsModel || 'mimo-v2.5-tts',
+      model: safeTtsModel || 'mimo-v2.5-tts',
     });
     fillEmptyPluginConfig('tts', 'openai', {
       baseUrl: ttsBase,
       apiKey: ttsKey,
-      model: ttsModel || 'tts-1',
+      model: safeTtsModel || 'tts-1',
     });
-    if (defaultVoice) {
+    // Edge 只接受神经音色 id，避免把全局 MiMo 音色（如「冰糖」）写进去
+    if (defaultVoice && /^[a-z]{2}-[A-Z]{2}-.+Neural$/i.test(defaultVoice)) {
       fillEmptyPluginConfig('tts', 'edge', {
         defaultVoice,
       });
