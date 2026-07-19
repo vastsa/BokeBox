@@ -89,11 +89,26 @@ export default {
 ## 示例
 
 ```bash
+# 演示插件
 cp -R examples/asr-plugin-echo storage/plugins/asr/echo-asr
 cp -R examples/tts-plugin-echo storage/plugins/tts/echo-tts
+
+# Fish Speech / Fish Audio TTS
+cp -R examples/tts-plugin-fishspeech storage/plugins/tts/fishspeech
+
 curl -X POST http://localhost:8787/api/asr-plugins/rescan
 curl -X POST http://localhost:8787/api/tts-plugins/rescan
 ```
+
+### Fish Speech（tts.fishspeech）
+
+接入 [Fish Audio](https://fish.audio/) 云端或自托管 [Fish Speech](https://github.com/fishaudio/fish-speech)：
+
+1. 复制插件到 `storage/plugins/tts/fishspeech`
+2. 扫描后填写 `baseUrl` / `apiKey` / `referenceId`
+3. 启用插件，并将 `ttsProvider` 设为 `tts.fishspeech`
+
+详见 [`examples/tts-plugin-fishspeech/README.md`](../examples/tts-plugin-fishspeech/README.md)。
 
 仓库地址：https://github.com/vastsa/BokeBox  
 协议：LGPL-3.0

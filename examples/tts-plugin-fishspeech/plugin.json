@@ -1,0 +1,119 @@
+{
+  "id": "tts.fishspeech",
+  "name": "Fish Speech",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "apiVersion": 1,
+  "description": "接入 Fish Audio 云端或自托管 Fish Speech（OpenAudio）进行 TTS。支持 reference_id 音色克隆。",
+  "riskLevel": "medium",
+  "defaultEnabled": false,
+  "permissions": ["network", "config"],
+  "configSchema": [
+    {
+      "key": "baseUrl",
+      "label": "API Base URL",
+      "type": "string",
+      "required": true,
+      "default": "https://api.fish.audio",
+      "placeholder": "https://api.fish.audio",
+      "description": "Fish Audio 云端用 https://api.fish.audio；自托管 Fish Speech 填 http://host:8080（不要带 /v1）。"
+    },
+    {
+      "key": "apiKey",
+      "label": "API Key",
+      "type": "password",
+      "required": false,
+      "secret": true,
+      "description": "Fish Audio 云端必填（Bearer）。自托管若未开启鉴权可留空。",
+      "placeholder": "sk-..."
+    },
+    {
+      "key": "model",
+      "label": "模型（云端 header）",
+      "type": "select",
+      "required": false,
+      "default": "s2.1-pro-free",
+      "description": "仅 Fish Audio 云端生效，对应请求头 model。自托管由服务端加载的 checkpoint 决定，忽略此字段。",
+      "options": [
+        { "value": "s2.1-pro-free", "label": "s2.1-pro-free（免费开发档）" },
+        { "value": "s2.1-pro", "label": "s2.1-pro（推荐生产）" },
+        { "value": "s2-pro", "label": "s2-pro" },
+        { "value": "s1", "label": "s1" }
+      ]
+    },
+    {
+      "key": "referenceId",
+      "label": "默认音色 ID (reference_id)",
+      "type": "string",
+      "required": false,
+      "placeholder": "7f92f8afb8ec43bf81429cc1c9199cb1",
+      "description": "Fish Audio 音色库 / 自克隆模型 id；自托管则填本地 reference 目录名。任务里填写的音色会优先覆盖此项。"
+    },
+    {
+      "key": "format",
+      "label": "输出格式",
+      "type": "select",
+      "required": false,
+      "default": "wav",
+      "description": "推荐 wav，便于多段口播拼接。",
+      "options": [
+        { "value": "wav", "label": "WAV（推荐）" },
+        { "value": "mp3", "label": "MP3" },
+        { "value": "opus", "label": "Opus" }
+      ]
+    },
+    {
+      "key": "latency",
+      "label": "延迟档位",
+      "type": "select",
+      "required": false,
+      "default": "normal",
+      "description": "normal 音质优先；balanced / low 更低延迟（云端语义，自托管可忽略）。",
+      "options": [
+        { "value": "normal", "label": "normal（音质优先）" },
+        { "value": "balanced", "label": "balanced" },
+        { "value": "low", "label": "low" }
+      ]
+    },
+    {
+      "key": "temperature",
+      "label": "Temperature",
+      "type": "number",
+      "required": false,
+      "default": 0.8,
+      "description": "0.1–1.0，越高越有表现力。"
+    },
+    {
+      "key": "topP",
+      "label": "Top P",
+      "type": "number",
+      "required": false,
+      "default": 0.8,
+      "description": "0.1–1.0，核采样多样性。"
+    },
+    {
+      "key": "chunkLength",
+      "label": "Chunk Length",
+      "type": "number",
+      "required": false,
+      "default": 200,
+      "description": "服务端文本切块长度（约 100–300，云端上限 300）。"
+    },
+    {
+      "key": "normalize",
+      "label": "文本归一化",
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "中英数字等归一化，提升稳定性。"
+    },
+    {
+      "key": "timeoutMs",
+      "label": "超时 (ms)",
+      "type": "number",
+      "required": false,
+      "default": 120000,
+      "description": "单次合成超时毫秒数。"
+    }
+  ]
+}

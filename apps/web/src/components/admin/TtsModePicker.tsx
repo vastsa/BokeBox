@@ -85,10 +85,18 @@ export function isMimoTtsProvider(provider?: string): boolean {
   return normalizeProviderId(provider) === 'mimo';
 }
 
+/** 内置 TTS 提供方（含固定预置音色表） */
+export function isBuiltinTtsProvider(provider?: string): boolean {
+  const id = normalizeProviderId(provider);
+  return id === 'mimo' || id === 'openai' || id === 'edge' || id === 'demo';
+}
+
 export function defaultVoiceForProvider(provider?: string): string {
   const id = normalizeProviderId(provider);
   if (id === 'edge') return 'zh-CN-XiaoxiaoNeural';
   if (id === 'openai') return 'alloy';
+  // 外部插件（如 tts.fishspeech）音色走插件配置 / 自由填写 reference_id
+  if (!isBuiltinTtsProvider(id)) return '';
   return DEFAULT_PRESET_VOICE;
 }
 
@@ -119,6 +127,10 @@ function voiceOptionsForProvider(
       title: `${v.name} · ${v.language}`,
     }));
   }
+  // 外部 TTS 插件：不展示其它提供方预置音色，改由自由输入 / 插件配置
+  if (!isBuiltinTtsProvider(provider) || provider === 'demo') {
+    return [];
+  }
   return PRESET_VOICES.map((v) => {
     const name = v.nameKey ? t(v.nameKey) : v.name || v.id;
     const language = t(v.languageKey);
@@ -139,6 +151,16 @@ function clampTtsForProvider(value: TtsOptions, provider: string): TtsOptions {
   if (isMimoTtsProvider(provider)) return value;
 
   const voices = voiceOptionsForProvider(provider, (k) => k);
+  // 外部插件：保留用户填写的 reference_id / 音色字符串
+  if (!voices.length) {
+    return {
+      mode: 'default',
+      voice: value.voice ? String(value.voice) : '',
+      voiceDesign: undefined,
+      styleTags: undefined,
+    };
+  }
+
   const allowed = new Set(voices.map((v) => v.id));
   const fallback = defaultVoiceForProvider(provider);
   const voice =
@@ -236,7 +258,7 @@ export function TtsModePicker({
         </div>
       )}
 
-      {showPreset && (
+      {showPreset && voiceOptions.length > 0 && (
         <div>
           <div className="mb-1.5 text-[var(--fs-sm-plus)] font-medium text-[var(--text-2)]">
             {t('tts.presetVoices')}
@@ -267,6 +289,34 @@ export function TtsModePicker({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {showPreset && voiceOptions.length === 0 && (
+        <div>
+          <label className="mb-1.5 block text-[var(--fs-sm-plus)] font-medium text-[var(--text-2)]">
+            {t('tts.externalVoiceId')}
+          </label>
+          <input
+            type="text"
+            className="nl-input"
+            value={value.voice || ''}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                mode: 'default',
+                voice: e.target.value,
+                voiceDesign: undefined,
+                styleTags: undefined,
+              })
+            }
+            placeholder={t('tts.externalVoiceIdPlaceholder')}
+            spellCheck={false}
+            autoComplete="off"
+          />
+          <p className="mt-1 text-[var(--fs-xs)] text-[var(--text-3)]">
+            {t('tts.externalVoiceIdHint')}
+          </p>
         </div>
       )}
 
