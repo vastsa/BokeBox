@@ -340,5 +340,8 @@ BokeBox is **not locked to one media type**. Beyond built-in video / link / draf
 - Developer guide: [docs/source-plugin-development.md](./docs/source-plugin-development.md)
 - Architecture notes: [docs/source-plugins.md](./docs/source-plugins.md)
 - Example plugin: [examples/source-plugin-echo](./examples/source-plugin-echo)
+- ASR/TTS plugins: [docs/asr-tts-plugins.md](./docs/asr-tts-plugins.md)
+- TTS plugin developer guide: [docs/tts-plugin-development.md](./docs/tts-plugin-development.md)
+- TTS examples: [examples/tts-plugin-echo](./examples/tts-plugin-echo) · [examples/tts-plugin-fishspeech](./examples/tts-plugin-fishspeech)
 - Web design tokens (font/color): [docs/web-design-tokens.md](./docs/web-design-tokens.md)
 

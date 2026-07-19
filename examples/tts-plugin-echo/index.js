@@ -37,7 +37,9 @@ const plugin = {
     name: 'Echo TTS',
     description: '演示 TTS：返回极短静音 WAV',
     modes: [{ id: 'default', label: '演示', description: '静音占位' }],
-    voices: [{ id: 'echo', name: 'Echo' }],
+    // 第三方插件请显式声明 voiceUi，宿主据此切换音色面板
+    voiceUi: 'preset',
+    voices: [{ id: 'echo', name: 'Echo', language: 'demo', description: '占位音色' }],
     supportsStyleTags: false,
     supportsVoiceDesign: false,
     maxCharsPerRequest: 5000,

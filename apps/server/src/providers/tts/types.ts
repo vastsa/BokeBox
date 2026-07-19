@@ -59,9 +59,16 @@ export interface TtsProviderMeta {
   supportsVoiceDesign: boolean;
   /**
    * 音色 UI 形态。缺省由前端按 provider / voices 推断。
-   * 外部插件建议显式声明（如 Fish Speech = reference）。
+   * 外部插件请显式声明，不要依赖宿主特判插件 id。
    */
   voiceUi?: TtsVoiceUi;
+  /**
+   * 插件配置里「默认音色」字段 key。
+   * - reference 面板：默认读 referenceId
+   * - freeform/preset：可读 defaultVoice / voice
+   * 任务级 tts.voice 始终可覆盖此配置。
+   */
+  voiceConfigKey?: string;
   /** 单次请求建议最大字符数；门面会据此切段 */
   maxCharsPerRequest: number;
   suggestedModels?: {
@@ -134,6 +141,7 @@ export interface TtsPluginDescriptor extends PluginDescriptorBase {
   supportsStyleTags?: boolean;
   supportsVoiceDesign?: boolean;
   voiceUi?: TtsVoiceUi;
+  voiceConfigKey?: string;
   modes?: TtsModeMeta[];
   voices?: TtsVoiceMeta[];
   suggestedModels?: TtsProviderMeta['suggestedModels'];

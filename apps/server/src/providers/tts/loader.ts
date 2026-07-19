@@ -55,7 +55,11 @@ function assertTtsPluginShape(value: unknown, id: string): TtsPlugin {
     throw new Error('插件缺少 defaultEnabled');
   }
 
-  const voiceUiRaw = String((p.meta as { voiceUi?: string }).voiceUi || '').trim();
+  const metaAny = p.meta as {
+    voiceUi?: string;
+    voiceConfigKey?: string;
+  };
+  const voiceUiRaw = String(metaAny.voiceUi || '').trim();
   const voiceUi =
     voiceUiRaw === 'preset' ||
     voiceUiRaw === 'reference' ||
@@ -63,6 +67,9 @@ function assertTtsPluginShape(value: unknown, id: string): TtsPlugin {
     voiceUiRaw === 'none'
       ? voiceUiRaw
       : undefined;
+  const voiceConfigKey = String(metaAny.voiceConfigKey || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_]/g, '');
 
   const meta: TtsProviderMeta = {
     id,
@@ -73,6 +80,7 @@ function assertTtsPluginShape(value: unknown, id: string): TtsPlugin {
     supportsStyleTags: Boolean(p.meta.supportsStyleTags),
     supportsVoiceDesign: Boolean(p.meta.supportsVoiceDesign),
     voiceUi,
+    voiceConfigKey: voiceConfigKey || undefined,
     maxCharsPerRequest: Number(p.meta.maxCharsPerRequest) || 2000,
     suggestedModels: p.meta.suggestedModels,
   };

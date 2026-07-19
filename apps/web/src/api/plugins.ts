@@ -170,6 +170,8 @@ export type AiPluginDescriptor = {
   supportsVoiceDesign?: boolean;
   /** TTS：音色面板形态 */
   voiceUi?: TtsVoiceUi;
+  /** TTS：插件配置中默认音色字段 key */
+  voiceConfigKey?: string;
   modes?: AiPluginModeMeta[];
   voices?: AiPluginVoiceMeta[];
   suggestedModels?: {

@@ -219,6 +219,7 @@ const plugin = {
     supportsStyleTags: false,
     supportsVoiceDesign: false,
     voiceUi: 'reference',
+    voiceConfigKey: 'referenceId',
     maxCharsPerRequest: 800,
     suggestedModels: {
       tts: DEFAULT_MODEL,

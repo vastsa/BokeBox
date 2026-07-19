@@ -74,17 +74,24 @@ export default {
     name: '...',
     description: '...',
     modes: [{ id: 'default', label: '默认' }],
-    voices: [],
+    // ★ 第三方插件请显式声明，宿主按此切换音色面板（无需改主仓）
+    voiceUi: 'preset', // preset | reference | freeform | none
+    voiceConfigKey: 'defaultVoice', // 插件配置中的默认音色字段
+    voices: [{ id: 'v1', name: '音色 A' }], // voiceUi=preset 时使用
     supportsStyleTags: false,
     supportsVoiceDesign: false,
     maxCharsPerRequest: 2000,
+    suggestedModels: { tts: 'xxx', defaultVoice: 'v1' },
   },
   isAvailable() { return true },
   async synthesizeChunk(input, ctx) {
+    // input.tts?.voice = 任务覆盖；否则读 ctx.getConfig(voiceConfigKey)
     return { audio: Buffer.from(...), format: 'wav', provider: 'tts.xxx' }
   },
 }
 ```
+
+第三方完整开发规范见 **[tts-plugin-development.md](./tts-plugin-development.md)**。
 
 ## 示例
 
@@ -100,18 +107,24 @@ curl -X POST http://localhost:8787/api/asr-plugins/rescan
 curl -X POST http://localhost:8787/api/tts-plugins/rescan
 ```
 
-### 音色 UI（voiceUi）
+### 音色 UI（voiceUi）——给第三方作者
 
-TTS 插件可在 `meta.voiceUi` 声明音色面板形态，宿主按提供方切换 UI：
+**后人写插件不需要改 BokeBox 前端。** 只要在 `meta` 里声明能力，宿主自动切换面板。
 
-| voiceUi | 展示 | 典型提供方 |
-|---------|------|------------|
-| `preset` | 预置音色网格 | mimo / openai / edge |
-| `reference` | reference_id 输入 + 插件默认 | Fish Speech |
-| `freeform` | 自由文本音色 id | 自定义插件 |
-| `none` | 无需选音色 | demo |
+| voiceUi | 展示 | 你要提供什么 |
+|---------|------|----------------|
+| `preset` | 预置音色网格 | `meta.voices[]` |
+| `reference` | reference_id 输入 + 插件默认 | `voiceConfigKey` + configSchema（如 `referenceId`） |
+| `freeform` | 自由文本音色 id | 可选 `voiceConfigKey` |
+| `none` | 无需选音色 | — |
 
-同时读取 `supportsStyleTags` / `supportsVoiceDesign` 决定是否展示风格标签与 VoiceDesign。
+配套字段：
+
+- `voiceConfigKey`：插件配置里默认音色字段名  
+- `supportsStyleTags` / `supportsVoiceDesign`：高级面板开关  
+- 任务级 `tts.voice` **始终可覆盖**插件默认  
+
+完整说明与自检清单：[`docs/tts-plugin-development.md`](./tts-plugin-development.md)
 
 ### Fish Speech（tts.fishspeech）
 

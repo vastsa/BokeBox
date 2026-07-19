@@ -112,18 +112,32 @@ function defaultVoiceForPreset(providerId: string, voices: TtsVoiceOption[]): st
   return voices[0]?.id || '';
 }
 
-function readPluginDefaultReferenceId(
+function readPluginDefaultVoice(
   plugin?: AiPluginDescriptor | null,
+  voiceUi?: TtsVoiceUi,
 ): string | undefined {
   const values = plugin?.configValues;
   if (!values || typeof values !== 'object') return undefined;
-  const raw =
-    values.referenceId ??
-    values.reference_id ??
-    values.defaultVoice ??
-    values.voice;
-  const s = String(raw ?? '').trim();
-  return s || undefined;
+
+  // 1) 插件显式声明的配置 key
+  const declared = String(plugin?.voiceConfigKey || '').trim();
+  if (declared && values[declared] !== undefined && values[declared] !== '') {
+    const s = String(values[declared]).trim();
+    if (s) return s;
+  }
+
+  // 2) 按 UI 形态的常见约定
+  const keys =
+    voiceUi === 'reference'
+      ? ['referenceId', 'reference_id', 'defaultVoice', 'voice']
+      : ['defaultVoice', 'voice', 'referenceId', 'reference_id'];
+  for (const key of keys) {
+    const raw = values[key];
+    if (raw === undefined || raw === null || raw === '') continue;
+    const s = String(raw).trim();
+    if (s) return s;
+  }
+  return undefined;
 }
 
 /**
@@ -140,6 +154,11 @@ export function resolveTtsVoiceProfile(
   const fromPlugin = pluginVoices(plugin);
   const builtin = builtinPresetVoices(providerId);
 
+  // 推断优先级：
+  // 1) 插件显式 voiceUi（第三方插件的正确做法）
+  // 2) 内置提供方
+  // 3) 有 voices 列表 → preset
+  // 4) 否则 freeform（通用兜底，不特判插件名）
   let voiceUi: TtsVoiceUi =
     explicitUi ||
     (idLower === 'demo'
@@ -148,13 +167,12 @@ export function resolveTtsVoiceProfile(
         ? 'preset'
         : fromPlugin.length
           ? 'preset'
-          : idLower.includes('fish')
-            ? 'reference'
-            : 'freeform');
+          : 'freeform');
 
-  // 安全收敛：声明 reference 但给了可用预置时，仍以 reference 为主（克隆类）
   if (explicitUi === 'reference') voiceUi = 'reference';
   if (explicitUi === 'none') voiceUi = 'none';
+  if (explicitUi === 'preset') voiceUi = 'preset';
+  if (explicitUi === 'freeform') voiceUi = 'freeform';
 
   const supportsStyleTags = Boolean(
     plugin?.supportsStyleTags ?? idLower === 'mimo',
@@ -173,7 +191,7 @@ export function resolveTtsVoiceProfile(
   const suggestedDefault = String(
     plugin?.suggestedModels?.defaultVoice || '',
   ).trim();
-  const pluginDefaultReferenceId = readPluginDefaultReferenceId(plugin);
+  const pluginDefaultReferenceId = readPluginDefaultVoice(plugin, voiceUi);
 
   let defaultVoice = '';
   if (voiceUi === 'preset') {

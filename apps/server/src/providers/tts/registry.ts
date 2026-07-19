@@ -242,6 +242,7 @@ export function listTtsProviderDescriptors() {
       active: p.id === activeId,
       suggestedModels: p.meta.suggestedModels,
       voiceUi: p.meta.voiceUi,
+      voiceConfigKey: p.meta.voiceConfigKey,
       supportsStyleTags: p.meta.supportsStyleTags,
       supportsVoiceDesign: p.meta.supportsVoiceDesign,
       voices: p.meta.voices,
