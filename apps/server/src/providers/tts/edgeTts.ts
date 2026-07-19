@@ -223,6 +223,7 @@ export const edgeTtsProvider: TtsProvider = {
     voices: EDGE_PRESET_VOICES.map((v) => ({ ...v })),
     supportsStyleTags: false,
     supportsVoiceDesign: false,
+    voiceUi: 'preset',
     // Edge 单次不宜过长，门面按此切段
     maxCharsPerRequest: 800,
     suggestedModels: {

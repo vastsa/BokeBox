@@ -127,6 +127,23 @@ export async function resetSourcePluginConfigApi(
 
 export type AiPluginKind = 'asr' | 'tts';
 
+export type TtsVoiceUi = 'preset' | 'reference' | 'freeform' | 'none';
+
+export type AiPluginVoiceMeta = {
+  id: string;
+  name: string;
+  language?: string;
+  gender?: string;
+  description?: string;
+};
+
+export type AiPluginModeMeta = {
+  id: string;
+  label: string;
+  modelHint?: string;
+  description?: string;
+};
+
 export type AiPluginDescriptor = {
   kind?: AiPluginKind;
   id: string;
@@ -151,6 +168,16 @@ export type AiPluginDescriptor = {
   suggestedModel?: string;
   supportsStyleTags?: boolean;
   supportsVoiceDesign?: boolean;
+  /** TTS：音色面板形态 */
+  voiceUi?: TtsVoiceUi;
+  modes?: AiPluginModeMeta[];
+  voices?: AiPluginVoiceMeta[];
+  suggestedModels?: {
+    tts?: string;
+    voiceDesign?: string;
+    defaultVoice?: string;
+    asr?: string;
+  };
 };
 
 export type AiPluginsResponse = {

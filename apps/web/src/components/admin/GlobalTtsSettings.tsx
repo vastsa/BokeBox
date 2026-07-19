@@ -4,12 +4,14 @@ import {
   fetchTtsSettings,
   saveTtsSettings,
 } from '../../api/client';
+import { fetchAiPlugins, type AiPluginDescriptor } from '../../api/plugins';
 import type { TtsOptions } from '../../types/job';
 import {
   defaultVoiceForProvider,
-  isMimoTtsProvider,
-  TtsModePicker,
-} from './TtsModePicker';
+  formatTtsVoiceLabel,
+  resolveTtsVoiceProfile,
+} from '../../lib/ttsVoiceProfile';
+import { TtsModePicker } from './TtsModePicker';
 import { tOutside, useI18n } from '../../i18n';
 import { PageLoader } from '../ui/PageLoader';
 
@@ -19,8 +21,12 @@ const DEFAULT_TTS: TtsOptions = {
   voiceDesign: '成熟稳重的中文播客主持人，音色温暖清晰，语速适中，有亲和力',
 };
 
-function summarizeTts(tts: TtsOptions): string {
-  if (tts.mode === 'voicedesign') {
+function summarizeTts(
+  tts: TtsOptions,
+  profile?: ReturnType<typeof resolveTtsVoiceProfile> | null,
+): string {
+  const p = profile || resolveTtsVoiceProfile('mimo', null);
+  if (tts.mode === 'voicedesign' && p.supportsVoiceDesign) {
     const desc = tts.voiceDesign?.trim();
     return desc
       ? tOutside('tts.customSummary', {
@@ -28,9 +34,21 @@ function summarizeTts(tts: TtsOptions): string {
         })
       : tOutside('tts.customVoice');
   }
-  const parts = [tOutside('tts.modeDefault')];
-  if (tts.voice) parts.push(String(tts.voice));
-  if (tts.styleTags?.length) parts.push(tts.styleTags.join(' '));
+  const parts = [
+    p.voiceUi === 'reference'
+      ? tOutside('tts.modeReferenceShort')
+      : tOutside('tts.modeDefault'),
+  ];
+  parts.push(
+    formatTtsVoiceLabel(
+      tts.voice,
+      p,
+      tOutside('tts.refPluginDefaultShort'),
+    ),
+  );
+  if (p.supportsStyleTags && tts.styleTags?.length) {
+    parts.push(tts.styleTags.join(' '));
+  }
   return parts.join(' · ');
 }
 
@@ -39,28 +57,47 @@ export function GlobalTtsSettings() {
   const { t } = useI18n();
   const [value, setValue] = useState<TtsOptions>(DEFAULT_TTS);
   const [ttsProvider, setTtsProvider] = useState('mimo');
+  const [plugin, setPlugin] = useState<AiPluginDescriptor | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedHint, setSavedHint] = useState(false);
 
-  const advanced = isMimoTtsProvider(ttsProvider);
+  const profile = useMemo(
+    () => resolveTtsVoiceProfile(ttsProvider, plugin),
+    [ttsProvider, plugin],
+  );
+  const advanced = profile.supportsVoiceDesign;
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [ttsData, ai] = await Promise.all([
+      const [ttsData, ai, pluginsRes] = await Promise.all([
         fetchTtsSettings(),
         fetchAiSettings().catch(() => null),
+        fetchAiPlugins('tts').catch(() => null),
       ]);
-      const provider =
-        ai?.tts?.provider || ai?.ttsProvider || 'mimo';
+      const provider = ai?.tts?.provider || ai?.ttsProvider || 'mimo';
       setTtsProvider(provider);
-      setValue(ttsData.tts || {
-        ...DEFAULT_TTS,
-        voice: defaultVoiceForProvider(provider),
-      });
+      const hit =
+        pluginsRes?.plugins.find((p) => p.id === provider) ||
+        pluginsRes?.plugins.find(
+          (p) => p.id.toLowerCase() === String(provider).toLowerCase(),
+        ) ||
+        null;
+      setPlugin(hit);
+      const nextProfile = resolveTtsVoiceProfile(provider, hit);
+      setValue(
+        ttsData.tts || {
+          ...DEFAULT_TTS,
+          voice: defaultVoiceForProvider(provider, hit),
+          mode: 'default',
+          ...(nextProfile.supportsVoiceDesign
+            ? {}
+            : { voiceDesign: undefined, styleTags: undefined }),
+        },
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -72,15 +109,21 @@ export function GlobalTtsSettings() {
     void load();
   }, [load]);
 
-  const summary = useMemo(() => summarizeTts(value), [value]);
+  const summary = useMemo(() => summarizeTts(value, profile), [value, profile]);
   const modeLabel =
-    value.mode === 'voicedesign'
+    value.mode === 'voicedesign' && advanced
       ? tOutside('tts.modeCustom')
-      : tOutside('tts.modeDefault');
+      : profile.voiceUi === 'reference'
+        ? tOutside('tts.modeReferenceShort')
+        : tOutside('tts.modeDefault');
   const voiceLabel =
-    value.mode === 'voicedesign'
+    value.mode === 'voicedesign' && advanced
       ? value.voiceDesign?.trim() || tOutside('tts.noDesc')
-      : String(value.voice || defaultVoiceForProvider(ttsProvider));
+      : formatTtsVoiceLabel(
+          value.voice,
+          profile,
+          tOutside('tts.refPluginDefaultShort'),
+        );
   const styleLabel =
     advanced && value.mode === 'default' && value.styleTags?.length
       ? value.styleTags.join('、')
@@ -104,14 +147,22 @@ export function GlobalTtsSettings() {
 
   const onReset = () => {
     setValue({
-      ...DEFAULT_TTS,
-      voice: defaultVoiceForProvider(ttsProvider),
-      ...(advanced
-        ? {}
-        : { mode: 'default' as const, voiceDesign: undefined, styleTags: undefined }),
+      mode: 'default',
+      voice: defaultVoiceForProvider(ttsProvider, plugin),
+      voiceDesign: advanced
+        ? DEFAULT_TTS.voiceDesign
+        : undefined,
+      styleTags: undefined,
     });
     setSavedHint(false);
   };
+
+  const editDesc =
+    profile.voiceUi === 'reference'
+      ? t('tts.editDescReference')
+      : advanced
+        ? t('tts.editDesc')
+        : t('tts.editDescBasic');
 
   return (
     <section className="settings-card settings-card-wide">
@@ -119,6 +170,10 @@ export function GlobalTtsSettings() {
         <div className="settings-meta-row">
           <dt>{t('tts.metaSummary')}</dt>
           <dd title={summary}>{summary}</dd>
+        </div>
+        <div className="settings-meta-row">
+          <dt>{t('tts.metaProvider')}</dt>
+          <dd>{profile.providerName}</dd>
         </div>
         {advanced && (
           <div className="settings-meta-row">
@@ -130,7 +185,9 @@ export function GlobalTtsSettings() {
           <dt>
             {value.mode === 'voicedesign' && advanced
               ? t('tts.metaDesc')
-              : t('tts.labelVoice')}
+              : profile.voiceUi === 'reference'
+                ? t('tts.refVoiceId')
+                : t('tts.labelVoice')}
           </dt>
           <dd title={voiceLabel}>{voiceLabel}</dd>
         </div>
@@ -149,13 +206,12 @@ export function GlobalTtsSettings() {
           <div className="settings-block">
             <div className="settings-block-head">
               <h3>{t('tts.editTitle')}</h3>
-              <p>
-                {advanced ? t('tts.editDesc') : t('tts.basicOnlyHint')}
-              </p>
+              <p>{editDesc}</p>
             </div>
             <TtsModePicker
               value={value}
               provider={ttsProvider}
+              plugin={plugin}
               onChange={(next) => {
                 setValue(next);
                 setSavedHint(false);

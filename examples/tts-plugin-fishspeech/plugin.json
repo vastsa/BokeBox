@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "entry": "index.js",
   "apiVersion": 1,
-  "description": "接入 Fish Audio 云端或自托管 Fish Speech（OpenAudio）进行 TTS。支持 reference_id 音色克隆。",
+  "description": "接入 Fish Audio 云端或自托管 Fish Speech 进行 TTS。音色面板使用 reference_id（克隆/音色库模型 id）。",
   "riskLevel": "medium",
   "defaultEnabled": false,
   "permissions": ["network", "config"],

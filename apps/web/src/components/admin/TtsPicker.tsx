@@ -10,6 +10,8 @@ import {
 } from './TtsModePicker';
 import { TtsSummary } from './TtsSummary';
 import { fetchAiSettings, fetchTtsSettings } from '../../api/client';
+import { fetchAiPlugins, type AiPluginDescriptor } from '../../api/plugins';
+import { resolveTtsVoiceProfile } from '../../lib/ttsVoiceProfile';
 import { useI18n } from '../../i18n';
 
 export function TtsPicker({
@@ -34,23 +36,46 @@ export function TtsPicker({
 }) {
   const { t } = useI18n();
   const [provider, setProvider] = useState(providerProp || 'mimo');
+  const [plugin, setPlugin] = useState<AiPluginDescriptor | null>(null);
   const active = mode === 'global' ? globalValue : value;
-  const summary = useMemo(() => summarizeTts(active), [active]);
+  const profile = useMemo(
+    () => resolveTtsVoiceProfile(provider, plugin),
+    [provider, plugin],
+  );
+  const summary = useMemo(
+    () => summarizeTts(active, profile),
+    [active, profile],
+  );
 
   useEffect(() => {
-    if (providerProp) {
-      setProvider(providerProp);
-      return;
-    }
     let cancelled = false;
-    void fetchAiSettings()
-      .then((ai) => {
+    const load = async () => {
+      let nextProvider = providerProp || 'mimo';
+      if (!providerProp) {
+        try {
+          const ai = await fetchAiSettings();
+          nextProvider = ai.tts?.provider || ai.ttsProvider || 'mimo';
+        } catch {
+          nextProvider = 'mimo';
+        }
+      }
+      if (cancelled) return;
+      setProvider(nextProvider);
+      try {
+        const res = await fetchAiPlugins('tts');
         if (cancelled) return;
-        setProvider(ai.tts?.provider || ai.ttsProvider || 'mimo');
-      })
-      .catch(() => {
-        if (!cancelled) setProvider('mimo');
-      });
+        const hit =
+          res.plugins.find((p) => p.id === nextProvider) ||
+          res.plugins.find(
+            (p) => p.id.toLowerCase() === String(nextProvider).toLowerCase(),
+          ) ||
+          null;
+        setPlugin(hit);
+      } catch {
+        if (!cancelled) setPlugin(null);
+      }
+    };
+    void load();
     return () => {
       cancelled = true;
     };
@@ -90,8 +115,8 @@ export function TtsPicker({
             </span>
           </div>
 
-          {!compact && <TtsSummary value={globalValue} />}
-          {compact && <TtsSummary value={globalValue} compact />}
+          {!compact && <TtsSummary value={globalValue} profile={profile} />}
+          {compact && <TtsSummary value={globalValue} profile={profile} compact />}
 
           <div className="script-prompt-global-actions">
             <button
@@ -115,6 +140,7 @@ export function TtsPicker({
           <TtsModePicker
             value={value}
             provider={provider}
+            plugin={plugin}
             onChange={onChange}
           />
           <div className="script-prompt-global-actions">
@@ -136,7 +162,7 @@ export function TtsPicker({
                     ? { ...DEFAULT_GLOBAL_TTS }
                     : {
                         mode: 'default',
-                        voice: defaultVoiceForProvider(provider),
+                        voice: defaultVoiceForProvider(provider, plugin),
                       },
                 )
               }

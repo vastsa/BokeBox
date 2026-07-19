@@ -40,6 +40,15 @@ export interface TtsModeMeta {
   description?: string;
 }
 
+/**
+ * 前端音色面板形态：
+ * - preset: 预置音色网格（MiMo / OpenAI / Edge）
+ * - reference: reference_id 输入（Fish Speech 等克隆音色）
+ * - freeform: 通用自由文本音色 id
+ * - none: 无音色选择
+ */
+export type TtsVoiceUi = 'preset' | 'reference' | 'freeform' | 'none';
+
 export interface TtsProviderMeta {
   id: ProviderId;
   name: string;
@@ -48,6 +57,11 @@ export interface TtsProviderMeta {
   voices: TtsVoiceMeta[];
   supportsStyleTags: boolean;
   supportsVoiceDesign: boolean;
+  /**
+   * 音色 UI 形态。缺省由前端按 provider / voices 推断。
+   * 外部插件建议显式声明（如 Fish Speech = reference）。
+   */
+  voiceUi?: TtsVoiceUi;
   /** 单次请求建议最大字符数；门面会据此切段 */
   maxCharsPerRequest: number;
   suggestedModels?: {
@@ -119,6 +133,7 @@ export interface TtsPluginDescriptor extends PluginDescriptorBase {
   kind: 'tts';
   supportsStyleTags?: boolean;
   supportsVoiceDesign?: boolean;
+  voiceUi?: TtsVoiceUi;
   modes?: TtsModeMeta[];
   voices?: TtsVoiceMeta[];
   suggestedModels?: TtsProviderMeta['suggestedModels'];

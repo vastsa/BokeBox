@@ -241,6 +241,10 @@ export function listTtsProviderDescriptors() {
       enabled: isTtsPluginEnabled(p.id),
       active: p.id === activeId,
       suggestedModels: p.meta.suggestedModels,
+      voiceUi: p.meta.voiceUi,
+      supportsStyleTags: p.meta.supportsStyleTags,
+      supportsVoiceDesign: p.meta.supportsVoiceDesign,
+      voices: p.meta.voices,
     }));
 }
 

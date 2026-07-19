@@ -1024,6 +1024,76 @@ html[data-theme="dark"] .nl-empty {
   color: var(--text-3);
 }
 
+
+/* 提供方能力芯片 */
+.tts-provider-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2_5);
+  border-radius: var(--radius-pill);
+  border: var(--bw-1) solid var(--separator);
+  background: var(--surface-2);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.tts-provider-chip-name {
+  font-weight: var(--fw-bold);
+  color: var(--text);
+}
+.tts-provider-chip-ui {
+  color: var(--text-3);
+}
+
+/* reference_id 音色面板（Fish Speech 等） */
+.tts-ref-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.tts-ref-meta {
+  display: grid;
+  gap: var(--space-1_5);
+  padding: var(--space-2_5);
+  border-radius: var(--radius-md);
+  border: var(--bw-1) solid var(--separator);
+  background: var(--surface-2);
+}
+.tts-ref-meta-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  min-width: 0;
+  font-size: var(--fs-xs);
+}
+.tts-ref-meta-row .label {
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+.tts-ref-meta-row .value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.tts-ref-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1_5);
+}
+.tts-ref-actions .nl-btn {
+  font-size: var(--fs-xs);
+  padding: var(--space-1) var(--space-2_5);
+}
+.tts-ref-help {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-read);
+  color: var(--text-3);
+}
+
 /* 自然口播：风格标签 / 音频标签提示 */
 .tts-sing-panel {
   border: var(--bw-1) solid var(--separator);

@@ -58,6 +58,7 @@ export const openaiTtsProvider: TtsProvider = {
     voices: OPENAI_PRESET_VOICES.map((v) => ({ ...v })),
     supportsStyleTags: false,
     supportsVoiceDesign: false,
+    voiceUi: 'preset',
     maxCharsPerRequest: 2000,
     suggestedModels: {
       tts: 'tts-1',

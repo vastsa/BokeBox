@@ -100,6 +100,19 @@ curl -X POST http://localhost:8787/api/asr-plugins/rescan
 curl -X POST http://localhost:8787/api/tts-plugins/rescan
 ```
 
+### 音色 UI（voiceUi）
+
+TTS 插件可在 `meta.voiceUi` 声明音色面板形态，宿主按提供方切换 UI：
+
+| voiceUi | 展示 | 典型提供方 |
+|---------|------|------------|
+| `preset` | 预置音色网格 | mimo / openai / edge |
+| `reference` | reference_id 输入 + 插件默认 | Fish Speech |
+| `freeform` | 自由文本音色 id | 自定义插件 |
+| `none` | 无需选音色 | demo |
+
+同时读取 `supportsStyleTags` / `supportsVoiceDesign` 决定是否展示风格标签与 VoiceDesign。
+
 ### Fish Speech（tts.fishspeech）
 
 接入 [Fish Audio](https://fish.audio/) 云端或自托管 [Fish Speech](https://github.com/fishaudio/fish-speech)：

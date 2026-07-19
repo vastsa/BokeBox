@@ -80,6 +80,14 @@ curl -X PUT http://localhost:8787/api/tts-plugins/tts.fishspeech/config \
 
 Docker 访问宿主机服务时，可将 baseUrl 写成 `http://host.docker.internal:8080`。
 
+## 音色 UI
+
+插件声明 `meta.voiceUi = "reference"`。宿主音色面板会切换为 **reference_id 输入**，而不是 MiMo/Edge 预置音色网格：
+
+- 任务级 `tts.voice` = 覆盖用 reference_id
+- 留空 = 使用插件配置 `referenceId`
+- 设置页展示「当前生效 / 插件默认」与一键填入
+
 ## 音色从哪来
 
 1. **Fish Audio 音色库 / 自克隆模型**：控制台复制 model id → 填 `referenceId`

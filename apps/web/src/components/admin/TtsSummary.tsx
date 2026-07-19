@@ -1,4 +1,6 @@
 import type { TtsOptions } from '../../types/job';
+import type { TtsVoiceProfile } from '../../lib/ttsVoiceProfile';
+import { formatTtsVoiceLabel } from '../../lib/ttsVoiceProfile';
 import { useI18n } from '../../i18n';
 
 const MODE_LABEL: Record<string, string> = {
@@ -17,21 +19,40 @@ const MODE_DESC: Record<string, string> = {
 export function TtsSummary({
   value,
   compact = false,
+  profile,
 }: {
   value?: TtsOptions | null;
   compact?: boolean;
+  /** 当前提供方音色画像；有则按插件形态展示 */
+  profile?: TtsVoiceProfile | null;
 }) {
   const { t } = useI18n();
-  const tts = value || { mode: 'default' as const, voice: '冰糖' };
+  const tts = value || { mode: 'default' as const, voice: '' };
   const modeKey = tts.mode === ('sing' as string) ? 'default' : tts.mode;
   const modeLabel = t(`tts.${MODE_LABEL[modeKey] || 'modeDefault'}`);
   const modeDesc = MODE_DESC[modeKey] ? t(`tts.${MODE_DESC[modeKey]}`) : '';
   const styleTags = modeKey === 'default' ? tts.styleTags || [] : [];
 
+  const voiceLabel =
+    modeKey === 'voicedesign'
+      ? tts.voiceDesign?.trim() || t('common.notFilled')
+      : profile
+        ? formatTtsVoiceLabel(tts.voice, profile, t('tts.refPluginDefaultShort'))
+        : String(tts.voice || t('tts.refPluginDefaultShort'));
+
+  const voiceFieldLabel =
+    profile?.voiceUi === 'reference'
+      ? t('tts.refVoiceId')
+      : t('tts.labelVoice');
+
+  // 仅 supportsStyleTags 的提供方展示风格行
+  const showStyleRow =
+    modeKey === 'default' && Boolean(profile?.supportsStyleTags);
+
   if (compact) {
     const parts = [modeLabel];
-    if (modeKey !== 'voicedesign' && tts.voice) parts.push(String(tts.voice));
-    if (modeKey === 'default' && styleTags.length) parts.push(styleTags.join(' '));
+    if (modeKey !== 'voicedesign') parts.push(voiceLabel);
+    if (showStyleRow && styleTags.length) parts.push(styleTags.join(' '));
     return <span>{parts.join(' · ')}</span>;
   }
 
@@ -39,14 +60,20 @@ export function TtsSummary({
     <div className="tts-summary">
       <div className="tts-summary-hero">
         <div className="tts-summary-mode">{modeLabel}</div>
-        <div className="tts-summary-desc">{modeDesc}</div>
+        <div className="tts-summary-desc">
+          {profile?.voiceUi === 'reference'
+            ? t('tts.modeReferenceHint')
+            : modeDesc}
+        </div>
       </div>
 
       <div className="tts-summary-grid">
         {modeKey !== 'voicedesign' && (
           <div className="tts-summary-item">
-            <span className="label">{t('tts.labelVoice')}</span>
-            <span className="value">{tts.voice || '冰糖'}</span>
+            <span className="label">{voiceFieldLabel}</span>
+            <span className="value" title={voiceLabel}>
+              {voiceLabel}
+            </span>
           </div>
         )}
 
@@ -59,7 +86,7 @@ export function TtsSummary({
           </div>
         )}
 
-        {modeKey === 'default' && (
+        {showStyleRow && (
           <div className="tts-summary-item is-wide">
             <span className="label">{t('tts.labelStyle')}</span>
             <span className="value">

@@ -195,6 +195,7 @@ export const mimoTtsProvider: TtsProvider = {
     voices: MIMO_PRESET_VOICES.map((v) => ({ ...v })),
     supportsStyleTags: true,
     supportsVoiceDesign: true,
+    voiceUi: 'preset',
     maxCharsPerRequest: 500,
     suggestedModels: {
       tts: 'mimo-v2.5-tts',

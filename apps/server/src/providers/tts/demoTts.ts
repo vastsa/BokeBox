@@ -17,6 +17,7 @@ export const demoTtsProvider: TtsProvider = {
     voices: [],
     supportsStyleTags: false,
     supportsVoiceDesign: false,
+    voiceUi: 'none',
     maxCharsPerRequest: 10_000,
   },
   isAvailable() {

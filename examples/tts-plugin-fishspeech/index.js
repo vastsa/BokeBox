@@ -205,30 +205,24 @@ const plugin = {
     id: PLUGIN_ID,
     name: 'Fish Speech',
     description:
-      'Fish Audio 云端或自托管 Fish Speech。在插件配置中填写 reference_id（音色模型 id）。',
+      'Fish Audio 云端或自托管 Fish Speech。音色使用 reference_id（克隆/音色库模型 id）。',
     modes: [
       {
         id: 'default',
-        label: '标准合成',
+        label: '参考音色合成',
         modelHint: 's2.1-pro / s2-pro / s1',
         description: '文本 → 语音；音色由 reference_id 决定',
       },
     ],
-    voices: [
-      {
-        id: 'config',
-        name: '使用插件配置 referenceId',
-        language: '多语',
-        gender: '-',
-        description: '优先读插件「默认音色 ID」；也可在音色框粘贴模型 id',
-      },
-    ],
+    // 克隆音色无固定预置列表；UI 走 reference 面板
+    voices: [],
     supportsStyleTags: false,
     supportsVoiceDesign: false,
+    voiceUi: 'reference',
     maxCharsPerRequest: 800,
     suggestedModels: {
       tts: DEFAULT_MODEL,
-      defaultVoice: 'config',
+      defaultVoice: '',
     },
   },
   isAvailable(ctx) {
