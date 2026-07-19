@@ -41,11 +41,92 @@ export interface TtsModeMeta {
 }
 
 /**
- * 前端音色面板形态：
- * - preset: 预置音色网格（MiMo / OpenAI / Edge）
- * - reference: reference_id 输入（Fish Speech 等克隆音色）
- * - freeform: 通用自由文本音色 id
- * - none: 无音色选择
+ * 插件声明式音色面板（宿主只做通用渲染，不固定业务页面）
+ *
+ * 第三方插件在 meta.voicePanel 中描述 fields 即可，无需改主仓前端。
+ */
+export type TtsVoiceBind = 'voice' | 'mode' | 'voiceDesign' | 'styleTags';
+
+export type TtsVoicePanelWhen = {
+  /** 仅当 tts.mode 匹配时显示（字符串或列表） */
+  mode?: string | string[];
+};
+
+export type TtsVoicePanelOption = {
+  id: string;
+  name?: string;
+  label?: string;
+  language?: string;
+  gender?: string;
+  description?: string;
+};
+
+export type TtsVoicePanelField =
+  | {
+      type: 'info';
+      text: string;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'modeTabs';
+      /** 缺省使用 meta.modes */
+      options?: Array<{ id: string; label: string; description?: string }>;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'voiceGrid';
+      /** 缺省使用 meta.voices */
+      options?: TtsVoicePanelOption[];
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'text' | 'textarea';
+      bind: 'voice' | 'voiceDesign';
+      label: string;
+      placeholder?: string;
+      description?: string;
+      rows?: number;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'select';
+      bind: 'voice' | 'voiceDesign';
+      label: string;
+      options: Array<{ value: string; label: string }>;
+      description?: string;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'tags';
+      bind: 'styleTags';
+      label: string;
+      options: string[];
+      optional?: boolean;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      /** 展示：当前生效 voice + 插件默认（voiceConfigKey） */
+      type: 'effectiveSummary';
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'actions';
+      items: Array<'usePluginDefault' | 'clearOverride' | 'openPluginSettings'>;
+      when?: TtsVoicePanelWhen;
+    };
+
+export type TtsVoicePanelSpec = {
+  /** 规范版本，当前 1 */
+  version?: 1;
+  title?: string;
+  description?: string;
+  fields: TtsVoicePanelField[];
+};
+
+
+/**
+ * @deprecated 兼容旧插件的简写。新插件请直接提供 meta.voicePanel。
+ * 宿主会把 voiceUi 编译成 voicePanel 再渲染。
  */
 export type TtsVoiceUi = 'preset' | 'reference' | 'freeform' | 'none';
 
@@ -58,14 +139,16 @@ export interface TtsProviderMeta {
   supportsStyleTags: boolean;
   supportsVoiceDesign: boolean;
   /**
-   * 音色 UI 形态。缺省由前端按 provider / voices 推断。
-   * 外部插件请显式声明，不要依赖宿主特判插件 id。
+   * 插件自定义音色面板（推荐）。
+   * 宿主只做通用字段渲染，不固定业务布局。
+   */
+  voicePanel?: TtsVoicePanelSpec;
+  /**
+   * @deprecated 旧简写；无 voicePanel 时由宿主编译为 voicePanel。
    */
   voiceUi?: TtsVoiceUi;
   /**
    * 插件配置里「默认音色」字段 key。
-   * - reference 面板：默认读 referenceId
-   * - freeform/preset：可读 defaultVoice / voice
    * 任务级 tts.voice 始终可覆盖此配置。
    */
   voiceConfigKey?: string;
@@ -142,6 +225,7 @@ export interface TtsPluginDescriptor extends PluginDescriptorBase {
   supportsVoiceDesign?: boolean;
   voiceUi?: TtsVoiceUi;
   voiceConfigKey?: string;
+  voicePanel?: TtsVoicePanelSpec;
   modes?: TtsModeMeta[];
   voices?: TtsVoiceMeta[];
   suggestedModels?: TtsProviderMeta['suggestedModels'];

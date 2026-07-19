@@ -37,11 +37,21 @@ const plugin = {
     name: 'Echo TTS',
     description: '演示 TTS：返回极短静音 WAV',
     modes: [{ id: 'default', label: '演示', description: '静音占位' }],
-    // 第三方插件请显式声明 voiceUi，宿主据此切换音色面板
-    voiceUi: 'preset',
     voices: [{ id: 'echo', name: 'Echo', language: 'demo', description: '占位音色' }],
     supportsStyleTags: false,
     supportsVoiceDesign: false,
+    // 插件自定义面板（也可用 voiceUi 简写让宿主生成）
+    voicePanel: {
+      version: 1,
+      fields: [
+        {
+          type: 'voiceGrid',
+          options: [{ id: 'echo', name: 'Echo', language: 'demo' }],
+        },
+        { type: 'info', text: 'Echo 演示插件：合成极短静音 WAV。' },
+      ],
+    },
+    voiceUi: 'preset',
     maxCharsPerRequest: 5000,
     suggestedModels: { tts: 'echo', defaultVoice: 'echo' },
   },

@@ -24,6 +24,7 @@ import {
   unregisterExternalTtsPlugins,
 } from './registry.js';
 import type { TtsPlugin, TtsPluginManifest, TtsProviderMeta } from './types.js';
+import { resolveVoicePanel } from './voicePanel.js';
 
 export type TtsPluginScanResult = PluginScanResult;
 
@@ -58,6 +59,7 @@ function assertTtsPluginShape(value: unknown, id: string): TtsPlugin {
   const metaAny = p.meta as {
     voiceUi?: string;
     voiceConfigKey?: string;
+    voicePanel?: unknown;
   };
   const voiceUiRaw = String(metaAny.voiceUi || '').trim();
   const voiceUi =
@@ -71,7 +73,7 @@ function assertTtsPluginShape(value: unknown, id: string): TtsPlugin {
     .trim()
     .replace(/[^a-zA-Z0-9_]/g, '');
 
-  const meta: TtsProviderMeta = {
+  const draftMeta: TtsProviderMeta = {
     id,
     name: p.meta.name,
     description: String(p.meta.description || p.meta.name),
@@ -81,8 +83,13 @@ function assertTtsPluginShape(value: unknown, id: string): TtsPlugin {
     supportsVoiceDesign: Boolean(p.meta.supportsVoiceDesign),
     voiceUi,
     voiceConfigKey: voiceConfigKey || undefined,
+    voicePanel: (metaAny.voicePanel as TtsProviderMeta['voicePanel']) || undefined,
     maxCharsPerRequest: Number(p.meta.maxCharsPerRequest) || 2000,
     suggestedModels: p.meta.suggestedModels,
+  };
+  const meta: TtsProviderMeta = {
+    ...draftMeta,
+    voicePanel: resolveVoicePanel(draftMeta),
   };
 
   return {

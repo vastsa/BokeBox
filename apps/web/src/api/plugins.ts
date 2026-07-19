@@ -129,6 +129,78 @@ export type AiPluginKind = 'asr' | 'tts';
 
 export type TtsVoiceUi = 'preset' | 'reference' | 'freeform' | 'none';
 
+export type TtsVoicePanelWhen = {
+  mode?: string | string[];
+};
+
+export type TtsVoicePanelOption = {
+  id: string;
+  name?: string;
+  label?: string;
+  language?: string;
+  gender?: string;
+  description?: string;
+};
+
+export type TtsVoicePanelField =
+  | {
+      type: 'info';
+      text: string;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'modeTabs';
+      options?: Array<{ id: string; label: string; description?: string }>;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'voiceGrid';
+      options?: TtsVoicePanelOption[];
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'text' | 'textarea';
+      bind: 'voice' | 'voiceDesign';
+      label: string;
+      placeholder?: string;
+      description?: string;
+      rows?: number;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'select';
+      bind: 'voice' | 'voiceDesign';
+      label: string;
+      options: Array<{ value: string; label: string }>;
+      description?: string;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'tags';
+      bind: 'styleTags';
+      label: string;
+      options: string[];
+      optional?: boolean;
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'effectiveSummary';
+      when?: TtsVoicePanelWhen;
+    }
+  | {
+      type: 'actions';
+      items: Array<'usePluginDefault' | 'clearOverride' | 'openPluginSettings'>;
+      when?: TtsVoicePanelWhen;
+    };
+
+export type TtsVoicePanelSpec = {
+  version?: 1;
+  title?: string;
+  description?: string;
+  fields: TtsVoicePanelField[];
+};
+
+
 export type AiPluginVoiceMeta = {
   id: string;
   name: string;
@@ -172,6 +244,8 @@ export type AiPluginDescriptor = {
   voiceUi?: TtsVoiceUi;
   /** TTS：插件配置中默认音色字段 key */
   voiceConfigKey?: string;
+  /** TTS：插件声明的音色面板（宿主通用渲染） */
+  voicePanel?: TtsVoicePanelSpec;
   modes?: AiPluginModeMeta[];
   voices?: AiPluginVoiceMeta[];
   suggestedModels?: {

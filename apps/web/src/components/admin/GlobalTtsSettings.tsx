@@ -157,8 +157,9 @@ export function GlobalTtsSettings() {
     setSavedHint(false);
   };
 
-  const editDesc =
-    profile.voiceUi === 'reference'
+  const editDesc = plugin?.voicePanel
+    ? t('tts.editDescPluginPanel')
+    : profile.voiceUi === 'reference'
       ? t('tts.editDescReference')
       : advanced
         ? t('tts.editDesc')

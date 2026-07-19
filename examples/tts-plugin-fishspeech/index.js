@@ -214,10 +214,33 @@ const plugin = {
         description: '文本 → 语音；音色由 reference_id 决定',
       },
     ],
-    // 克隆音色无固定预置列表；UI 走 reference 面板
     voices: [],
     supportsStyleTags: false,
     supportsVoiceDesign: false,
+    // ★ 插件自己声明音色页布局；宿主只做通用渲染
+    voicePanel: {
+      version: 1,
+      title: 'Fish Speech 音色',
+      description: '使用 reference_id 指定克隆/音色库模型；可覆盖插件默认配置。',
+      fields: [
+        {
+          type: 'info',
+          text: '在 fish.audio 音色库复制模型 id，或填写自托管 reference 目录名。',
+        },
+        {
+          type: 'text',
+          bind: 'voice',
+          label: '音色 reference_id',
+          placeholder: '粘贴音色模型 id；留空则用插件默认',
+          description: '任务级覆盖。留空时使用插件配置 referenceId。',
+        },
+        { type: 'effectiveSummary' },
+        {
+          type: 'actions',
+          items: ['usePluginDefault', 'clearOverride', 'openPluginSettings'],
+        },
+      ],
+    },
     voiceUi: 'reference',
     voiceConfigKey: 'referenceId',
     maxCharsPerRequest: 800,

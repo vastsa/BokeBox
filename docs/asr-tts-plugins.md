@@ -74,10 +74,16 @@ export default {
     name: '...',
     description: '...',
     modes: [{ id: 'default', label: '默认' }],
-    // ★ 第三方插件请显式声明，宿主按此切换音色面板（无需改主仓）
-    voiceUi: 'preset', // preset | reference | freeform | none
-    voiceConfigKey: 'defaultVoice', // 插件配置中的默认音色字段
-    voices: [{ id: 'v1', name: '音色 A' }], // voiceUi=preset 时使用
+    // ★ 插件自己声明音色页（宿主只渲染，不固定布局）
+    voicePanel: {
+      version: 1,
+      fields: [
+        { type: 'voiceGrid' },
+        { type: 'text', bind: 'voice', label: '或手填音色 ID' },
+      ],
+    },
+    voiceConfigKey: 'defaultVoice',
+    voices: [{ id: 'v1', name: '音色 A' }],
     supportsStyleTags: false,
     supportsVoiceDesign: false,
     maxCharsPerRequest: 2000,
@@ -107,24 +113,29 @@ curl -X POST http://localhost:8787/api/asr-plugins/rescan
 curl -X POST http://localhost:8787/api/tts-plugins/rescan
 ```
 
-### 音色 UI（voiceUi）——给第三方作者
+### 音色面板（voicePanel）——插件自己画页面
 
-**后人写插件不需要改 BokeBox 前端。** 只要在 `meta` 里声明能力，宿主自动切换面板。
+**宿主不固定音色页布局。** 插件在 `meta.voicePanel.fields` 声明字段，前端通用渲染。
 
-| voiceUi | 展示 | 你要提供什么 |
-|---------|------|----------------|
-| `preset` | 预置音色网格 | `meta.voices[]` |
-| `reference` | reference_id 输入 + 插件默认 | `voiceConfigKey` + configSchema（如 `referenceId`） |
-| `freeform` | 自由文本音色 id | 可选 `voiceConfigKey` |
-| `none` | 无需选音色 | — |
+```js
+meta: {
+  voicePanel: {
+    version: 1,
+    title: '我的音色页',
+    fields: [
+      { type: 'info', text: '任意提示' },
+      { type: 'voiceGrid' }, // 或 text/select/tags/actions/...
+    ],
+  },
+  voiceConfigKey: 'defaultVoice', // 插件配置默认音色字段
+}
+```
 
-配套字段：
+内置字段类型：`info` · `modeTabs` · `voiceGrid` · `text` · `textarea` · `select` · `tags` · `effectiveSummary` · `actions`。
 
-- `voiceConfigKey`：插件配置里默认音色字段名  
-- `supportsStyleTags` / `supportsVoiceDesign`：高级面板开关  
-- 任务级 `tts.voice` **始终可覆盖**插件默认  
+旧插件可继续用 `voiceUi` 简写，宿主会编译成 `voicePanel`。  
+完整规范：[tts-plugin-development.md](./tts-plugin-development.md)
 
-完整说明与自检清单：[`docs/tts-plugin-development.md`](./tts-plugin-development.md)
 
 ### Fish Speech（tts.fishspeech）
 

@@ -74,3 +74,5 @@ export {
   wavDurationSec,
   detectAudioFormat,
 } from './audioUtils.js';
+
+export { resolveVoicePanel, compileVoicePanelFromUi } from './voicePanel.js';

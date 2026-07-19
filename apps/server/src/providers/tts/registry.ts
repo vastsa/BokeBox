@@ -18,6 +18,7 @@ import type {
   TtsPluginDescriptor,
   TtsPluginRegistration,
 } from './types.js';
+import { resolveVoicePanel } from './voicePanel.js';
 
 const NS = 'tts';
 const registry = new Map<string, TtsPluginRegistration>();
@@ -37,8 +38,15 @@ export function registerTtsPlugin(
     plugin.configSchema,
     meta?.configSchema,
   );
+  const normalized: TtsPlugin = {
+    ...plugin,
+    meta: {
+      ...plugin.meta,
+      voicePanel: resolveVoicePanel(plugin.meta),
+    },
+  };
   registry.set(plugin.id, {
-    plugin,
+    plugin: normalized,
     origin: meta?.origin || 'builtin',
     dirName: meta?.dirName,
     dirPath: meta?.dirPath,
@@ -243,6 +251,7 @@ export function listTtsProviderDescriptors() {
       suggestedModels: p.meta.suggestedModels,
       voiceUi: p.meta.voiceUi,
       voiceConfigKey: p.meta.voiceConfigKey,
+      voicePanel: p.meta.voicePanel,
       supportsStyleTags: p.meta.supportsStyleTags,
       supportsVoiceDesign: p.meta.supportsVoiceDesign,
       voices: p.meta.voices,
