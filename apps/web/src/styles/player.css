@@ -1162,32 +1162,40 @@ html[data-theme="dark"] .qq-ambient-veil {
 }
 
 /* synchronized transcript */
+/* =========================
+   Synchronized lyrics · clean stage
+   设计目标：少边框、大字号、当前行呼吸感，像音乐 App 歌词台
+   ========================= */
 .qq-lyrics-transcript {
+  --lyrics-focus-y: 38%;
+  --lyrics-pad-x: clamp(var(--space-1), 1.2vw, var(--space-3));
+  --lyrics-active: var(--text);
+  --lyrics-passed: color-mix(in srgb, var(--text-3) 82%, var(--text-2));
+  --lyrics-upcoming: color-mix(in srgb, var(--text-2) 70%, var(--text-3));
   position: relative;
   height: 100%;
   min-height: var(--size-200);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: var(--bw-1) solid color-mix(in srgb, var(--separator) 78%, transparent);
-  border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--surface) 44%, transparent);
-  backdrop-filter: blur(var(--blur-md));
-  -webkit-backdrop-filter: blur(var(--blur-md));
+  border: 0;
+  border-radius: calc(var(--radius-xl) + 2px);
+  background: transparent;
 }
 
 .qq-lyrics-toolbar {
   position: relative;
   z-index: var(--z-sticky);
   flex: 0 0 auto;
-  min-height: var(--control-7xl);
+  min-height: var(--control-xl);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-1_5) var(--space-2_5);
-  border-bottom: var(--bw-1) solid color-mix(in srgb, var(--separator) 66%, transparent);
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  margin: 0 var(--lyrics-pad-x);
+  padding: var(--space-1) var(--space-1) var(--space-2);
+  border-bottom: 0;
+  background: transparent;
 }
 
 .qq-lyrics-status {
@@ -1195,35 +1203,41 @@ html[data-theme="dark"] .qq-ambient-veil {
   display: flex;
   align-items: center;
   gap: var(--space-1_5);
-  color: var(--text-2);
-  font-size: var(--fs-sm-plus);
-  font-weight: var(--fw-bold);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
 }
 
 .qq-lyrics-dot {
-  width: var(--space-1_5);
-  height: var(--space-1_5);
+  width: 6px;
+  height: 6px;
   flex: 0 0 auto;
   border-radius: var(--radius-pill);
-  background: var(--text-3);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-3) 12%, transparent);
+  background: color-mix(in srgb, var(--text-3) 70%, transparent);
+  transition: background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
 .qq-lyrics-dot.is-live {
   background: var(--brand-2);
-  box-shadow: 0 0 0 3px var(--brand-soft);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-2) 18%, transparent);
 }
 
 .qq-lyrics-source {
   overflow: hidden;
   max-width: var(--size-120);
-  padding: var(--space-0_5) var(--space-1_5);
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface-3) 68%, transparent);
-  color: var(--text-3);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-3) 88%, transparent);
   font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
   text-overflow: ellipsis;
+}
+
+.qq-lyrics-source::before {
+  content: '·';
+  margin-right: var(--space-1_5);
+  color: color-mix(in srgb, var(--text-3) 55%, transparent);
 }
 
 .qq-lyrics-calibrate-toggle {
@@ -1233,27 +1247,26 @@ html[data-theme="dark"] .qq-ambient-veil {
   align-items: center;
   gap: var(--space-1);
   padding: 0 var(--space-2);
-  border: var(--bw-1) solid var(--separator);
+  border: 0;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
-  color: var(--text-2);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  color: var(--text-3);
   font-size: var(--fs-sm);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
   transition:
     color var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease),
     background var(--dur-fast) var(--ease);
 }
 .qq-lyrics-calibrate-toggle:hover,
 .qq-lyrics-calibrate-toggle:focus-visible,
 .qq-lyrics-calibrate-toggle.is-adjusted {
   color: var(--brand-2);
-  border-color: color-mix(in srgb, var(--brand) 36%, var(--separator));
-  background: var(--brand-soft);
+  background: color-mix(in srgb, var(--brand-soft) 80%, transparent);
 }
 .qq-lyrics-calibrate-toggle span {
   font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-bold);
 }
 
 .qq-lyrics-calibration {
@@ -1264,23 +1277,28 @@ html[data-theme="dark"] .qq-ambient-veil {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  margin: 0 var(--lyrics-pad-x) var(--space-1);
   padding: var(--space-2) var(--space-2_5);
-  border-bottom: var(--bw-1) solid color-mix(in srgb, var(--separator) 66%, transparent);
-  background: color-mix(in srgb, var(--surface-brand) 72%, var(--surface));
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
 }
 .qq-lyrics-calibration > div:first-child {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-0_5);
+  gap: 2px;
 }
 .qq-lyrics-calibration strong {
   color: var(--text);
-  font-size: var(--fs-sm-plus);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
 }
 .qq-lyrics-calibration > div:first-child span {
   color: var(--text-3);
-  font-size: var(--fs-xs-plus);
+  font-size: var(--fs-xs);
 }
 .qq-lyrics-calibration-controls {
   flex: 0 0 auto;
@@ -1295,9 +1313,9 @@ html[data-theme="dark"] .qq-ambient-veil {
   display: grid;
   place-items: center;
   padding: 0 var(--space-1_5);
-  border: var(--bw-1) solid var(--separator);
-  border-radius: var(--radius-md);
-  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
   color: var(--text-2);
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
@@ -1308,12 +1326,11 @@ html[data-theme="dark"] .qq-ambient-veil {
 }
 .qq-lyrics-calibration-controls button:hover:not(:disabled),
 .qq-lyrics-calibration-controls button:focus-visible {
-  border-color: color-mix(in srgb, var(--brand) 40%, var(--separator));
   color: var(--brand-2);
+  background: var(--brand-soft);
 }
 .qq-lyrics-calibration-controls output {
   min-width: var(--size-58);
-  border-color: transparent;
   background: transparent;
   color: var(--brand-2);
 }
@@ -1322,15 +1339,11 @@ html[data-theme="dark"] .qq-ambient-veil {
   padding-inline: var(--space-2);
 }
 .qq-lyrics-calibration-controls button:disabled {
-  opacity: 0.42;
+  opacity: 0.38;
   cursor: default;
 }
 
-/* synchronized lyrics scroll surface */
 .qq-lyrics-scroll {
-  --lyrics-focus-y: 42%;
-  --lyrics-fade-top: clamp(28px, 8vh, 56px);
-  --lyrics-fade-bottom: clamp(48px, 12vh, 88px);
   position: relative;
   flex: 1;
   min-height: 0;
@@ -1339,286 +1352,223 @@ html[data-theme="dark"] .qq-ambient-veil {
   overscroll-behavior: contain;
   touch-action: pan-y;
   scroll-behavior: smooth;
-  scroll-padding-block: var(--lyrics-fade-top) var(--lyrics-fade-bottom);
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--text-3) 28%, transparent) transparent;
+  scroll-padding-block: 18% 28%;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  /* 上下渐隐，滚动更像沉浸式歌词台 */
   mask-image: linear-gradient(
     to bottom,
-    transparent 0,
-    #000 var(--lyrics-fade-top),
-    #000 calc(100% - var(--lyrics-fade-bottom)),
+    transparent 0%,
+    #000 10%,
+    #000 78%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
-    transparent 0,
-    #000 var(--lyrics-fade-top),
-    #000 calc(100% - var(--lyrics-fade-bottom)),
+    transparent 0%,
+    #000 10%,
+    #000 78%,
     transparent 100%
   );
 }
-
 .qq-lyrics-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-.qq-lyrics-scroll::-webkit-scrollbar-thumb {
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--text-3) 28%, transparent);
-}
-.qq-lyrics-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  width: 0;
+  height: 0;
 }
 
 .qq-lyrics-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1_5);
+  gap: clamp(10px, 1.8vh, 18px);
   margin: 0;
   padding:
-    clamp(64px, 16vh, 132px)
-    var(--space-2)
-    clamp(108px, 26vh, 210px);
+    clamp(48px, 14vh, 120px)
+    var(--lyrics-pad-x)
+    clamp(120px, 28vh, 220px);
 }
 
 .qq-lyrics-list > li {
   position: relative;
   margin: 0;
-  /* 给自动居中滚动更稳的视觉锚点 */
-  scroll-margin-block: clamp(40px, 12vh, 96px);
+  scroll-margin-block: 22vh;
 }
 
+/* 纯文字行：去掉卡片感 */
 .qq-lyric-cue {
   position: relative;
   width: 100%;
-  min-height: var(--control-7xl);
+  min-height: 0;
   display: grid;
-  grid-template-columns: var(--space-11) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: var(--space-2_5);
-  padding: var(--space-2_5) var(--space-3) var(--space-3);
-  overflow: hidden;
-  isolation: isolate;
-  border: var(--bw-1) solid transparent;
-  border-radius: var(--radius-xl);
+  gap: 0;
+  padding: var(--space-1) var(--space-1);
+  overflow: visible;
+  border: 0;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: color-mix(in srgb, var(--text-2) 92%, var(--text-3));
+  color: var(--lyrics-upcoming);
   text-align: left;
   cursor: pointer;
-  transform: translateZ(0) scale(0.985);
-  transform-origin: left center;
+  transform: none;
   transition:
-    color var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease),
-    background var(--dur-fast) var(--ease),
-    box-shadow var(--dur-slow) var(--ease),
-    transform var(--dur-slow) var(--ease),
-    opacity var(--dur-fast) var(--ease),
-    filter var(--dur-fast) var(--ease);
+    color 220ms var(--ease),
+    opacity 220ms var(--ease),
+    transform 280ms var(--ease);
+  -webkit-tap-highlight-color: transparent;
 }
 .qq-lyric-cue:hover {
   color: var(--text);
-  background: color-mix(in srgb, var(--surface) 68%, transparent);
-  border-color: color-mix(in srgb, var(--separator) 70%, transparent);
-  transform: translateZ(0) scale(1);
+  background: transparent;
 }
 .qq-lyric-cue[aria-disabled="true"] {
   cursor: default;
 }
 .qq-lyric-cue:focus-visible {
   outline: none;
-  border-color: color-mix(in srgb, var(--brand) 52%, transparent);
-  box-shadow: 0 0 0 3px var(--brand-soft);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 28%, transparent);
 }
 
-/* 已播放行更安静，突出当前行 */
 .qq-lyrics-list > li.is-passed .qq-lyric-cue {
-  color: color-mix(in srgb, var(--text-3) 78%, var(--text-2));
-  opacity: 0.72;
-  filter: saturate(0.86);
+  color: var(--lyrics-passed);
+  opacity: 0.55;
 }
 .qq-lyrics-list > li.is-upcoming .qq-lyric-cue {
-  opacity: 0.9;
+  color: var(--lyrics-upcoming);
+  opacity: 0.72;
 }
 .qq-lyrics-list > li.is-active .qq-lyric-cue {
-  color: var(--text);
+  color: var(--lyrics-active);
   opacity: 1;
-  filter: none;
-  border-color: color-mix(in srgb, var(--brand) 26%, transparent);
-  background:
-    radial-gradient(
-      120% 140% at 0% 50%,
-      color-mix(in srgb, var(--brand-soft) 92%, transparent) 0%,
-      transparent 62%
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--brand-soft) 72%, transparent),
-      color-mix(in srgb, var(--surface) 58%, transparent) 72%
-    );
-  box-shadow:
-    0 10px 28px color-mix(in srgb, var(--brand) 10%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--brand) 12%, transparent);
-  transform: translateZ(0) scale(1.018);
+  transform: translateX(2px);
 }
+
+/* 当前行左侧细呼吸条 */
 .qq-lyrics-list > li.is-active .qq-lyric-cue::before {
   content: '';
   position: absolute;
   left: 0;
-  top: var(--space-2);
-  bottom: var(--space-2);
-  width: var(--space-1);
-  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--brand-2) 70%, white),
-    var(--brand-2)
-  );
-  box-shadow: 0 0 12px color-mix(in srgb, var(--brand-2) 42%, transparent);
+  top: 0.42em;
+  width: 3px;
+  height: 1.1em;
+  border-radius: var(--radius-pill);
+  background: var(--brand-2);
+  opacity: 0.95;
 }
 
+/* 时间戳默认隐藏，悬停/当前行时淡入 */
 .qq-lyric-time {
-  padding-top: var(--space-0_5);
+  position: absolute;
+  right: var(--space-1);
+  top: 0.35em;
+  padding: 0;
   color: var(--text-3);
-  font-size: var(--fs-xs-plus);
-  font-weight: var(--fw-bold);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
-  letter-spacing: var(--tracking-soft);
-  transition: color var(--dur-fast) var(--ease);
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transform: translateY(1px);
+  transition: opacity 180ms var(--ease);
+  pointer-events: none;
 }
+.qq-lyric-cue:hover .qq-lyric-time,
+.qq-lyric-cue:focus-visible .qq-lyric-time,
 .qq-lyrics-list > li.is-active .qq-lyric-time {
-  color: var(--brand-2);
+  opacity: 0.72;
+  color: color-mix(in srgb, var(--brand-2) 70%, var(--text-3));
 }
+
 .qq-lyric-copy {
   min-width: 0;
-  font-size: clamp(1.02rem, 0.9rem + 0.55vw, 1.28rem);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-relaxed);
-  letter-spacing: var(--tracking-micro);
+  max-width: 34ch;
+  padding-right: var(--space-8);
+  font-size: clamp(1.12rem, 0.96rem + 0.85vw, 1.55rem);
+  font-weight: var(--fw-medium);
+  line-height: 1.45;
+  letter-spacing: 0.01em;
   text-wrap: pretty;
   overflow-wrap: anywhere;
   transition:
-    font-weight var(--dur-fast) var(--ease),
-    letter-spacing var(--dur-fast) var(--ease),
-    transform var(--dur-slow) var(--ease);
+    font-weight 180ms var(--ease),
+    letter-spacing 180ms var(--ease),
+    filter 220ms var(--ease);
+}
+.qq-lyrics-list > li.is-passed .qq-lyric-copy {
+  font-weight: var(--fw-medium);
 }
 .qq-lyrics-list > li.is-active .qq-lyric-copy {
   font-weight: var(--fw-heavy);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.015em;
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--surface) 35%, transparent);
 }
 
-.qq-lyric-progress {
-  position: absolute;
-  left: calc(var(--space-11) + var(--space-5_5));
-  right: var(--space-3);
-  bottom: var(--space-1);
-  height: var(--space-0_75);
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--brand) 12%, transparent);
-}
-.qq-lyric-progress > i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--brand-2) 78%, white),
-    var(--brand-2)
-  );
-  box-shadow: 0 0 8px color-mix(in srgb, var(--brand-2) 36%, transparent);
-  transition: width 0.08s linear;
-}
 
 .qq-lyrics-return {
   position: absolute;
   z-index: var(--z-dropdown);
   left: 50%;
   bottom: var(--space-3);
-  min-height: var(--control-7xl);
-  max-width: calc(100% - var(--space-6));
+  min-height: var(--control-lg);
+  max-width: calc(100% - var(--space-8));
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-3_5);
-  border: var(--bw-1) solid color-mix(in srgb, var(--brand) 28%, var(--separator));
+  gap: var(--space-1_5);
+  padding: 0 var(--space-3);
+  border: 0;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  color: var(--brand-2);
-  box-shadow: var(--shadow-md);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text);
+  box-shadow:
+    0 8px 24px color-mix(in srgb, var(--text) 8%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--separator) 55%, transparent);
   backdrop-filter: blur(var(--blur-xl));
   -webkit-backdrop-filter: blur(var(--blur-xl));
-  font-size: var(--fs-sm-plus);
-  font-weight: var(--fw-heavy);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
   white-space: nowrap;
   cursor: pointer;
   transform: translateX(-50%);
-  animation: qq-lyrics-return-in var(--dur-slow) var(--ease) both;
 }
 .qq-lyrics-return > span {
-  width: var(--space-1_5);
-  height: var(--space-1_5);
+  width: 6px;
+  height: 6px;
   border-radius: var(--radius-pill);
   background: var(--brand-2);
-  box-shadow: 0 0 0 3px var(--brand-soft);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-2) 18%, transparent);
 }
 .qq-lyrics-return:hover,
 .qq-lyrics-return:focus-visible {
   background: var(--surface);
-  border-color: color-mix(in srgb, var(--brand) 46%, var(--separator));
-}
-
-@keyframes qq-lyrics-return-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  color: var(--brand-2);
 }
 
 html[data-theme="dark"] .qq-lyrics-transcript {
-  background: color-mix(in srgb, var(--surface) 38%, transparent);
+  --lyrics-active: #f4f7fb;
+  --lyrics-passed: color-mix(in srgb, var(--text-3) 88%, #9aa6b8);
+  --lyrics-upcoming: color-mix(in srgb, var(--text-2) 62%, #8b95a7);
+  background: transparent;
 }
 html[data-theme="dark"] .qq-lyrics-toolbar {
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  background: transparent;
 }
 html[data-theme="dark"] .qq-lyrics-calibration {
-  background: color-mix(in srgb, var(--brand-soft) 48%, var(--surface));
+  background: color-mix(in srgb, var(--surface) 46%, transparent);
 }
-html[data-theme="dark"] .qq-lyrics-list > li.is-active .qq-lyric-cue {
-  background:
-    radial-gradient(
-      120% 140% at 0% 50%,
-      color-mix(in srgb, var(--brand-soft) 64%, transparent) 0%,
-      transparent 62%
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--brand-soft) 48%, transparent),
-      color-mix(in srgb, var(--surface) 64%, transparent) 78%
-    );
+html[data-theme="dark"] .qq-lyrics-list > li.is-active .qq-lyric-copy {
+  text-shadow: 0 1px 18px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+html[data-theme="dark"] .qq-lyrics-return {
+  background: color-mix(in srgb, var(--surface-deep) 72%, transparent);
   box-shadow:
-    0 12px 30px color-mix(in srgb, var(--brand) 14%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--brand) 16%, transparent);
-}
-html[data-theme="dark"] .qq-lyrics-list > li.is-passed .qq-lyric-cue {
-  opacity: 0.64;
+    0 10px 28px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px color-mix(in srgb, var(--separator) 40%, transparent);
 }
 
 @media (max-width: 520px) {
-  .qq-lyrics-scroll {
-    --lyrics-fade-top: clamp(22px, 7vh, 44px);
-    --lyrics-fade-bottom: clamp(56px, 14vh, 96px);
-  }
-  .qq-lyrics-list {
-    gap: var(--space-1);
-    padding-inline: var(--space-1_5);
+  .qq-lyrics-transcript {
+    --lyrics-pad-x: var(--space-0_5);
   }
   .qq-lyrics-calibration {
     align-items: flex-start;
@@ -1634,20 +1584,26 @@ html[data-theme="dark"] .qq-lyrics-list > li.is-passed .qq-lyric-cue {
   .qq-lyrics-source {
     max-width: var(--size-88);
   }
-  .qq-lyric-cue {
-    grid-template-columns: var(--space-10) minmax(0, 1fr);
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-2_5) var(--space-2_5);
+  .qq-lyric-copy {
+    max-width: none;
+    font-size: clamp(1.08rem, 0.9rem + 1.4vw, 1.28rem);
+    padding-right: var(--space-7);
+  }
+  .qq-lyrics-list {
+    gap: 12px;
   }
   .qq-lyrics-list > li.is-active .qq-lyric-cue {
-    transform: translateZ(0) scale(1.012);
+    transform: none;
   }
+}
+
+@media (min-width: 900px) {
   .qq-lyric-copy {
-    font-size: clamp(0.98rem, 0.92rem + 0.7vw, 1.14rem);
+    max-width: 38ch;
+    font-size: clamp(1.2rem, 0.95rem + 0.7vw, 1.62rem);
   }
-  .qq-lyric-progress {
-    left: calc(var(--space-10) + var(--space-4_5));
-    right: var(--space-2_5);
+  .qq-lyrics-list {
+    gap: clamp(12px, 1.6vh, 20px);
   }
 }
 
@@ -1657,16 +1613,14 @@ html[data-theme="dark"] .qq-lyrics-list > li.is-passed .qq-lyric-cue {
     mask-image: none;
     -webkit-mask-image: none;
   }
-  .qq-lyric-progress > i,
   .qq-lyric-cue,
   .qq-lyric-copy,
   .qq-lyric-time,
-  .qq-lyrics-return {
+  .qq-lyrics-return,
+  .qq-lyrics-dot {
     transition: none !important;
-    animation: none !important;
   }
-  .qq-lyrics-list > li.is-active .qq-lyric-cue,
-  .qq-lyric-cue:hover {
+  .qq-lyrics-list > li.is-active .qq-lyric-cue {
     transform: none;
   }
 }

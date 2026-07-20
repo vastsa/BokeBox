@@ -9,7 +9,6 @@ import {
 } from 'react';
 import {
   activeLineIndexForTimeline,
-  lineProgressForTimeline,
   parseScriptLines,
   resolveScriptTimeline,
   type ScriptLineTiming,
@@ -30,7 +29,6 @@ const LyricCueRow = memo(function LyricCueRow({
   active,
   focused,
   timelineReady,
-  progress,
   timeLabel,
   seekLabel,
   registerRef,
@@ -44,7 +42,6 @@ const LyricCueRow = memo(function LyricCueRow({
   active: boolean;
   focused: boolean;
   timelineReady: boolean;
-  progress: number;
   timeLabel: string;
   seekLabel: string;
   registerRef: (index: number, element: HTMLButtonElement | null) => void;
@@ -69,13 +66,10 @@ const LyricCueRow = memo(function LyricCueRow({
         onKeyDown={(event) => onKeyDown(event, index)}
         onClick={() => onSeek(index)}
       >
-        <span className="qq-lyric-time">{timeLabel}</span>
         <span className="qq-lyric-copy">{cue.text}</span>
-        {active && (
-          <span className="qq-lyric-progress" aria-hidden>
-            <i style={{ width: `${progress * 100}%` }} />
-          </span>
-        )}
+        <span className="qq-lyric-time" aria-hidden="true">
+          {timeLabel}
+        </span>
       </button>
     </li>
   );
@@ -298,9 +292,6 @@ function LyricsTranscript({
   const active = timelineReady
     ? activeLineIndexForTimeline(cues, effectiveSec)
     : 0;
-  const lineProgress = timelineReady
-    ? lineProgressForTimeline(cues, active, effectiveSec)
-    : 0;
   const cueLabels = useMemo(
     () =>
       cues.map((cue) => {
@@ -319,16 +310,16 @@ function LyricsTranscript({
       const target = lineRefs.current[index];
       if (!scroller || !target) return;
 
-      // 读取 CSS 焦点线（默认偏上 42%），让当前行落在渐隐区域中央偏上
+      // 读取 CSS 焦点线（默认偏上 38%），让当前行落在渐隐区域中央偏上
       const focusRatioRaw = getComputedStyle(scroller)
         .getPropertyValue('--lyrics-focus-y')
         .trim();
       const focusRatio = focusRatioRaw.endsWith('%')
         ? Number.parseFloat(focusRatioRaw) / 100
-        : Number.parseFloat(focusRatioRaw || '0.42');
+        : Number.parseFloat(focusRatioRaw || '0.38');
       const focusY = Number.isFinite(focusRatio)
-        ? Math.min(0.72, Math.max(0.28, focusRatio))
-        : 0.42;
+        ? Math.min(0.55, Math.max(0.28, focusRatio))
+        : 0.38;
 
       const scrollerBox = scroller.getBoundingClientRect();
       const targetBox = target.getBoundingClientRect();
@@ -342,7 +333,7 @@ function LyricsTranscript({
       const nextTop = Math.min(maxTop, Math.max(0, top));
 
       // 位移极小时跳过，避免同句内进度更新触发无意义平滑滚动
-      if (Math.abs(scroller.scrollTop - nextTop) < 1.5) return;
+      if (Math.abs(scroller.scrollTop - nextTop) < 2.5) return;
 
       programmaticUntilRef.current =
         performance.now() + (behavior === 'smooth' ? 520 : 120);
@@ -547,7 +538,6 @@ function LyricsTranscript({
                 active={isActive}
                 focused={focusedIndex === index}
                 timelineReady={timelineReady}
-                progress={isActive ? lineProgress : 0}
                 timeLabel={cueLabels[index].time}
                 seekLabel={cueLabels[index].seek}
                 registerRef={registerLineRef}
