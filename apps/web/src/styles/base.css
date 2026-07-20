@@ -134,6 +134,7 @@ html[data-theme="dark"] ::selection {
 }
 .page-shell > main {
   flex: 1 0 auto;
+  min-width: 0;
 }
 .page-container {
   width: min(var(--container-max), calc(100% - 2 * var(--page-x)));
