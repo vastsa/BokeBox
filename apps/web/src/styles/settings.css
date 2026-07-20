@@ -532,20 +532,51 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
 .settings-page .auth-field select,
 .settings-page .script-prompt-field .nl-input,
 .settings-page .script-prompt-field .nl-textarea,
-.settings-page .settings-locale-select {
+.settings-page .settings-locale-select,
+.settings-page .nl-input,
+.settings-page .nl-textarea {
   width: 100%;
   min-width: 0;
   max-width: 100%;
   border-radius: var(--radius-sm);
   min-height: var(--control-4xl);
+  height: var(--control-4xl);
+  padding: 0 var(--space-2_75);
+  font-family: inherit;
+  font-size: var(--fs-md); /* 13px · 与全站表单一致 */
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-normal);
+  box-sizing: border-box;
+}
+.settings-page .script-prompt-field .nl-textarea,
+.settings-page .nl-textarea,
+.settings-page .cover-prompt-textarea {
+  height: auto;
+  min-height: var(--size-84);
+  padding: var(--space-2) var(--space-2_75);
+  line-height: var(--lh-relaxed);
+}
+.settings-page .plugin-config-control,
+.settings-page .plugin-config-field .nl-input,
+.settings-page select.plugin-config-control {
   font-size: var(--fs-md);
   font-weight: var(--fw-medium);
   line-height: var(--lh-snug);
-  box-sizing: border-box;
+  min-height: var(--control-2xl);
+  height: var(--control-2xl);
 }
 
-/* 平板/手机设置页：表单控件对齐全局（16px / 38px），覆盖到 899 以含 iPad */
+/* 平板/手机设置页：控件保持桌面同规格，仅收紧标签与布局 */
 @media (max-width: 899px) {
+  .settings-page .auth-field input,
+  .settings-page .auth-field select,
+  .settings-page .script-prompt-field .nl-input,
+  .settings-page .script-prompt-field .nl-textarea,
+  .settings-page .settings-locale-select,
+  .settings-page .nl-input,
+  .settings-page .nl-textarea,
+  .settings-page .cover-prompt-textarea,
   .settings-page input:not([type]),
   .settings-page input[type="text"],
   .settings-page input[type="password"],
@@ -555,24 +586,18 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
   .settings-page input[type="search"],
   .settings-page input[type="tel"],
   .settings-page textarea,
-  .settings-page select,
-  .settings-page .nl-input,
-  .settings-page .nl-textarea,
+  .settings-page select {
+    font-size: var(--fs-md);
+    font-weight: var(--fw-medium);
+    line-height: var(--lh-snug);
+    min-height: var(--control-4xl);
+    letter-spacing: var(--tracking-normal);
+  }
   .settings-page .auth-field input,
   .settings-page .auth-field select,
-  .settings-page .settings-locale-select,
-  .settings-page .plugin-config-control,
-  .settings-page .plugin-config-field .nl-input,
-  .settings-page .plugin-config-textarea,
   .settings-page .script-prompt-field .nl-input,
-  .settings-page .script-prompt-field .nl-textarea,
-  .settings-page .cover-prompt-textarea {
-    font-size: var(--fs-2xl);
-    font-weight: var(--fw-normal);
-    line-height: 1.25;
-    min-height: var(--control-4xl);
-    letter-spacing: var(--tracking-snug);
-  }
+  .settings-page .settings-locale-select,
+  .settings-page .nl-input,
   .settings-page input:not([type]),
   .settings-page input[type="text"],
   .settings-page input[type="password"],
@@ -581,26 +606,31 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
   .settings-page input[type="number"],
   .settings-page input[type="search"],
   .settings-page input[type="tel"],
-  .settings-page select,
-  .settings-page .nl-input,
-  .settings-page .auth-field input,
-  .settings-page .auth-field select,
-  .settings-page .settings-locale-select,
-  .settings-page .plugin-config-control,
-  .settings-page .plugin-config-field .nl-input,
-  .settings-page .script-prompt-field .nl-input {
+  .settings-page select {
     height: var(--control-4xl);
   }
   .settings-page textarea,
   .settings-page .nl-textarea,
   .settings-page .cover-prompt-textarea,
-  .settings-page .script-prompt-field .nl-textarea,
-  .settings-page .plugin-config-textarea {
+  .settings-page .script-prompt-field .nl-textarea {
     height: auto;
     min-height: var(--size-84);
     line-height: var(--lh-relaxed);
     padding-top: var(--space-2);
     padding-bottom: var(--space-2);
+  }
+  .settings-page .plugin-config-control,
+  .settings-page .plugin-config-field .nl-input,
+  .settings-page .plugin-config-textarea,
+  .settings-page select.plugin-config-control {
+    font-size: var(--fs-md);
+    font-weight: var(--fw-medium);
+    min-height: var(--control-2xl);
+    height: var(--control-2xl);
+  }
+  .settings-page .plugin-config-textarea {
+    height: auto;
+    min-height: var(--size-76);
   }
   .settings-page select,
   .settings-page .auth-field select,
@@ -620,7 +650,6 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
     line-height: inherit;
     min-height: 0;
     height: auto;
-    letter-spacing: inherit;
   }
 
   .settings-page .auth-field {

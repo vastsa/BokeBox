@@ -674,8 +674,8 @@ html[data-theme="dark"] .topbar-action-btn {
 /* 手机端全局文字密度 + 表单控件统一 */
 @media (max-width: 767px) {
   /*
-   * 全局可编辑控件：≥16px 防 iOS 聚焦缩放。
-   * 统一字号/字重/行高/框高，避免各页 input/select 大小不一。
+   * 视口已 user-scalable=no，无需再强行 16px。
+   * 与桌面表单一致：13px / medium / 38px，避免设置页等控件显大。
    */
   input:not([type]),
   input[type="text"],
@@ -693,20 +693,14 @@ html[data-theme="dark"] .topbar-action-btn {
   .auth-field select,
   .settings-locale-select,
   .upload-locale-select,
-  .jd-select,
-  .plugin-config-control,
-  .plugin-config-field .nl-input,
-  .plugin-config-textarea,
-  .source-config-field .nl-input,
-  .source-config-textarea {
-    font-size: var(--fs-2xl); /* 16px */
-    font-weight: var(--fw-normal);
-    line-height: 1.25;
+  .jd-select {
+    font-size: var(--fs-md); /* 13px */
+    font-weight: var(--fw-medium);
+    line-height: var(--lh-snug);
     min-height: var(--control-4xl); /* 38px */
-    letter-spacing: var(--tracking-snug);
+    letter-spacing: var(--tracking-normal);
   }
 
-  /* 单行控件固定高度；多行例外 */
   input:not([type]),
   input[type="text"],
   input[type="password"],
@@ -721,22 +715,38 @@ html[data-theme="dark"] .topbar-action-btn {
   .auth-field select,
   .settings-locale-select,
   .upload-locale-select,
-  .jd-select,
-  .plugin-config-control,
-  .plugin-config-field .nl-input,
-  .source-config-field .nl-input {
+  .jd-select {
     height: var(--control-4xl);
   }
 
+  /* 插件参数保持紧凑密度 */
+  .plugin-config-control,
+  .plugin-config-field .nl-input,
+  .source-config-field .nl-input,
+  select.plugin-config-control {
+    font-size: var(--fs-md);
+    font-weight: var(--fw-medium);
+    line-height: var(--lh-snug);
+    min-height: var(--control-2xl); /* 34px */
+    height: var(--control-2xl);
+    letter-spacing: var(--tracking-normal);
+  }
+
   textarea,
-  .nl-textarea,
-  .plugin-config-textarea,
-  .source-config-textarea {
+  .nl-textarea {
     height: auto;
     min-height: var(--size-76);
     line-height: var(--lh-snug);
     padding-top: var(--space-2);
     padding-bottom: var(--space-2);
+  }
+
+  .plugin-config-textarea,
+  .source-config-textarea {
+    height: auto;
+    min-height: var(--size-76);
+    font-size: var(--fs-base);
+    line-height: var(--lh-snug);
   }
 
   select,
@@ -749,7 +759,6 @@ html[data-theme="dark"] .topbar-action-btn {
     padding-right: var(--space-8);
   }
 
-  /* 不处理 checkbox/radio/file/range/color/hidden/button 类 input */
   input[type="checkbox"],
   input[type="radio"],
   input[type="file"],
@@ -779,7 +788,7 @@ html[data-theme="dark"] .topbar-action-btn {
   }
 
   .auth-screen .auth-field {
-    font-size: var(--fs-base);
+    font-size: var(--fs-sm-plus);
   }
 
   .auth-card h1,

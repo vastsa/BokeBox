@@ -1199,8 +1199,8 @@ html[data-theme="dark"] .pg-num {
 
 
 /* ===== Mobile form controls · final cascade =====
- * albums.css 位于样式入口最后：在此收口全站手机端 input/select/textarea，
- * 压过各域页面级控件高度/字号，避免插件参数、专辑表单等仍显偏大。
+ * 末级级联：与桌面表单同规格（13px / 38px），插件参数保持 34px 紧凑。
+ * 视口已禁止缩放，不再强行 16px。
  */
 @media (max-width: 767px) {
   input:not([type]),
@@ -1227,18 +1227,12 @@ html[data-theme="dark"] .pg-num {
   .al-edit-title,
   .al-edit-summary,
   .al-manager-search .nl-input,
-  .admin-search .nl-input,
-  .plugin-config-control,
-  .plugin-config-field .nl-input,
-  .plugin-config-textarea,
-  .source-config-field .nl-input,
-  .source-config-textarea,
-  select.plugin-config-control {
-    font-size: var(--fs-2xl) !important; /* 16px 防 iOS 缩放 */
-    font-weight: var(--fw-normal) !important;
-    line-height: 1.25 !important;
-    letter-spacing: var(--tracking-snug) !important;
-    min-height: var(--control-4xl) !important; /* 38px */
+  .admin-search .nl-input {
+    font-size: var(--fs-md) !important;
+    font-weight: var(--fw-medium) !important;
+    line-height: var(--lh-snug) !important;
+    letter-spacing: var(--tracking-normal) !important;
+    min-height: var(--control-4xl) !important;
   }
 
   input:not([type]),
@@ -1261,25 +1255,38 @@ html[data-theme="dark"] .pg-num {
   .al-field input,
   .al-edit-title,
   .al-manager-search .nl-input,
-  .admin-search .nl-input,
+  .admin-search .nl-input {
+    height: var(--control-4xl) !important;
+  }
+
   .plugin-config-control,
   .plugin-config-field .nl-input,
   .source-config-field .nl-input,
   select.plugin-config-control {
-    height: var(--control-4xl) !important;
+    font-size: var(--fs-md) !important;
+    font-weight: var(--fw-medium) !important;
+    line-height: var(--lh-snug) !important;
+    min-height: var(--control-2xl) !important;
+    height: var(--control-2xl) !important;
   }
 
   textarea,
   .nl-textarea,
   .al-field textarea,
-  .al-edit-summary,
-  .plugin-config-textarea,
-  .source-config-textarea {
+  .al-edit-summary {
     height: auto !important;
     min-height: var(--size-76) !important;
     line-height: var(--lh-snug) !important;
     padding-top: var(--space-2) !important;
     padding-bottom: var(--space-2) !important;
+  }
+
+  .plugin-config-textarea,
+  .source-config-textarea {
+    height: auto !important;
+    min-height: var(--size-76) !important;
+    font-size: var(--fs-base) !important;
+    line-height: var(--lh-snug) !important;
   }
 
   select,
@@ -1312,7 +1319,6 @@ html[data-theme="dark"] .pg-num {
   }
 }
 
-/* iPad 设置页同样收口（settings 在 studio 之前，需再压一次） */
 @media (max-width: 899px) {
   .settings-page input:not([type]),
   .settings-page input[type="text"],
@@ -1329,16 +1335,13 @@ html[data-theme="dark"] .pg-num {
   .settings-page .auth-field input,
   .settings-page .auth-field select,
   .settings-page .settings-locale-select,
-  .settings-page .plugin-config-control,
-  .settings-page .plugin-config-field .nl-input,
-  .settings-page .plugin-config-textarea,
   .settings-page .script-prompt-field .nl-input,
   .settings-page .script-prompt-field .nl-textarea,
   .settings-page .cover-prompt-textarea {
-    font-size: var(--fs-2xl) !important;
-    font-weight: var(--fw-normal) !important;
-    line-height: 1.25 !important;
-    letter-spacing: var(--tracking-snug) !important;
+    font-size: var(--fs-md) !important;
+    font-weight: var(--fw-medium) !important;
+    line-height: var(--lh-snug) !important;
+    letter-spacing: var(--tracking-normal) !important;
     min-height: var(--control-4xl) !important;
   }
   .settings-page input:not([type]),
@@ -1354,16 +1357,21 @@ html[data-theme="dark"] .pg-num {
   .settings-page .auth-field input,
   .settings-page .auth-field select,
   .settings-page .settings-locale-select,
-  .settings-page .plugin-config-control,
-  .settings-page .plugin-config-field .nl-input,
   .settings-page .script-prompt-field .nl-input {
     height: var(--control-4xl) !important;
+  }
+  .settings-page .plugin-config-control,
+  .settings-page .plugin-config-field .nl-input,
+  .settings-page select.plugin-config-control {
+    font-size: var(--fs-md) !important;
+    font-weight: var(--fw-medium) !important;
+    min-height: var(--control-2xl) !important;
+    height: var(--control-2xl) !important;
   }
   .settings-page textarea,
   .settings-page .nl-textarea,
   .settings-page .cover-prompt-textarea,
-  .settings-page .script-prompt-field .nl-textarea,
-  .settings-page .plugin-config-textarea {
+  .settings-page .script-prompt-field .nl-textarea {
     height: auto !important;
     min-height: var(--size-84) !important;
     line-height: var(--lh-relaxed) !important;
@@ -1379,6 +1387,5 @@ html[data-theme="dark"] .pg-num {
     line-height: inherit !important;
     min-height: 0 !important;
     height: auto !important;
-    letter-spacing: inherit !important;
   }
 }
