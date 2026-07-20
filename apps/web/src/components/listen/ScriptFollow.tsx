@@ -310,16 +310,16 @@ function LyricsTranscript({
       const target = lineRefs.current[index];
       if (!scroller || !target) return;
 
-      // 读取 CSS 焦点线（默认偏上 38%），让当前行落在渐隐区域中央偏上
+      // 读取 CSS 焦点线（默认偏上 34%），让当前行落在渐隐区域中央偏上
       const focusRatioRaw = getComputedStyle(scroller)
         .getPropertyValue('--lyrics-focus-y')
         .trim();
       const focusRatio = focusRatioRaw.endsWith('%')
         ? Number.parseFloat(focusRatioRaw) / 100
-        : Number.parseFloat(focusRatioRaw || '0.38');
+        : Number.parseFloat(focusRatioRaw || '0.34');
       const focusY = Number.isFinite(focusRatio)
-        ? Math.min(0.55, Math.max(0.28, focusRatio))
-        : 0.38;
+        ? Math.min(0.48, Math.max(0.26, focusRatio))
+        : 0.34;
 
       const scrollerBox = scroller.getBoundingClientRect();
       const targetBox = target.getBoundingClientRect();
@@ -444,7 +444,16 @@ function LyricsTranscript({
   const offsetLabel = `${offsetSec > 0 ? '+' : ''}${offsetSec.toFixed(1)}s`;
 
   return (
-    <section className="qq-lyrics-transcript" aria-label={t('player.lyricsAria')}>
+    <section
+      className={[
+        'qq-lyrics-transcript',
+        following ? '' : 'is-browsing',
+        calibrationOpen ? 'is-calibrating' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      aria-label={t('player.lyricsAria')}
+    >
       <div className="qq-lyrics-toolbar">
         <div className="qq-lyrics-status" aria-live="polite">
           <span className={['qq-lyrics-dot', following ? 'is-live' : ''].join(' ')} />

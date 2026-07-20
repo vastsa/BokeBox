@@ -1166,12 +1166,16 @@ html[data-theme="dark"] .qq-ambient-veil {
    Synchronized lyrics · clean stage
    设计目标：少边框、大字号、当前行呼吸感，像音乐 App 歌词台
    ========================= */
+/* =========================
+   Synchronized lyrics · Apple Music stage
+   大字 / 极弱控件 / 当前行绝对主角
+   ========================= */
 .qq-lyrics-transcript {
-  --lyrics-focus-y: 38%;
-  --lyrics-pad-x: clamp(var(--space-1), 1.2vw, var(--space-3));
+  --lyrics-focus-y: 34%;
+  --lyrics-pad-x: clamp(2px, 0.8vw, 10px);
   --lyrics-active: var(--text);
-  --lyrics-passed: color-mix(in srgb, var(--text-3) 82%, var(--text-2));
-  --lyrics-upcoming: color-mix(in srgb, var(--text-2) 70%, var(--text-3));
+  --lyrics-near: color-mix(in srgb, var(--text) 42%, transparent);
+  --lyrics-far: color-mix(in srgb, var(--text) 22%, transparent);
   position: relative;
   height: 100%;
   min-height: var(--size-200);
@@ -1179,47 +1183,68 @@ html[data-theme="dark"] .qq-ambient-veil {
   flex-direction: column;
   overflow: hidden;
   border: 0;
-  border-radius: calc(var(--radius-xl) + 2px);
+  border-radius: 0;
   background: transparent;
 }
 
+/* 控件默认隐身，悬停歌词台 / 聚焦时再出现 */
 .qq-lyrics-toolbar {
-  position: relative;
+  position: absolute;
   z-index: var(--z-sticky);
+  top: 0;
+  left: 0;
+  right: 0;
   flex: 0 0 auto;
-  min-height: var(--control-xl);
+  min-height: var(--control-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  margin: 0 var(--lyrics-pad-x);
-  padding: var(--space-1) var(--space-1) var(--space-2);
-  border-bottom: 0;
-  background: transparent;
+  padding: var(--space-1) calc(var(--lyrics-pad-x) + var(--space-1));
+  border: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg) 72%, transparent),
+    transparent
+  );
+  opacity: 0;
+  transform: translateY(-2px);
+  pointer-events: none;
+  transition:
+    opacity 180ms var(--ease),
+    transform 180ms var(--ease);
+}
+.qq-lyrics-transcript:hover .qq-lyrics-toolbar,
+.qq-lyrics-transcript:focus-within .qq-lyrics-toolbar,
+.qq-lyrics-transcript.is-browsing .qq-lyrics-toolbar,
+.qq-lyrics-transcript.is-calibrating .qq-lyrics-toolbar {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
 
 .qq-lyrics-status {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: var(--space-1_5);
-  color: var(--text-3);
-  font-size: var(--fs-sm);
+  gap: var(--space-1);
+  color: color-mix(in srgb, var(--text) 48%, transparent);
+  font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
 .qq-lyrics-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   flex: 0 0 auto;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--text-3) 70%, transparent);
-  transition: background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  background: color-mix(in srgb, var(--text) 28%, transparent);
 }
 .qq-lyrics-dot.is-live {
   background: var(--brand-2);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-2) 18%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-2) 16%, transparent);
 }
 
 .qq-lyrics-source {
@@ -1228,41 +1253,40 @@ html[data-theme="dark"] .qq-ambient-veil {
   padding: 0;
   border-radius: 0;
   background: transparent;
-  color: color-mix(in srgb, var(--text-3) 88%, transparent);
+  color: color-mix(in srgb, var(--text) 34%, transparent);
   font-size: var(--fs-xs);
   font-weight: var(--fw-medium);
   text-overflow: ellipsis;
 }
-
 .qq-lyrics-source::before {
   content: '·';
-  margin-right: var(--space-1_5);
-  color: color-mix(in srgb, var(--text-3) 55%, transparent);
+  margin-right: var(--space-1);
+  color: color-mix(in srgb, var(--text) 22%, transparent);
 }
 
 .qq-lyrics-calibrate-toggle {
   flex: 0 0 auto;
-  min-height: var(--control-md);
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
   padding: 0 var(--space-2);
   border: 0;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
-  color: var(--text-3);
-  font-size: var(--fs-sm);
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  color: color-mix(in srgb, var(--text) 58%, transparent);
+  font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
   cursor: pointer;
-  transition:
-    color var(--dur-fast) var(--ease),
-    background var(--dur-fast) var(--ease);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
 .qq-lyrics-calibrate-toggle:hover,
 .qq-lyrics-calibrate-toggle:focus-visible,
 .qq-lyrics-calibrate-toggle.is-adjusted {
   color: var(--brand-2);
-  background: color-mix(in srgb, var(--brand-soft) 80%, transparent);
+  background: color-mix(in srgb, var(--brand-soft) 88%, transparent);
 }
 .qq-lyrics-calibrate-toggle span {
   font-variant-numeric: tabular-nums;
@@ -1270,20 +1294,22 @@ html[data-theme="dark"] .qq-ambient-veil {
 }
 
 .qq-lyrics-calibration {
-  position: relative;
+  position: absolute;
   z-index: var(--z-sticky);
-  flex: 0 0 auto;
+  top: calc(var(--control-lg) + 2px);
+  left: var(--lyrics-pad-x);
+  right: var(--lyrics-pad-x);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin: 0 var(--lyrics-pad-x) var(--space-1);
   padding: var(--space-2) var(--space-2_5);
   border: 0;
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
-  backdrop-filter: blur(var(--blur-md));
-  -webkit-backdrop-filter: blur(var(--blur-md));
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(var(--blur-xl));
+  -webkit-backdrop-filter: blur(var(--blur-xl));
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--text) 8%, transparent);
 }
 .qq-lyrics-calibration > div:first-child {
   min-width: 0;
@@ -1308,14 +1334,14 @@ html[data-theme="dark"] .qq-ambient-veil {
 }
 .qq-lyrics-calibration-controls button,
 .qq-lyrics-calibration-controls output {
-  min-width: var(--control-md);
-  height: var(--control-md);
+  min-width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   padding: 0 var(--space-1_5);
   border: 0;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 90%, transparent);
   color: var(--text-2);
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
@@ -1352,21 +1378,22 @@ html[data-theme="dark"] .qq-ambient-veil {
   overscroll-behavior: contain;
   touch-action: pan-y;
   scroll-behavior: smooth;
-  scroll-padding-block: 18% 28%;
+  scroll-padding-block: 20% 32%;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  /* Apple 式更深的上下淡出 */
   mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    #000 10%,
-    #000 78%,
+    #000 12%,
+    #000 72%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    #000 10%,
-    #000 78%,
+    #000 12%,
+    #000 72%,
     transparent 100%
   );
 }
@@ -1379,200 +1406,205 @@ html[data-theme="dark"] .qq-ambient-veil {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: clamp(10px, 1.8vh, 18px);
+  gap: clamp(14px, 2.4vh, 28px);
   margin: 0;
   padding:
-    clamp(48px, 14vh, 120px)
+    clamp(56px, 16vh, 140px)
     var(--lyrics-pad-x)
-    clamp(120px, 28vh, 220px);
+    clamp(132px, 30vh, 240px);
 }
 
 .qq-lyrics-list > li {
   position: relative;
   margin: 0;
-  scroll-margin-block: 22vh;
+  scroll-margin-block: 24vh;
 }
 
-/* 纯文字行：去掉卡片感 */
+/* 纯文字：无底、无边、无条 */
 .qq-lyric-cue {
   position: relative;
   width: 100%;
   min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-  gap: 0;
-  padding: var(--space-1) var(--space-1);
-  overflow: visible;
+  display: block;
+  padding: 0;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: transparent;
-  color: var(--lyrics-upcoming);
+  color: var(--lyrics-far);
   text-align: left;
   cursor: pointer;
-  transform: none;
+  transform: scale(0.96);
+  transform-origin: left center;
+  opacity: 0.78;
   transition:
-    color 220ms var(--ease),
-    opacity 220ms var(--ease),
-    transform 280ms var(--ease);
+    color 240ms var(--ease),
+    opacity 240ms var(--ease),
+    transform 320ms var(--ease),
+    filter 240ms var(--ease);
   -webkit-tap-highlight-color: transparent;
 }
 .qq-lyric-cue:hover {
-  color: var(--text);
+  color: color-mix(in srgb, var(--text) 78%, transparent);
   background: transparent;
+  opacity: 1;
 }
 .qq-lyric-cue[aria-disabled="true"] {
   cursor: default;
 }
 .qq-lyric-cue:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 28%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent);
 }
 
 .qq-lyrics-list > li.is-passed .qq-lyric-cue {
-  color: var(--lyrics-passed);
-  opacity: 0.55;
+  color: var(--lyrics-far);
+  opacity: 0.42;
+  transform: scale(0.95);
+  filter: none;
 }
 .qq-lyrics-list > li.is-upcoming .qq-lyric-cue {
-  color: var(--lyrics-upcoming);
+  color: var(--lyrics-near);
   opacity: 0.72;
+  transform: scale(0.96);
 }
 .qq-lyrics-list > li.is-active .qq-lyric-cue {
   color: var(--lyrics-active);
   opacity: 1;
-  transform: translateX(2px);
+  transform: scale(1);
+  filter: none;
 }
 
-/* 当前行左侧细呼吸条 */
+/* 去掉左侧指示条：Apple 靠字号与透明度区分 */
 .qq-lyrics-list > li.is-active .qq-lyric-cue::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.42em;
-  width: 3px;
-  height: 1.1em;
-  border-radius: var(--radius-pill);
-  background: var(--brand-2);
-  opacity: 0.95;
+  content: none;
 }
 
-/* 时间戳默认隐藏，悬停/当前行时淡入 */
+/* 时间戳仅键盘聚焦时显示，鼠标默认完全隐藏 */
 .qq-lyric-time {
+  display: none;
+}
+.qq-lyric-cue:focus-visible .qq-lyric-time {
+  display: inline-block;
   position: absolute;
-  right: var(--space-1);
-  top: 0.35em;
-  padding: 0;
-  color: var(--text-3);
-  font-size: var(--fs-xs);
+  right: 0;
+  top: 0.2em;
+  color: color-mix(in srgb, var(--text) 40%, transparent);
+  font-size: 11px;
   font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  opacity: 0;
-  transform: translateY(1px);
-  transition: opacity 180ms var(--ease);
-  pointer-events: none;
-}
-.qq-lyric-cue:hover .qq-lyric-time,
-.qq-lyric-cue:focus-visible .qq-lyric-time,
-.qq-lyrics-list > li.is-active .qq-lyric-time {
-  opacity: 0.72;
-  color: color-mix(in srgb, var(--brand-2) 70%, var(--text-3));
 }
 
 .qq-lyric-copy {
+  display: block;
   min-width: 0;
-  max-width: 34ch;
-  padding-right: var(--space-8);
-  font-size: clamp(1.12rem, 0.96rem + 0.85vw, 1.55rem);
-  font-weight: var(--fw-medium);
-  line-height: 1.45;
-  letter-spacing: 0.01em;
+  max-width: 18em;
+  font-size: clamp(1.35rem, 1.05rem + 1.35vw, 2.05rem);
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: -0.01em;
   text-wrap: pretty;
   overflow-wrap: anywhere;
   transition:
-    font-weight 180ms var(--ease),
-    letter-spacing 180ms var(--ease),
-    filter 220ms var(--ease);
+    font-weight 220ms var(--ease),
+    letter-spacing 220ms var(--ease),
+    font-size 220ms var(--ease);
 }
-.qq-lyrics-list > li.is-passed .qq-lyric-copy {
-  font-weight: var(--fw-medium);
+.qq-lyrics-list > li.is-passed .qq-lyric-copy,
+.qq-lyrics-list > li.is-upcoming .qq-lyric-copy {
+  font-weight: 560;
 }
 .qq-lyrics-list > li.is-active .qq-lyric-copy {
-  font-weight: var(--fw-heavy);
-  letter-spacing: 0.015em;
-  text-shadow: 0 1px 0 color-mix(in srgb, var(--surface) 35%, transparent);
+  font-weight: 760;
+  letter-spacing: -0.018em;
 }
-
 
 .qq-lyrics-return {
   position: absolute;
   z-index: var(--z-dropdown);
   left: 50%;
   bottom: var(--space-3);
-  min-height: var(--control-lg);
+  min-height: 34px;
   max-width: calc(100% - var(--space-8));
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-1_5);
-  padding: 0 var(--space-3);
+  padding: 0 14px;
   border: 0;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: color-mix(in srgb, var(--text) 88%, transparent);
   box-shadow:
-    0 8px 24px color-mix(in srgb, var(--text) 8%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--separator) 55%, transparent);
-  backdrop-filter: blur(var(--blur-xl));
-  -webkit-backdrop-filter: blur(var(--blur-xl));
+    0 8px 28px color-mix(in srgb, var(--text) 10%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--separator) 40%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   font-size: var(--fs-sm);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
   cursor: pointer;
   transform: translateX(-50%);
 }
 .qq-lyrics-return > span {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: var(--radius-pill);
   background: var(--brand-2);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-2) 18%, transparent);
 }
 .qq-lyrics-return:hover,
 .qq-lyrics-return:focus-visible {
-  background: var(--surface);
-  color: var(--brand-2);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--text);
 }
 
 html[data-theme="dark"] .qq-lyrics-transcript {
-  --lyrics-active: #f4f7fb;
-  --lyrics-passed: color-mix(in srgb, var(--text-3) 88%, #9aa6b8);
-  --lyrics-upcoming: color-mix(in srgb, var(--text-2) 62%, #8b95a7);
-  background: transparent;
+  --lyrics-active: #f5f7fa;
+  --lyrics-near: rgba(245, 247, 250, 0.38);
+  --lyrics-far: rgba(245, 247, 250, 0.18);
 }
 html[data-theme="dark"] .qq-lyrics-toolbar {
-  background: transparent;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-ink-2) 70%, transparent),
+    transparent
+  );
 }
 html[data-theme="dark"] .qq-lyrics-calibration {
-  background: color-mix(in srgb, var(--surface) 46%, transparent);
-}
-html[data-theme="dark"] .qq-lyrics-list > li.is-active .qq-lyric-copy {
-  text-shadow: 0 1px 18px color-mix(in srgb, var(--brand) 18%, transparent);
+  background: color-mix(in srgb, var(--surface-deep) 78%, transparent);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
 }
 html[data-theme="dark"] .qq-lyrics-return {
-  background: color-mix(in srgb, var(--surface-deep) 72%, transparent);
+  background: color-mix(in srgb, var(--surface-deep) 76%, transparent);
   box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.28),
-    inset 0 0 0 1px color-mix(in srgb, var(--separator) 40%, transparent);
+    0 12px 30px rgba(0, 0, 0, 0.32),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* 触控设备：工具条常显一点，避免“找不到校准” */
+@media (hover: none) {
+  .qq-lyrics-toolbar {
+    opacity: 0.72;
+    pointer-events: auto;
+    transform: none;
+  }
+  .qq-lyrics-transcript:hover .qq-lyrics-toolbar,
+  .qq-lyrics-transcript:focus-within .qq-lyrics-toolbar,
+  .qq-lyrics-transcript.is-browsing .qq-lyrics-toolbar,
+  .qq-lyrics-transcript.is-calibrating .qq-lyrics-toolbar {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 520px) {
   .qq-lyrics-transcript {
-    --lyrics-pad-x: var(--space-0_5);
+    --lyrics-pad-x: 0px;
+    --lyrics-focus-y: 32%;
   }
   .qq-lyrics-calibration {
-    align-items: flex-start;
+    top: calc(var(--control-lg) + 4px);
     flex-direction: column;
+    align-items: flex-start;
     gap: var(--space-2);
   }
   .qq-lyrics-calibration-controls {
@@ -1582,28 +1614,36 @@ html[data-theme="dark"] .qq-lyrics-return {
     flex: 1;
   }
   .qq-lyrics-source {
-    max-width: var(--size-88);
+    max-width: 72px;
   }
   .qq-lyric-copy {
     max-width: none;
-    font-size: clamp(1.08rem, 0.9rem + 1.4vw, 1.28rem);
-    padding-right: var(--space-7);
+    font-size: clamp(1.28rem, 1.05rem + 2.2vw, 1.7rem);
+    line-height: 1.3;
   }
   .qq-lyrics-list {
-    gap: 12px;
+    gap: clamp(12px, 2vh, 20px);
   }
+  .qq-lyric-cue {
+    transform: none;
+  }
+  .qq-lyrics-list > li.is-passed .qq-lyric-cue,
+  .qq-lyrics-list > li.is-upcoming .qq-lyric-cue,
   .qq-lyrics-list > li.is-active .qq-lyric-cue {
     transform: none;
   }
 }
 
 @media (min-width: 900px) {
+  .qq-lyrics-transcript {
+    --lyrics-focus-y: 36%;
+  }
   .qq-lyric-copy {
-    max-width: 38ch;
-    font-size: clamp(1.2rem, 0.95rem + 0.7vw, 1.62rem);
+    max-width: 16em;
+    font-size: clamp(1.55rem, 1.15rem + 1.1vw, 2.2rem);
   }
   .qq-lyrics-list {
-    gap: clamp(12px, 1.6vh, 20px);
+    gap: clamp(16px, 2.2vh, 30px);
   }
 }
 
@@ -1613,13 +1653,15 @@ html[data-theme="dark"] .qq-lyrics-return {
     mask-image: none;
     -webkit-mask-image: none;
   }
+  .qq-lyrics-toolbar,
   .qq-lyric-cue,
   .qq-lyric-copy,
-  .qq-lyric-time,
-  .qq-lyrics-return,
-  .qq-lyrics-dot {
+  .qq-lyrics-return {
     transition: none !important;
   }
+  .qq-lyric-cue,
+  .qq-lyrics-list > li.is-passed .qq-lyric-cue,
+  .qq-lyrics-list > li.is-upcoming .qq-lyric-cue,
   .qq-lyrics-list > li.is-active .qq-lyric-cue {
     transform: none;
   }
