@@ -3,6 +3,8 @@
  *
  * GET    /source-plugins                 列表
  * POST   /source-plugins/rescan          热扫描加载外部插件
+ * POST   /source-plugins/install         上传 zip 安装外部插件
+ * DELETE /source-plugins/:id/package     卸载外部插件目录
  * PATCH  /source-plugins/:id             启用/禁用
  * POST   /source-plugins/:id/reset       恢复 defaultEnabled
  * PUT    /source-plugins/:id/config      保存插件配置
@@ -20,6 +22,10 @@ import {
   resetSourcePluginConfigForId,
 } from '../sources/index.js';
 import { SOURCE_PLUGINS_DIR } from '../utils/paths.js';
+import {
+  installPluginPackageFromZip,
+  uninstallExternalPlugin,
+} from '../services/plugins/pluginPackageInstall.js';
 
 export async function sourceRoutes(app: FastifyInstance): Promise<void> {
   app.get('/source-plugins', async () => {
@@ -37,6 +43,82 @@ export async function sourceRoutes(app: FastifyInstance): Promise<void> {
       plugins: listSourcePluginsPublic(),
     };
   });
+
+  /** 上传 zip 安装 / 覆盖外部 Source 插件 */
+  app.post('/source-plugins/install', async (req, reply) => {
+    try {
+      const file = await req.file({ limits: { fileSize: 80 * 1024 * 1024 } });
+      if (!file) {
+        return reply.code(400).send({ error: '请上传插件 zip 文件（字段名 file）' });
+      }
+      const filename = String(file.filename || '').toLowerCase();
+      if (filename && !filename.endsWith('.zip')) {
+        return reply.code(400).send({ error: '仅支持 .zip 插件包' });
+      }
+      const buf = await file.toBuffer();
+      if (file.file.truncated) {
+        return reply.code(413).send({ error: '插件包过大（上限 80MB）' });
+      }
+      // multipart 字段：overwrite=false 可禁止覆盖
+      const overwriteField = (file.fields as Record<string, unknown> | undefined)?.overwrite;
+      const overwritePart = Array.isArray(overwriteField)
+        ? overwriteField[0]
+        : overwriteField;
+      const overwriteVal =
+        overwritePart &&
+        typeof overwritePart === 'object' &&
+        overwritePart !== null &&
+        'value' in overwritePart
+          ? (overwritePart as { value?: unknown }).value
+          : undefined;
+      const overwrite =
+        overwriteVal === undefined
+          ? true
+          : String(overwriteVal) !== 'false' && overwriteVal !== false;
+
+      const installed = await installPluginPackageFromZip('source', buf, {
+        overwrite,
+      });
+      return {
+        ok: true,
+        installed,
+        plugins: listSourcePluginsPublic(),
+      };
+    } catch (err) {
+      const status =
+        err && typeof err === 'object' && typeof (err as { statusCode?: unknown }).statusCode === 'number'
+          ? Number((err as { statusCode: number }).statusCode)
+          : 400;
+      const message = err instanceof Error ? err.message : String(err);
+      return reply.code(status).send({ error: message });
+    }
+  });
+
+  app.delete<{ Params: { id: string } }>(
+    '/source-plugins/:id/package',
+    async (req, reply) => {
+      const id = String(req.params.id || '').trim();
+      if (!id) return reply.code(400).send({ error: '缺少插件 id' });
+      const reg = getSourcePluginRegistration(id);
+      if (reg && reg.origin === 'builtin') {
+        return reply.code(400).send({ error: '内置插件不可卸载' });
+      }
+      try {
+        const result = await uninstallExternalPlugin('source', id);
+        return {
+          ...result,
+          plugins: listSourcePluginsPublic(),
+        };
+      } catch (err) {
+        const status =
+          err && typeof err === 'object' && typeof (err as { statusCode?: unknown }).statusCode === 'number'
+            ? Number((err as { statusCode: number }).statusCode)
+            : 400;
+        const message = err instanceof Error ? err.message : String(err);
+        return reply.code(status).send({ error: message });
+      }
+    },
+  );
 
   app.patch<{
     Params: { id: string };

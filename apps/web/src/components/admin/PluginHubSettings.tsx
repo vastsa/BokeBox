@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchAiPlugins,
   fetchSourcePlugins,
+  installAiPluginPackage,
+  installSourcePluginPackage,
   rescanAiPlugins,
   rescanSourcePlugins,
   resetAiPluginConfigApi,
@@ -13,7 +15,11 @@ import {
   saveAiSettings,
   setAiPluginEnabledApi,
   setSourcePluginEnabledApi,
+  uninstallAiPluginPackage,
+  uninstallSourcePluginPackage,
+  type AiPluginDescriptor,
   type SourcePluginConfigField,
+  type SourcePluginDescriptor,
   type SourceRiskLevel,
 } from '../../api/client';
 import { useI18n } from '../../i18n';
@@ -45,6 +51,8 @@ export function PluginHubSettings({
   const [plugins, setPlugins] = useState<HubPlugin[]>([]);
   const [loading, setLoading] = useState(true);
   const [rescanning, setRescanning] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
@@ -159,6 +167,80 @@ export function PluginHubSettings({
       onError?.(err instanceof Error ? err.message : String(err));
     } finally {
       setRescanning(false);
+    }
+  };
+
+  const onUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const onUploadFile = async (file: File | null | undefined) => {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.zip')) {
+      onError?.(t('settings.pluginUploadNeedZip'));
+      return;
+    }
+    setUploading(true);
+    onMessage?.(null);
+    onError?.(null);
+    try {
+      const res =
+        kind === 'source'
+          ? await installSourcePluginPackage(file, true)
+          : await installAiPluginPackage(kind, file, true);
+      if (kind === 'source') {
+        applyPlugins(((res.plugins || []) as SourcePluginDescriptor[]).map(fromSource));
+      } else {
+        applyPlugins(((res.plugins || []) as AiPluginDescriptor[]).map(fromAi));
+      }
+      setPluginsDir(res.installed?.scan?.pluginsDir || pluginsDir);
+      onMessage?.(
+        t('settings.pluginUploadDone', {
+          name: res.installed?.name || res.installed?.pluginId || file.name,
+          version: res.installed?.version || '-',
+          action: res.installed?.replaced
+            ? t('settings.pluginUploadReplaced')
+            : t('settings.pluginUploadInstalled'),
+        }),
+      );
+      if (res.installed?.pluginId) setExpandedId(res.installed.pluginId);
+    } catch (err) {
+      onError?.(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const onUninstall = async (plugin: HubPlugin) => {
+    if (plugin.origin === 'builtin') {
+      onError?.(t('settings.pluginUninstallBuiltin'));
+      return;
+    }
+    const ok = window.confirm(
+      t('settings.pluginUninstallConfirm', { name: plugin.name }),
+    );
+    if (!ok) return;
+    setBusyId(plugin.id);
+    onMessage?.(null);
+    onError?.(null);
+    try {
+      const res =
+        kind === 'source'
+          ? await uninstallSourcePluginPackage(plugin.id)
+          : await uninstallAiPluginPackage(kind, plugin.id);
+      if (kind === 'source') {
+        applyPlugins(((res.plugins || []) as SourcePluginDescriptor[]).map(fromSource));
+      } else {
+        applyPlugins(((res.plugins || []) as AiPluginDescriptor[]).map(fromAi));
+      }
+      if (expandedId === plugin.id) setExpandedId(null);
+      onMessage?.(t('settings.pluginUninstallDone', { name: plugin.name }));
+    } catch (err) {
+      onError?.(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -527,19 +609,37 @@ export function PluginHubSettings({
           <p>{t('settings.pluginHubDesc')}</p>
         </div>
         <div className="source-settings-head-actions">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip,application/zip"
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(e) => void onUploadFile(e.target.files?.[0])}
+          />
           <button
             type="button"
             className="nl-btn nl-btn-secondary"
             onClick={() => void load()}
-            disabled={loading || rescanning}
+            disabled={loading || rescanning || uploading}
           >
             {t('common.refresh')}
           </button>
           <button
             type="button"
+            className="nl-btn nl-btn-secondary"
+            onClick={onUploadClick}
+            disabled={loading || rescanning || uploading}
+          >
+            {uploading
+              ? t('settings.pluginUploading')
+              : t('settings.pluginUpload')}
+          </button>
+          <button
+            type="button"
             className="nl-btn nl-btn-primary"
             onClick={() => void onRescan()}
-            disabled={loading || rescanning}
+            disabled={loading || rescanning || uploading}
           >
             {rescanning
               ? t('settings.sourceRescanning')
@@ -740,6 +840,16 @@ export function PluginHubSettings({
                     >
                       {t('settings.sourceResetBtn')}
                     </button>
+                    {plugin.origin === 'external' ? (
+                      <button
+                        type="button"
+                        className="source-plugin-action-btn is-danger"
+                        disabled={busyId === plugin.id || uploading}
+                        onClick={() => void onUninstall(plugin)}
+                      >
+                        {t('settings.pluginUninstall')}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
 

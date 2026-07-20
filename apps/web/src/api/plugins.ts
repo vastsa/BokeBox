@@ -327,3 +327,81 @@ export async function resetAiPluginConfigApi(
     method: 'POST',
   });
 }
+
+
+// ── 插件包上传安装 / 卸载 ───────────────────────────────
+
+export type PluginPackageInstallInfo = {
+  ok: true;
+  kind: 'source' | 'asr' | 'tts';
+  pluginId: string;
+  dirName: string;
+  dirPath: string;
+  replaced: boolean;
+  version: string;
+  name: string;
+  files: number;
+  scan: SourcePluginsRescanResponse['scan'];
+};
+
+export type PluginPackageInstallResponse = {
+  ok: boolean;
+  kind?: 'source' | 'asr' | 'tts';
+  installed: PluginPackageInstallInfo;
+  plugins: SourcePluginDescriptor[] | AiPluginDescriptor[];
+};
+
+export type PluginPackageUninstallResponse = {
+  ok: boolean;
+  kind?: 'source' | 'asr' | 'tts';
+  pluginId: string;
+  dirName: string;
+  scan: SourcePluginsRescanResponse['scan'];
+  plugins: SourcePluginDescriptor[] | AiPluginDescriptor[];
+};
+
+async function postPluginZip(
+  path: string,
+  file: File,
+  overwrite = true,
+): Promise<PluginPackageInstallResponse> {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('overwrite', overwrite ? 'true' : 'false');
+  return request(path, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function installSourcePluginPackage(
+  file: File,
+  overwrite = true,
+): Promise<PluginPackageInstallResponse> {
+  return postPluginZip('/source-plugins/install', file, overwrite);
+}
+
+export async function uninstallSourcePluginPackage(
+  id: string,
+): Promise<PluginPackageUninstallResponse> {
+  return request(`/source-plugins/${encodeURIComponent(id)}/package`, {
+    method: 'DELETE',
+  });
+}
+
+export async function installAiPluginPackage(
+  kind: AiPluginKind,
+  file: File,
+  overwrite = true,
+): Promise<PluginPackageInstallResponse> {
+  return postPluginZip(`${aiPluginBase(kind)}/install`, file, overwrite);
+}
+
+export async function uninstallAiPluginPackage(
+  kind: AiPluginKind,
+  id: string,
+): Promise<PluginPackageUninstallResponse> {
+  return request(`${aiPluginBase(kind)}/${encodeURIComponent(id)}/package`, {
+    method: 'DELETE',
+  });
+}

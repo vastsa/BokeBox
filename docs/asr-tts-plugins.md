@@ -149,3 +149,9 @@ meta: {
 
 仓库地址：https://github.com/vastsa/BokeBox  
 协议：LGPL-3.0
+
+### 后台上传安装
+
+设置页「插件中心」支持上传 `.zip` 插件包（也可继续手动放入 `storage/plugins/<kind>/` 后扫描）。
+zip 根目录或唯一子目录需包含 `plugin.json` 与入口文件；同 id 默认覆盖安装，外部插件可卸载。
+

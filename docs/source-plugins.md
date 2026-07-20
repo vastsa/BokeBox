@@ -133,3 +133,9 @@ const artifact = await importSource({
 ## 相关
 
 - [ASR / TTS 插件](./asr-tts-plugins.md)（同一套机制）
+
+### 后台上传安装
+
+设置页「插件中心」支持上传 `.zip` 插件包（也可继续手动放入 `storage/plugins/<kind>/` 后扫描）。
+zip 根目录或唯一子目录需包含 `plugin.json` 与入口文件；同 id 默认覆盖安装，外部插件可卸载。
+

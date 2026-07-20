@@ -1311,6 +1311,14 @@ html[data-theme="dark"] .admin-job-live {
   color: var(--text-3);
 }
 
+.source-plugin-action-btn.is-danger {
+  color: var(--danger);
+}
+.source-plugin-action-btn.is-danger:hover:not(:disabled) {
+  color: var(--danger-hot, var(--danger));
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
 .source-plugin-action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
