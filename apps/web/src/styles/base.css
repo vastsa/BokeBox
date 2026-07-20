@@ -671,9 +671,74 @@ html[data-theme="dark"] .topbar-action-btn {
   font-weight: var(--fw-medium);
 }
 
-/* 手机端全局文字密度 */
+/* 手机端全局文字密度 + 表单控件统一 */
 @media (max-width: 767px) {
-  /* 手机端全局 select 与 input 对齐，避免下拉文字显得更大 */
+  /*
+   * 全局可编辑控件：≥16px 防 iOS 聚焦缩放。
+   * 统一字号/字重/行高/框高，避免各页 input/select 大小不一。
+   */
+  input:not([type]),
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="url"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  textarea,
+  select,
+  .nl-input,
+  .nl-textarea,
+  .auth-field input,
+  .auth-field select,
+  .settings-locale-select,
+  .upload-locale-select,
+  .jd-select,
+  .plugin-config-control,
+  .plugin-config-field .nl-input,
+  .plugin-config-textarea,
+  .source-config-field .nl-input,
+  .source-config-textarea {
+    font-size: var(--fs-2xl); /* 16px */
+    font-weight: var(--fw-normal);
+    line-height: 1.25;
+    min-height: var(--control-4xl); /* 38px */
+    letter-spacing: var(--tracking-snug);
+  }
+
+  /* 单行控件固定高度；多行例外 */
+  input:not([type]),
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="url"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  select,
+  .nl-input,
+  .auth-field input,
+  .auth-field select,
+  .settings-locale-select,
+  .upload-locale-select,
+  .jd-select,
+  .plugin-config-control,
+  .plugin-config-field .nl-input,
+  .source-config-field .nl-input {
+    height: var(--control-4xl);
+  }
+
+  textarea,
+  .nl-textarea,
+  .plugin-config-textarea,
+  .source-config-textarea {
+    height: auto;
+    min-height: var(--size-76);
+    line-height: var(--lh-snug);
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+
   select,
   .auth-field select,
   .settings-locale-select,
@@ -681,11 +746,26 @@ html[data-theme="dark"] .topbar-action-btn {
   select.nl-input,
   .jd-select,
   select.plugin-config-control {
-    font-size: var(--fs-2xl);
-    font-weight: var(--fw-normal);
-    line-height: 1.25;
-    min-height: var(--control-4xl);
-    letter-spacing: var(--tracking-snug);
+    padding-right: var(--space-8);
+  }
+
+  /* 不处理 checkbox/radio/file/range/color/hidden/button 类 input */
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  input[type="range"],
+  input[type="color"],
+  input[type="hidden"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  input[type="image"] {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    min-height: 0;
+    height: auto;
+    letter-spacing: inherit;
   }
 
   .app-page-sub,
@@ -698,47 +778,8 @@ html[data-theme="dark"] .topbar-action-btn {
     font-weight: var(--fw-semibold);
   }
 
-  .nl-input,
-  .nl-textarea {
-    font-size: var(--fs-md);
-    font-weight: var(--fw-medium);
-  }
-
-  /* 登录/初始化：≥16px 防 iOS 聚焦缩放；字重/行高压低，避免相对标签过大 */
-  .auth-screen .auth-field input,
-  .auth-screen .auth-field select,
-  .auth-screen .settings-locale-select,
-  .auth-screen .plugin-config-control,
-  .auth-screen .plugin-config-field .nl-input,
-  .auth-screen .plugin-config-textarea {
-    font-size: var(--fs-2xl); /* 16px */
-    font-weight: var(--fw-normal);
-    line-height: 1.25;
-    min-height: var(--control-4xl); /* 38px，贴近桌面控件 */
-    letter-spacing: var(--tracking-snug);
-  }
-  .auth-screen .auth-field select,
-  .auth-screen .settings-locale-select,
-  .auth-screen select.plugin-config-control,
-  .auth-screen select.nl-input {
-    padding-right: var(--space-8);
-    height: var(--control-4xl);
-    min-height: var(--control-4xl);
-    font-size: var(--fs-2xl);
-    font-weight: var(--fw-normal);
-    line-height: 1.25;
-  }
-  .auth-screen .plugin-config-control,
-  .auth-screen .plugin-config-field .nl-input {
-    height: var(--control-4xl);
-  }
-  .auth-screen .plugin-config-textarea {
-    height: auto;
-    min-height: var(--size-76);
-    line-height: var(--lh-snug);
-  }
   .auth-screen .auth-field {
-    font-size: var(--fs-base); /* 标签略贴近输入字号比例 */
+    font-size: var(--fs-base);
   }
 
   .auth-card h1,

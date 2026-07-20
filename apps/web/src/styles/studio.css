@@ -1913,15 +1913,3 @@ html[data-theme="dark"] .source-plugin-action-btn.is-active {
 
 
 
-/* 手机端插件参数 select 与输入框对齐 */
-@media (max-width: 767px) {
-  select.plugin-config-control,
-  .plugin-config-field select,
-  .source-plugin-config-panel select {
-    font-size: var(--fs-2xl);
-    font-weight: var(--fw-normal);
-    line-height: 1.25;
-    height: var(--control-4xl);
-    min-height: var(--control-4xl);
-  }
-}

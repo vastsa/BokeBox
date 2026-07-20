@@ -544,46 +544,59 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
   box-sizing: border-box;
 }
 
-/* 手机端：表单防缩放 + 字号字重收敛（避免傻大粗） */
+/* 平板/手机设置页：表单控件对齐全局（16px / 38px），覆盖到 899 以含 iPad */
 @media (max-width: 899px) {
-  /*
-   * iOS 聚焦缩放：可编辑控件必须 ≥16px。
-   * 字重 normal + 行高/框高压低，减轻「字大框大」的不协调。
-   */
-  .settings-page .auth-field input,
-  .settings-page .auth-field select,
-  .settings-page .script-prompt-field .nl-input,
-  .settings-page .script-prompt-field .nl-textarea,
-  .settings-page .cover-prompt-textarea,
-  .settings-page .nl-input,
-  .settings-page .nl-textarea,
-  .settings-page .settings-locale-select,
-  .settings-page .plugin-config-control,
-  .settings-page .plugin-config-field .nl-input,
-  .settings-page .plugin-config-textarea,
+  .settings-page input:not([type]),
   .settings-page input[type="text"],
   .settings-page input[type="password"],
   .settings-page input[type="email"],
   .settings-page input[type="url"],
   .settings-page input[type="number"],
   .settings-page input[type="search"],
-  .settings-page input:not([type]),
+  .settings-page input[type="tel"],
   .settings-page textarea,
-  .settings-page select {
-    font-size: var(--fs-2xl); /* 16px */
+  .settings-page select,
+  .settings-page .nl-input,
+  .settings-page .nl-textarea,
+  .settings-page .auth-field input,
+  .settings-page .auth-field select,
+  .settings-page .settings-locale-select,
+  .settings-page .plugin-config-control,
+  .settings-page .plugin-config-field .nl-input,
+  .settings-page .plugin-config-textarea,
+  .settings-page .script-prompt-field .nl-input,
+  .settings-page .script-prompt-field .nl-textarea,
+  .settings-page .cover-prompt-textarea {
+    font-size: var(--fs-2xl);
     font-weight: var(--fw-normal);
     line-height: 1.25;
-    min-height: var(--control-4xl); /* 38px */
+    min-height: var(--control-4xl);
     letter-spacing: var(--tracking-snug);
   }
+  .settings-page input:not([type]),
+  .settings-page input[type="text"],
+  .settings-page input[type="password"],
+  .settings-page input[type="email"],
+  .settings-page input[type="url"],
+  .settings-page input[type="number"],
+  .settings-page input[type="search"],
+  .settings-page input[type="tel"],
+  .settings-page select,
+  .settings-page .nl-input,
+  .settings-page .auth-field input,
+  .settings-page .auth-field select,
+  .settings-page .settings-locale-select,
   .settings-page .plugin-config-control,
-  .settings-page .plugin-config-field .nl-input {
+  .settings-page .plugin-config-field .nl-input,
+  .settings-page .script-prompt-field .nl-input {
     height: var(--control-4xl);
   }
   .settings-page textarea,
   .settings-page .nl-textarea,
   .settings-page .cover-prompt-textarea,
-  .settings-page .script-prompt-field .nl-textarea {
+  .settings-page .script-prompt-field .nl-textarea,
+  .settings-page .plugin-config-textarea {
+    height: auto;
     min-height: var(--size-84);
     line-height: var(--lh-relaxed);
     padding-top: var(--space-2);
@@ -595,11 +608,19 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
   .settings-page select.nl-input,
   .settings-page select.plugin-config-control {
     padding-right: var(--space-8);
-    height: var(--control-4xl);
-    min-height: var(--control-4xl);
-    font-size: var(--fs-2xl);
-    font-weight: var(--fw-normal);
-    line-height: 1.25;
+  }
+  .settings-page input[type="checkbox"],
+  .settings-page input[type="radio"],
+  .settings-page input[type="file"],
+  .settings-page input[type="range"],
+  .settings-page input[type="color"],
+  .settings-page input[type="hidden"] {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    min-height: 0;
+    height: auto;
+    letter-spacing: inherit;
   }
 
   .settings-page .auth-field {
@@ -1080,19 +1101,7 @@ html[data-theme="dark"] .settings-toast {
 .upload-field .upload-locale-select {
   padding-right: var(--space-8);
 }
-@media (max-width: 767px) {
-  .upload-field input,
-  .upload-field select,
-  .upload-field .nl-input,
-  .upload-field .settings-locale-select,
-  .upload-field .upload-locale-select {
-    font-size: var(--fs-2xl);
-    font-weight: var(--fw-normal);
-    line-height: 1.25;
-    min-height: var(--control-4xl);
-    letter-spacing: var(--tracking-snug);
-  }
-}
+/* upload-field 控件字号/高度由全局手机端表单规则接管 */
 .upload-field-head {
   display: flex;
   flex-direction: column;

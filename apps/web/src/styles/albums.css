@@ -1196,3 +1196,189 @@ html[data-theme="dark"] .pg-num {
     min-height: var(--control-lg);
   }
 }
+
+
+/* ===== Mobile form controls · final cascade =====
+ * albums.css 位于样式入口最后：在此收口全站手机端 input/select/textarea，
+ * 压过各域页面级控件高度/字号，避免插件参数、专辑表单等仍显偏大。
+ */
+@media (max-width: 767px) {
+  input:not([type]),
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="url"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  textarea,
+  select,
+  .nl-input,
+  .nl-textarea,
+  .auth-field input,
+  .auth-field select,
+  .settings-locale-select,
+  .upload-locale-select,
+  .upload-field input,
+  .upload-field select,
+  .jd-select,
+  .al-field input,
+  .al-field textarea,
+  .al-edit-title,
+  .al-edit-summary,
+  .al-manager-search .nl-input,
+  .admin-search .nl-input,
+  .plugin-config-control,
+  .plugin-config-field .nl-input,
+  .plugin-config-textarea,
+  .source-config-field .nl-input,
+  .source-config-textarea,
+  select.plugin-config-control {
+    font-size: var(--fs-2xl) !important; /* 16px 防 iOS 缩放 */
+    font-weight: var(--fw-normal) !important;
+    line-height: 1.25 !important;
+    letter-spacing: var(--tracking-snug) !important;
+    min-height: var(--control-4xl) !important; /* 38px */
+  }
+
+  input:not([type]),
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="url"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  select,
+  .nl-input,
+  .auth-field input,
+  .auth-field select,
+  .settings-locale-select,
+  .upload-locale-select,
+  .upload-field input,
+  .upload-field select,
+  .jd-select,
+  .al-field input,
+  .al-edit-title,
+  .al-manager-search .nl-input,
+  .admin-search .nl-input,
+  .plugin-config-control,
+  .plugin-config-field .nl-input,
+  .source-config-field .nl-input,
+  select.plugin-config-control {
+    height: var(--control-4xl) !important;
+  }
+
+  textarea,
+  .nl-textarea,
+  .al-field textarea,
+  .al-edit-summary,
+  .plugin-config-textarea,
+  .source-config-textarea {
+    height: auto !important;
+    min-height: var(--size-76) !important;
+    line-height: var(--lh-snug) !important;
+    padding-top: var(--space-2) !important;
+    padding-bottom: var(--space-2) !important;
+  }
+
+  select,
+  .auth-field select,
+  .settings-locale-select,
+  .upload-locale-select,
+  .upload-field select,
+  select.nl-input,
+  .jd-select,
+  select.plugin-config-control {
+    padding-right: var(--space-8) !important;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  input[type="range"],
+  input[type="color"],
+  input[type="hidden"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  input[type="image"] {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+    min-height: 0 !important;
+    height: auto !important;
+    letter-spacing: inherit !important;
+  }
+}
+
+/* iPad 设置页同样收口（settings 在 studio 之前，需再压一次） */
+@media (max-width: 899px) {
+  .settings-page input:not([type]),
+  .settings-page input[type="text"],
+  .settings-page input[type="password"],
+  .settings-page input[type="email"],
+  .settings-page input[type="url"],
+  .settings-page input[type="number"],
+  .settings-page input[type="search"],
+  .settings-page input[type="tel"],
+  .settings-page textarea,
+  .settings-page select,
+  .settings-page .nl-input,
+  .settings-page .nl-textarea,
+  .settings-page .auth-field input,
+  .settings-page .auth-field select,
+  .settings-page .settings-locale-select,
+  .settings-page .plugin-config-control,
+  .settings-page .plugin-config-field .nl-input,
+  .settings-page .plugin-config-textarea,
+  .settings-page .script-prompt-field .nl-input,
+  .settings-page .script-prompt-field .nl-textarea,
+  .settings-page .cover-prompt-textarea {
+    font-size: var(--fs-2xl) !important;
+    font-weight: var(--fw-normal) !important;
+    line-height: 1.25 !important;
+    letter-spacing: var(--tracking-snug) !important;
+    min-height: var(--control-4xl) !important;
+  }
+  .settings-page input:not([type]),
+  .settings-page input[type="text"],
+  .settings-page input[type="password"],
+  .settings-page input[type="email"],
+  .settings-page input[type="url"],
+  .settings-page input[type="number"],
+  .settings-page input[type="search"],
+  .settings-page input[type="tel"],
+  .settings-page select,
+  .settings-page .nl-input,
+  .settings-page .auth-field input,
+  .settings-page .auth-field select,
+  .settings-page .settings-locale-select,
+  .settings-page .plugin-config-control,
+  .settings-page .plugin-config-field .nl-input,
+  .settings-page .script-prompt-field .nl-input {
+    height: var(--control-4xl) !important;
+  }
+  .settings-page textarea,
+  .settings-page .nl-textarea,
+  .settings-page .cover-prompt-textarea,
+  .settings-page .script-prompt-field .nl-textarea,
+  .settings-page .plugin-config-textarea {
+    height: auto !important;
+    min-height: var(--size-84) !important;
+    line-height: var(--lh-relaxed) !important;
+  }
+  .settings-page input[type="checkbox"],
+  .settings-page input[type="radio"],
+  .settings-page input[type="file"],
+  .settings-page input[type="range"],
+  .settings-page input[type="color"],
+  .settings-page input[type="hidden"] {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+    min-height: 0 !important;
+    height: auto !important;
+    letter-spacing: inherit !important;
+  }
+}
