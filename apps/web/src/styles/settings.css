@@ -591,8 +591,15 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
   }
   .settings-page select,
   .settings-page .auth-field select,
-  .settings-page .settings-locale-select {
+  .settings-page .settings-locale-select,
+  .settings-page select.nl-input,
+  .settings-page select.plugin-config-control {
     padding-right: var(--space-8);
+    height: var(--control-4xl);
+    min-height: var(--control-4xl);
+    font-size: var(--fs-2xl);
+    font-weight: var(--fw-normal);
+    line-height: 1.25;
   }
 
   .settings-page .auth-field {

@@ -487,11 +487,18 @@ select.plugin-config-control {
   background-image:
     linear-gradient(45deg, transparent 50%, var(--text-3) 50%),
     linear-gradient(135deg, var(--text-3) 50%, transparent 50%);
-  background-position: calc(100% - var(--space-3_75)) calc(50% - 1.var(--space-1_25)),
-    calc(100% - var(--space-2_5)) calc(50% - 1.var(--space-1_25));
-  background-size: var(--space-1_25) var(--space-1_25), var(--space-1_25) var(--space-1_25);
+  background-position:
+    calc(100% - var(--space-3_75)) calc(50% - 2px),
+    calc(100% - var(--space-2_5)) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
   padding-right: var(--space-8);
+  /* select 与 input 同高同字号，避免移动端选项文字偏大 */
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  min-height: inherit;
+  height: auto;
 }
 
 /* soft list rows */
@@ -666,6 +673,21 @@ html[data-theme="dark"] .topbar-action-btn {
 
 /* 手机端全局文字密度 */
 @media (max-width: 767px) {
+  /* 手机端全局 select 与 input 对齐，避免下拉文字显得更大 */
+  select,
+  .auth-field select,
+  .settings-locale-select,
+  .upload-locale-select,
+  select.nl-input,
+  .jd-select,
+  select.plugin-config-control {
+    font-size: var(--fs-2xl);
+    font-weight: var(--fw-normal);
+    line-height: 1.25;
+    min-height: var(--control-4xl);
+    letter-spacing: var(--tracking-snug);
+  }
+
   .app-page-sub,
   .lh-greet {
     font-size: var(--fs-sm-plus);
@@ -697,8 +719,14 @@ html[data-theme="dark"] .topbar-action-btn {
   }
   .auth-screen .auth-field select,
   .auth-screen .settings-locale-select,
-  .auth-screen select.plugin-config-control {
+  .auth-screen select.plugin-config-control,
+  .auth-screen select.nl-input {
     padding-right: var(--space-8);
+    height: var(--control-4xl);
+    min-height: var(--control-4xl);
+    font-size: var(--fs-2xl);
+    font-weight: var(--fw-normal);
+    line-height: 1.25;
   }
   .auth-screen .plugin-config-control,
   .auth-screen .plugin-config-field .nl-input {
