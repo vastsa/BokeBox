@@ -318,17 +318,35 @@ function LyricsTranscript({
       const scroller = scrollRef.current;
       const target = lineRefs.current[index];
       if (!scroller || !target) return;
+
+      // 读取 CSS 焦点线（默认偏上 42%），让当前行落在渐隐区域中央偏上
+      const focusRatioRaw = getComputedStyle(scroller)
+        .getPropertyValue('--lyrics-focus-y')
+        .trim();
+      const focusRatio = focusRatioRaw.endsWith('%')
+        ? Number.parseFloat(focusRatioRaw) / 100
+        : Number.parseFloat(focusRatioRaw || '0.42');
+      const focusY = Number.isFinite(focusRatio)
+        ? Math.min(0.72, Math.max(0.28, focusRatio))
+        : 0.42;
+
       const scrollerBox = scroller.getBoundingClientRect();
       const targetBox = target.getBoundingClientRect();
       const targetTop =
-        scroller.scrollTop + targetBox.top - scrollerBox.top;
+        scroller.scrollTop + (targetBox.top - scrollerBox.top);
       const top =
         targetTop -
-        scroller.clientHeight * 0.4 +
+        scroller.clientHeight * focusY +
         targetBox.height / 2;
+      const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+      const nextTop = Math.min(maxTop, Math.max(0, top));
+
+      // 位移极小时跳过，避免同句内进度更新触发无意义平滑滚动
+      if (Math.abs(scroller.scrollTop - nextTop) < 1.5) return;
+
       programmaticUntilRef.current =
-        performance.now() + (behavior === 'smooth' ? 500 : 100);
-      scroller.scrollTo({ top: Math.max(0, top), behavior });
+        performance.now() + (behavior === 'smooth' ? 520 : 120);
+      scroller.scrollTo({ top: nextTop, behavior });
     },
     [],
   );
