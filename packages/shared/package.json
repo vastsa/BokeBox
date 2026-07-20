@@ -4,18 +4,31 @@
   "private": true,
   "type": "module",
   "license": "LGPL-3.0-only",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./job": "./src/job.ts",
-    "./album": "./src/album.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./job": {
+      "types": "./dist/job.d.ts",
+      "import": "./dist/job.js",
+      "default": "./dist/job.js"
+    },
+    "./album": {
+      "types": "./dist/album.d.ts",
+      "import": "./dist/album.js",
+      "default": "./dist/album.js"
+    }
   },
   "files": [
-    "src"
+    "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

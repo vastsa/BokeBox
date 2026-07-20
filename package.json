@@ -4,10 +4,11 @@
   "private": true,
   "description": "BokeBox · 私人 AI 播客工作室：将视频、链接、文稿等多源内容转化为可收听的私人播客。支持自定义人设与音色，内置 MCP 与插件式内容源，本地私有部署（开源 · LGPL-3.0）",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
-    "dev:server": "pnpm --filter @bokebox/server dev",
-    "dev:web": "pnpm --filter @bokebox/web dev",
-    "build": "pnpm -r build",
+    "dev": "pnpm --filter @bokebox/shared build && pnpm -r --parallel dev",
+    "dev:server": "pnpm --filter @bokebox/shared build && pnpm --filter @bokebox/server dev",
+    "dev:web": "pnpm --filter @bokebox/shared build && pnpm --filter @bokebox/web dev",
+    "build": "pnpm -r build && pnpm check:runtime",
+    "check:runtime": "node --input-type=module -e \"await import('./apps/server/dist/services/content/scriptPrompt.js')\"",
     "start": "pnpm --filter @bokebox/server start",
     "start:app": "./start.sh",
     "start:prod": "./start.sh prod",
@@ -17,9 +18,9 @@
     "docker:prod:pull": "docker compose pull",
     "docker:local": "./start.sh docker.local",
     "docker:cn": "./start.sh docker.cn",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @bokebox/server test",
-    "lint": "pnpm -r typecheck"
+    "typecheck": "pnpm --filter @bokebox/shared build && pnpm -r typecheck",
+    "test": "pnpm --filter @bokebox/shared build && pnpm --filter @bokebox/server test",
+    "lint": "pnpm typecheck"
   },
   "engines": {
     "node": ">=22.5"

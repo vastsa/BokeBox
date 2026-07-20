@@ -19,7 +19,8 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS build
 COPY apps ./apps
 COPY packages ./packages
-RUN pnpm --filter @bokebox/web build \
+RUN pnpm --filter @bokebox/shared build \
+ && pnpm --filter @bokebox/web build \
  && pnpm --filter @bokebox/server build
 
 # ---------- 运行 ----------
@@ -38,6 +39,10 @@ RUN pnpm install --frozen-lockfile --prod --filter @bokebox/server...
 
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/web/dist ./apps/web/dist
+COPY --from=build /app/packages/shared/dist ./packages/shared/dist
+
+# 原生 Node 解析门禁：防止 workspace 包仅有类型、缺少运行时代码。
+RUN node --input-type=module -e "await import('./apps/server/dist/services/content/scriptPrompt.js')"
 
 # 运行时存储目录（挂载卷）：按任务聚合 jobs/{id}/
 RUN mkdir -p storage/jobs

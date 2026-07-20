@@ -54,7 +54,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: pnpm -r build
+        run: pnpm build
 
   # ── Docker 构建 / 推送 ──
   docker:
@@ -147,12 +147,14 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: false
 
-      - name: Smoke test image (PR / no-push)
-        if: steps.flags.outputs.push != 'true'
+      - name: Smoke test image
         run: |
           set -euo pipefail
           IMAGE="$(echo '${{ steps.meta.outputs.tags }}' | head -n1)"
           echo "Smoke testing: $IMAGE"
+          if [[ "${{ steps.flags.outputs.push }}" == "true" ]]; then
+            docker pull "$IMAGE"
+          fi
           docker run -d --name bokebox-smoke \
             -e HOST=0.0.0.0 \
             -e PORT=8787 \
