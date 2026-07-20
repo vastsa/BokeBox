@@ -142,9 +142,9 @@ export const enUS: MessageTree = {
     errModels: 'Please fill in all model names',
     apiKeyHint:
       'Any OpenAI-compatible gateway works (including /v1/images/generations). You can change this later in Settings.',
-    apiKeyOptionalPlaceholder: 'Optional · sk-... (skip for Local Whisper + Edge)',
+    apiKeyOptionalPlaceholder: 'Optional · sk-... (chat/cover; ASR/TTS keys in next step)',
     apiKeyOptionalHint:
-      'API Key is optional. Required for cloud chat / MiMo / OpenAI TTS. Leave empty for Local Whisper + Edge only (script generation falls back to demo mode). Keep Base URL set.',
+      'API Key / Base URL here are mainly for chat and cover generation. ASR and TTS endpoints/keys are set under plugin options in the next step; if they match the global values they will be prefilled. Leave both empty only for Local Whisper + Edge with no cloud chat (scripts fall back to demo mode).',
     chatModel: 'Chat model',
     asrProvider: 'ASR provider',
     ttsProvider: 'TTS provider',

@@ -439,7 +439,7 @@ export function SetupPage() {
       return;
     }
     if (step === 2) {
-      // API Key 可选：本地 Whisper + Edge 可不填；云端对话/封面仍建议配置
+      // API Key 可选：对话/封面用；ASR/TTS 密钥在下一步插件参数填写
       if (!baseUrl.trim()) {
         setError(t('setup.errBaseUrl'));
         return;
