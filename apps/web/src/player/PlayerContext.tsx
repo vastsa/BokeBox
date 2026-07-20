@@ -100,6 +100,61 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const queueRef = useRef<PlayerTrack[]>([]);
   const autoAdvanceRef = useRef(true);
   const playNextRef = useRef<() => boolean>(() => false);
+  const preloadAudioRef = useRef<HTMLAudioElement | null>(null);
+  const preloadedSrcRef = useRef<string | null>(null);
+
+  const clearPreload = useCallback(() => {
+    const preload = preloadAudioRef.current;
+    if (preload) {
+      try {
+        preload.pause();
+      } catch {
+        // ignore
+      }
+      preload.removeAttribute('src');
+      try {
+        preload.load();
+      } catch {
+        // ignore
+      }
+    }
+    preloadedSrcRef.current = null;
+  }, []);
+
+  const maybePreloadNext = useCallback(() => {
+    if (!autoAdvanceRef.current) return;
+    const audio = audioRef.current;
+    const currentTrack = trackRef.current;
+    if (!audio || !currentTrack || audio.paused) return;
+
+    const durationSec = safeDuration(audio);
+    if (durationSec <= 0) return;
+    const currentTime = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+    const remaining = durationSec - currentTime;
+    // 播客偏长：剩余 <= 90s 或进度 >= 90% 时开始预取
+    if (remaining > 90 && currentTime / durationSec < 0.9) return;
+
+    const queue = queueRef.current;
+    const idx = queue.findIndex((item) => item.id === currentTrack.id);
+    if (idx < 0 || idx >= queue.length - 1) return;
+    const next = queue[idx + 1];
+    if (!next?.src || next.src === currentTrack.src) return;
+    if (preloadedSrcRef.current === next.src) return;
+
+    let preload = preloadAudioRef.current;
+    if (!preload) {
+      preload = new Audio();
+      preload.preload = 'auto';
+      preloadAudioRef.current = preload;
+    }
+    preloadedSrcRef.current = next.src;
+    preload.src = next.src;
+    try {
+      preload.load();
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const setTrackBoth = useCallback((next: PlayerTrack | null) => {
     trackRef.current = next;
@@ -238,7 +293,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onTime = () => {
       setCurrent(audio.currentTime);
       syncDur();
-      if (!audio.paused) maybePersist(false);
+      if (!audio.paused) {
+        maybePersist(false);
+        maybePreloadNext();
+      }
     };
     const onPlay = () => {
       setPlaying(true);
@@ -278,7 +336,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('ended', onEnded);
     };
-  }, [flushProgress, maybePersist]);
+  }, [flushProgress, maybePersist, maybePreloadNext]);
+
+  // 卸载时中止预加载，避免后台继续拉流
+  useEffect(() => () => clearPreload(), [clearPreload]);
 
   // 页面隐藏 / 关闭时立刻落盘
   useEffect(() => {
@@ -309,6 +370,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (trackRef.current && trackRef.current.id !== next.id) {
         flushProgress();
         playCountedId.current = null;
+        // 切歌后丢弃旧预加载；若正好切到已预取源，浏览器缓存可加速 load
+        if (preloadedSrcRef.current && preloadedSrcRef.current !== next.src) {
+          clearPreload();
+        } else if (preloadedSrcRef.current === next.src) {
+          preloadedSrcRef.current = null;
+        }
       }
 
       const same = trackRef.current?.id === next.id && trackRef.current?.src === next.src;
@@ -360,16 +427,29 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [rate, flushProgress, setTrackBoth],
+    [rate, flushProgress, setTrackBoth, clearPreload],
   );
 
-  const setQueue = useCallback((tracks: PlayerTrack[]) => {
-    queueRef.current = tracks;
-  }, []);
+  const setQueue = useCallback(
+    (tracks: PlayerTrack[]) => {
+      queueRef.current = tracks;
+      // 队列变了则旧预加载可能失效
+      const currentTrack = trackRef.current;
+      if (!currentTrack || !preloadedSrcRef.current) return;
+      const idx = tracks.findIndex((item) => item.id === currentTrack.id);
+      const nextSrc = idx >= 0 && idx < tracks.length - 1 ? tracks[idx + 1]?.src : null;
+      if (nextSrc !== preloadedSrcRef.current) clearPreload();
+    },
+    [clearPreload],
+  );
 
-  const setAutoAdvance = useCallback((enabled: boolean) => {
-    autoAdvanceRef.current = enabled;
-  }, []);
+  const setAutoAdvance = useCallback(
+    (enabled: boolean) => {
+      autoAdvanceRef.current = enabled;
+      if (!enabled) clearPreload();
+    },
+    [clearPreload],
+  );
 
   const playNext = useCallback((): boolean => {
     const currentTrack = trackRef.current;
@@ -414,7 +494,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setPlaying(false);
     setVisible(false);
     playCountedId.current = null;
-  }, [flushProgress]);
+    clearPreload();
+  }, [flushProgress, clearPreload]);
 
   const seekTo = useCallback(
     (sec: number) => {
