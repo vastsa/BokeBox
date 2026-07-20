@@ -112,6 +112,13 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           siteTitle: formatSiteTitle(''),
           seo: buildPublicSiteSeo({ title: '', description: '', keywords: '' }),
         };
+    // 初始化向导附带 provider 目录，便于选择提供方/音色（不含密钥）
+    const setupAi = initialized
+      ? undefined
+      : withProviderCatalog(getDefaultAiConfigForSetup(), {
+          asrProviders: listAsrProviderDescriptors().filter((p) => p.id !== 'demo'),
+          ttsProviders: listTtsProviderDescriptors().filter((p) => p.id !== 'demo'),
+        });
     return {
       initialized,
       needsSetup: !initialized,
@@ -119,7 +126,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       siteName: profile.siteName,
       siteTitle: profile.siteTitle,
       seo: profile.seo,
-      ai: initialized ? undefined : getDefaultAiConfigForSetup(),
+      ai: setupAi,
     };
   });
 
@@ -313,7 +320,15 @@ export function registerAuthGuard(app: FastifyInstance): void {
     if (publicExact.has(url)) return;
 
     // 未初始化时，除公开接口外一律拦截
+    // 初始化向导需要只读拉取 ASR/TTS 插件列表以渲染音色面板
     if (!isSetupCompleted()) {
+      const method = String(req.method || 'GET').toUpperCase();
+      if (
+        method === 'GET' &&
+        (url === '/api/asr-plugins' || url === '/api/tts-plugins')
+      ) {
+        return;
+      }
       return sendFail(
         reply,
         503,

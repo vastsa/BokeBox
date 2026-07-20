@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   completeSetup,
   fetchSetupStatus,
-  type SetupStatus,
+  type ProviderOptionDto,
 } from '../api/client';
+import { fetchAiPlugins, type AiPluginDescriptor } from '../api/plugins';
 import { TtsModePicker } from '../components/admin/TtsModePicker';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from '../components/admin/GlobalTtsSettings';
 import { BrandMascot } from '../components/BrandMark';
@@ -21,10 +22,13 @@ import {
 } from '../i18n';
 import type { TtsOptions } from '../types/job';
 import {
-  EDGE_VOICE_OPTIONS,
   WHISPER_LANG_OPTIONS,
   WHISPER_MODEL_OPTIONS,
 } from '../lib/providerOptions';
+import {
+  defaultVoiceForProvider,
+  resolveTtsVoiceProfile,
+} from '../lib/ttsVoiceProfile';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -41,6 +45,110 @@ const DEFAULTS = {
   imageModel: '',
   defaultVoice: '冰糖',
 };
+
+const FALLBACK_ASR_PROVIDERS: ProviderOptionDto[] = [
+  {
+    id: 'mimo',
+    name: 'MiMo ASR',
+    description: '云端 ASR',
+    available: true,
+    suggestedModels: { asr: 'mimo-v2.5-asr' },
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI 兼容 ASR',
+    description: 'Whisper 兼容接口',
+    available: true,
+    suggestedModels: { asr: 'whisper-1' },
+  },
+  {
+    id: 'local-whisper',
+    name: '本地 Whisper',
+    description: '本机 whisper 可执行文件',
+    available: true,
+    suggestedModels: { asr: 'base' },
+  },
+];
+
+const FALLBACK_TTS_PROVIDERS: ProviderOptionDto[] = [
+  {
+    id: 'mimo',
+    name: 'MiMo TTS',
+    description: '云端 TTS',
+    available: true,
+    suggestedModels: {
+      tts: 'mimo-v2.5-tts',
+      voiceDesign: 'mimo-v2.5-tts-voicedesign',
+      defaultVoice: '冰糖',
+    },
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI 兼容 TTS',
+    description: 'OpenAI TTS 兼容接口',
+    available: true,
+    suggestedModels: { tts: 'tts-1', defaultVoice: 'alloy' },
+  },
+  {
+    id: 'edge',
+    name: 'Edge TTS（免费）',
+    description: '微软 Edge 神经网络语音',
+    available: true,
+    suggestedModels: { tts: 'edge-neural', defaultVoice: 'zh-CN-XiaoxiaoNeural' },
+  },
+];
+
+function providerFromList(
+  list: ProviderOptionDto[] | undefined,
+  id: string,
+): ProviderOptionDto | undefined {
+  const raw = String(id || '').trim();
+  if (!list?.length || !raw) return undefined;
+  return (
+    list.find((p) => p.id === raw) ||
+    list.find((p) => p.id.toLowerCase() === raw.toLowerCase())
+  );
+}
+
+/** setup/status 里的 ttsProviders → 音色面板可用的插件描述符 */
+function toTtsPluginDescriptor(
+  p?: ProviderOptionDto | null,
+): AiPluginDescriptor | null {
+  if (!p) return null;
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description || '',
+    version: '0.0.0',
+    riskLevel: 'low',
+    defaultEnabled: true,
+    enabled: p.enabled !== false,
+    available: p.available !== false,
+    origin: 'builtin',
+    voiceUi: (p.voiceUi as AiPluginDescriptor['voiceUi']) || undefined,
+    voiceConfigKey: p.voiceConfigKey,
+    voicePanel: p.voicePanel as AiPluginDescriptor['voicePanel'],
+    supportsStyleTags: p.supportsStyleTags,
+    supportsVoiceDesign: p.supportsVoiceDesign,
+    voices: p.voices,
+    suggestedModels: p.suggestedModels,
+  };
+}
+
+function buildDefaultTtsForProvider(
+  providerId: string,
+  plugin: AiPluginDescriptor | null,
+): TtsOptions {
+  const profile = resolveTtsVoiceProfile(providerId, plugin);
+  return {
+    mode: 'default',
+    voice: defaultVoiceForProvider(providerId, plugin),
+    voiceDesign: profile.supportsVoiceDesign
+      ? DEFAULT_GLOBAL_TTS.voiceDesign
+      : undefined,
+    styleTags: undefined,
+  };
+}
 
 export function SetupPage() {
   const { t, setLocale } = useI18n();
@@ -71,38 +179,86 @@ export function SetupPage() {
     voice: DEFAULTS.defaultVoice,
   });
   const [contentLocale, setContentLocale] = useState<Locale>('zh-CN');
+  const [asrProviders, setAsrProviders] = useState<ProviderOptionDto[]>(
+    FALLBACK_ASR_PROVIDERS,
+  );
+  const [ttsProviders, setTtsProviders] = useState<ProviderOptionDto[]>(
+    FALLBACK_TTS_PROVIDERS,
+  );
+  const [ttsPlugin, setTtsPlugin] = useState<AiPluginDescriptor | null>(null);
 
   useEffect(() => {
     void (async () => {
       try {
-        const status: SetupStatus = await fetchSetupStatus();
+        const [status, ttsPluginsRes] = await Promise.all([
+          fetchSetupStatus(),
+          fetchAiPlugins('tts').catch(() => null),
+        ]);
         if (status.initialized) {
           navigate({ name: 'login' });
           return;
         }
+
+        const nextAsr =
+          status.ai?.asrProviders?.filter((p) => p.id !== 'demo') ||
+          FALLBACK_ASR_PROVIDERS;
+        const nextTts =
+          status.ai?.ttsProviders?.filter((p) => p.id !== 'demo') ||
+          FALLBACK_TTS_PROVIDERS;
+        setAsrProviders(nextAsr.length ? nextAsr : FALLBACK_ASR_PROVIDERS);
+        setTtsProviders(nextTts.length ? nextTts : FALLBACK_TTS_PROVIDERS);
+
         const s = status.ai?.suggested;
+        const nextAsrProvider = s?.asrProvider || DEFAULTS.asrProvider;
+        const nextTtsProvider = s?.ttsProvider || DEFAULTS.ttsProvider;
+
+        // 优先完整插件描述（含 voicePanel / configValues）
+        const pluginFromApi =
+          ttsPluginsRes?.plugins.find((p) => p.id === nextTtsProvider) ||
+          ttsPluginsRes?.plugins.find(
+            (p) =>
+              p.id.toLowerCase() === String(nextTtsProvider).toLowerCase(),
+          ) ||
+          null;
+        const pluginFromStatus = toTtsPluginDescriptor(
+          providerFromList(nextTts, nextTtsProvider),
+        );
+        const plugin = pluginFromApi || pluginFromStatus;
+        setTtsPlugin(plugin);
+
         if (s) {
           setBaseUrl(s.baseUrl || DEFAULTS.baseUrl);
           setChatModel(s.chatModel || DEFAULTS.chatModel);
           setAsrModel(s.asrModel || DEFAULTS.asrModel);
-          setAsrProvider(s.asrProvider || DEFAULTS.asrProvider);
+          setAsrProvider(nextAsrProvider);
           setTtsModel(s.ttsModel || DEFAULTS.ttsModel);
-          setTtsProvider(s.ttsProvider || DEFAULTS.ttsProvider);
+          setTtsProvider(nextTtsProvider);
           setWhisperBin(s.whisperBin || DEFAULTS.whisperBin);
           setWhisperLang(s.whisperLang || DEFAULTS.whisperLang);
           setVoiceDesignModel(s.voiceDesignModel || DEFAULTS.voiceDesignModel);
           setImageModel(s.imageModel || DEFAULTS.imageModel);
-          const voice = s.defaultVoice || DEFAULTS.defaultVoice;
-          setTts((prev: TtsOptions) => ({
-            ...prev,
-            mode: 'default',
+          const suggestedVoice = String(s.defaultVoice || '').trim();
+          const profile = resolveTtsVoiceProfile(nextTtsProvider, plugin);
+          const allowed = new Set(profile.voices.map((v) => v.id));
+          const voice =
+            (suggestedVoice &&
+              (allowed.size === 0 || allowed.has(suggestedVoice))
+              ? suggestedVoice
+              : '') ||
+            defaultVoiceForProvider(nextTtsProvider, plugin) ||
+            DEFAULTS.defaultVoice;
+          setTts({
+            ...buildDefaultTtsForProvider(nextTtsProvider, plugin),
             voice,
-          }));
+          });
           setContentLocale(
             resolveContentLocale(s.contentLocale || status.ai?.contentLocale),
           );
         } else if (status.ai?.contentLocale) {
           setContentLocale(resolveContentLocale(status.ai.contentLocale));
+          setTts(buildDefaultTtsForProvider(nextTtsProvider, plugin));
+        } else {
+          setTts(buildDefaultTtsForProvider(nextTtsProvider, plugin));
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -119,7 +275,60 @@ export function SetupPage() {
     return t('setup.step4Desc');
   }, [step, t]);
 
-  const ttsSummary = useMemo(() => summarizeTts(tts), [tts]);
+  const ttsSummary = useMemo(
+    () => summarizeTts(tts, resolveTtsVoiceProfile(ttsProvider, ttsPlugin)),
+    [tts, ttsProvider, ttsPlugin],
+  );
+
+  // 切换提供方后，尽量拉取完整插件描述（含 voicePanel / voices）
+  useEffect(() => {
+    if (loading) return;
+    let cancelled = false;
+    void fetchAiPlugins('tts')
+      .then((res) => {
+        if (cancelled) return;
+        const hit =
+          res.plugins.find((p) => p.id === ttsProvider) ||
+          res.plugins.find(
+            (p) => p.id.toLowerCase() === String(ttsProvider).toLowerCase(),
+          ) ||
+          null;
+        if (hit) {
+          setTtsPlugin(hit);
+          setTts((prev) => {
+            const profile = resolveTtsVoiceProfile(ttsProvider, hit);
+            if (!profile.voices.length) return prev;
+            const allowed = new Set(profile.voices.map((v) => v.id));
+            const cur = String(prev.voice || '').trim();
+            if (cur && allowed.has(cur)) return prev;
+            return {
+              ...prev,
+              mode: 'default',
+              voice: defaultVoiceForProvider(ttsProvider, hit),
+              ...(profile.supportsVoiceDesign
+                ? {}
+                : { voiceDesign: undefined, styleTags: undefined }),
+            };
+          });
+          return;
+        }
+        // API 无命中时回落 setup/status 目录
+        const fallback = toTtsPluginDescriptor(
+          providerFromList(ttsProviders, ttsProvider),
+        );
+        setTtsPlugin(fallback);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        const fallback = toTtsPluginDescriptor(
+          providerFromList(ttsProviders, ttsProvider),
+        );
+        setTtsPlugin(fallback);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ttsProvider, ttsProviders, loading]);
 
   const goNext = () => {
     setError(null);
@@ -168,8 +377,13 @@ export function SetupPage() {
     try {
       const defaultVoice =
         tts.mode === 'default'
-          ? String(tts.voice || DEFAULTS.defaultVoice)
-          : DEFAULTS.defaultVoice;
+          ? String(
+              tts.voice ||
+                defaultVoiceForProvider(ttsProvider, ttsPlugin) ||
+                DEFAULTS.defaultVoice,
+            )
+          : defaultVoiceForProvider(ttsProvider, ttsPlugin) ||
+            DEFAULTS.defaultVoice;
       const res = await completeSetup({
         username: username.trim(),
         password,
@@ -341,14 +555,19 @@ export function SetupPage() {
                   onChange={(e) => {
                     const id = e.target.value;
                     setAsrProvider(id);
-                    if (id === 'openai') setAsrModel('whisper-1');
-                    if (id === 'mimo') setAsrModel('mimo-v2.5-asr');
-                    if (id === 'local-whisper') setAsrModel('base');
+                    const meta = providerFromList(asrProviders, id);
+                    const suggested = meta?.suggestedModels?.asr;
+                    if (suggested) setAsrModel(suggested);
+                    else if (id === 'openai') setAsrModel('whisper-1');
+                    else if (id === 'mimo') setAsrModel('mimo-v2.5-asr');
+                    else if (id === 'local-whisper') setAsrModel('base');
                   }}
                 >
-                  <option value="mimo">MiMo ASR</option>
-                  <option value="openai">OpenAI 兼容 ASR</option>
-                  <option value="local-whisper">本地 Whisper</option>
+                  {asrProviders.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="auth-field">
@@ -358,40 +577,30 @@ export function SetupPage() {
                   onChange={(e) => {
                     const id = e.target.value;
                     setTtsProvider(id);
-                    if (id === 'openai') {
-                      setTtsModel('tts-1');
-                      setTts((prev: TtsOptions) => ({
-                        ...prev,
-                        mode: 'default',
-                        voice: 'alloy',
-                        styleTags: undefined,
-                        voiceDesign: undefined,
-                      }));
+                    const meta = providerFromList(ttsProviders, id);
+                    const plugin = toTtsPluginDescriptor(meta);
+                    setTtsPlugin(plugin);
+
+                    const suggestedModel = meta?.suggestedModels?.tts;
+                    if (suggestedModel) setTtsModel(suggestedModel);
+                    else if (id === 'edge') setTtsModel('edge-neural');
+                    else if (id === 'openai') setTtsModel('tts-1');
+                    else if (id === 'mimo') setTtsModel('mimo-v2.5-tts');
+
+                    const vd = meta?.suggestedModels?.voiceDesign;
+                    if (vd) setVoiceDesignModel(vd);
+                    else if (id === 'mimo') {
+                      setVoiceDesignModel(DEFAULTS.voiceDesignModel);
                     }
-                    if (id === 'mimo') {
-                      setTtsModel('mimo-v2.5-tts');
-                      setVoiceDesignModel('mimo-v2.5-tts-voicedesign');
-                      setTts((prev: TtsOptions) => ({
-                        ...prev,
-                        mode: 'default',
-                        voice: '冰糖',
-                      }));
-                    }
-                    if (id === 'edge') {
-                      setTtsModel('edge-neural');
-                      setTts((prev: TtsOptions) => ({
-                        ...prev,
-                        mode: 'default',
-                        voice: 'zh-CN-XiaoxiaoNeural',
-                        styleTags: undefined,
-                        voiceDesign: undefined,
-                      }));
-                    }
+
+                    setTts(buildDefaultTtsForProvider(id, plugin));
                   }}
                 >
-                  <option value="mimo">MiMo TTS</option>
-                  <option value="openai">OpenAI 兼容 TTS</option>
-                  <option value="edge">Edge TTS（免费）</option>
+                  {ttsProviders.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="auth-field">
@@ -456,33 +665,16 @@ export function SetupPage() {
                   </div>
                 </>
               )}
+              {/* edge 音色统一在 step4 插件面板选择，避免双入口不同步 */}
               {ttsProvider === 'edge' && (
-                <>
-                  <label className="auth-field">
-                    <span>{t('setup.edgeVoice')}</span>
-                    <select
-                      value={String(tts.voice || 'zh-CN-XiaoxiaoNeural')}
-                      onChange={(e) =>
-                        setTts((prev: TtsOptions) => ({
-                          ...prev,
-                          mode: 'default',
-                          voice: e.target.value,
-                        }))
-                      }
-                    >
-                      {EDGE_VOICE_OPTIONS.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name} · {v.language}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="auth-tip auth-field-span2">
-                    <span>{t('setup.edgeHint')}</span>
-                  </div>
-                </>
+                <div className="auth-tip auth-field-span2">
+                  <span>{t('setup.edgeHint')}</span>
+                </div>
               )}
-              {ttsProvider === 'mimo' && (
+              {Boolean(
+                providerFromList(ttsProviders, ttsProvider)?.supportsVoiceDesign ||
+                  ttsProvider === 'mimo',
+              ) && (
                 <label className="auth-field">
                   <span>{t('setup.voiceDesignModel')}</span>
                   <input
@@ -528,7 +720,12 @@ export function SetupPage() {
                 </div>
               </div>
             </div>
-            <TtsModePicker value={tts} provider={ttsProvider} onChange={setTts} />
+            <TtsModePicker
+              value={tts}
+              provider={ttsProvider}
+              plugin={ttsPlugin}
+              onChange={setTts}
+            />
           </div>
         )}
 

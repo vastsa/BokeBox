@@ -3,6 +3,31 @@ import { clearServerSession, request } from './http';
 
 // ── 系统初始化 / 登录 / 设置 ──
 
+export type ProviderOptionDto = {
+  id: string;
+  name: string;
+  description: string;
+  available: boolean;
+  /** 插件是否启用 */
+  enabled?: boolean;
+  /** 是否为当前 settings 激活提供方 */
+  active?: boolean;
+  suggestedModels?: Record<string, string>;
+  /** TTS 插件音色面板相关（setup / 设置页） */
+  voiceUi?: string;
+  voiceConfigKey?: string;
+  voicePanel?: unknown;
+  supportsStyleTags?: boolean;
+  supportsVoiceDesign?: boolean;
+  voices?: Array<{
+    id: string;
+    name: string;
+    language?: string;
+    gender?: string;
+    description?: string;
+  }>;
+};
+
 export type SetupStatus = {
   initialized: boolean;
   needsSetup: boolean;
@@ -27,6 +52,8 @@ export type SetupStatus = {
     imageModel: string;
     defaultVoice: string;
     contentLocale: string;
+    asrProviders?: ProviderOptionDto[];
+    ttsProviders?: ProviderOptionDto[];
     suggested: {
       baseUrl: string;
       chatModel: string;
@@ -51,18 +78,6 @@ export type LocaleMetaDto = {
   short: string;
   ui: boolean;
   content: boolean;
-};
-
-export type ProviderOptionDto = {
-  id: string;
-  name: string;
-  description: string;
-  available: boolean;
-  /** 插件是否启用 */
-  enabled?: boolean;
-  /** 是否为当前 settings 激活提供方 */
-  active?: boolean;
-  suggestedModels?: Record<string, string>;
 };
 
 export type PublicServiceEndpoint = {

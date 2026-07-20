@@ -104,7 +104,21 @@ export type PublicAiConfig = {
     name: string;
     description: string;
     available: boolean;
+    enabled?: boolean;
+    active?: boolean;
     suggestedModels?: Record<string, string>;
+    voiceUi?: string;
+    voiceConfigKey?: string;
+    voicePanel?: unknown;
+    supportsStyleTags?: boolean;
+    supportsVoiceDesign?: boolean;
+    voices?: Array<{
+      id: string;
+      name: string;
+      language?: string;
+      gender?: string;
+      description?: string;
+    }>;
   }>;
 };
 
