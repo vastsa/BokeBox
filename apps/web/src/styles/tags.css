@@ -7,6 +7,10 @@ html[data-route="tags"] #root {
   background: #03040c !important;
   background-image: none !important;
   color: var(--text-on-ink);
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 html[data-route="tags"] .page-shell,
@@ -15,9 +19,35 @@ html[data-route="tags"] main {
   background: #03040c;
 }
 
+/* 星图全屏：page-shell 占满视口，禁止页面级滚动 */
+html[data-route="tags"] .page-shell,
+html:has(.tc-page) .page-shell {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+html[data-route="tags"] .page-shell > main,
+html:has(.tc-page) .page-shell > main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 顶栏不参与压缩，main 吃剩余高度 */
+html[data-route="tags"] .page-shell > .topbar,
+html:has(.tc-page) .page-shell > .topbar {
+  flex: 0 0 auto;
+}
+
 .tc-page-boot {
-  min-height: 100dvh;
+  flex: 1;
+  min-height: 0;
   width: 100%;
+  height: 100%;
 }
 
 /* 星图加载层：盖住懒加载 / 数据 / WebGL 首帧黑屏 */
@@ -218,7 +248,7 @@ html[data-route="tags"] main {
 
 /* 星图页取消 main 底垫，全屏背景 */
 .page-bottom-pad:has(.tc-page) {
-  padding-bottom: 0;
+  padding-bottom: 0 !important;
 }
 .page-shell:has(.tc-page) {
   background: #03040c;
@@ -226,29 +256,23 @@ html[data-route="tags"] main {
 
 .tc-page {
   position: relative;
-  min-height: calc(100dvh - var(--bottom-nav-h, 58px));
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
   background: #03040c;
   color: var(--text-on-ink);
   overflow: hidden;
-}
-
-@media (min-width: 768px) {
-  .tc-page {
-    min-height: calc(100dvh - var(--space-14));
-  }
+  overscroll-behavior: none;
 }
 
 .tc-universe {
-  position: relative;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: calc(100dvh - var(--bottom-nav-h, 58px) - var(--space-2));
-  min-height: var(--size-480);
-}
-
-@media (min-width: 768px) {
-  .tc-universe {
-    height: calc(100dvh - var(--space-16));
-  }
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .tu-stage {
