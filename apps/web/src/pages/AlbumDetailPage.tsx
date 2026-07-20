@@ -105,6 +105,7 @@ export function AlbumDetailPage({
       resume: true,
       serverProgress: listen,
       seekTo: bestResumeSec(item.job.id, listen),
+      queue: album.items.map((x) => trackFromJob(x.job)),
     });
     if (openPlayer) navigate({ name: 'player', id: item.job.id });
   };

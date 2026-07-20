@@ -95,6 +95,7 @@ export function TagCloudPage({ route }: { route: Route }) {
         resume: true,
         serverProgress: listen,
         seekTo: bestResumeSec(item.job.id, listen),
+        queue: (active?.items || library).map((x) => trackFromJob(x.job)),
       });
     }
     navigate({ name: 'player', id: item.job.id });
@@ -111,6 +112,7 @@ export function TagCloudPage({ route }: { route: Route }) {
       resume: true,
       serverProgress: listen,
       seekTo: bestResumeSec(item.job.id, listen),
+      queue: (active?.items || library).map((x) => trackFromJob(x.job)),
     });
   };
 

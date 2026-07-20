@@ -16,6 +16,7 @@ import {
   saveLocalProgress,
 } from './listenProgress';
 import { tOutside } from '../i18n';
+import { navigate, parseHash } from '../lib/router';
 
 export type PlayerTrack = {
   id: string;
@@ -41,6 +42,8 @@ type PlayTrackOpts = {
     completed?: boolean;
     lastListenedAt?: string;
   } | null;
+  /** 播放队列；传入后用于 ended 自动下一首 */
+  queue?: PlayerTrack[];
 };
 
 type PlayerContextValue = {
@@ -61,6 +64,9 @@ type PlayerContextValue = {
   setVisible: (v: boolean) => void;
   /** 立刻落盘当前进度 */
   flushProgress: (extra?: { completed?: boolean; incrementPlay?: boolean }) => void;
+  setQueue: (tracks: PlayerTrack[]) => void;
+  setAutoAdvance: (enabled: boolean) => void;
+  playNext: () => boolean;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -91,6 +97,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const lastPersistAt = useRef(0);
   const lastPersistSec = useRef(-1);
   const playCountedId = useRef<string | null>(null);
+  const queueRef = useRef<PlayerTrack[]>([]);
+  const autoAdvanceRef = useRef(true);
+  const playNextRef = useRef<() => boolean>(() => false);
 
   const setTrackBoth = useCallback((next: PlayerTrack | null) => {
     trackRef.current = next;
@@ -246,6 +255,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onEnded = () => {
       setPlaying(false);
       flushProgress({ completed: true });
+      if (autoAdvanceRef.current) {
+        window.setTimeout(() => {
+          playNextRef.current();
+        }, 0);
+      }
     };
 
     audio.addEventListener('loadedmetadata', syncDur);
@@ -286,6 +300,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     (next: PlayerTrack, opts?: PlayTrackOpts) => {
       const audio = audioRef.current;
       if (!audio) return;
+
+      if (opts?.queue) {
+        queueRef.current = opts.queue;
+      }
 
       // 切换曲目前先保存当前进度
       if (trackRef.current && trackRef.current.id !== next.id) {
@@ -344,6 +362,30 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     },
     [rate, flushProgress, setTrackBoth],
   );
+
+  const setQueue = useCallback((tracks: PlayerTrack[]) => {
+    queueRef.current = tracks;
+  }, []);
+
+  const setAutoAdvance = useCallback((enabled: boolean) => {
+    autoAdvanceRef.current = enabled;
+  }, []);
+
+  const playNext = useCallback((): boolean => {
+    const currentTrack = trackRef.current;
+    if (!currentTrack) return false;
+    const q = queueRef.current;
+    const idx = q.findIndex((t) => t.id === currentTrack.id);
+    if (idx < 0 || idx >= q.length - 1) return false;
+    const next = q[idx + 1];
+    playTrack(next, { autoplay: true, resume: true });
+    if (parseHash().name === 'player') {
+      navigate({ name: 'player', id: next.id });
+    }
+    return true;
+  }, [playTrack]);
+
+  playNextRef.current = playNext;
 
   const play = useCallback(() => {
     const audio = ensureCurrentAudio();
@@ -433,6 +475,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setRate,
       setVisible,
       flushProgress,
+      setQueue,
+      setAutoAdvance,
+      playNext,
     }),
     [
       track,
@@ -450,6 +495,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       seekBy,
       setRate,
       flushProgress,
+      setQueue,
+      setAutoAdvance,
+      playNext,
     ],
   );
 

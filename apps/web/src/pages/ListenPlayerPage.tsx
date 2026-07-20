@@ -101,6 +101,16 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   }, [id]);
 
   useEffect(() => {
+    if (!queue.length) return;
+    player.setQueue(queue.map((it) => trackFromJob(it.job)));
+  }, [queue, player]);
+
+  useEffect(() => {
+    player.setAutoAdvance(sleep.kind !== 'eoe');
+    return () => player.setAutoAdvance(true);
+  }, [sleep.kind, player]);
+
+  useEffect(() => {
     if (!item) return;
     const job = item.job;
     const listen = mergeListenRecord(job.id, item.listen);
