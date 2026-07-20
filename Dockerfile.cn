@@ -48,12 +48,12 @@ RUN pnpm --filter @bokebox/server deploy --prod /out \
  && find /out/node_modules -type f \( \
       -name '*.md' -o -name '*.markdown' -o -name 'CHANGELOG*' \
       -o -name '*.map' -o -name 'tsconfig*.json' -o -name '*.ts' \
-    \) ! -path '*/ffmpeg-static/*' -delete \
+    \) ! -path '*/ffmpeg-static/*' -delete || true \
  && find /out/node_modules -type d \( \
       -name 'test' -o -name 'tests' -o -name '__tests__' \
       -o -name 'docs' -o -name 'example' -o -name 'examples' \
       -o -name '.github' \
-    \) -prune -exec rm -rf {} + \
+    \) -prune -exec rm -rf {} + || true \
  && rm -rf /out/node_modules/.cache /tmp/* /root/.local /root/.cache
 
 FROM ${NODE_IMAGE} AS runner
