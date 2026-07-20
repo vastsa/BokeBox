@@ -20,7 +20,7 @@ import { settingsRoutes } from './routes/settings.js';
 import { refreshExternalSourcePlugins } from './sources/index.js';
 import { refreshExternalAsrPlugins } from './providers/asr/index.js';
 import { refreshExternalTtsPlugins } from './providers/tts/index.js';
-import { JOBS_DIR, ROOT_DIR, SQLITE_DB } from './utils/paths.js';
+import { JOBS_DIR, ROOT_DIR, SQLITE_DB, resolveWebDistDir } from './utils/paths.js';
 import { ensureDir, pathExists } from './utils/fs.js';
 import { hasApiKey, getBaseUrl, getChatModel } from './utils/aiConfig.js';
 import { initDatabase } from './db/sqlite.js';
@@ -146,7 +146,7 @@ async function main() {
   // MCP 协议端点挂在根路径 /mcp，便于客户端直接安装
   await app.register(mcpProtocolRoutes);
 
-  const webDist = path.resolve(__dirname, '../../web/dist');
+  const webDist = resolveWebDistDir(__dirname);
   if (await pathExists(webDist)) {
     const { default: fastifyStatic } = await import('@fastify/static');
     const indexHtmlPath = path.join(webDist, 'index.html');

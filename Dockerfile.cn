@@ -1,41 +1,27 @@
-# BokeBox · 国内镜像构建（体积收敛 + 网络友好）
+# BokeBox · 国内镜像（Alpine + deploy）
 # 使用: ./start.sh docker.cn
-#
-# - Docker Hub 代理 / apt / npm 国内源
-# - runner 使用系统 ffmpeg（避免 ffmpeg-static 访问 GitHub 超时）
-# - deps/build 不装 ffmpeg，减小构建层干扰；最终层强清理
 
-ARG NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
-FROM ${NODE_IMAGE} AS base
-
-WORKDIR /app
-
-ARG APT_MIRROR=mirrors.aliyun.com
+ARG NODE_IMAGE=docker.m.daocloud.io/library/node:22-alpine
 ARG NPM_REGISTRY=https://registry.npmmirror.com
+ARG ALPINE_MIRROR=mirrors.aliyun.com
 
+FROM ${NODE_IMAGE} AS base
+WORKDIR /app
+ARG NPM_REGISTRY
+ARG ALPINE_MIRROR
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm:$PATH" \
+    CI=1 \
     COREPACK_NPM_REGISTRY=${NPM_REGISTRY} \
     npm_config_registry=${NPM_REGISTRY}
-
 RUN set -eux; \
-  if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
-    sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g" \
-      /etc/apt/sources.list.d/debian.sources; \
-  fi; \
-  if [ -f /etc/apt/sources.list ]; then \
-    sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g" \
-      /etc/apt/sources.list; \
-  fi; \
-  apt-get update; \
-  apt-get install -y --no-install-recommends ca-certificates; \
-  rm -rf /var/lib/apt/lists/*; \
+  sed -i "s|dl-cdn.alpinelinux.org|${ALPINE_MIRROR}|g" /etc/apk/repositories; \
+  apk add --no-cache libc6-compat; \
   corepack enable; \
   corepack prepare pnpm@9.15.0 --activate; \
   pnpm config set registry "${NPM_REGISTRY}"; \
   pnpm --version
 
-# ---------- 依赖 ----------
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -45,9 +31,9 @@ COPY packages/shared/package.json ./packages/shared/
 RUN printf 'registry=%s\n' "${npm_config_registry}" > .npmrc \
  && pnpm install --frozen-lockfile --ignore-scripts \
  && pnpm rebuild sharp \
+ && pnpm rebuild ffmpeg-static || true \
  && rm -f .npmrc
 
-# ---------- 构建 ----------
 FROM deps AS build
 WORKDIR /app
 COPY apps ./apps
@@ -56,69 +42,43 @@ RUN pnpm --filter @bokebox/shared build \
  && pnpm --filter @bokebox/web build \
  && pnpm --filter @bokebox/server build
 
-# ---------- 运行（这里才装系统 ffmpeg） ----------
-FROM base AS runner
+FROM build AS export
 WORKDIR /app
+RUN pnpm --filter @bokebox/server deploy --prod /out \
+ && find /out/node_modules -type f \( \
+      -name '*.md' -o -name '*.markdown' -o -name 'CHANGELOG*' \
+      -o -name '*.map' -o -name 'tsconfig*.json' -o -name '*.ts' \
+    \) ! -path '*/ffmpeg-static/*' -delete \
+ && find /out/node_modules -type d \( \
+      -name 'test' -o -name 'tests' -o -name '__tests__' \
+      -o -name 'docs' -o -name 'example' -o -name 'examples' \
+      -o -name '.github' \
+    \) -prune -exec rm -rf {} + \
+ && rm -rf /out/node_modules/.cache /tmp/* /root/.local /root/.cache
 
-ARG APT_MIRROR=mirrors.aliyun.com
-
+FROM ${NODE_IMAGE} AS runner
+WORKDIR /app
+ARG ALPINE_MIRROR=mirrors.aliyun.com
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=8787 \
-    FFMPEG_BIN=/usr/bin/ffmpeg \
-    PNPM_STORE_DIR=/tmp/pnpm-store \
-    npm_config_audit=false \
-    npm_config_fund=false
-
+    BOKEBOX_ROOT=/app \
+    WEB_DIST=/app/web \
+    STORAGE_DIR=/app/storage
 RUN set -eux; \
-  if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
-    sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g" \
-      /etc/apt/sources.list.d/debian.sources; \
-  fi; \
-  if [ -f /etc/apt/sources.list ]; then \
-    sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g" \
-      /etc/apt/sources.list; \
-  fi; \
-  apt-get update; \
-  apt-get install -y --no-install-recommends ffmpeg; \
-  rm -rf /var/lib/apt/lists/*; \
-  ffmpeg -version | head -n 1
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/server/package.json ./apps/server/
-COPY apps/web/package.json ./apps/web/
-COPY packages/shared/package.json ./packages/shared/
-
-RUN set -eux; \
-  printf 'registry=%s\n' "${npm_config_registry}" > .npmrc; \
-  pnpm install --frozen-lockfile --prod --filter @bokebox/server... --ignore-scripts; \
-  pnpm rebuild sharp; \
-  # 删除未下载二进制的 ffmpeg-static 包，避免占位
-  find node_modules -type d -name 'ffmpeg-static' -prune -exec rm -rf {} +; \
-  rm -rf /tmp/pnpm-store /pnpm/store /root/.local/share/pnpm /root/.cache; \
-  find node_modules -type f \( \
-    -name '*.md' -o -name '*.markdown' -o -name 'CHANGELOG*' \
-    -o -name '*.map' -o -name 'tsconfig*.json' \
-  \) -delete; \
-  find node_modules -type d \( \
-    -name 'test' -o -name 'tests' -o -name '__tests__' \
-    -o -name 'docs' -o -name 'example' -o -name 'examples' \
-  \) -prune -exec rm -rf {} +; \
-  rm -rf apps/web/node_modules packages/shared/node_modules /tmp/* .npmrc
-
-COPY --from=build /app/apps/server/dist ./apps/server/dist
-COPY --from=build /app/apps/web/dist ./apps/web/dist
-COPY --from=build /app/packages/shared/dist ./packages/shared/dist
-
-RUN node --input-type=module -e "await import('./apps/server/dist/services/content/scriptPrompt.js')" \
+  sed -i "s|dl-cdn.alpinelinux.org|${ALPINE_MIRROR}|g" /etc/apk/repositories; \
+  apk add --no-cache libc6-compat; \
+  rm -rf /var/cache/apk/*
+COPY --from=export /out/ ./
+COPY --from=build /app/apps/web/dist ./web
+# ffmpeg-static 失败时才装系统 ffmpeg
+RUN node -e "try{const p=require('ffmpeg-static'); if(!p) throw 0; console.log('ffmpeg-static', p)}catch(e){process.exit(2)}" \
+  || (apk add --no-cache ffmpeg && echo 'fallback system ffmpeg') \
+ && node --input-type=module -e "await import('./dist/services/content/scriptPrompt.js')" \
  && node --input-type=module -e "await import('sharp')" \
- && test -x "$FFMPEG_BIN" \
- && mkdir -p storage/jobs \
- && rm -rf /tmp/* /root/.cache
-
+ && mkdir -p /app/storage/jobs \
+ && rm -rf /tmp/* /root/.npm /root/.cache /var/cache/apk/*
 EXPOSE 8787
-
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8787)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-
-CMD ["node", "apps/server/dist/index.js"]
+CMD ["node", "dist/index.js"]

@@ -4,11 +4,35 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/** monorepo 根目录 */
-export const ROOT_DIR = path.resolve(__dirname, '../../../../');
+/**
+ * 应用根目录：
+ * - 开发/ monorepo：默认回退到仓库根（apps/server/dist/utils → ../../../../）
+ * - Docker 精简布局：通过 BOKEBOX_ROOT / ROOT_DIR 指定（如 /app）
+ */
+function resolveRootDir(): string {
+  const fromEnv =
+    process.env.BOKEBOX_ROOT?.trim() ||
+    process.env.ROOT_DIR?.trim() ||
+    '';
+  if (fromEnv) return path.resolve(fromEnv);
+  return path.resolve(__dirname, '../../../../');
+}
 
-/** 统一存储根：媒体 + SQLite */
-export const STORAGE_DIR = path.join(ROOT_DIR, 'storage');
+/** monorepo 根目录 / 容器应用根 */
+export const ROOT_DIR = resolveRootDir();
+
+/** 统一存储根：媒体 + SQLite（可用 STORAGE_DIR 覆盖，便于挂载） */
+export const STORAGE_DIR = process.env.STORAGE_DIR?.trim()
+  ? path.resolve(process.env.STORAGE_DIR.trim())
+  : path.join(ROOT_DIR, 'storage');
+
+/** 前端静态资源目录（Docker 精简布局用 WEB_DIST=/app/web） */
+export function resolveWebDistDir(fromModuleDir: string = __dirname): string {
+  const fromEnv = process.env.WEB_DIST?.trim() || process.env.BOKEBOX_WEB_DIST?.trim();
+  if (fromEnv) return path.resolve(fromEnv);
+  // monorepo: apps/server/dist → apps/web/dist
+  return path.resolve(fromModuleDir, '../../web/dist');
+}
 
 /** 任务媒体根：每个 job 独占一个子目录 */
 export const JOBS_DIR = path.join(STORAGE_DIR, 'jobs');

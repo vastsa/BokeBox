@@ -42,14 +42,20 @@ ghcr.io/<owner>/<repo>
 
 ## 镜像体积说明
 
-官方 `Dockerfile`（GHCR）策略：
+官方 `Dockerfile` 采用激进瘦身：
 
-- **不用 apt 安装系统 ffmpeg**（共享库链路很大，实测会把镜像顶到 ~780MB+）
-- 使用 `ffmpeg-static` 单文件二进制
-- runner 只装 `@bokebox/server` 生产依赖，装完删除 pnpm store / 缓存
-- 清理 `node_modules` 中的文档、测试目录与 source map
+1. **最终层 `node:22-alpine`**（比 bookworm-slim 小一截）
+2. **`pnpm deploy` 导出最小 server 运行闭包**，最终层不带 monorepo / pnpm store
+3. **ffmpeg-static 单文件**，避免 apt/apk ffmpeg 共享库全家桶
+4. 清理 docs / tests / source map
 
-国内 `Dockerfile.cn` 因网络限制仍用系统 ffmpeg，但仅在最终 runner 层安装。
+并支持环境变量布局：
+
+| 变量 | 含义 | 默认 |
+|------|------|------|
+| `BOKEBOX_ROOT` | 应用根 | monorepo 根 |
+| `WEB_DIST` | 前端静态目录 | `apps/web/dist` |
+| `STORAGE_DIR` | 数据目录 | `$BOKEBOX_ROOT/storage` |
 
 本地检查体积：
 
@@ -57,6 +63,7 @@ ghcr.io/<owner>/<repo>
 docker build -t bokebox:local .
 docker image ls bokebox:local
 ```
+
 
 ## 本地验证
 
