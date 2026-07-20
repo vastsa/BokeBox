@@ -42,13 +42,16 @@ ghcr.io/<owner>/<repo>
 
 ## 镜像体积说明
 
-生产 `Dockerfile` 会：
+官方 `Dockerfile`（GHCR）策略：
 
-- 使用系统 `ffmpeg`，并删除 `ffmpeg-static` 二进制
-- runner 阶段 `hoisted + copy` 安装生产依赖后删除 pnpm store / 缓存
+- **不用 apt 安装系统 ffmpeg**（共享库链路很大，实测会把镜像顶到 ~780MB+）
+- 使用 `ffmpeg-static` 单文件二进制
+- runner 只装 `@bokebox/server` 生产依赖，装完删除 pnpm store / 缓存
 - 清理 `node_modules` 中的文档、测试目录与 source map
 
-目标是把运行镜像压到明显低于「完整 monorepo + store + 双份 ffmpeg」的体积。本地可用：
+国内 `Dockerfile.cn` 因网络限制仍用系统 ffmpeg，但仅在最终 runner 层安装。
+
+本地检查体积：
 
 ```bash
 docker build -t bokebox:local .

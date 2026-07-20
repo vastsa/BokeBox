@@ -1,37 +1,33 @@
-# BokeBox · 生产镜像（体积优化）
-# 服务端 dist + 前端 dist，Fastify 同端口托管
+# BokeBox · 生产镜像（体积收敛）
+# 目标：小于「系统 ffmpeg 全家桶」方案；GHCR 构建环境可拉 ffmpeg-static。
 #
-# 体积策略：
-# 1) 系统 ffmpeg，最终镜像剔除 ffmpeg-static（~40–80MB）
-# 2) runner 使用 hoisted + copy，装完删除 pnpm store / 缓存
-# 3) 清理 node_modules 内文档、测试、map、源码残留
+# 关键策略：
+# 1) 不用 apt 装 ffmpeg（共享库链路很大，曾把镜像顶到 ~780MB+）
+# 2) 使用 ffmpeg-static 单文件二进制（本地/CI 可下载）
+# 3) runner 仅装 server 生产依赖，pnpm store 装完即删
+# 4) 清理文档 / 测试 / map 等无用文件
 
 FROM node:22-bookworm-slim AS base
 WORKDIR /app
-
 ENV PNPM_HOME="/pnpm" \
-    PATH="/pnpm:$PATH" \
-    FFMPEG_BIN=/usr/bin/ffmpeg
-
+    PATH="/pnpm:$PATH"
+# 仅保留证书；不装系统 ffmpeg
 RUN set -eux; \
   apt-get update; \
-  apt-get install -y --no-install-recommends ca-certificates ffmpeg; \
+  apt-get install -y --no-install-recommends ca-certificates; \
   rm -rf /var/lib/apt/lists/*; \
   corepack enable; \
   corepack prepare pnpm@9.15.0 --activate; \
-  ffmpeg -version | head -n 1; \
   pnpm --version
 
-# ---------- 依赖（构建用，含 devDependencies） ----------
+# ---------- 全量依赖（构建） ----------
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json ./apps/server/
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
-# 构建不需要真正的 ffmpeg 二进制；跳过 postinstall 可避免额外下载耗时
-RUN pnpm install --frozen-lockfile --ignore-scripts \
- && pnpm rebuild sharp
+RUN pnpm install --frozen-lockfile
 
 # ---------- 构建 ----------
 FROM deps AS build
@@ -49,7 +45,6 @@ WORKDIR /app
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=8787 \
-    FFMPEG_BIN=/usr/bin/ffmpeg \
     PNPM_STORE_DIR=/tmp/pnpm-store \
     npm_config_audit=false \
     npm_config_fund=false
@@ -59,42 +54,31 @@ COPY apps/server/package.json ./apps/server/
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 
-# hoisted + copy：最终层不依赖 content-addressable store
+# 仅 server 生产依赖；store 放 /tmp，装完删除
 RUN set -eux; \
-  printf '%s\n' \
-    'node-linker=hoisted' \
-    'package-import-method=copy' \
-    'shamefully-hoist=true' \
-    > .npmrc; \
-  pnpm install --frozen-lockfile --prod --filter @bokebox/server... --ignore-scripts; \
-  pnpm rebuild sharp; \
-  find node_modules -type d -name 'ffmpeg-static' -prune -exec rm -rf {} +; \
+  pnpm install --frozen-lockfile --prod --filter @bokebox/server...; \
+  # 删除 store / 缓存（node_modules 内文件保留）
+  rm -rf /tmp/pnpm-store /pnpm/store /root/.local/share/pnpm /root/.cache; \
+  # 清理无用文件（保留 ffmpeg-static 二进制与 LICENSE）
   find node_modules -type f \( \
     -name '*.md' -o -name '*.markdown' -o -name 'CHANGELOG*' \
     -o -name '*.map' -o -name 'tsconfig*.json' \
-  \) -delete; \
+  \) ! -path '*/ffmpeg-static/*' -delete; \
   find node_modules -type d \( \
     -name 'test' -o -name 'tests' -o -name '__tests__' \
     -o -name 'docs' -o -name 'example' -o -name 'examples' \
   \) -prune -exec rm -rf {} +; \
-  rm -rf \
-    /tmp/pnpm-store \
-    /pnpm/store \
-    /root/.local/share/pnpm \
-    /root/.cache \
-    /tmp/* \
-    .npmrc \
-    apps/web/node_modules \
-    packages/shared/node_modules
+  # 去掉无关工作区残留
+  rm -rf apps/web/node_modules packages/shared/node_modules /tmp/*; \
+  # 确认 ffmpeg-static 二进制存在
+  node -e "const p=require('ffmpeg-static'); if(!p) process.exit(1); console.log('ffmpeg-static', p)"
 
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 
-# 门禁：shared 运行时、sharp、ffmpeg
 RUN node --input-type=module -e "await import('./apps/server/dist/services/content/scriptPrompt.js')" \
  && node --input-type=module -e "await import('sharp')" \
- && test -x "$FFMPEG_BIN" \
  && mkdir -p storage/jobs \
  && rm -rf /tmp/* /root/.cache
 

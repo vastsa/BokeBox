@@ -1,11 +1,9 @@
-# BokeBox · 国内镜像构建（体积优化）
+# BokeBox · 国内镜像构建（体积收敛 + 网络友好）
 # 使用: ./start.sh docker.cn
 #
-# 默认:
-#   - Docker Hub 代理: docker.m.daocloud.io
-#   - Debian apt: mirrors.aliyun.com
-#   - npm/pnpm: registry.npmmirror.com
-#   - ffmpeg: 系统包（跳过 ffmpeg-static GitHub 下载）
+# - Docker Hub 代理 / apt / npm 国内源
+# - runner 使用系统 ffmpeg（避免 ffmpeg-static 访问 GitHub 超时）
+# - deps/build 不装 ffmpeg，减小构建层干扰；最终层强清理
 
 ARG NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
 FROM ${NODE_IMAGE} AS base
@@ -18,8 +16,7 @@ ARG NPM_REGISTRY=https://registry.npmmirror.com
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm:$PATH" \
     COREPACK_NPM_REGISTRY=${NPM_REGISTRY} \
-    npm_config_registry=${NPM_REGISTRY} \
-    FFMPEG_BIN=/usr/bin/ffmpeg
+    npm_config_registry=${NPM_REGISTRY}
 
 RUN set -eux; \
   if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
@@ -31,14 +28,12 @@ RUN set -eux; \
       /etc/apt/sources.list; \
   fi; \
   apt-get update; \
-  apt-get install -y --no-install-recommends ca-certificates ffmpeg; \
+  apt-get install -y --no-install-recommends ca-certificates; \
   rm -rf /var/lib/apt/lists/*; \
-  ffmpeg -version | head -n 1
-
-RUN corepack enable \
- && corepack prepare pnpm@9.15.0 --activate \
- && pnpm config set registry "${NPM_REGISTRY}" \
- && pnpm --version
+  corepack enable; \
+  corepack prepare pnpm@9.15.0 --activate; \
+  pnpm config set registry "${NPM_REGISTRY}"; \
+  pnpm --version
 
 # ---------- 依赖 ----------
 FROM base AS deps
@@ -49,7 +44,8 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 RUN printf 'registry=%s\n' "${npm_config_registry}" > .npmrc \
  && pnpm install --frozen-lockfile --ignore-scripts \
- && pnpm rebuild sharp
+ && pnpm rebuild sharp \
+ && rm -f .npmrc
 
 # ---------- 构建 ----------
 FROM deps AS build
@@ -60,9 +56,11 @@ RUN pnpm --filter @bokebox/shared build \
  && pnpm --filter @bokebox/web build \
  && pnpm --filter @bokebox/server build
 
-# ---------- 运行 ----------
+# ---------- 运行（这里才装系统 ffmpeg） ----------
 FROM base AS runner
 WORKDIR /app
+
+ARG APT_MIRROR=mirrors.aliyun.com
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
@@ -72,21 +70,32 @@ ENV NODE_ENV=production \
     npm_config_audit=false \
     npm_config_fund=false
 
+RUN set -eux; \
+  if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+    sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g" \
+      /etc/apt/sources.list.d/debian.sources; \
+  fi; \
+  if [ -f /etc/apt/sources.list ]; then \
+    sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g" \
+      /etc/apt/sources.list; \
+  fi; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends ffmpeg; \
+  rm -rf /var/lib/apt/lists/*; \
+  ffmpeg -version | head -n 1
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json ./apps/server/
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 
 RUN set -eux; \
-  printf '%s\n' \
-    "registry=${npm_config_registry}" \
-    'node-linker=hoisted' \
-    'package-import-method=copy' \
-    'shamefully-hoist=true' \
-    > .npmrc; \
+  printf 'registry=%s\n' "${npm_config_registry}" > .npmrc; \
   pnpm install --frozen-lockfile --prod --filter @bokebox/server... --ignore-scripts; \
   pnpm rebuild sharp; \
+  # 删除未下载二进制的 ffmpeg-static 包，避免占位
   find node_modules -type d -name 'ffmpeg-static' -prune -exec rm -rf {} +; \
+  rm -rf /tmp/pnpm-store /pnpm/store /root/.local/share/pnpm /root/.cache; \
   find node_modules -type f \( \
     -name '*.md' -o -name '*.markdown' -o -name 'CHANGELOG*' \
     -o -name '*.map' -o -name 'tsconfig*.json' \
@@ -95,15 +104,7 @@ RUN set -eux; \
     -name 'test' -o -name 'tests' -o -name '__tests__' \
     -o -name 'docs' -o -name 'example' -o -name 'examples' \
   \) -prune -exec rm -rf {} +; \
-  rm -rf \
-    /tmp/pnpm-store \
-    /pnpm/store \
-    /root/.local/share/pnpm \
-    /root/.cache \
-    /tmp/* \
-    .npmrc \
-    apps/web/node_modules \
-    packages/shared/node_modules
+  rm -rf apps/web/node_modules packages/shared/node_modules /tmp/* .npmrc
 
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/web/dist ./apps/web/dist
