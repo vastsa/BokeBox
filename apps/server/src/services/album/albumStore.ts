@@ -366,6 +366,9 @@ export async function updateAlbum(
       patch.published !== undefined ? Boolean(patch.published) : prev.published,
     updatedAt: new Date().toISOString(),
   };
+  // node:sqlite 对命名参数严格校验：对象里多出的字段会直接报 Unknown named parameter
+  // 所以这里只绑定 UPDATE 语句实际使用的字段，避免 albumToRow 带上 created_at 触发报错
+  const row = albumToRow(next);
   getDb()
     .prepare(
       `UPDATE albums SET
@@ -377,7 +380,15 @@ export async function updateAlbum(
         updated_at = @updated_at
        WHERE id = @id`,
     )
-    .run(albumToRow(next));
+    .run({
+      id: row.id,
+      title: row.title,
+      summary: row.summary,
+      cover_job_id: row.cover_job_id,
+      has_cover_image: row.has_cover_image,
+      published: row.published,
+      updated_at: row.updated_at,
+    });
   touchAlbumCache(next);
   return getAlbumDetail(id);
 }
