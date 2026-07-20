@@ -1,30 +1,149 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import {
-  activeLineIndex,
+  activeLineIndexForTimeline,
+  lineProgressForTimeline,
   parseScriptLines,
-  seekSecForLine,
+  resolveScriptTimeline,
   type ScriptLineTiming,
+  type ScriptTimingSource,
 } from '../../lib/scriptFollow';
+import { formatDuration } from '../../lib/format';
 import { useI18n } from '../../i18n';
 
-const LINE_H = 56;
-const VIEW_RADIUS = 4; // 渲染中心附近行数
-const SNAP_MS = 320;
+const CLOCK_INTERVAL_MS = 40;
+const OFFSET_STEP_SEC = 0.5;
+const MAX_OFFSET_SEC = 5;
+const OFFSET_STORAGE_PREFIX = 'bokebox:lyrics-offset:';
 
-function clamp(n: number, min: number, max: number) {
+const LyricCueRow = memo(function LyricCueRow({
+  cue,
+  index,
+  state,
+  active,
+  focused,
+  timelineReady,
+  progress,
+  timeLabel,
+  seekLabel,
+  registerRef,
+  onFocus,
+  onKeyDown,
+  onSeek,
+}: {
+  cue: ScriptLineTiming;
+  index: number;
+  state: 'is-active' | 'is-passed' | 'is-upcoming';
+  active: boolean;
+  focused: boolean;
+  timelineReady: boolean;
+  progress: number;
+  timeLabel: string;
+  seekLabel: string;
+  registerRef: (index: number, element: HTMLButtonElement | null) => void;
+  onFocus: (index: number) => void;
+  onKeyDown: (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => void;
+  onSeek: (index: number) => void;
+}) {
+  return (
+    <li className={state}>
+      <button
+        ref={(element) => registerRef(index, element)}
+        type="button"
+        tabIndex={focused ? 0 : -1}
+        aria-current={active ? 'true' : undefined}
+        aria-disabled={!timelineReady}
+        aria-label={seekLabel}
+        className="qq-lyric-cue"
+        onFocus={() => onFocus(index)}
+        onKeyDown={(event) => onKeyDown(event, index)}
+        onClick={() => onSeek(index)}
+      >
+        <span className="qq-lyric-time">{timeLabel}</span>
+        <span className="qq-lyric-copy">{cue.text}</span>
+        {active && (
+          <span className="qq-lyric-progress" aria-hidden>
+            <i style={{ width: `${progress * 100}%` }} />
+          </span>
+        )}
+      </button>
+    </li>
+  );
+});
+
+function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
-function easeOutCubic(t: number) {
-  return 1 - (1 - t) ** 3;
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+function readStoredOffset(syncKey?: string): number {
+  if (!syncKey || typeof window === 'undefined') return 0;
+  try {
+    const value = Number(
+      window.localStorage.getItem(`${OFFSET_STORAGE_PREFIX}${syncKey}`),
+    );
+    return Number.isFinite(value)
+      ? clamp(value, -MAX_OFFSET_SEC, MAX_OFFSET_SEC)
+      : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function usePrecisePlaybackTime(
+  currentSec: number,
+  playing: boolean,
+  readCurrentSec?: () => number,
+): number {
+  const [preciseSec, setPreciseSec] = useState(currentSec);
+  const currentRef = useRef(currentSec);
+  const readerRef = useRef(readCurrentSec);
+
+  useEffect(() => {
+    currentRef.current = currentSec;
+    readerRef.current = readCurrentSec;
+    setPreciseSec((previous) =>
+      !playing || Math.abs(previous - currentSec) > 0.6 ? currentSec : previous,
+    );
+  }, [currentSec, playing, readCurrentSec]);
+
+  useEffect(() => {
+    if (!playing) return;
+    let frame = 0;
+    let lastUpdate = 0;
+    const tick = (now: number) => {
+      if (now - lastUpdate >= CLOCK_INTERVAL_MS) {
+        lastUpdate = now;
+        const mediaTime = readerRef.current?.() ?? currentRef.current;
+        if (Number.isFinite(mediaTime)) {
+          setPreciseSec((previous) =>
+            Math.abs(previous - mediaTime) >= 0.015 ? mediaTime : previous,
+          );
+        }
+      }
+      frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [playing]);
+
+  return preciseSec;
 }
 
 export function ScriptFollow({
@@ -34,68 +153,83 @@ export function ScriptFollow({
   onSeek,
   variant = 'list',
   timing,
+  timingSource,
+  playing = false,
+  readCurrentSec,
+  syncKey,
 }: {
   script: string;
   currentSec: number;
   durationSec: number;
   onSeek?: (sec: number) => void;
   variant?: 'list' | 'lyrics';
-  /** 服务端合成时写入的真实/半真实时间轴 */
   timing?: ScriptLineTiming[] | null;
+  timingSource?: ScriptTimingSource | null;
+  playing?: boolean;
+  /** 播放中直接读取 HTMLAudioElement.currentTime，绕开低频 timeupdate。 */
+  readCurrentSec?: () => number;
+  /** 用于按节目保存本地歌词校准值。 */
+  syncKey?: string;
 }) {
   const { t } = useI18n();
   const parsed = useMemo(() => parseScriptLines(script), [script]);
-  const lines = useMemo(() => parsed.map((l) => l.text), [parsed]);
-  const active = useMemo(
-    () => activeLineIndex(parsed, currentSec, durationSec, timing),
-    [parsed, currentSec, durationSec, timing],
+  const resolved = useMemo(
+    () => resolveScriptTimeline(parsed, durationSec, timing, timingSource),
+    [durationSec, parsed, timing, timingSource],
   );
-  const listRef = useRef<HTMLDivElement | null>(null);
+  const active = activeLineIndexForTimeline(resolved.lines, currentSec);
   const activeRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (variant === 'lyrics') return;
-    const el = activeRef.current;
-    if (!el) return;
-    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    activeRef.current?.scrollIntoView({
+      block: 'nearest',
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    });
   }, [active, variant]);
 
-  if (!lines.length) {
+  if (!parsed.length) {
     return <p className="qq-empty">{t('player.noLyrics')}</p>;
   }
 
   if (variant === 'lyrics') {
     return (
-      <LyricsWheel
-        lines={lines}
-        active={active}
-        durationSec={durationSec}
-        onSeek={onSeek}
+      <LyricsTranscript
         parsed={parsed}
+        currentSec={currentSec}
+        durationSec={durationSec}
         timing={timing}
+        timingSource={timingSource}
+        playing={playing}
+        readCurrentSec={readCurrentSec}
+        onSeek={onSeek}
+        syncKey={syncKey}
       />
     );
   }
 
   return (
-    <div className="script-follow" ref={listRef}>
-      <div className="script-follow-hint">
-        {t('player.followHint')}
-      </div>
+    <div className="script-follow">
+      <div className="script-follow-hint">{t('player.followHint')}</div>
       <div className="script-follow-list">
-        {lines.map((line, i) => {
+        {parsed.map((line, index) => {
           const state =
-            i === active ? 'is-active' : i < active ? 'is-passed' : 'is-upcoming';
+            index === active
+              ? 'is-active'
+              : index < active
+                ? 'is-passed'
+                : 'is-upcoming';
+          const cue = resolved.lines[index];
           return (
             <button
-              key={`${i}-${line.slice(0, 12)}`}
+              key={`${index}-${line.text.slice(0, 12)}`}
               type="button"
-              ref={i === active ? activeRef : undefined}
+              ref={index === active ? activeRef : undefined}
               className={['script-line', state].join(' ')}
-              onClick={() => onSeek?.(seekSecForLine(parsed, i, durationSec, timing))}
+              onClick={() => onSeek?.(cue?.startSec || 0)}
             >
-              <span className="script-line-idx">{i + 1}</span>
-              <span className="script-line-text">{line}</span>
+              <span className="script-line-idx">{index + 1}</span>
+              <span className="script-line-text">{line.text}</span>
             </button>
           );
         })}
@@ -104,337 +238,322 @@ export function ScriptFollow({
   );
 }
 
-/**
- * 连续像素滚动歌词轮：
- * - 拖拽/滚轮实时跟手
- * - 松手惯性 + 吸附最近句
- * - 播放时平滑跟随
- */
-function LyricsWheel({
-  lines,
-  active,
-  durationSec,
-  onSeek,
+function LyricsTranscript({
   parsed,
+  currentSec,
+  durationSec,
   timing,
+  timingSource,
+  playing,
+  readCurrentSec,
+  onSeek,
+  syncKey,
 }: {
-  lines: string[];
-  active: number;
-  durationSec: number;
-  onSeek?: (sec: number) => void;
   parsed: ReturnType<typeof parseScriptLines>;
+  currentSec: number;
+  durationSec: number;
   timing?: ScriptLineTiming[] | null;
+  timingSource?: ScriptTimingSource | null;
+  playing: boolean;
+  readCurrentSec?: () => number;
+  onSeek?: (sec: number) => void;
+  syncKey?: string;
 }) {
   const { t } = useI18n();
-  const maxY = Math.max(0, (lines.length - 1) * LINE_H);
+  const preciseSec = usePrecisePlaybackTime(currentSec, playing, readCurrentSec);
+  const [offsetSec, setOffsetSec] = useState(() => readStoredOffset(syncKey));
+  const [following, setFollowing] = useState(true);
+  const [calibrationOpen, setCalibrationOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const lineRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const programmaticUntilRef = useRef(0);
+  const lastAutoIndexRef = useRef(-1);
 
-  const scrollYRef = useRef(active * LINE_H);
-  const [scrollY, setScrollY] = useState(active * LINE_H);
-  const [interacting, setInteracting] = useState(false);
+  useEffect(() => {
+    setOffsetSec(readStoredOffset(syncKey));
+    setFollowing(true);
+    setCalibrationOpen(false);
+    lastAutoIndexRef.current = -1;
+  }, [syncKey]);
 
-  const modeRef = useRef<'follow' | 'user'>('follow');
-  const lockFollowUntil = useRef(0);
-  const animRef = useRef<number | null>(null);
-  const lastSample = useRef<{ y: number; t: number; v: number }>({
-    y: 0,
-    t: 0,
-    v: 0,
-  });
-  const dragRef = useRef<{
-    pointerId: number;
-    startClientY: number;
-    startScrollY: number;
-    moved: boolean;
-  } | null>(null);
-  const suppressClick = useRef(false);
-  const lastSeekIndex = useRef<number | null>(null);
+  const resolved = useMemo(
+    () => resolveScriptTimeline(parsed, durationSec, timing, timingSource),
+    [durationSec, parsed, timing, timingSource],
+  );
+  const cues = useMemo<ScriptLineTiming[]>(
+    () =>
+      resolved.lines.length === parsed.length
+        ? resolved.lines
+        : parsed.map((line) => ({
+            text: line.text,
+            startSec: 0,
+            endSec: 1,
+          })),
+    [parsed, resolved.lines],
+  );
+  const timelineReady = resolved.lines.length === parsed.length;
 
-  const cancelAnim = () => {
-    if (animRef.current != null) {
-      cancelAnimationFrame(animRef.current);
-      animRef.current = null;
-    }
-  };
+  const effectiveSec = Math.max(0, preciseSec + offsetSec);
+  const active = timelineReady
+    ? activeLineIndexForTimeline(cues, effectiveSec)
+    : 0;
+  const lineProgress = timelineReady
+    ? lineProgressForTimeline(cues, active, effectiveSec)
+    : 0;
+  const cueLabels = useMemo(
+    () =>
+      cues.map((cue) => {
+        const time = formatDuration(cue.startSec);
+        return {
+          time,
+          seek: t('player.lyricSeekLabel', { time, text: cue.text }),
+        };
+      }),
+    [cues, t],
+  );
 
-  const applyScroll = useCallback(
-    (y: number, hard = true) => {
-      const next = hard ? clamp(y, 0, maxY) : y;
-      scrollYRef.current = next;
-      setScrollY(next);
-      return next;
+  const scrollToLine = useCallback(
+    (index: number, behavior: ScrollBehavior) => {
+      const scroller = scrollRef.current;
+      const target = lineRefs.current[index];
+      if (!scroller || !target) return;
+      const scrollerBox = scroller.getBoundingClientRect();
+      const targetBox = target.getBoundingClientRect();
+      const targetTop =
+        scroller.scrollTop + targetBox.top - scrollerBox.top;
+      const top =
+        targetTop -
+        scroller.clientHeight * 0.4 +
+        targetBox.height / 2;
+      programmaticUntilRef.current =
+        performance.now() + (behavior === 'smooth' ? 500 : 100);
+      scroller.scrollTo({ top: Math.max(0, top), behavior });
     },
-    [maxY],
+    [],
   );
 
-  const nearestIndex = useCallback(
-    (y = scrollYRef.current) => clamp(Math.round(y / LINE_H), 0, lines.length - 1),
-    [lines.length],
-  );
+  useEffect(() => {
+    if (!following) return;
+    const distance = Math.abs(active - lastAutoIndexRef.current);
+    const behavior: ScrollBehavior =
+      prefersReducedMotion() || lastAutoIndexRef.current < 0 || distance > 3
+        ? 'auto'
+        : 'smooth';
+    const frame = window.requestAnimationFrame(() => scrollToLine(active, behavior));
+    lastAutoIndexRef.current = active;
+    return () => window.cancelAnimationFrame(frame);
+  }, [active, following, scrollToLine]);
 
-  const seekToIndex = useCallback(
-    (index: number) => {
-      const i = clamp(index, 0, lines.length - 1);
-      if (lastSeekIndex.current === i) return;
-      lastSeekIndex.current = i;
-      onSeek?.(seekSecForLine(parsed, i, durationSec, timing));
-    },
-    [durationSec, parsed, onSeek, timing],
-  );
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    if (!scroller?.contains(document.activeElement)) setFocusedIndex(active);
+  }, [active]);
 
-  /** 平滑滚到目标 y，结束后可选 seek */
-  const animateTo = useCallback(
-    (targetY: number, opts?: { seek?: boolean; duration?: number }) => {
-      cancelAnim();
-      const from = scrollYRef.current;
-      const to = clamp(targetY, 0, maxY);
-      const dur = opts?.duration ?? SNAP_MS;
-      if (Math.abs(to - from) < 0.5) {
-        applyScroll(to);
-        if (opts?.seek) seekToIndex(nearestIndex(to));
-        return;
-      }
-      const t0 = performance.now();
-      const tick = (now: number) => {
-        const p = easeOutCubic(clamp((now - t0) / dur, 0, 1));
-        applyScroll(from + (to - from) * p);
-        if (p < 1) {
-          animRef.current = requestAnimationFrame(tick);
+  const persistOffset = useCallback(
+    (value: number) => {
+      const next = Number(
+        clamp(value, -MAX_OFFSET_SEC, MAX_OFFSET_SEC).toFixed(2),
+      );
+      setOffsetSec(next);
+      if (!syncKey) return;
+      try {
+        if (Math.abs(next) < 0.001) {
+          window.localStorage.removeItem(`${OFFSET_STORAGE_PREFIX}${syncKey}`);
         } else {
-          animRef.current = null;
-          if (opts?.seek) seekToIndex(nearestIndex(to));
+          window.localStorage.setItem(
+            `${OFFSET_STORAGE_PREFIX}${syncKey}`,
+            String(next),
+          );
         }
-      };
-      animRef.current = requestAnimationFrame(tick);
-    },
-    [applyScroll, maxY, nearestIndex, seekToIndex],
-  );
-
-  // 播放进度跟随（用户操作期间/锁定期间不抢）
-  useEffect(() => {
-    if (modeRef.current === 'user') return;
-    if (Date.now() < lockFollowUntil.current) return;
-    if (interacting) return;
-    const target = active * LINE_H;
-    if (Math.abs(target - scrollYRef.current) < 1) return;
-    // 句间平滑滑过去，而不是瞬间跳
-    animateTo(target, { duration: 380 });
-    lastSeekIndex.current = active;
-  }, [active, animateTo, interacting]);
-
-  // 脚本切换时复位
-  useEffect(() => {
-    cancelAnim();
-    modeRef.current = 'follow';
-    applyScroll(active * LINE_H);
-    lastSeekIndex.current = active;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lines]);
-
-  useEffect(() => () => cancelAnim(), []);
-
-  const finishUserGesture = useCallback(
-    (velocity: number) => {
-      // 惯性：v 单位 px/ms
-      let y = scrollYRef.current;
-      const maxV = 2.8;
-      let v = clamp(velocity, -maxV, maxV);
-
-      // 速度太小直接吸附
-      if (Math.abs(v) < 0.08) {
-        const idx = nearestIndex(y);
-        lockFollowUntil.current = Date.now() + 900;
-        modeRef.current = 'user';
-        animateTo(idx * LINE_H, { seek: true, duration: 280 });
-        window.setTimeout(() => {
-          if (Date.now() >= lockFollowUntil.current) modeRef.current = 'follow';
-        }, 950);
-        setInteracting(false);
-        return;
+      } catch {
+        // 本地存储不可用时仅保留本次页面状态。
       }
-
-      cancelAnim();
-      const t0 = performance.now();
-      let lastT = t0;
-      const friction = 0.0024;
-
-      const step = (now: number) => {
-        const dt = Math.min(32, now - lastT);
-        lastT = now;
-        v *= Math.exp(-friction * dt);
-        y += v * dt;
-
-        // 边界回弹
-        if (y < 0) {
-          y = 0;
-          v = 0;
-        } else if (y > maxY) {
-          y = maxY;
-          v = 0;
-        }
-        applyScroll(y);
-
-        if (Math.abs(v) > 0.05 && now - t0 < 900) {
-          animRef.current = requestAnimationFrame(step);
-          return;
-        }
-
-        const idx = nearestIndex(y);
-        lockFollowUntil.current = Date.now() + 900;
-        modeRef.current = 'user';
-        animateTo(idx * LINE_H, { seek: true, duration: 260 });
-        window.setTimeout(() => {
-          if (Date.now() >= lockFollowUntil.current) modeRef.current = 'follow';
-        }, 950);
-        setInteracting(false);
-      };
-      animRef.current = requestAnimationFrame(step);
     },
-    [animateTo, applyScroll, maxY, nearestIndex],
+    [syncKey],
   );
 
-  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
-    cancelAnim();
-    modeRef.current = 'user';
-    setInteracting(true);
-    dragRef.current = {
-      pointerId: e.pointerId,
-      startClientY: e.clientY,
-      startScrollY: scrollYRef.current,
-      moved: false,
-    };
-    lastSample.current = { y: scrollYRef.current, t: performance.now(), v: 0 };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
+  const followCurrent = useCallback(() => {
+    setFollowing(true);
+    scrollToLine(active, prefersReducedMotion() ? 'auto' : 'smooth');
+  }, [active, scrollToLine]);
 
-  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const d = dragRef.current;
-    if (!d || d.pointerId !== e.pointerId) return;
-    const dy = d.startClientY - e.clientY; // 上滑内容上移 = scrollY 增大
-    if (Math.abs(dy) > 3) d.moved = true;
+  const seekLine = useCallback(
+    (index: number) => {
+      const cue = cues[index];
+      if (!cue || !timelineReady) return;
+      onSeek?.(Math.max(0, cue.startSec - offsetSec));
+      setFollowing(true);
+      setFocusedIndex(index);
+      scrollToLine(index, prefersReducedMotion() ? 'auto' : 'smooth');
+    },
+    [cues, offsetSec, onSeek, scrollToLine, timelineReady],
+  );
 
-    let next = d.startScrollY + dy;
-    // 边缘橡皮筋（软约束，不 hard clamp）
-    if (next < 0) next *= 0.28;
-    else if (next > maxY) next = maxY + (next - maxY) * 0.28;
-    applyScroll(next, false);
+  const focusLine = useCallback(
+    (index: number) => {
+      const next = clamp(index, 0, cues.length - 1);
+      setFocusedIndex(next);
+      setFollowing(false);
+      lineRefs.current[next]?.focus();
+    },
+    [cues.length],
+  );
 
-    const now = performance.now();
-    const sample = lastSample.current;
-    const dt = now - sample.t;
-    if (dt > 8) {
-      sample.v = (scrollYRef.current - sample.y) / dt;
-      sample.y = scrollYRef.current;
-      sample.t = now;
-    }
-  };
+  const onLineKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        focusLine(index - 1);
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        focusLine(index + 1);
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        focusLine(0);
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        focusLine(cues.length - 1);
+      }
+    },
+    [cues.length, focusLine],
+  );
+  const registerLineRef = useCallback(
+    (index: number, element: HTMLButtonElement | null) => {
+      lineRefs.current[index] = element;
+    },
+    [],
+  );
+  const focusCue = useCallback((index: number) => setFocusedIndex(index), []);
 
-  const endPointer = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const d = dragRef.current;
-    if (!d || d.pointerId !== e.pointerId) return;
-    dragRef.current = null;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {
-      // ignore
-    }
-    if (!d.moved) {
-      setInteracting(false);
-      return;
-    }
-    suppressClick.current = true;
-    finishUserGesture(lastSample.current.v);
-  };
-
-  // 滚轮：连续滚动，停轮后再吸附 seek
-  const wheelIdleTimer = useRef<number | null>(null);
-  const onWheel = (e: ReactWheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    cancelAnim();
-    modeRef.current = 'user';
-    setInteracting(true);
-
-    // 触控板平滑 delta
-    const dy = e.deltaY;
-    applyScroll(scrollYRef.current + dy * (e.deltaMode === 1 ? LINE_H * 0.35 : 0.85));
-
-    if (wheelIdleTimer.current != null) window.clearTimeout(wheelIdleTimer.current);
-    wheelIdleTimer.current = window.setTimeout(() => {
-      wheelIdleTimer.current = null;
-      finishUserGesture(0);
-    }, 120);
-  };
-
-  const center = clamp(scrollY / LINE_H, -0.4, lines.length - 0.6);
-  const centerIdx = nearestIndex(clamp(scrollY, 0, maxY));
-  const from = Math.max(0, Math.floor(center) - VIEW_RADIUS);
-  const to = Math.min(lines.length - 1, Math.ceil(center) + VIEW_RADIUS);
-
-  const items: { i: number; text: string; dist: number }[] = [];
-  for (let i = from; i <= to; i += 1) {
-    items.push({ i, text: lines[i], dist: i - center });
-  }
+  const sourceLabel =
+    resolved.source === 'silence-aligned'
+      ? t('player.timingSilence')
+      : resolved.source === 'measured'
+        ? t('player.timingMeasured')
+        : t('player.timingEstimated');
+  const offsetLabel = `${offsetSec > 0 ? '+' : ''}${offsetSec.toFixed(1)}s`;
 
   return (
-    <div
-      className={['qq-lyrics-wheel', interacting ? 'is-dragging' : ''].join(' ')}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endPointer}
-      onPointerCancel={endPointer}
-      onWheel={onWheel}
-      role="listbox"
-      aria-label={t('player.lyricsAria')}
-      aria-activedescendant={`lyric-${centerIdx}`}
-    >
-      <div className="qq-lyrics-stage" style={{ ['--lyric-h' as string]: `${LINE_H}px` }}>
-        <div className="qq-lyrics-focus" aria-hidden />
-        {items.map(({ i, text, dist }) => {
-          const ad = Math.abs(dist);
-          const isCenter = ad < 0.5;
-          const opacity = clamp(1 - ad * 0.28, 0.14, 1);
-          const scale = clamp(1 - ad * 0.055, 0.86, 1);
-          const y = dist * LINE_H;
-          return (
+    <section className="qq-lyrics-transcript" aria-label={t('player.lyricsAria')}>
+      <div className="qq-lyrics-toolbar">
+        <div className="qq-lyrics-status" aria-live="polite">
+          <span className={['qq-lyrics-dot', following ? 'is-live' : ''].join(' ')} />
+          <span>
+            {following
+              ? t('player.lyricsFollowing')
+              : t('player.lyricsBrowsing')}
+          </span>
+          <span className="qq-lyrics-source">{sourceLabel}</span>
+        </div>
+        <button
+          type="button"
+          className={[
+            'qq-lyrics-calibrate-toggle',
+            Math.abs(offsetSec) > 0.001 ? 'is-adjusted' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          aria-expanded={calibrationOpen}
+          onClick={() => setCalibrationOpen((value) => !value)}
+        >
+          {t('player.lyricsCalibrate')}
+          {Math.abs(offsetSec) > 0.001 && <span>{offsetLabel}</span>}
+        </button>
+      </div>
+
+      {calibrationOpen && (
+        <div className="qq-lyrics-calibration">
+          <div>
+            <strong>{t('player.lyricsOffset')}</strong>
+            <span>{t('player.lyricsOffsetHint')}</span>
+          </div>
+          <div className="qq-lyrics-calibration-controls">
             <button
-              key={i}
-              id={`lyric-${i}`}
               type="button"
-              role="option"
-              aria-selected={isCenter}
-              className={['qq-lyric-line', isCenter ? 'is-active' : ''].join(' ')}
-              style={{
-                opacity,
-                transform: `translate3d(0, ${y}px, 0) scale(${scale})`,
-              }}
-              onClick={(ev) => {
-                if (suppressClick.current) {
-                  suppressClick.current = false;
-                  ev.preventDefault();
-                  return;
-                }
-                cancelAnim();
-                modeRef.current = 'user';
-                lockFollowUntil.current = Date.now() + 900;
-                animateTo(i * LINE_H, { seek: true, duration: 300 });
-                window.setTimeout(() => {
-                  if (Date.now() >= lockFollowUntil.current) modeRef.current = 'follow';
-                }, 950);
-              }}
+              onClick={() => persistOffset(offsetSec - OFFSET_STEP_SEC)}
+              aria-label={t('player.lyricsDelay')}
             >
-              <span className="qq-lyric-text">{text}</span>
+              −
             </button>
-          );
-        })}
+            <output aria-label={t('player.lyricsOffset')}>{offsetLabel}</output>
+            <button
+              type="button"
+              onClick={() => persistOffset(offsetSec + OFFSET_STEP_SEC)}
+              aria-label={t('player.lyricsAdvance')}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="is-reset"
+              onClick={() => persistOffset(0)}
+              disabled={Math.abs(offsetSec) < 0.001}
+            >
+              {t('player.lyricsReset')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div
+        ref={scrollRef}
+        className="qq-lyrics-scroll"
+        onWheel={() => setFollowing(false)}
+        onTouchMove={() => setFollowing(false)}
+        onPointerDown={() => {
+          if (performance.now() >= programmaticUntilRef.current) {
+            setFollowing(false);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'PageUp' || event.key === 'PageDown') {
+            setFollowing(false);
+          }
+        }}
+      >
+        <ol className="qq-lyrics-list">
+          {cues.map((cue, index) => {
+            const isActive = index === active;
+            const state = isActive
+              ? 'is-active'
+              : index < active
+                ? 'is-passed'
+                : 'is-upcoming';
+            return (
+              <LyricCueRow
+                key={`${index}-${cue.text.slice(0, 16)}`}
+                cue={cue}
+                index={index}
+                state={state}
+                active={isActive}
+                focused={focusedIndex === index}
+                timelineReady={timelineReady}
+                progress={isActive ? lineProgress : 0}
+                timeLabel={cueLabels[index].time}
+                seekLabel={cueLabels[index].seek}
+                registerRef={registerLineRef}
+                onFocus={focusCue}
+                onKeyDown={onLineKeyDown}
+                onSeek={seekLine}
+              />
+            );
+          })}
+        </ol>
       </div>
-      <div className="qq-lyrics-meta" aria-hidden>
-        <span>
-          {centerIdx + 1}
-          <i>/</i>
-          {lines.length}
-        </span>
-      </div>
-    </div>
+
+      {!following && (
+        <button
+          type="button"
+          className="qq-lyrics-return"
+          onClick={followCurrent}
+        >
+          <span aria-hidden />
+          {t('player.lyricsReturn', {
+            time: formatDuration(Math.max(0, preciseSec)),
+          })}
+        </button>
+      )}
+    </section>
   );
 }

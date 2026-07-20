@@ -50,6 +50,8 @@ export interface ScriptLineTiming {
   endSec: number;
 }
 
+export type ScriptTimingSource = 'estimated' | 'measured' | 'silence-aligned';
+
 /** 知识闪卡：问答对，便于复习记忆 */
 export interface Flashcard {
   /** 稳定 id，便于前端状态绑定 */
@@ -78,6 +80,8 @@ export interface PodcastContent {
   flashcards?: Flashcard[];
   /** 口播逐行时间轴（TTS 合成后写入，跟读对齐） */
   scriptTiming?: ScriptLineTiming[];
+  /** 时间轴精度来源，前端据此明确展示“估算”或“已对齐” */
+  scriptTimingSource?: ScriptTimingSource;
   estimatedMinutes: number;
   coverGradient?: string;
   /** 是否已生成并落盘 AI 封面图 */
@@ -220,4 +224,3 @@ export interface HealthInfo {
   /** @deprecated 兼容旧字段 */
   singStyleTags?: string[];
 }
-

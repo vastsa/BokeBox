@@ -1,3 +1,4 @@
+import { isAudioControlTag } from '@bokebox/shared';
 import {
   getDefaultTtsVoice,
   getTtsModel,
@@ -121,7 +122,7 @@ export function applyAssistantStyleTags(
   const m = trimmed.match(/^[\[\(（]\s*([^\]\)）]+?)\s*[\]\)）]\s*([\s\S]*)$/);
   let existing: string[] = [];
   let body = trimmed;
-  if (m) {
+  if (m && isAudioControlTag(m[1])) {
     existing = normalizeStyleTagList(m[1].split(/[\s,，、/|]+/));
     body = m[2].trim();
   }

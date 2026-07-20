@@ -10,6 +10,7 @@ import type {
   TtsPluginContext,
   TtsProvider,
 } from './types.js';
+import { stripAudioTags } from '@bokebox/shared';
 
 /** OpenAI TTS 预置音色 */
 export const OPENAI_PRESET_VOICES = [
@@ -80,10 +81,8 @@ export const openaiTtsProvider: TtsProvider = {
       getTtsModel() ||
       'tts-1';
     const voice = resolveOpenAiVoice(input.tts?.voice);
-    // OpenAI TTS 不支持 MiMo 风格标签；清理可能残留的前导括号标签以免读出来
-    const text = input.text
-      .replace(/^[\[\(（]\s*[^\]\)）]+?\s*[\]\)）]\s*/, '')
-      .trim();
+    // OpenAI TTS 不支持音频标签；只移除明确控制标签，保留代码与普通括注。
+    const text = stripAudioTags(input.text).trim();
 
     if (!text) {
       throw new Error('OpenAI TTS 文本为空');

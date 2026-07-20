@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { stripAudioTags, type ScriptTimingSource } from '@bokebox/shared';
 import { jobPaths } from '../../utils/paths.js';
 import { copyFile, ensureDir, removeIfExists } from '../../utils/fs.js';
 import { convertToMp3 } from './audioExtractor.js';
@@ -15,12 +16,13 @@ import {
   resolveTtsProvider,
   createTtsContext,
   assertTtsPluginConfigReady,
-  splitScript,
+  splitScriptWithRanges,
   wavDurationSec,
 } from '../../providers/index.js';
 import {
   buildScriptTiming,
   detectSilenceIntervals,
+  probeAudioDurationSec,
   writeScriptTiming,
 } from '../job/scriptTiming.js';
 
@@ -52,6 +54,22 @@ export function resolvePresetVoice(voice?: string): string {
 }
 
 export { applyAssistantStyleTags };
+
+/** 不支持控制标签的提供方必须收到与页面展示一致的纯正文。 */
+export function prepareScriptForTtsProvider(
+  script: string,
+  supportsStyleTags: boolean,
+): string {
+  return supportsStyleTags ? script : stripAudioTags(script);
+}
+
+/** VoiceDesign 与普通提供方都不接受 MiMo 内联音频标签。 */
+export function providerAcceptsAudioTags(
+  supportsStyleTags: boolean,
+  mode: TtsMode,
+): boolean {
+  return supportsStyleTags && mode !== 'voicedesign';
+}
 
 /** 当前激活 TTS 提供方的模式/音色元数据（供 /health 等接口） */
 export function getActiveTtsUiMeta() {
@@ -104,6 +122,7 @@ export async function synthesizePodcastAudio(options: {
   voice?: string;
   provider?: string;
   scriptTiming?: import('../job/scriptTiming.js').ScriptLineTiming[];
+  scriptTimingSource?: ScriptTimingSource;
 }> {
   const paths = jobPaths(options.jobId);
   await ensureDir(paths.dir);
@@ -125,6 +144,13 @@ export async function synthesizePodcastAudio(options: {
             styleTags: undefined,
           }
         : undefined;
+  const synthesisScript = prepareScriptForTtsProvider(
+    options.script,
+    providerAcceptsAudioTags(provider.meta.supportsStyleTags, mode),
+  );
+  if (!synthesisScript.trim()) {
+    throw new Error('口播脚本没有可合成的正文');
+  }
   const outPath = paths.podcastWav;
   const mp3Fallback = paths.podcastMp3;
 
@@ -136,9 +162,10 @@ export async function synthesizePodcastAudio(options: {
       const { generateSilentMp3 } = await import('./audioExtractor.js');
       await generateSilentMp3(mp3Fallback, 2);
     }
+    const durationSec = (await probeAudioDurationSec(mp3Fallback)) || 2;
     const timing = buildScriptTiming({
-      script: options.script,
-      durationSec: 2,
+      script: synthesisScript,
+      durationSec,
     });
     await writeScriptTiming(options.jobId, timing);
     return {
@@ -151,6 +178,7 @@ export async function synthesizePodcastAudio(options: {
           : options.tts?.voice || resolvePresetVoice(options.tts?.voice),
       provider: 'demo',
       scriptTiming: timing.lines,
+      scriptTimingSource: timing.source,
     };
   }
 
@@ -161,7 +189,7 @@ export async function synthesizePodcastAudio(options: {
   }
 
   const maxChars = Math.max(80, provider.meta.maxCharsPerRequest || 500);
-  const chunks = splitScript(options.script, maxChars);
+  const chunks = splitScriptWithRanges(synthesisScript, maxChars);
   const buffers: Buffer[] = [];
   const chunkDurationsSec: number[] = [];
   let usedVoice: string | undefined =
@@ -171,7 +199,7 @@ export async function synthesizePodcastAudio(options: {
   for (let i = 0; i < chunks.length; i++) {
     const chunkResult = await provider.synthesizeChunk(
       {
-        text: chunks[i],
+        text: chunks[i].text,
         tts: ttsForProvider,
         applyLeadingStyle: i === 0,
       },
@@ -215,20 +243,32 @@ export async function synthesizePodcastAudio(options: {
     audioPath = mp3Fallback;
   }
 
+  const probedDuration = await probeAudioDurationSec(audioPath);
+  const durationSec = probedDuration > 0 ? probedDuration : totalDuration;
+  if (!Number.isFinite(durationSec) || durationSec <= 0) {
+    throw new Error('合成音频时长探测失败，已停止写入不可靠时间轴');
+  }
+
+  const measuredChunks = chunkDurationsSec.every((value) => value > 0)
+    ? chunks.map((chunk, index) => ({
+        sourceStart: chunk.sourceStart,
+        sourceEnd: chunk.sourceEnd,
+        durationSec: chunkDurationsSec[index],
+      }))
+    : undefined;
+
   let timing = buildScriptTiming({
-    script: options.script,
-    durationSec: totalDuration || 1,
-    chunks,
-    chunkDurationsSec,
+    script: synthesisScript,
+    durationSec,
+    chunks: measuredChunks,
   });
   try {
     const silences = await detectSilenceIntervals(audioPath);
     if (silences.length) {
       timing = buildScriptTiming({
-        script: options.script,
-        durationSec: totalDuration || 1,
-        chunks,
-        chunkDurationsSec,
+        script: synthesisScript,
+        durationSec,
+        chunks: measuredChunks,
         silences,
       });
     }
@@ -244,5 +284,6 @@ export async function synthesizePodcastAudio(options: {
     voice: usedVoice,
     provider: provider.id,
     scriptTiming: timing.lines,
+    scriptTimingSource: timing.source,
   };
 }

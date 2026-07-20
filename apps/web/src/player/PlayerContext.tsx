@@ -60,6 +60,8 @@ type PlayerContextValue = {
   stop: () => void;
   seekTo: (sec: number) => void;
   seekBy: (delta: number) => void;
+  /** 读取媒体元素的实时播放位置，供歌词等高精度视图使用。 */
+  getCurrentTime: () => number;
   setRate: (rate: number) => void;
   setVisible: (v: boolean) => void;
   /** 立刻落盘当前进度 */
@@ -533,6 +535,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [current, seekTo],
   );
 
+  const getCurrentTime = useCallback((): number => {
+    const audio = audioRef.current;
+    const activeTrack = trackRef.current;
+    if (!audio || !activeTrack) return 0;
+    if (audio.getAttribute('src') !== activeTrack.src) {
+      return pendingSeek.current ?? 0;
+    }
+    return Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+  }, []);
+
   const setRate = useCallback((next: number) => {
     setRateState(next);
     if (audioRef.current) audioRef.current.playbackRate = next;
@@ -553,6 +565,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       stop,
       seekTo,
       seekBy,
+      getCurrentTime,
       setRate,
       setVisible,
       flushProgress,
@@ -574,6 +587,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       stop,
       seekTo,
       seekBy,
+      getCurrentTime,
       setRate,
       flushProgress,
       setQueue,

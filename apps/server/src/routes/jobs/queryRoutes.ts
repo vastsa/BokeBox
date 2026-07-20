@@ -8,6 +8,7 @@ import {
   type JobListFilter,
   toListPublic,
   toPublic,
+  withScriptTiming,
 } from '../../services/job/jobStore.js';
 import { parsePageQuery } from '../../utils/pagination.js';
 import { getActiveTtsUiMeta } from '../../services/media/ttsSynthesizer.js';
@@ -111,7 +112,7 @@ export async function queryRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>('/jobs/:id', async (req, reply) => {
     const job = await getJob(req.params.id);
     if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
-    return { job: toPublic(job) };
+    return { job: toPublic(await withScriptTiming(job)) };
   });
 
 }

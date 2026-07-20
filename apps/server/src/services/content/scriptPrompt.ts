@@ -1,5 +1,6 @@
 import type { ScriptPromptOptions } from '../../types/job.js';
 import type { Locale } from '../../i18n/types.js';
+import { stripAudioTags } from '@bokebox/shared';
 import {
   resolveContentLocale,
   scriptPromptFieldLabels,
@@ -42,12 +43,9 @@ export function resolveScriptMaxChars(
   return rounded;
 }
 
-const AUDIO_TAG_RE = /[\(（\[]\s*[^\)）\]]{1,48}\s*[\)）\]]/g;
-
 /** 去除音频标签后统计正文字数（中文按字、英文按词近似） */
 export function countSpokenChars(script: string): number {
-  const plain = String(script || '')
-    .replace(AUDIO_TAG_RE, ' ')
+  const plain = stripAudioTags(String(script || ''))
     .replace(/\s+/g, ' ')
     .trim();
   if (!plain) return 0;

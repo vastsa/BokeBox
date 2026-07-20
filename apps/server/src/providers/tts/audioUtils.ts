@@ -1,25 +1,117 @@
 /** TTS 音频拼接 / 切段工具（与具体协议无关） */
 
-export function splitScript(text: string, maxLen: number): string[] {
-  const normalized = text.replace(/\r\n/g, '\n').trim();
-  if (!normalized) return [''];
-  if (normalized.length <= maxLen) return [normalized];
+export type ScriptChunk = {
+  text: string;
+  sourceStart: number;
+  sourceEnd: number;
+};
 
-  const parts: string[] = [];
-  let buf = '';
-  const sentences = normalized.split(/(?<=[。！？!?\n])/);
+type SourceRange = { start: number; end: number };
 
-  for (const s of sentences) {
-    if (!s.trim()) continue;
-    if ((buf + s).length > maxLen && buf) {
-      parts.push(buf.trim());
-      buf = s;
+function trimRange(text: string, range: SourceRange): SourceRange | null {
+  const raw = text.slice(range.start, range.end);
+  const value = raw.trim();
+  if (!value) return null;
+  const leading = raw.indexOf(value);
+  const start = range.start + Math.max(0, leading);
+  return { start, end: start + value.length };
+}
+
+function splitOversizedRange(
+  text: string,
+  range: SourceRange,
+  maxLen: number,
+): SourceRange[] {
+  const output: SourceRange[] = [];
+  let start = range.start;
+  while (range.end - start > maxLen) {
+    const hardEnd = start + maxLen;
+    const softStart = start + Math.floor(maxLen * 0.55);
+    let end = hardEnd;
+    for (let index = hardEnd - 1; index >= softStart; index -= 1) {
+      if (/[，,、；;：:\s]/u.test(text[index])) {
+        end = index + 1;
+        break;
+      }
+    }
+    const part = trimRange(text, { start, end });
+    if (part) output.push(part);
+    start = end;
+  }
+  const tail = trimRange(text, { start, end: range.end });
+  if (tail) output.push(tail);
+  return output;
+}
+
+/**
+ * 按句切分合成文本，并直接保留源范围。
+ * 时间轴不得再通过 indexOf 反推范围，否则空行归一化后会重复/遗漏句子。
+ */
+export function splitScriptWithRanges(text: string, maxLen: number): ScriptChunk[] {
+  const normalized = String(text || '').replace(/\r\n/g, '\n').trim();
+  if (!normalized) return [];
+  const limit = Math.max(1, Math.floor(maxLen));
+
+  const rawUnits: SourceRange[] = [];
+  let start = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    if (!/[。！？!?\n]/u.test(normalized[index])) continue;
+    const unit = trimRange(normalized, { start, end: index + 1 });
+    if (unit) rawUnits.push(unit);
+    start = index + 1;
+  }
+  if (start < normalized.length) {
+    const tail = trimRange(normalized, { start, end: normalized.length });
+    if (tail) rawUnits.push(tail);
+  }
+
+  const units = rawUnits.flatMap((range) =>
+    range.end - range.start > limit
+      ? splitOversizedRange(normalized, range, limit)
+      : [range],
+  );
+
+  const chunks: ScriptChunk[] = [];
+  let chunkStart = -1;
+  let chunkEnd = -1;
+  const flush = () => {
+    if (chunkStart < 0 || chunkEnd <= chunkStart) return;
+    const range = trimRange(normalized, { start: chunkStart, end: chunkEnd });
+    if (range) {
+      chunks.push({
+        text: normalized.slice(range.start, range.end),
+        sourceStart: range.start,
+        sourceEnd: range.end,
+      });
+    }
+    chunkStart = -1;
+    chunkEnd = -1;
+  };
+
+  for (const unit of units) {
+    if (chunkStart < 0) {
+      chunkStart = unit.start;
+      chunkEnd = unit.end;
+      continue;
+    }
+    const candidateLength = normalized.slice(chunkStart, unit.end).trim().length;
+    if (candidateLength > limit) {
+      flush();
+      chunkStart = unit.start;
+      chunkEnd = unit.end;
     } else {
-      buf += s;
+      chunkEnd = unit.end;
     }
   }
-  if (buf.trim()) parts.push(buf.trim());
-  return parts.length ? parts : [normalized.slice(0, maxLen)];
+  flush();
+
+  return chunks.length
+    ? chunks
+    : [{ text: normalized, sourceStart: 0, sourceEnd: normalized.length }];
+}
+
+export function splitScript(text: string, maxLen: number): string[] {
+  return splitScriptWithRanges(text, maxLen).map((chunk) => chunk.text);
 }
 
 /** 从标准 PCM WAV 读取时长（秒） */

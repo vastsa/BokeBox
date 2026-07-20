@@ -68,6 +68,7 @@ export {
   resolveMimoPresetVoice,
   resolveEdgeVoice,
   splitScript,
+  splitScriptWithRanges,
   mergeWavBuffers,
   wavDurationSec,
   detectAudioFormat,

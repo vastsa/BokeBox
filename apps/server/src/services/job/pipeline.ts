@@ -672,10 +672,11 @@ export async function runPipeline(
       mode,
       voice,
       scriptTiming,
+      scriptTimingSource,
     } = ttsSettled.value;
 
     if (scriptTiming?.length) {
-      podcast = { ...podcast, scriptTiming };
+      podcast = { ...podcast, scriptTiming, scriptTimingSource };
     }
 
     const coverNote =

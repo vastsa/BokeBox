@@ -7,132 +7,32 @@
 import fs from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import {
+  isValidScriptTimingRows,
+  parseScriptLines,
+  spokenWeight,
+  stripAudioTags,
+  type ParsedScriptLine,
+  type ScriptLineTiming,
+  type ScriptTimingSource,
+} from '@bokebox/shared';
 import { jobPaths } from '../../utils/paths.js';
 import { pathExists } from '../../utils/fs.js';
 import { resolveFfmpegPath } from '../../utils/ffmpeg.js';
 
 const execFileAsync = promisify(execFile);
 
-export type ScriptLineTiming = {
-  text: string;
-  startSec: number;
-  endSec: number;
-};
+export { spokenWeight, stripAudioTags };
+export type { ParsedScriptLine, ScriptLineTiming };
+
+export const parseScriptLinesDetailed = parseScriptLines;
 
 export type ScriptTimingFile = {
   version: 1;
   durationSec: number;
-  /** estimated | measured | silence-aligned */
-  source: 'estimated' | 'measured' | 'silence-aligned';
+  source: ScriptTimingSource;
   lines: ScriptLineTiming[];
 };
-
-const AUDIO_TAG_RE = /[\(（\[]\s*[^\)）\]]{1,48}\s*[\)）\]]/g;
-
-export function stripAudioTags(text: string): string {
-  return text
-    .replace(AUDIO_TAG_RE, '')
-    .replace(/[ \t]{2,}/g, ' ')
-    .replace(/\s+([，,。.!！？?；;：:、])/g, '$1')
-    .trim();
-}
-
-/** 可发音字符权重：去空白标点，避免启发式把误差放大 */
-export function spokenWeight(text: string): number {
-  const cleaned = stripAudioTags(text)
-    .replace(/\s+/g, '')
-    .replace(/[，,。.!！？?；;：:、"'“”‘’「」『』【】\[\]（）()…—–\-·•]/g, '');
-  return Math.max(1, cleaned.length);
-}
-
-export type ParsedScriptLine = {
-  text: string;
-  weight: number;
-  sourceStart: number;
-  sourceEnd: number;
-};
-
-export function parseScriptLinesDetailed(script: string): ParsedScriptLine[] {
-  const normalized = script.replace(/\r\n/g, '\n').trim();
-  if (!normalized) return [];
-
-  const lines: ParsedScriptLine[] = [];
-  const blocks = normalized.split(/\n+/);
-  let searchFrom = 0;
-
-  for (const rawBlock of blocks) {
-    const block = rawBlock.trim();
-    if (!block) {
-      searchFrom += rawBlock.length + 1;
-      continue;
-    }
-
-    const blockStart = normalized.indexOf(block, searchFrom);
-    const base = blockStart >= 0 ? blockStart : searchFrom;
-    searchFrom = base + block.length;
-
-    const parts = block
-      .split(/(?<=[。！？!?；;])/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    const rawLines: string[] = [];
-    if (parts.length <= 1) {
-      if (block.length > 60) {
-        const soft = block
-          .split(/(?<=[，,、])/)
-          .map((s) => s.trim())
-          .filter(Boolean);
-        if (soft.length > 1) {
-          let buf = '';
-          for (const s of soft) {
-            if ((buf + s).length > 48 && buf) {
-              rawLines.push(buf);
-              buf = s;
-            } else {
-              buf += s;
-            }
-          }
-          if (buf) rawLines.push(buf);
-        } else {
-          rawLines.push(block);
-        }
-      } else {
-        rawLines.push(block);
-      }
-    } else {
-      rawLines.push(...parts);
-    }
-
-    let localFrom = 0;
-    for (const raw of rawLines) {
-      const rel = block.indexOf(raw, localFrom);
-      const start = base + (rel >= 0 ? rel : localFrom);
-      const end = start + raw.length;
-      localFrom = (rel >= 0 ? rel : localFrom) + raw.length;
-
-      const text = stripAudioTags(raw);
-      if (!text) continue;
-      lines.push({
-        text,
-        weight: spokenWeight(text),
-        sourceStart: start,
-        sourceEnd: end,
-      });
-    }
-  }
-
-  return lines.length
-    ? lines
-    : [
-        {
-          text: stripAudioTags(normalized) || normalized,
-          weight: 8,
-          sourceStart: 0,
-          sourceEnd: normalized.length,
-        },
-      ];
-}
 
 function distribute(
   items: Array<{ text: string; weight: number }>,
@@ -197,14 +97,14 @@ export async function detectSilenceIntervals(
   }
 }
 
-/** 读取音频时长（优先 ffmpeg 输出） */
+/** 只解析媒体头读取时长，避免为了探测时长完整解码音频。 */
 export async function probeAudioDurationSec(audioPath: string): Promise<number> {
   const ffmpegPath = resolveFfmpegPath();
   if (!ffmpegPath || !(await pathExists(audioPath))) return 0;
   try {
     const { stderr } = await execFileAsync(
       ffmpegPath,
-      ['-i', audioPath, '-f', 'null', '-'],
+      ['-hide_banner', '-i', audioPath],
       { maxBuffer: 5 * 1024 * 1024 },
     );
     const m = String(stderr || '').match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
@@ -228,7 +128,17 @@ function snapEndsToSilence(
   silences: Array<{ start: number; end: number }>,
   durationSec: number,
 ): number[] {
-  const candidates = [0, ...silences.map((s) => s.start), durationSec]
+  if (!idealEnds.length || !Number.isFinite(durationSec) || durationSec <= 0) return [];
+  const minGap = Math.min(0.18, (durationSec / idealEnds.length) * 0.4);
+  const safeSilences = silences.filter(
+    (item) =>
+      Number.isFinite(item.start) &&
+      Number.isFinite(item.end) &&
+      item.start >= 0 &&
+      item.end > item.start &&
+      item.start < durationSec,
+  );
+  const candidates = [0, ...safeSilences.map((s) => s.start), durationSec]
     .filter((x) => x >= 0 && x <= durationSec + 0.01)
     .map((x) => Number(x.toFixed(3)));
   const points = [...new Set(candidates)].sort((a, b) => a - b);
@@ -239,19 +149,20 @@ function snapEndsToSilence(
     const ideal = idealEnds[i];
     const isLast = i === idealEnds.length - 1;
     if (isLast) {
-      snapped.push(durationSec);
+      snapped.push(Number(durationSec.toFixed(3)));
       break;
     }
 
     const remain = idealEnds.length - i - 1;
-    const minEnd = prev + 0.18;
-    const maxEnd = Math.max(minEnd + 0.05, durationSec - remain * 0.15);
+    const minEnd = prev + minGap;
+    const maxEnd = durationSec - remain * minGap;
+    const safeIdeal = Math.min(maxEnd, Math.max(minEnd, ideal));
 
     // 理想点落在静音区间内 → 直接用静音起点
     let best: number | null = null;
-    for (const s of silences) {
-      if (ideal >= s.start - 0.05 && ideal <= s.end + 0.05) {
-        if (s.start > prev + 0.05 && s.start <= maxEnd) {
+    for (const s of safeSilences) {
+      if (safeIdeal >= s.start - 0.05 && safeIdeal <= s.end + 0.05) {
+        if (s.start >= minEnd && s.start <= maxEnd) {
           best = s.start;
           break;
         }
@@ -260,12 +171,12 @@ function snapEndsToSilence(
 
     if (best == null) {
       let bestScore = Infinity;
-      best = Math.min(maxEnd, Math.max(minEnd, ideal));
+      best = safeIdeal;
       for (const p of points) {
-        if (p <= prev + 0.05) continue;
+        if (p < minEnd) continue;
         if (p > maxEnd) break;
         // 允许略早吸附到句末停顿，不再强惩罚
-        const score = Math.abs(p - ideal);
+        const score = Math.abs(p - safeIdeal);
         if (score < bestScore) {
           bestScore = score;
           best = p;
@@ -273,13 +184,11 @@ function snapEndsToSilence(
       }
       // 最近静音太远则保留理想值，避免乱跳
       if (bestScore > 2.2) {
-        best = Math.min(maxEnd, Math.max(minEnd, ideal));
+        best = safeIdeal;
       }
     }
 
     best = Math.min(maxEnd, Math.max(minEnd, best));
-    // 保证严格递增
-    if (best <= prev) best = Math.min(maxEnd, prev + 0.2);
     snapped.push(Number(best.toFixed(3)));
     prev = best;
   }
@@ -300,58 +209,92 @@ function timingFromEnds(
 /**
  * 由总时长估算；可选 TTS 分块实测；可选静音吸附。
  */
+export type ScriptTimingChunk = {
+  sourceStart: number;
+  sourceEnd: number;
+  durationSec: number;
+};
+
+function assignLinesToChunks(
+  lines: ParsedScriptLine[],
+  chunks: ScriptTimingChunk[],
+): ParsedScriptLine[][] {
+  const groups = chunks.map(() => [] as ParsedScriptLine[]);
+  for (const line of lines) {
+    let bestIndex = -1;
+    let bestOverlap = -1;
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunk = chunks[index];
+      const overlap = Math.max(
+        0,
+        Math.min(line.sourceEnd, chunk.sourceEnd) -
+          Math.max(line.sourceStart, chunk.sourceStart),
+      );
+      if (overlap > bestOverlap) {
+        bestOverlap = overlap;
+        bestIndex = index;
+      }
+    }
+    if (bestIndex < 0 || bestOverlap <= 0) continue;
+    groups[bestIndex].push(line);
+  }
+  return groups;
+}
+
 export function buildScriptTiming(options: {
   script: string;
   durationSec: number;
-  chunks?: string[];
-  chunkDurationsSec?: number[];
+  chunks?: ScriptTimingChunk[];
   silences?: Array<{ start: number; end: number }>;
 }): ScriptTimingFile {
   const lines = parseScriptLinesDetailed(options.script);
-  const durationSec = Math.max(0, options.durationSec);
+  const durationSec =
+    Number.isFinite(options.durationSec) && options.durationSec > 0
+      ? options.durationSec
+      : 0;
   const chunks = options.chunks || [];
-  const chunkDurs = options.chunkDurationsSec || [];
+  if (!lines.length || durationSec <= 0) {
+    return { version: 1, durationSec, source: 'estimated', lines: [] };
+  }
 
   // 1) 分块实测：块间锚点 + 块内字重
   if (
     chunks.length > 0 &&
-    chunkDurs.length === chunks.length &&
-    chunkDurs.every((d) => d > 0)
+    chunks.every(
+      (chunk) =>
+        Number.isFinite(chunk.sourceStart) &&
+        Number.isFinite(chunk.sourceEnd) &&
+        Number.isFinite(chunk.durationSec) &&
+        chunk.sourceStart >= 0 &&
+        chunk.sourceEnd > chunk.sourceStart &&
+        chunk.durationSec > 0,
+    )
   ) {
-    const normalized = options.script.replace(/\r\n/g, '\n').trim();
-    let cursor = 0;
-    const ranges: Array<{ start: number; end: number; dur: number }> = [];
-    for (let i = 0; i < chunks.length; i += 1) {
-      const chunk = chunks[i];
-      let idx = normalized.indexOf(chunk, cursor);
-      if (idx < 0) idx = cursor;
-      const start = idx;
-      const end = idx + chunk.length;
-      ranges.push({ start, end, dur: chunkDurs[i] });
-      cursor = end;
-    }
-
+    const groups = assignLinesToChunks(lines, chunks);
     const timed: ScriptLineTiming[] = [];
     let chunkStartSec = 0;
-    for (const range of ranges) {
-      const inChunk = lines.filter(
-        (l) => l.sourceStart < range.end && l.sourceEnd > range.start,
-      );
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunk = chunks[index];
+      const inChunk = groups[index];
       if (!inChunk.length) {
-        chunkStartSec += range.dur;
+        chunkStartSec += chunk.durationSec;
         continue;
       }
       timed.push(
         ...distribute(
           inChunk.map((l) => ({ text: l.text, weight: l.weight })),
           chunkStartSec,
-          range.dur,
+          chunk.durationSec,
         ),
       );
-      chunkStartSec += range.dur;
+      chunkStartSec += chunk.durationSec;
     }
 
-    if (timed.length && durationSec > 0) {
+    const completeMapping =
+      timed.length === lines.length &&
+      timed.every((row, index) => row.text === lines[index].text);
+
+    if (completeMapping) {
       const last = timed[timed.length - 1];
       if (Math.abs(last.endSec - durationSec) > 0.05) {
         const scale = durationSec / Math.max(last.endSec, 0.001);
@@ -360,26 +303,26 @@ export function buildScriptTiming(options: {
           row.endSec = Number((row.endSec * scale).toFixed(3));
         }
       }
-    }
 
-    // 再做静音精修（若有）
-    if (options.silences?.length && timed.length === lines.length) {
-      const idealEnds = timed.map((t) => t.endSec);
-      const ends = snapEndsToSilence(idealEnds, options.silences, durationSec);
+      // 再做静音精修（若有）
+      if (options.silences?.length) {
+        const idealEnds = timed.map((t) => t.endSec);
+        const ends = snapEndsToSilence(idealEnds, options.silences, durationSec);
+        return {
+          version: 1,
+          durationSec,
+          source: 'silence-aligned',
+          lines: timingFromEnds(lines, ends),
+        };
+      }
+
       return {
         version: 1,
         durationSec,
-        source: 'silence-aligned',
-        lines: timingFromEnds(lines, ends),
+        source: 'measured',
+        lines: timed,
       };
     }
-
-    return {
-      version: 1,
-      durationSec,
-      source: 'measured',
-      lines: timed,
-    };
   }
 
   // 2) 纯字重理想句末
@@ -427,10 +370,13 @@ export async function buildAlignedScriptTiming(options: {
     options.durationSec && options.durationSec > 0
       ? options.durationSec
       : await probeAudioDurationSec(options.audioPath);
+  if (!Number.isFinite(durationSec) || durationSec <= 0) {
+    throw new Error('无法读取音频时长，不能生成可靠的口播时间轴');
+  }
   const silences = await detectSilenceIntervals(options.audioPath);
   return buildScriptTiming({
     script: options.script,
-    durationSec: durationSec || 1,
+    durationSec,
     silences,
   });
 }
@@ -439,6 +385,9 @@ export async function writeScriptTiming(
   jobId: string,
   timing: ScriptTimingFile,
 ): Promise<string> {
+  if (!isValidScriptTimingFile(timing)) {
+    throw new Error('拒绝写入无效的口播时间轴');
+  }
   const paths = jobPaths(jobId);
   await fs.writeFile(paths.scriptTiming, JSON.stringify(timing, null, 2), 'utf8');
   return paths.scriptTiming;
@@ -446,15 +395,37 @@ export async function writeScriptTiming(
 
 export async function readScriptTiming(
   jobId: string,
+  expectedScript?: string,
 ): Promise<ScriptTimingFile | null> {
   const file = jobPaths(jobId).scriptTiming;
   if (!(await pathExists(file))) return null;
   try {
     const raw = await fs.readFile(file, 'utf8');
     const parsed = JSON.parse(raw) as ScriptTimingFile;
-    if (!parsed?.lines?.length) return null;
+    const expectedLines = expectedScript ? parseScriptLines(expectedScript) : undefined;
+    if (!isValidScriptTimingFile(parsed, expectedLines)) return null;
     return parsed;
   } catch {
     return null;
   }
+}
+
+export function isValidScriptTimingFile(
+  timing: ScriptTimingFile | null | undefined,
+  expectedLines?: Array<Pick<ParsedScriptLine, 'text'>>,
+): timing is ScriptTimingFile {
+  if (!timing || timing.version !== 1) return false;
+  if (!Number.isFinite(timing.durationSec) || timing.durationSec <= 0) return false;
+  if (!['estimated', 'measured', 'silence-aligned'].includes(timing.source)) return false;
+  if (!isValidScriptTimingRows(timing.lines, expectedLines)) return false;
+
+  const tolerance = Math.max(0.05, Math.min(0.5, timing.durationSec * 0.005));
+  const first = timing.lines[0];
+  const last = timing.lines[timing.lines.length - 1];
+  if (Math.abs(first.startSec) > tolerance) return false;
+  if (last.endSec > timing.durationSec + tolerance) return false;
+  if (Math.abs(last.endSec - timing.durationSec) > tolerance) return false;
+  return timing.lines.every(
+    (row) => row.startSec <= timing.durationSec + tolerance,
+  );
 }

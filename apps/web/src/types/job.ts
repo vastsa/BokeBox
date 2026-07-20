@@ -6,6 +6,7 @@ export type {
   PresetVoiceId,
   PodcastSegment,
   ScriptLineTiming,
+  ScriptTimingSource,
   Flashcard,
   PodcastContent,
   ScriptPromptOptions,

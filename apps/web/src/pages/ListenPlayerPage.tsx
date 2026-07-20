@@ -58,8 +58,12 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let currentRequest = true;
+    setItem(null);
+    setError(null);
     void fetchListenItem(id)
       .then((data) => {
+        if (!currentRequest || data.job.id !== id) return;
         const serverListen = getToken() ? data.listen : null;
         const merged = {
           ...data,
@@ -72,7 +76,14 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
         else if (merged.job.podcast?.flashcards?.length) setPanel('flashcards');
         else setPanel('outline');
       })
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+      .catch((e) => {
+        if (currentRequest) {
+          setError(e instanceof Error ? e.message : String(e));
+        }
+      });
+    return () => {
+      currentRequest = false;
+    };
   }, [id]);
 
   // 曲库 / 专辑队列：用于上一集 / 下一集
@@ -246,8 +257,13 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   useEffect(() => {
     if (!item) return;
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) {
+      if (e.defaultPrevented) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.closest(
+          'button, a, input, textarea, select, [role="button"], [contenteditable="true"]',
+        )
+      ) {
         return;
       }
       if (panel === 'flashcards') {
@@ -288,7 +304,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
     return () => window.removeEventListener('keydown', onKey);
   }, [active.rate, ensureAndPlay, goEpisode, item, nextItem, panel, player, prevItem]);
 
-  if (error) {
+  if (error && (!item || item.job.id === id)) {
     return (
       <div className="qq-player">
         <div className="qq-error">
@@ -308,7 +324,7 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
     );
   }
 
-  if (!item) {
+  if (!item || item.job.id !== id) {
     return (
       <div className="qq-player">
         <div className="qq-loading">
@@ -456,11 +472,15 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
               (hasScript ? (
                 <ScriptFollow
                   script={job.podcast!.script!}
-                  currentSec={active.current}
+                  currentSec={displayCurrent}
                   durationSec={active.duration}
                   onSeek={(sec) => player.seekTo(sec)}
                   variant="lyrics"
                   timing={job.podcast?.scriptTiming}
+                  timingSource={job.podcast?.scriptTimingSource}
+                  playing={active.playing && !scrubbing}
+                  readCurrentSec={scrubbing ? undefined : player.getCurrentTime}
+                  syncKey={job.id}
                 />
               ) : (
                 <p className="qq-empty">{t('player.noScript')}</p>

@@ -157,17 +157,22 @@ export function toGuestListPublic(job: Job): JobPublic {
 
 export async function withScriptTiming(job: Job): Promise<Job> {
   if (!job.podcast) return job;
-  const timing = await readScriptTiming(job.id);
+  // DB 中可能残留旧版内嵌时间轴；始终先移除，再以已校验文件作为唯一真相源。
+  const podcastWithoutTiming = { ...job.podcast };
+  delete podcastWithoutTiming.scriptTiming;
+  delete podcastWithoutTiming.scriptTimingSource;
+  const timing = await readScriptTiming(job.id, job.podcast.script);
   if (timing?.lines?.length) {
     return {
       ...job,
       podcast: {
-        ...job.podcast,
+        ...podcastWithoutTiming,
         scriptTiming: timing.lines,
+        scriptTimingSource: timing.source,
       },
     };
   }
-  return job;
+  return { ...job, podcast: podcastWithoutTiming };
 }
 
 /** 管理端任务列表筛选 */

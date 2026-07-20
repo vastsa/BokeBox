@@ -137,7 +137,14 @@ export async function mutateRoutes(app: FastifyInstance): Promise<void> {
 
     try {
       const { synthesizePodcastAudio } = await import('../../services/media/ttsSynthesizer.js');
-      const { audioPath, demo, mode, voice } = await synthesizePodcastAudio({
+      const {
+        audioPath,
+        demo,
+        mode,
+        voice,
+        scriptTiming,
+        scriptTimingSource,
+      } = await synthesizePodcastAudio({
         script: job.podcast.script,
         sourceAudioPath: job.audioPath,
         jobId: job.id,
@@ -148,6 +155,11 @@ export async function mutateRoutes(app: FastifyInstance): Promise<void> {
         progress: 100,
         message: demo ? t(getRequestLocale(req), 'job.resynthDoneDemo') : t(getRequestLocale(req), 'job.resynthDone', { tts: `${mode}${voice ? ' / ' + voice : ''}` }),
         podcastAudioPath: audioPath,
+        podcast: {
+          ...job.podcast,
+          scriptTiming,
+          scriptTimingSource,
+        },
       });
       return { job: updated ? toPublic(updated) : null };
     } catch (err) {

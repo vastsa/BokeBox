@@ -1,4 +1,5 @@
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
+import { stripAudioTags } from '@bokebox/shared';
 import { getDefaultTtsVoice } from '../../utils/aiConfig.js';
 import { getPluginConfig } from '../../plugin-kit/persist.js';
 import type {
@@ -160,14 +161,6 @@ function escapeXml(text: string): string {
     .replace(/'/g, '&apos;');
 }
 
-/** 去掉 MiMo 风格前导标签，避免被读出来 */
-function stripLeadingStyleTags(text: string): string {
-  return text
-    .replace(/^[\[\(（]\s*[^\]\)）]+?\s*[\]\)）]\s*/, '')
-    .replace(/\r\n/g, '\n')
-    .trim();
-}
-
 export function resolveEdgeVoice(
   voice?: string,
   ctx?: TtsPluginContext,
@@ -240,7 +233,7 @@ export const edgeTtsProvider: TtsProvider = {
     ctx?: TtsPluginContext,
   ): Promise<TtsChunkResult> {
     const voice = resolveEdgeVoice(input.tts?.voice, ctx);
-    const raw = stripLeadingStyleTags(input.text);
+    const raw = stripAudioTags(input.text).replace(/\r\n/g, '\n').trim();
     if (!raw) throw new Error('Edge TTS 文本为空');
 
     // 防止 SSML 注入 / 非法字符

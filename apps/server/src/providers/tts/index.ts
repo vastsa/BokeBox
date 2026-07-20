@@ -70,9 +70,11 @@ export { OPENAI_PRESET_VOICES } from './openaiTts.js';
 export { EDGE_PRESET_VOICES, resolveEdgeVoice } from './edgeTts.js';
 export {
   splitScript,
+  splitScriptWithRanges,
   mergeWavBuffers,
   wavDurationSec,
   detectAudioFormat,
 } from './audioUtils.js';
+export type { ScriptChunk } from './audioUtils.js';
 
 export { resolveVoicePanel, compileVoicePanelFromUi } from './voicePanel.js';
