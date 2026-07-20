@@ -98,6 +98,26 @@ export function toHash(route: Route): string {
   }
 }
 
+/** 路由切换时重置窗口滚动，避免长页滚到底后进入全屏页（星图/播放器）卡在半空 */
+export function resetWindowScroll() {
+  const x = window.scrollX;
+  const y = window.scrollY;
+  if (x || y) {
+    window.scrollTo(0, 0);
+  }
+  // 兼容部分 WebKit 把滚动挂在 root / body 上
+  if (document.documentElement.scrollTop) document.documentElement.scrollTop = 0;
+  if (document.body.scrollTop) document.body.scrollTop = 0;
+}
+
 export function navigate(route: Route) {
-  window.location.hash = toHash(route).slice(1);
+  const next = toHash(route); // like #/tags
+  const cur = window.location.hash || '#/';
+  // 先复位，再改 hash，避免全屏 overflow:hidden 时仍保留旧 scrollY
+  resetWindowScroll();
+  if (cur === next) {
+    // 同路由再次点击：仍确保回到顶部
+    return;
+  }
+  window.location.hash = next.slice(1);
 }

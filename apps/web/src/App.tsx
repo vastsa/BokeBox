@@ -4,7 +4,7 @@ import { fetchMe, fetchSetupStatus, logout } from './api/client';
 import { clearAuthSession, getToken } from './lib/auth';
 import { setCachedSiteName } from './lib/site';
 import { setCachedSeo } from './lib/seo';
-import { navigate, parseHash, type Route } from './lib/router';
+import { navigate, parseHash, type Route, resetWindowScroll } from './lib/router';
 import { ListenHomePage } from './pages/ListenHomePage';
 import { LoginPage } from './pages/LoginPage';
 import { SetupPage } from './pages/SetupPage';
@@ -76,6 +76,17 @@ export default function App() {
       }
     };
   }, [route.name]);
+
+  // 路由切换回顶：长页（专辑）滚到底再进星图/播放器时，避免 scrollY 残留导致顶部裁切、底部空白
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    resetWindowScroll();
+    // 下一帧再清一次，兜住布局锁 overflow 前后的残留
+    const id = window.requestAnimationFrame(() => resetWindowScroll());
+    return () => window.cancelAnimationFrame(id);
+  }, [route]);
 
   useEffect(() => {
     let cancelled = false;
