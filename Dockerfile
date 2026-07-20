@@ -60,33 +60,32 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 
 # hoisted + copy：最终层不依赖 content-addressable store
-RUN printf '%s\n' \
-      'node-linker=hoisted' \
-      'package-import-method=copy' \
-      'shamefully-hoist=true' \
-    > .npmrc \
- && pnpm install --frozen-lockfile --prod --filter @bokebox/server... --ignore-scripts \
- && pnpm rebuild sharp \
- && # 系统 ffmpeg 已就位：删除 ffmpeg-static 整包
-    find node_modules -type d -name 'ffmpeg-static' -prune -exec rm -rf {} + \
- && # 清理无用文件
-    find node_modules -type f \( \
-      -name '*.md' -o -name '*.markdown' -o -name 'CHANGELOG*' \
-      -o -name '*.map' -o -name 'tsconfig*.json' \
-    \) -delete \
- && find node_modules -type d \( \
-      -name 'test' -o -name 'tests' -o -name '__tests__' \
-      -o -name 'docs' -o -name 'example' -o -name 'examples' \
-    \) -prune -exec rm -rf {} + \
- && rm -rf \
-      /tmp/pnpm-store \
-      /pnpm/store \
-      /root/.local/share/pnpm \
-      /root/.cache \
-      /tmp/* \
-      .npmrc \
-      apps/web/node_modules \
-      packages/shared/node_modules
+RUN set -eux; \
+  printf '%s\n' \
+    'node-linker=hoisted' \
+    'package-import-method=copy' \
+    'shamefully-hoist=true' \
+    > .npmrc; \
+  pnpm install --frozen-lockfile --prod --filter @bokebox/server... --ignore-scripts; \
+  pnpm rebuild sharp; \
+  find node_modules -type d -name 'ffmpeg-static' -prune -exec rm -rf {} +; \
+  find node_modules -type f \( \
+    -name '*.md' -o -name '*.markdown' -o -name 'CHANGELOG*' \
+    -o -name '*.map' -o -name 'tsconfig*.json' \
+  \) -delete; \
+  find node_modules -type d \( \
+    -name 'test' -o -name 'tests' -o -name '__tests__' \
+    -o -name 'docs' -o -name 'example' -o -name 'examples' \
+  \) -prune -exec rm -rf {} +; \
+  rm -rf \
+    /tmp/pnpm-store \
+    /pnpm/store \
+    /root/.local/share/pnpm \
+    /root/.cache \
+    /tmp/* \
+    .npmrc \
+    apps/web/node_modules \
+    packages/shared/node_modules
 
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/web/dist ./apps/web/dist
