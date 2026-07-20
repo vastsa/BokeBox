@@ -682,18 +682,35 @@ html[data-theme="dark"] .topbar-action-btn {
     font-weight: var(--fw-medium);
   }
 
-  /* 登录/初始化表单：16px 防缩放，框高与设置页一致 */
+  /* 登录/初始化：≥16px 防 iOS 聚焦缩放；字重/行高压低，避免相对标签过大 */
   .auth-screen .auth-field input,
   .auth-screen .auth-field select,
-  .auth-screen .settings-locale-select {
-    font-size: var(--fs-2xl);
+  .auth-screen .settings-locale-select,
+  .auth-screen .plugin-config-control,
+  .auth-screen .plugin-config-field .nl-input,
+  .auth-screen .plugin-config-textarea {
+    font-size: var(--fs-2xl); /* 16px */
     font-weight: var(--fw-normal);
-    line-height: var(--lh-tight);
-    min-height: var(--control-5xl);
+    line-height: 1.25;
+    min-height: var(--control-4xl); /* 38px，贴近桌面控件 */
+    letter-spacing: var(--tracking-snug);
   }
   .auth-screen .auth-field select,
-  .auth-screen .settings-locale-select {
+  .auth-screen .settings-locale-select,
+  .auth-screen select.plugin-config-control {
     padding-right: var(--space-8);
+  }
+  .auth-screen .plugin-config-control,
+  .auth-screen .plugin-config-field .nl-input {
+    height: var(--control-4xl);
+  }
+  .auth-screen .plugin-config-textarea {
+    height: auto;
+    min-height: var(--size-76);
+    line-height: var(--lh-snug);
+  }
+  .auth-screen .auth-field {
+    font-size: var(--fs-base); /* 标签略贴近输入字号比例 */
   }
 
   .auth-card h1,

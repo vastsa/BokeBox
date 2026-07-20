@@ -548,7 +548,7 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
 @media (max-width: 899px) {
   /*
    * iOS 聚焦缩放：可编辑控件必须 ≥16px。
-   * 仅覆盖 input/select/textarea，字重用 normal，高度 40px，避免「字大框更大」。
+   * 字重 normal + 行高/框高压低，减轻「字大框大」的不协调。
    */
   .settings-page .auth-field input,
   .settings-page .auth-field select,
@@ -558,6 +558,9 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
   .settings-page .nl-input,
   .settings-page .nl-textarea,
   .settings-page .settings-locale-select,
+  .settings-page .plugin-config-control,
+  .settings-page .plugin-config-field .nl-input,
+  .settings-page .plugin-config-textarea,
   .settings-page input[type="text"],
   .settings-page input[type="password"],
   .settings-page input[type="email"],
@@ -569,8 +572,13 @@ html[data-theme="dark"] .settings-page .tts-tag.is-locked {
   .settings-page select {
     font-size: var(--fs-2xl); /* 16px */
     font-weight: var(--fw-normal);
-    line-height: var(--lh-tight);
-    min-height: var(--control-5xl); /* 40px */
+    line-height: 1.25;
+    min-height: var(--control-4xl); /* 38px */
+    letter-spacing: var(--tracking-snug);
+  }
+  .settings-page .plugin-config-control,
+  .settings-page .plugin-config-field .nl-input {
+    height: var(--control-4xl);
   }
   .settings-page textarea,
   .settings-page .nl-textarea,
@@ -1073,8 +1081,9 @@ html[data-theme="dark"] .settings-toast {
   .upload-field .upload-locale-select {
     font-size: var(--fs-2xl);
     font-weight: var(--fw-normal);
-    line-height: var(--lh-tight);
-    min-height: var(--control-5xl);
+    line-height: 1.25;
+    min-height: var(--control-4xl);
+    letter-spacing: var(--tracking-snug);
   }
 }
 .upload-field-head {
