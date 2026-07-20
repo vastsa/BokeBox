@@ -1,15 +1,11 @@
-# BokeBox · 国内镜像构建
-# 适用：大陆服务器 / 访问 Docker Hub、GitHub、npm 官方源不稳定的环境
+# BokeBox · 国内镜像构建（体积优化）
 # 使用: ./start.sh docker.cn
 #
-# 默认走:
+# 默认:
 #   - Docker Hub 代理: docker.m.daocloud.io
 #   - Debian apt: mirrors.aliyun.com
 #   - npm/pnpm: registry.npmmirror.com
-#   - ffmpeg: 系统包（避免 ffmpeg-static 从 GitHub 拉二进制超时）
-#
-# 可通过 build-arg 覆盖:
-#   NODE_IMAGE / APT_MIRROR / NPM_REGISTRY
+#   - ffmpeg: 系统包（跳过 ffmpeg-static GitHub 下载）
 
 ARG NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
 FROM ${NODE_IMAGE} AS base
@@ -23,10 +19,8 @@ ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm:$PATH" \
     COREPACK_NPM_REGISTRY=${NPM_REGISTRY} \
     npm_config_registry=${NPM_REGISTRY} \
-    # 运行时让 ffmpeg-static 直接返回系统 ffmpeg（见其 index.js）
     FFMPEG_BIN=/usr/bin/ffmpeg
 
-# apt 换源 + 安装系统 ffmpeg（跳过 GitHub 二进制下载）
 RUN set -eux; \
   if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
     sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g" \
@@ -41,26 +35,25 @@ RUN set -eux; \
   rm -rf /var/lib/apt/lists/*; \
   ffmpeg -version | head -n 1
 
-# corepack / pnpm 走国内 npm 镜像
 RUN corepack enable \
  && corepack prepare pnpm@9.15.0 --activate \
  && pnpm config set registry "${NPM_REGISTRY}" \
  && pnpm --version
 
-# ---------- 依赖安装 ----------
+# ---------- 依赖 ----------
 FROM base AS deps
 WORKDIR /app
-# 不执行 postinstall：避免 ffmpeg-static 访问 GitHub Releases 超时
-# esbuild 等平台包会通过 optionalDependencies 从 npm 镜像拉取
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json ./apps/server/
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 RUN printf 'registry=%s\n' "${npm_config_registry}" > .npmrc \
- && pnpm install --frozen-lockfile --ignore-scripts
+ && pnpm install --frozen-lockfile --ignore-scripts \
+ && pnpm rebuild sharp
 
 # ---------- 构建 ----------
 FROM deps AS build
+WORKDIR /app
 COPY apps ./apps
 COPY packages ./packages
 RUN pnpm --filter @bokebox/shared build \
@@ -70,27 +63,56 @@ RUN pnpm --filter @bokebox/shared build \
 # ---------- 运行 ----------
 FROM base AS runner
 WORKDIR /app
+
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=8787 \
-    FFMPEG_BIN=/usr/bin/ffmpeg
+    FFMPEG_BIN=/usr/bin/ffmpeg \
+    PNPM_STORE_DIR=/tmp/pnpm-store \
+    npm_config_audit=false \
+    npm_config_fund=false
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json ./apps/server/
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
-RUN printf 'registry=%s\n' "${npm_config_registry}" > .npmrc \
+
+RUN printf '%s\n' \
+      "registry=${npm_config_registry}" \
+      'node-linker=hoisted' \
+      'package-import-method=copy' \
+      'shamefully-hoist=true' \
+    > .npmrc \
  && pnpm install --frozen-lockfile --prod --filter @bokebox/server... --ignore-scripts \
- && rm -f .npmrc
+ && pnpm rebuild sharp \
+ && find node_modules -type d -name 'ffmpeg-static' -prune -exec rm -rf {} + \
+ && find node_modules -type f \( \
+      -name '*.md' -o -name '*.markdown' -o -name 'CHANGELOG*' \
+      -o -name '*.map' -o -name 'tsconfig*.json' \
+    \) -delete \
+ && find node_modules -type d \( \
+      -name 'test' -o -name 'tests' -o -name '__tests__' \
+      -o -name 'docs' -o -name 'example' -o -name 'examples' \
+    \) -prune -exec rm -rf {} + \
+ && rm -rf \
+      /tmp/pnpm-store \
+      /pnpm/store \
+      /root/.local/share/pnpm \
+      /root/.cache \
+      /tmp/* \
+      .npmrc \
+      apps/web/node_modules \
+      packages/shared/node_modules
 
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 
-# 原生 Node 解析门禁：防止 workspace 包仅有类型、缺少运行时代码。
-RUN node --input-type=module -e "await import('./apps/server/dist/services/content/scriptPrompt.js')"
-
-RUN mkdir -p storage/jobs
+RUN node --input-type=module -e "await import('./apps/server/dist/services/content/scriptPrompt.js')" \
+ && node --input-type=module -e "await import('sharp')" \
+ && test -x "$FFMPEG_BIN" \
+ && mkdir -p storage/jobs \
+ && rm -rf /tmp/* /root/.cache
 
 EXPOSE 8787
 

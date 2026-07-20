@@ -23,3 +23,10 @@ storage/*.db
 storage/*.db-*
 storage/*.json
 storage/*.json.migrated
+.github
+docs
+examples
+**/*.test.ts
+apps/server/test
+**/.DS_Store
+pnpm-debug.log*

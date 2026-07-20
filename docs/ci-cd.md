@@ -40,6 +40,21 @@ ghcr.io/<owner>/<repo>
 | tag `v*` | ✅ | ✅ multi-arch | ✅ | ❌ |
 | 手动 workflow_dispatch | ✅ | ✅ | 可选 | 可选 |
 
+## 镜像体积说明
+
+生产 `Dockerfile` 会：
+
+- 使用系统 `ffmpeg`，并删除 `ffmpeg-static` 二进制
+- runner 阶段 `hoisted + copy` 安装生产依赖后删除 pnpm store / 缓存
+- 清理 `node_modules` 中的文档、测试目录与 source map
+
+目标是把运行镜像压到明显低于「完整 monorepo + store + 双份 ffmpeg」的体积。本地可用：
+
+```bash
+docker build -t bokebox:local .
+docker image ls bokebox:local
+```
+
 ## 本地验证
 
 ```bash

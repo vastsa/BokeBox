@@ -1,12 +1,12 @@
 /**
  * 解析可用的 ffmpeg 可执行路径。
  * 优先级：
- * 1. 环境变量 FFMPEG_BIN / FFMPEG_PATH（Docker 国内镜像会指向 /usr/bin/ffmpeg）
- * 2. ffmpeg-static（本地下载的预编译二进制；FFMPEG_BIN 已设时其导出即为该值）
+ * 1. 环境变量 FFMPEG_BIN / FFMPEG_PATH（Docker 镜像会指向 /usr/bin/ffmpeg）
+ * 2. ffmpeg-static（本地下载的预编译二进制；Docker 生产镜像可剔除该包）
  * 3. 常见系统路径
  */
+import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
-import ffmpegStatic from 'ffmpeg-static';
 
 const SYSTEM_CANDIDATES = [
   '/usr/bin/ffmpeg',
@@ -15,10 +15,19 @@ const SYSTEM_CANDIDATES = [
   '/bin/ffmpeg',
 ];
 
+const require = createRequire(import.meta.url);
+
 function fromStatic(): string | null {
-  if (typeof ffmpegStatic === 'string' && ffmpegStatic) return ffmpegStatic;
-  const def = (ffmpegStatic as { default?: string } | null)?.default;
-  return def || null;
+  try {
+    // 生产 Docker 镜像可能删除 ffmpeg-static 包，动态加载避免启动即崩溃
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('ffmpeg-static') as string | { default?: string } | null;
+    if (typeof mod === 'string' && mod) return mod;
+    const def = (mod as { default?: string } | null)?.default;
+    return def || null;
+  } catch {
+    return null;
+  }
 }
 
 /** 同步解析（启动期配置 fluent-ffmpeg 用） */
