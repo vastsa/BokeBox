@@ -1171,7 +1171,7 @@ html[data-theme="dark"] .qq-ambient-veil {
    大字 / 极弱控件 / 当前行绝对主角
    ========================= */
 .qq-lyrics-transcript {
-  --lyrics-focus-y: 34%;
+  --lyrics-focus-y: 50%;
   --lyrics-pad-x: clamp(2px, 0.8vw, 10px);
   --lyrics-active: var(--text);
   --lyrics-near: color-mix(in srgb, var(--text) 42%, transparent);
@@ -1378,22 +1378,22 @@ html[data-theme="dark"] .qq-ambient-veil {
   overscroll-behavior: contain;
   touch-action: pan-y;
   scroll-behavior: smooth;
-  scroll-padding-block: 20% 32%;
+  scroll-padding-block: 50% 50%;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   /* Apple 式更深的上下淡出 */
   mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    #000 12%,
-    #000 72%,
+    #000 14%,
+    #000 86%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    #000 12%,
-    #000 72%,
+    #000 14%,
+    #000 86%,
     transparent 100%
   );
 }
@@ -1409,15 +1409,15 @@ html[data-theme="dark"] .qq-ambient-veil {
   gap: clamp(10px, 1.6vh, 18px);
   margin: 0;
   padding:
-    clamp(56px, 16vh, 140px)
+    clamp(96px, 42vh, 320px)
     var(--lyrics-pad-x)
-    clamp(132px, 30vh, 240px);
+    clamp(96px, 42vh, 320px);
 }
 
 .qq-lyrics-list > li {
   position: relative;
   margin: 0;
-  scroll-margin-block: 24vh;
+  scroll-margin-block: 40vh;
 }
 
 /* 纯文字：无底、无边、无条 */
@@ -1599,7 +1599,7 @@ html[data-theme="dark"] .qq-lyrics-return {
 @media (max-width: 520px) {
   .qq-lyrics-transcript {
     --lyrics-pad-x: 0px;
-    --lyrics-focus-y: 32%;
+    --lyrics-focus-y: 50%;
   }
   .qq-lyrics-calibration {
     top: calc(var(--control-lg) + 4px);
@@ -1636,7 +1636,7 @@ html[data-theme="dark"] .qq-lyrics-return {
 
 @media (min-width: 900px) {
   .qq-lyrics-transcript {
-    --lyrics-focus-y: 36%;
+    --lyrics-focus-y: 50%;
   }
   .qq-lyric-copy {
     max-width: 40em;

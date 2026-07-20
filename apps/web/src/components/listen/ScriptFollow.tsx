@@ -310,16 +310,16 @@ function LyricsTranscript({
       const target = lineRefs.current[index];
       if (!scroller || !target) return;
 
-      // 读取 CSS 焦点线（默认偏上 34%），让当前行落在渐隐区域中央偏上
+      // 读取 CSS 焦点线（默认 50%），让当前行尽量落在视口正中
       const focusRatioRaw = getComputedStyle(scroller)
         .getPropertyValue('--lyrics-focus-y')
         .trim();
       const focusRatio = focusRatioRaw.endsWith('%')
         ? Number.parseFloat(focusRatioRaw) / 100
-        : Number.parseFloat(focusRatioRaw || '0.34');
+        : Number.parseFloat(focusRatioRaw || '0.5');
       const focusY = Number.isFinite(focusRatio)
-        ? Math.min(0.48, Math.max(0.26, focusRatio))
-        : 0.34;
+        ? Math.min(0.62, Math.max(0.3, focusRatio))
+        : 0.5;
 
       const scrollerBox = scroller.getBoundingClientRect();
       const targetBox = target.getBoundingClientRect();
