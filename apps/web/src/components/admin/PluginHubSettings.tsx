@@ -18,7 +18,6 @@ import {
   uninstallAiPluginPackage,
   uninstallSourcePluginPackage,
   type AiPluginDescriptor,
-  type SourcePluginConfigField,
   type SourcePluginDescriptor,
   type SourceRiskLevel,
 } from '../../api/client';
@@ -26,14 +25,16 @@ import { useI18n } from '../../i18n';
 
 import {
   buildDraft,
-  fieldSpan,
   fromAi,
   fromSource,
-  isSecretField,
   riskClass,
   type HubKind,
   type HubPlugin,
 } from '../../features/settings/plugin-hub/pluginHubModel';
+import {
+  PluginConfigFields,
+  draftToConfigPatch,
+} from './PluginConfigFields';
 
 /**
  * 统一插件中心：Source / ASR / TTS 同一套列表样式与交互
@@ -341,33 +342,7 @@ export function PluginHubSettings({
     const schema = plugin.configSchema || [];
     if (!schema.length) return;
     const draft = drafts[plugin.id] || {};
-    const payload: Record<string, unknown> = {};
-    for (const field of schema) {
-      const raw = draft[field.key] ?? '';
-      if (isSecretField(field)) {
-        if (raw.trim() === '') continue;
-        payload[field.key] = raw;
-        continue;
-      }
-      if (field.type === 'boolean') {
-        payload[field.key] = raw === 'true';
-        continue;
-      }
-      if (field.type === 'number') {
-        if (raw.trim() === '') {
-          payload[field.key] = null;
-        } else {
-          const n = Number(raw);
-          if (!Number.isFinite(n)) {
-            onError?.(`${field.label}: invalid number`);
-            return;
-          }
-          payload[field.key] = n;
-        }
-        continue;
-      }
-      payload[field.key] = raw;
-    }
+    const payload = draftToConfigPatch(schema, draft);
 
     setSavingConfigId(plugin.id);
     onMessage?.(null);
@@ -442,158 +417,6 @@ export function PluginHubSettings({
     return t('settings.sourceRiskHigh');
   };
 
-
-  const renderFieldHead = (
-    field: SourcePluginConfigField,
-    opts?: { secret?: boolean; secretSet?: boolean; secretHint?: string },
-  ) => (
-    <div className="plugin-config-field-head">
-      <div className="plugin-config-label-wrap">
-        <span className="plugin-config-label">
-          {field.label}
-          {field.required ? (
-            <span className="plugin-config-req" title={t('settings.sourceConfigRequired')}>
-              *
-            </span>
-          ) : null}
-        </span>
-        {field.description ? (
-          <span className="plugin-config-desc">{field.description}</span>
-        ) : null}
-      </div>
-      {opts?.secret ? (
-        <span
-          className={[
-            'plugin-config-secret-chip',
-            opts.secretSet ? 'is-set' : 'is-unset',
-          ].join(' ')}
-        >
-          {opts.secretSet
-            ? t('settings.sourceConfigSecretSet', {
-                hint: opts.secretHint ? ` · ${opts.secretHint}` : '',
-              })
-            : t('settings.sourceConfigSecretUnset')}
-        </span>
-      ) : null}
-    </div>
-  );
-
-  const renderField = (plugin: HubPlugin, field: SourcePluginConfigField) => {
-    const draft = drafts[plugin.id] || {};
-    const value = draft[field.key] ?? '';
-    const secret = isSecretField(field);
-    const status = plugin.configStatus?.[field.key];
-    const id = `plugin-cfg-${kind}-${plugin.id}-${field.key}`;
-    const span = fieldSpan(field);
-    const disabled = savingConfigId === plugin.id;
-    const shellClass = [
-      'plugin-config-field',
-      `is-${field.type || 'string'}`,
-      span === 'full' ? 'is-span-full' : 'is-span-half',
-      secret ? 'is-secret' : '',
-    ]
-      .filter(Boolean)
-      .join(' ');
-
-    if (field.type === 'boolean') {
-      const on = value === 'true';
-      return (
-        <div className={shellClass} key={field.key}>
-          {renderFieldHead(field)}
-          <label className="plugin-config-toggle" htmlFor={id}>
-            <input
-              id={id}
-              type="checkbox"
-              checked={on}
-              disabled={disabled}
-              onChange={(e) =>
-                setDraftValue(
-                  plugin.id,
-                  field.key,
-                  e.target.checked ? 'true' : 'false',
-                )
-              }
-            />
-            <i aria-hidden />
-            <span>{on ? t('settings.pluginConfigOn') : t('settings.pluginConfigOff')}</span>
-          </label>
-        </div>
-      );
-    }
-
-    if (field.type === 'select') {
-      return (
-        <div className={shellClass} key={field.key}>
-          {renderFieldHead(field)}
-          <select
-            id={id}
-            className="plugin-config-control"
-            value={value}
-            disabled={disabled}
-            onChange={(e) => setDraftValue(plugin.id, field.key, e.target.value)}
-          >
-            <option value="">{t('settings.pluginConfigSelectPlaceholder')}</option>
-            {(field.options || []).map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      );
-    }
-
-    if (field.type === 'textarea') {
-      return (
-        <div className={shellClass} key={field.key}>
-          {renderFieldHead(field)}
-          <textarea
-            id={id}
-            className="plugin-config-control plugin-config-textarea"
-            rows={3}
-            value={value}
-            placeholder={field.placeholder}
-            disabled={disabled}
-            onChange={(e) => setDraftValue(plugin.id, field.key, e.target.value)}
-          />
-        </div>
-      );
-    }
-
-    const inputType =
-      field.type === 'password' || secret
-        ? 'password'
-        : field.type === 'number'
-          ? 'number'
-          : 'text';
-
-    return (
-      <div className={shellClass} key={field.key}>
-        {renderFieldHead(field, {
-          secret,
-          secretSet: Boolean(status?.set),
-          secretHint: status?.hint,
-        })}
-        <input
-          id={id}
-          type={inputType}
-          className="plugin-config-control"
-          value={value}
-          disabled={disabled}
-          placeholder={
-            secret
-              ? status?.set
-                ? t('settings.sourceConfigSecretKeep')
-                : field.placeholder || ''
-              : field.placeholder || ''
-          }
-          autoComplete="off"
-          spellCheck={false}
-          onChange={(e) => setDraftValue(plugin.id, field.key, e.target.value)}
-        />
-      </div>
-    );
-  };
 
   const kinds: Array<{ id: HubKind; label: string }> = [
     { id: 'source', label: t('settings.pluginTabSource') },
@@ -859,11 +682,16 @@ export function PluginHubSettings({
                       <strong>{t('settings.pluginConfigPanelTitle')}</strong>
                       <span>{t('settings.pluginConfigPanelHint')}</span>
                     </div>
-                    <div className="plugin-config-grid">
-                      {(plugin.configSchema || []).map((field) =>
-                        renderField(plugin, field),
-                      )}
-                    </div>
+                    <PluginConfigFields
+                      schema={plugin.configSchema || []}
+                      draft={drafts[plugin.id] || {}}
+                      status={plugin.configStatus}
+                      idPrefix={`plugin-cfg-${kind}-${plugin.id}`}
+                      disabled={savingConfigId === plugin.id}
+                      onChange={(key, value) =>
+                        setDraftValue(plugin.id, key, value)
+                      }
+                    />
                     <div className="plugin-config-actions">
                       <button
                         type="button"

@@ -1545,3 +1545,18 @@ html[data-theme="dark"] .script-prompt-mode-tab.is-active {
   .setup-step { justify-content: center; padding-inline: 0; }
 }
 
+
+
+/* Setup：当前 ASR/TTS 插件参数 */
+.setup-plugin-config {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+.setup-plugin-config-panel {
+  margin: 0;
+}
+.setup-plugin-config-panel .plugin-config-grid {
+  margin-top: 8px;
+}

@@ -158,6 +158,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       defaultVoice?: string;
       contentLocale?: string;
       tts?: import('../types/job.js').TtsOptions | null;
+      asrPluginConfig?: Record<string, unknown> | null;
+      ttsPluginConfig?: Record<string, unknown> | null;
     };
   }>('/setup', async (req, reply) => {
     try {
@@ -193,6 +195,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         defaultVoice: body.defaultVoice,
         contentLocale: body.contentLocale,
         tts: body.tts,
+        asrPluginConfig: body.asrPluginConfig,
+        ttsPluginConfig: body.ttsPluginConfig,
       });
       setSessionCookie(reply, result.session.token, result.session.expiresAt);
       return {

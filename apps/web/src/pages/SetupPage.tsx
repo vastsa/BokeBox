@@ -4,9 +4,17 @@ import {
   fetchSetupStatus,
   type ProviderOptionDto,
 } from '../api/client';
-import { fetchAiPlugins, type AiPluginDescriptor } from '../api/plugins';
+import {
+  fetchAiPlugins,
+  type AiPluginDescriptor,
+} from '../api/plugins';
 import { TtsModePicker } from '../components/admin/TtsModePicker';
 import { DEFAULT_GLOBAL_TTS, summarizeTts } from '../components/admin/GlobalTtsSettings';
+import {
+  PluginConfigFields,
+  draftToConfigPatch,
+  validatePluginConfigDraft,
+} from '../components/admin/PluginConfigFields';
 import { BrandMascot } from '../components/BrandMark';
 import { PageLoader } from '../components/ui/PageLoader';
 import { IconCheck, IconMic, IconSpark } from '../components/icons';
@@ -22,13 +30,13 @@ import {
 } from '../i18n';
 import type { TtsOptions } from '../types/job';
 import {
-  WHISPER_LANG_OPTIONS,
-  WHISPER_MODEL_OPTIONS,
-} from '../lib/providerOptions';
-import {
   defaultVoiceForProvider,
   resolveTtsVoiceProfile,
 } from '../lib/ttsVoiceProfile';
+import {
+  buildDraft,
+  fromAi,
+} from '../features/settings/plugin-hub/pluginHubModel';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -39,8 +47,6 @@ const DEFAULTS = {
   asrProvider: 'mimo',
   ttsModel: 'mimo-v2.5-tts',
   ttsProvider: 'mimo',
-  whisperBin: '',
-  whisperLang: '',
   voiceDesignModel: 'mimo-v2.5-tts-voicedesign',
   imageModel: '',
   defaultVoice: '冰糖',
@@ -135,6 +141,37 @@ function toTtsPluginDescriptor(
   };
 }
 
+
+function seedDraftWithDefaults(
+  plugin: AiPluginDescriptor | null,
+  extra: Record<string, string> = {},
+): Record<string, string> {
+  if (!plugin) return { ...extra };
+  const draft = buildDraft(fromAi(plugin));
+  for (const field of plugin.configSchema || []) {
+    if (draft[field.key]) continue;
+    if (field.default === undefined || field.default === null) continue;
+    draft[field.key] = String(field.default);
+  }
+  for (const [k, v] of Object.entries(extra)) {
+    if (v !== undefined && v !== '') draft[k] = v;
+  }
+  return draft;
+}
+
+function pickPlugin(
+  plugins: AiPluginDescriptor[],
+  id: string,
+): AiPluginDescriptor | null {
+  const raw = String(id || '').trim();
+  if (!raw) return null;
+  return (
+    plugins.find((p) => p.id === raw) ||
+    plugins.find((p) => p.id.toLowerCase() === raw.toLowerCase()) ||
+    null
+  );
+}
+
 function buildDefaultTtsForProvider(
   providerId: string,
   plugin: AiPluginDescriptor | null,
@@ -168,8 +205,6 @@ export function SetupPage() {
   const [asrProvider, setAsrProvider] = useState(DEFAULTS.asrProvider);
   const [ttsModel, setTtsModel] = useState(DEFAULTS.ttsModel);
   const [ttsProvider, setTtsProvider] = useState(DEFAULTS.ttsProvider);
-  const [whisperBin, setWhisperBin] = useState(DEFAULTS.whisperBin);
-  const [whisperLang, setWhisperLang] = useState(DEFAULTS.whisperLang);
   const [voiceDesignModel, setVoiceDesignModel] = useState(
     DEFAULTS.voiceDesignModel,
   );
@@ -185,13 +220,21 @@ export function SetupPage() {
   const [ttsProviders, setTtsProviders] = useState<ProviderOptionDto[]>(
     FALLBACK_TTS_PROVIDERS,
   );
+  const [asrPlugin, setAsrPlugin] = useState<AiPluginDescriptor | null>(null);
   const [ttsPlugin, setTtsPlugin] = useState<AiPluginDescriptor | null>(null);
+  const [asrConfigDraft, setAsrConfigDraft] = useState<Record<string, string>>(
+    {},
+  );
+  const [ttsConfigDraft, setTtsConfigDraft] = useState<Record<string, string>>(
+    {},
+  );
 
   useEffect(() => {
     void (async () => {
       try {
-        const [status, ttsPluginsRes] = await Promise.all([
+        const [status, asrPluginsRes, ttsPluginsRes] = await Promise.all([
           fetchSetupStatus(),
+          fetchAiPlugins('asr').catch(() => null),
           fetchAiPlugins('tts').catch(() => null),
         ]);
         if (status.initialized) {
@@ -212,19 +255,31 @@ export function SetupPage() {
         const nextAsrProvider = s?.asrProvider || DEFAULTS.asrProvider;
         const nextTtsProvider = s?.ttsProvider || DEFAULTS.ttsProvider;
 
-        // 优先完整插件描述（含 voicePanel / configValues）
-        const pluginFromApi =
-          ttsPluginsRes?.plugins.find((p) => p.id === nextTtsProvider) ||
-          ttsPluginsRes?.plugins.find(
-            (p) =>
-              p.id.toLowerCase() === String(nextTtsProvider).toLowerCase(),
-          ) ||
-          null;
-        const pluginFromStatus = toTtsPluginDescriptor(
-          providerFromList(nextTts, nextTtsProvider),
+        const asrList = asrPluginsRes?.plugins || [];
+        const ttsList = ttsPluginsRes?.plugins || [];
+        const asrHit = pickPlugin(asrList, nextAsrProvider);
+        const ttsHit =
+          pickPlugin(ttsList, nextTtsProvider) ||
+          toTtsPluginDescriptor(providerFromList(nextTts, nextTtsProvider));
+
+        setAsrPlugin(asrHit);
+        setTtsPlugin(ttsHit);
+
+        const globalBase = String(s?.baseUrl || DEFAULTS.baseUrl).trim();
+        const asrModelHint = String(s?.asrModel || DEFAULTS.asrModel).trim();
+        const ttsModelHint = String(s?.ttsModel || DEFAULTS.ttsModel).trim();
+        setAsrConfigDraft(
+          seedDraftWithDefaults(asrHit, {
+            baseUrl: globalBase,
+            model: asrModelHint,
+          }),
         );
-        const plugin = pluginFromApi || pluginFromStatus;
-        setTtsPlugin(plugin);
+        setTtsConfigDraft(
+          seedDraftWithDefaults(ttsHit, {
+            baseUrl: globalBase,
+            model: ttsModelHint,
+          }),
+        );
 
         if (s) {
           setBaseUrl(s.baseUrl || DEFAULTS.baseUrl);
@@ -233,22 +288,20 @@ export function SetupPage() {
           setAsrProvider(nextAsrProvider);
           setTtsModel(s.ttsModel || DEFAULTS.ttsModel);
           setTtsProvider(nextTtsProvider);
-          setWhisperBin(s.whisperBin || DEFAULTS.whisperBin);
-          setWhisperLang(s.whisperLang || DEFAULTS.whisperLang);
           setVoiceDesignModel(s.voiceDesignModel || DEFAULTS.voiceDesignModel);
           setImageModel(s.imageModel || DEFAULTS.imageModel);
           const suggestedVoice = String(s.defaultVoice || '').trim();
-          const profile = resolveTtsVoiceProfile(nextTtsProvider, plugin);
+          const profile = resolveTtsVoiceProfile(nextTtsProvider, ttsHit);
           const allowed = new Set(profile.voices.map((v) => v.id));
           const voice =
             (suggestedVoice &&
               (allowed.size === 0 || allowed.has(suggestedVoice))
               ? suggestedVoice
               : '') ||
-            defaultVoiceForProvider(nextTtsProvider, plugin) ||
+            defaultVoiceForProvider(nextTtsProvider, ttsHit) ||
             DEFAULTS.defaultVoice;
           setTts({
-            ...buildDefaultTtsForProvider(nextTtsProvider, plugin),
+            ...buildDefaultTtsForProvider(nextTtsProvider, ttsHit),
             voice,
           });
           setContentLocale(
@@ -256,9 +309,9 @@ export function SetupPage() {
           );
         } else if (status.ai?.contentLocale) {
           setContentLocale(resolveContentLocale(status.ai.contentLocale));
-          setTts(buildDefaultTtsForProvider(nextTtsProvider, plugin));
+          setTts(buildDefaultTtsForProvider(nextTtsProvider, ttsHit));
         } else {
-          setTts(buildDefaultTtsForProvider(nextTtsProvider, plugin));
+          setTts(buildDefaultTtsForProvider(nextTtsProvider, ttsHit));
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -284,17 +337,56 @@ export function SetupPage() {
   useEffect(() => {
     if (loading) return;
     let cancelled = false;
+    void fetchAiPlugins('asr')
+      .then((res) => {
+        if (cancelled) return;
+        const hit = pickPlugin(res.plugins, asrProvider);
+        setAsrPlugin(hit);
+        setAsrConfigDraft((prev) => {
+          const seeded = seedDraftWithDefaults(hit, {
+            baseUrl: baseUrl.trim() || DEFAULTS.baseUrl,
+            model: asrModel.trim() || DEFAULTS.asrModel,
+          });
+          // 切换提供方时用新 schema 草稿；保留同 key 已填值
+          const next = { ...seeded };
+          for (const [k, v] of Object.entries(prev)) {
+            if (v !== undefined && String(v).length > 0 && k in next) next[k] = v;
+          }
+          return next;
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAsrPlugin(null);
+        setAsrConfigDraft({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [asrProvider, loading]);
+
+  useEffect(() => {
+    if (loading) return;
+    let cancelled = false;
     void fetchAiPlugins('tts')
       .then((res) => {
         if (cancelled) return;
         const hit =
-          res.plugins.find((p) => p.id === ttsProvider) ||
-          res.plugins.find(
-            (p) => p.id.toLowerCase() === String(ttsProvider).toLowerCase(),
-          ) ||
-          null;
+          pickPlugin(res.plugins, ttsProvider) ||
+          toTtsPluginDescriptor(providerFromList(ttsProviders, ttsProvider));
         if (hit) {
           setTtsPlugin(hit);
+          setTtsConfigDraft((prev) => {
+            const seeded = seedDraftWithDefaults(hit, {
+              baseUrl: baseUrl.trim() || DEFAULTS.baseUrl,
+              model: ttsModel.trim() || DEFAULTS.ttsModel,
+            });
+            const next = { ...seeded };
+            for (const [k, v] of Object.entries(prev)) {
+              if (v !== undefined && String(v).length > 0 && k in next) next[k] = v;
+            }
+            return next;
+          });
           setTts((prev) => {
             const profile = resolveTtsVoiceProfile(ttsProvider, hit);
             if (!profile.voices.length) return prev;
@@ -312,11 +404,8 @@ export function SetupPage() {
           });
           return;
         }
-        // API 无命中时回落 setup/status 目录
-        const fallback = toTtsPluginDescriptor(
-          providerFromList(ttsProviders, ttsProvider),
-        );
-        setTtsPlugin(fallback);
+        setTtsPlugin(null);
+        setTtsConfigDraft({});
       })
       .catch(() => {
         if (cancelled) return;
@@ -324,6 +413,7 @@ export function SetupPage() {
           providerFromList(ttsProviders, ttsProvider),
         );
         setTtsPlugin(fallback);
+        setTtsConfigDraft(seedDraftWithDefaults(fallback));
       });
     return () => {
       cancelled = true;
@@ -362,6 +452,24 @@ export function SetupPage() {
         setError(t('setup.errModels'));
         return;
       }
+      const asrMissing = validatePluginConfigDraft(
+        asrPlugin?.configSchema,
+        asrConfigDraft,
+        asrPlugin?.configStatus,
+      );
+      if (asrMissing) {
+        setError(t('setup.errPluginConfig', { field: asrMissing, kind: t('setup.asrProvider') }));
+        return;
+      }
+      const ttsMissing = validatePluginConfigDraft(
+        ttsPlugin?.configSchema,
+        ttsConfigDraft,
+        ttsPlugin?.configStatus,
+      );
+      if (ttsMissing) {
+        setError(t('setup.errPluginConfig', { field: ttsMissing, kind: t('setup.ttsProvider') }));
+        return;
+      }
       setStep(4);
     }
   };
@@ -384,6 +492,11 @@ export function SetupPage() {
             )
           : defaultVoiceForProvider(ttsProvider, ttsPlugin) ||
             DEFAULTS.defaultVoice;
+      const asrCfg = draftToConfigPatch(asrPlugin?.configSchema, asrConfigDraft);
+      const ttsCfg = draftToConfigPatch(ttsPlugin?.configSchema, ttsConfigDraft);
+      // model 字段与表单模型名对齐
+      if (asrModel.trim()) asrCfg.model = asrModel.trim();
+      if (ttsModel.trim()) ttsCfg.model = ttsModel.trim();
       const res = await completeSetup({
         username: username.trim(),
         password,
@@ -395,13 +508,13 @@ export function SetupPage() {
         asrProvider: asrProvider.trim() || 'mimo',
         ttsModel: ttsModel.trim(),
         ttsProvider: ttsProvider.trim() || 'mimo',
-        whisperBin: whisperBin.trim(),
-        whisperLang: whisperLang.trim(),
         voiceDesignModel: voiceDesignModel.trim(),
         imageModel: imageModel.trim(),
         defaultVoice,
         contentLocale,
         tts,
+        asrPluginConfig: asrCfg,
+        ttsPluginConfig: ttsCfg,
       });
       setAuthSession(res.token, res.username);
       window.location.hash = '/home';
@@ -412,6 +525,16 @@ export function SetupPage() {
       setSubmitting(false);
     }
   };
+
+  const asrSetupSchema = (asrPlugin?.configSchema || []).filter(
+    (f) => f.key !== 'model',
+  );
+  const ttsSetupSchema = (ttsPlugin?.configSchema || []).filter(
+    (f) =>
+      f.key !== 'model' &&
+      f.key !== 'defaultVoice' &&
+      f.key !== (ttsPlugin?.voiceConfigKey || ''),
+  );
 
   if (loading) {
     return <PageLoader label={t('setup.checking')} variant="screen" />;
@@ -607,64 +730,26 @@ export function SetupPage() {
                 <span>{t('setup.asrModel')}</span>
                 <input
                   value={asrModel}
-                  onChange={(e) => setAsrModel(e.target.value)}
-                  list={
-                    asrProvider === 'local-whisper'
-                      ? 'setup-whisper-model-options'
-                      : undefined
-                  }
-                  placeholder={
-                    asrProvider === 'local-whisper'
-                      ? 'base / small / ggml 模型路径'
-                      : undefined
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setAsrModel(v);
+                    setAsrConfigDraft((prev) => ({ ...prev, model: v }));
+                  }}
                   spellCheck={false}
                 />
-                {asrProvider === 'local-whisper' && (
-                  <datalist id="setup-whisper-model-options">
-                    {WHISPER_MODEL_OPTIONS.map((m) => (
-                      <option key={m} value={m} />
-                    ))}
-                  </datalist>
-                )}
               </label>
               <label className="auth-field">
                 <span>{t('setup.ttsModel')}</span>
                 <input
                   value={ttsModel}
-                  onChange={(e) => setTtsModel(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setTtsModel(v);
+                    setTtsConfigDraft((prev) => ({ ...prev, model: v }));
+                  }}
                   spellCheck={false}
                 />
               </label>
-              {asrProvider === 'local-whisper' && (
-                <>
-                  <label className="auth-field">
-                    <span>{t('setup.whisperBin')}</span>
-                    <input
-                      value={whisperBin}
-                      onChange={(e) => setWhisperBin(e.target.value)}
-                      placeholder={t('setup.whisperBinPlaceholder')}
-                      spellCheck={false}
-                    />
-                  </label>
-                  <label className="auth-field">
-                    <span>{t('setup.whisperLang')}</span>
-                    <select
-                      value={whisperLang}
-                      onChange={(e) => setWhisperLang(e.target.value)}
-                    >
-                      {WHISPER_LANG_OPTIONS.map((opt) => (
-                        <option key={opt.id || 'auto'} value={opt.id}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="auth-tip auth-field-span2">
-                    <span>{t('setup.whisperHint')}</span>
-                  </div>
-                </>
-              )}
               {/* edge 音色统一在 step4 插件面板选择，避免双入口不同步 */}
               {ttsProvider === 'edge' && (
                 <div className="auth-tip auth-field-span2">
@@ -685,6 +770,61 @@ export function SetupPage() {
                 </label>
               )}
             </div>
+
+            {(asrSetupSchema.length || ttsSetupSchema.length) ? (
+              <div className="setup-plugin-config">
+                {asrSetupSchema.length && asrPlugin ? (
+                  <div className="source-plugin-config-panel plugin-config-panel setup-plugin-config-panel">
+                    <div className="plugin-config-panel-head">
+                      <strong>
+                        {t('setup.pluginConfigAsrTitle', {
+                          name: asrPlugin.name || asrProvider,
+                        })}
+                      </strong>
+                      <span>{t('setup.pluginConfigHint')}</span>
+                    </div>
+                    <PluginConfigFields
+                      schema={asrSetupSchema}
+                      draft={asrConfigDraft}
+                      status={asrPlugin.configStatus}
+                      idPrefix={`setup-asr-${asrPlugin.id}`}
+                      onChange={(key, value) => {
+                        setAsrConfigDraft((prev) => {
+                          const next = { ...prev, [key]: value };
+                          if (key === 'model') setAsrModel(value);
+                          return next;
+                        });
+                      }}
+                    />
+                  </div>
+                ) : null}
+                {ttsSetupSchema.length && ttsPlugin ? (
+                  <div className="source-plugin-config-panel plugin-config-panel setup-plugin-config-panel">
+                    <div className="plugin-config-panel-head">
+                      <strong>
+                        {t('setup.pluginConfigTtsTitle', {
+                          name: ttsPlugin.name || ttsProvider,
+                        })}
+                      </strong>
+                      <span>{t('setup.pluginConfigHint')}</span>
+                    </div>
+                    <PluginConfigFields
+                      schema={ttsSetupSchema}
+                      draft={ttsConfigDraft}
+                      status={ttsPlugin.configStatus}
+                      idPrefix={`setup-tts-${ttsPlugin.id}`}
+                      onChange={(key, value) => {
+                        setTtsConfigDraft((prev) => {
+                          const next = { ...prev, [key]: value };
+                          if (key === 'model') setTtsModel(value);
+                          return next;
+                        });
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="setup-image-model">
               <label className="auth-field">

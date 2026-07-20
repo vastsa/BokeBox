@@ -17,6 +17,15 @@ import {
 import { ensureMcpToken } from '../mcp/mcpTokenStore.js';
 import type { TtsOptions } from '../../types/job.js';
 import { AppError, isContentLocale, isLocale } from '../../i18n/index.js';
+import {
+  ensureBuiltinAsrPlugins,
+  updateAsrPluginConfigForId,
+} from '../../providers/asr/index.js';
+import {
+  ensureBuiltinTtsPlugins,
+  updateTtsPluginConfigForId,
+} from '../../providers/tts/index.js';
+import { migrateAsrTtsSecretsFromGlobalOnce } from '../../providers/pluginEndpoint.js';
 
 const SCRYPT_KEYLEN = 64;
 
@@ -66,6 +75,10 @@ export type SetupInput = {
   tts?: Partial<TtsOptions> | null;
   /** 内容生成语言 */
   contentLocale?: string | null;
+  /** 所选 ASR 插件参数（baseUrl / apiKey / bin 等） */
+  asrPluginConfig?: Record<string, unknown> | null;
+  /** 所选 TTS 插件参数 */
+  ttsPluginConfig?: Record<string, unknown> | null;
 };
 
 export function validateUsername(username: string): string | null {
@@ -149,6 +162,95 @@ export function completeSetup(input: SetupInput): {
       : undefined,
   };
   setAiConfig(aiPatch);
+
+  // 插件级端点/密钥：先灌入历史全局字段，再覆盖 setup 显式填写
+  try {
+    ensureBuiltinAsrPlugins();
+    ensureBuiltinTtsPlugins();
+    migrateAsrTtsSecretsFromGlobalOnce();
+    const asrId = String(input.asrProvider || 'mimo').trim() || 'mimo';
+    const ttsId = String(input.ttsProvider || 'mimo').trim() || 'mimo';
+    const asrPatch = {
+      ...(input.asrPluginConfig && typeof input.asrPluginConfig === 'object'
+        ? input.asrPluginConfig
+        : {}),
+    } as Record<string, unknown>;
+    const ttsPatch = {
+      ...(input.ttsPluginConfig && typeof input.ttsPluginConfig === 'object'
+        ? input.ttsPluginConfig
+        : {}),
+    } as Record<string, unknown>;
+    // 兼容：顶层模型名写入插件 model
+    if (input.asrModel?.trim() && asrPatch.model === undefined) {
+      asrPatch.model = input.asrModel.trim();
+    }
+    if (input.ttsModel?.trim() && ttsPatch.model === undefined) {
+      ttsPatch.model = input.ttsModel.trim();
+    }
+    // 兼容旧字段 whisper / 分服务 endpoint
+    if (input.whisperBin?.trim() && asrPatch.bin === undefined) {
+      asrPatch.bin = input.whisperBin.trim();
+    }
+    if (input.whisperLang?.trim() && asrPatch.lang === undefined) {
+      asrPatch.lang = input.whisperLang.trim();
+    }
+    if (input.asrBaseUrl?.trim() && asrPatch.baseUrl === undefined) {
+      asrPatch.baseUrl = input.asrBaseUrl.trim();
+    }
+    if (input.asrApiKey?.trim() && asrPatch.apiKey === undefined) {
+      asrPatch.apiKey = input.asrApiKey.trim();
+    }
+    if (input.ttsBaseUrl?.trim() && ttsPatch.baseUrl === undefined) {
+      ttsPatch.baseUrl = input.ttsBaseUrl.trim();
+    }
+    if (input.ttsApiKey?.trim() && ttsPatch.apiKey === undefined) {
+      ttsPatch.apiKey = input.ttsApiKey.trim();
+    }
+    // 云端插件：全局 base/key 回落（仅当插件 patch 未给）
+    const globalBase = String(input.baseUrl || '').trim();
+    const globalKey = String(input.apiKey || '').trim();
+    if (globalBase) {
+      if (asrPatch.baseUrl === undefined || asrPatch.baseUrl === '') {
+        asrPatch.baseUrl = globalBase;
+      }
+      if (ttsPatch.baseUrl === undefined || ttsPatch.baseUrl === '') {
+        ttsPatch.baseUrl = globalBase;
+      }
+    }
+    if (globalKey) {
+      if (asrPatch.apiKey === undefined || asrPatch.apiKey === '') {
+        asrPatch.apiKey = globalKey;
+      }
+      if (ttsPatch.apiKey === undefined || ttsPatch.apiKey === '') {
+        ttsPatch.apiKey = globalKey;
+      }
+    }
+    // Edge 默认音色
+    if (
+      ttsId === 'edge' &&
+      input.defaultVoice?.trim() &&
+      ttsPatch.defaultVoice === undefined
+    ) {
+      ttsPatch.defaultVoice = input.defaultVoice.trim();
+    }
+    if (Object.keys(asrPatch).length) {
+      try {
+        updateAsrPluginConfigForId(asrId, asrPatch);
+      } catch (err) {
+        console.warn('[setup] ASR 插件参数写入跳过:', asrId, err);
+      }
+    }
+    if (Object.keys(ttsPatch).length) {
+      try {
+        updateTtsPluginConfigForId(ttsId, ttsPatch);
+      } catch (err) {
+        console.warn('[setup] TTS 插件参数写入跳过:', ttsId, err);
+      }
+    }
+  } catch (err) {
+    console.warn('[setup] 插件参数初始化失败:', err);
+  }
+
   markSetupCompleted();
   // 初始化完成后自动签发 MCP Token，供 AI 安装/调用
   ensureMcpToken();

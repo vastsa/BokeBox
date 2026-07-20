@@ -142,6 +142,8 @@ export async function completeSetup(body: {
   defaultVoice?: string;
   contentLocale?: string;
   tts?: TtsOptions | null;
+  asrPluginConfig?: Record<string, unknown> | null;
+  ttsPluginConfig?: Record<string, unknown> | null;
 }): Promise<{ ok: boolean; username: string; token: string; expiresAt: string }> {
   return request('/setup', {
     method: 'POST',
