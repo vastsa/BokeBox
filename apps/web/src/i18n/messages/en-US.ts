@@ -499,6 +499,8 @@ export const enUS: MessageTree = {
     podcastAudio: 'Podcast audio',
     scriptNotes: 'Script / notes',
     knowledgeCards: 'Flashcards',
+    configTitle: 'Generation config',
+    infoTitle: 'Job info',
     ttsConfig: 'TTS config',
     persona: 'Persona',
     contentLocale: 'Content language',

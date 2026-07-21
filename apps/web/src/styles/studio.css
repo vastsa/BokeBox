@@ -846,21 +846,6 @@ html[data-theme="dark"] .admin-job-live {
     min-height: var(--control-5xl);
     justify-content: center;
   }
-  .jd-title {
-    font-size: var(--fs-3xl-plus);
-  }
-  .jd-hero {
-    grid-template-columns: 56px minmax(0, 1fr);
-    padding: var(--space-3);
-    gap: var(--space-2_5) var(--space-3);
-  }
-  .jd-cover {
-    width: var(--space-14);
-    height: var(--space-14);
-  }
-  .admin-console .jd-page {
-    /* 避免双重页头视觉冲突：页头只作导航语境 */
-  }
 }
 
 @media (min-width: 640px) {

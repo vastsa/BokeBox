@@ -42,128 +42,128 @@ export function JobReprocessPanel({
   runAction,
 }: Props) {
   const { t } = useI18n();
+
   return (
+    <section id="jd-reprocess-panel" className="jd-panel jd-panel-ops">
+      <div className="jd-side-head">
+        <h2 className="jd-side-title">{t('job.reprocess')}</h2>
+      </div>
 
-            <section className="jd-panel" id="jd-reprocess-panel">
-              <h2 className="jd-side-title">{t('job.reprocess')}</h2>
-              <div className="jd-ops">
-                <p className="jd-hint jd-hint-top">
-                  {t('job.reprocessHint')}
-                </p>
+      <div className="jd-ops">
+        <p className="jd-hint jd-hint-top">{t('job.reprocessHint')}</p>
 
-                <label className="jd-select-field">
-                  <span className="jd-select-label">{t('job.contentLocale')}</span>
-                  <ContentLocaleSelect
-                    value={jobContentLocale}
-                    disabled={active || Boolean(busy)}
-                    aria-label={t('job.contentLocaleAria')}
-                    onChange={onContentLocaleChange}
-                  />
-                </label>
-                <p className="jd-select-desc">{t('job.contentLocaleRerunHint')}</p>
+        <label className="jd-select-field">
+          <span className="jd-select-label">{t('job.contentLocale')}</span>
+          <ContentLocaleSelect
+            value={jobContentLocale}
+            disabled={active || Boolean(busy)}
+            aria-label={t('job.contentLocaleAria')}
+            onChange={onContentLocaleChange}
+          />
+        </label>
+        <p className="jd-select-desc">{t('job.contentLocaleRerunHint')}</p>
 
-                <label className="jd-select-field">
-                  <span className="jd-select-label">{t('job.fromStep')}</span>
-                  <select
-                    className="jd-select"
-                    value={fromStep}
-                    disabled={active || Boolean(busy)}
-                    aria-label={t('job.fromStepAria')}
-                    onChange={(e) =>
-                      onFromStepChange(e.target.value as PipelineFromStep)
-                    }
-                  >
-                    {RERUN_STEPS.map((step) => {
-                      const enabled = canSelectFromStep(job, step.key);
-                      return (
-                        <option
-                          key={step.key}
-                          value={step.key}
-                          disabled={!enabled}
-                        >
-                          {t(step.labelKey)}
-                          {!enabled ? t('job.missingPrereq') : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
+        <label className="jd-select-field">
+          <span className="jd-select-label">{t('job.fromStep')}</span>
+          <select
+            className="jd-select"
+            value={fromStep}
+            disabled={active || Boolean(busy)}
+            aria-label={t('job.fromStepAria')}
+            onChange={(e) =>
+              onFromStepChange(e.target.value as PipelineFromStep)
+            }
+          >
+            {RERUN_STEPS.map((step) => {
+              const enabled = canSelectFromStep(job, step.key);
+              return (
+                <option key={step.key} value={step.key} disabled={!enabled}>
+                  {t(step.labelKey)}
+                  {!enabled ? t('job.missingPrereq') : ''}
+                </option>
+              );
+            })}
+          </select>
+        </label>
 
-                {selectedMeta && (
-                  <p className="jd-select-desc">{t(selectedMeta.descKey)}</p>
-                )}
+        {selectedMeta && (
+          <p className="jd-select-desc">{t(selectedMeta.descKey)}</p>
+        )}
 
+        <button
+          type="button"
+          className="nl-btn nl-btn-primary"
+          disabled={!canRerun || !selectedStepOk || busy === 'retry'}
+          onClick={() =>
+            void runAction('retry', () =>
+              retryJob(job.id, {
+                tts: job.tts,
+                fromStep,
+                locale: jobContentLocale,
+              }),
+            )
+          }
+        >
+          <IconRefresh size={14} />
+          {busy === 'retry'
+            ? t('common.processingEllipsis')
+            : t('job.startFrom', {
+                label: selectedMeta
+                  ? t(selectedMeta.labelKey)
+                  : t('job.startPoint'),
+              })}
+        </button>
+
+        <p className="jd-hint">
+          {fromStep === 'extract' && t('job.hintExtract')}
+          {fromStep === 'transcribe' && t('job.hintTranscribe')}
+          {fromStep === 'script' && t('job.hintGenerate')}
+          {fromStep === 'cover' && t('job.hintCover')}
+          {fromStep === 'flashcards' && t('job.hintFlashcards')}
+          {fromStep === 'synthesize' && t('job.hintSynthesize')}
+        </p>
+
+        <div className="jd-danger">
+          {!confirmDelete ? (
+            <button
+              type="button"
+              className="nl-btn nl-btn-danger"
+              disabled={Boolean(busy)}
+              onClick={() => onConfirmDeleteChange(true)}
+            >
+              <IconTrash size={14} />
+              {t('job.deleteJob')}
+            </button>
+          ) : (
+            <div className="jd-confirm">
+              <strong>{t('job.deleteConfirmTitle')}</strong>
+              <p>{t('job.deleteConfirmBody')}</p>
+              <div className="jd-confirm-actions">
                 <button
                   type="button"
-                  className="nl-btn nl-btn-primary"
-                  disabled={!canRerun || !selectedStepOk || busy === 'retry'}
+                  className="nl-btn nl-btn-danger"
+                  disabled={busy === 'delete'}
                   onClick={() =>
-                    void runAction('retry', () =>
-                      retryJob(job.id, {
-                        tts: job.tts,
-                        fromStep,
-                        locale: jobContentLocale,
-                      }),
-                    )
+                    void runAction('delete', () => deleteJob(job.id))
                   }
                 >
-                  <IconRefresh size={14} />
-                  {busy === 'retry'
-                    ? t('common.processingEllipsis')
-                    : t('job.startFrom', { label: selectedMeta ? t(selectedMeta.labelKey) : t('job.startPoint') })}
+                  {busy === 'delete'
+                    ? t('common.deleting')
+                    : t('common.confirmDelete')}
                 </button>
-                <p className="jd-hint">
-                  {fromStep === 'extract' && t('job.hintExtract')}
-                  {fromStep === 'transcribe' && t('job.hintTranscribe')}
-                  {fromStep === 'script' &&
-                    t('job.hintGenerate')}
-                  {fromStep === 'cover' &&
-                    t('job.hintCover')}
-                  {fromStep === 'flashcards' &&
-                    t('job.hintFlashcards')}
-                  {fromStep === 'synthesize' && t('job.hintSynthesize')}
-                </p>
-
-                <div className="jd-danger">
-                  {!confirmDelete ? (
-                    <button
-                      type="button"
-                      className="nl-btn nl-btn-danger"
-                      disabled={Boolean(busy)}
-                      onClick={() => onConfirmDeleteChange(true)}
-                    >
-                      <IconTrash size={14} />
-                      {t('job.deleteJob')}
-                    </button>
-                  ) : (
-                    <div className="jd-confirm">
-                      <strong>{t('job.deleteConfirmTitle')}</strong>
-                      <p>{t('job.deleteConfirmBody')}</p>
-                      <div className="jd-confirm-actions">
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-danger"
-                          disabled={busy === 'delete'}
-                          onClick={() =>
-                            void runAction('delete', () => deleteJob(job.id))
-                          }
-                        >
-                          {busy === 'delete' ? t('common.deleting') : t('common.confirmDelete')}
-                        </button>
-                        <button
-                          type="button"
-                          className="nl-btn nl-btn-secondary"
-                          disabled={busy === 'delete'}
-                          onClick={() => onConfirmDeleteChange(false)}
-                        >
-                          {t('common.cancel')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  className="nl-btn nl-btn-secondary"
+                  disabled={busy === 'delete'}
+                  onClick={() => onConfirmDeleteChange(false)}
+                >
+                  {t('common.cancel')}
+                </button>
               </div>
-            </section>
-
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

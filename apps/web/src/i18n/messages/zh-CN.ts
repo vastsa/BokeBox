@@ -494,6 +494,8 @@ export const zhCN = {
     podcastAudio: '播客音频',
     scriptNotes: '脚本 / 笔记',
     knowledgeCards: '知识闪卡',
+    configTitle: '生成配置',
+    infoTitle: '任务信息',
     ttsConfig: 'TTS 配置',
     persona: '口播人设',
     contentLocale: '内容语言',
