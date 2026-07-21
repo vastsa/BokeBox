@@ -68,7 +68,18 @@ ENV NODE_ENV=production \
 RUN set -eux; \
   sed -i "s|dl-cdn.alpinelinux.org|${ALPINE_MIRROR}|g" /etc/apk/repositories; \
   apk add --no-cache libc6-compat; \
-  rm -rf /var/cache/apk/*
+  apk upgrade --no-cache; \
+  npm -g uninstall npm || true; \
+  rm -rf /usr/local/lib/node_modules/npm \
+         /usr/local/lib/node_modules/corepack \
+         /usr/local/bin/npm \
+         /usr/local/bin/npx \
+         /usr/local/bin/corepack \
+         /usr/local/bin/yarn \
+         /usr/local/bin/yarnpkg \
+         /root/.npm \
+         /tmp/* \
+         /var/cache/apk/*
 COPY --from=export /out/ ./
 COPY --from=build /app/apps/web/dist ./web
 # ffmpeg-static 失败时才装系统 ffmpeg

@@ -54,8 +54,20 @@ ENV NODE_ENV=production \
     BOKEBOX_ROOT=/app \
     WEB_DIST=/app/web \
     STORAGE_DIR=/app/storage
+# 生产运行只需要 node 运行时；移除镜像自带的 npm/corepack/yarn，避免扫描到无用供应链 CVE
 RUN apk add --no-cache libc6-compat \
- && rm -rf /var/cache/apk/*
+ && apk upgrade --no-cache \
+ && npm -g uninstall npm || true \
+ && rm -rf /usr/local/lib/node_modules/npm \
+           /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm \
+           /usr/local/bin/npx \
+           /usr/local/bin/corepack \
+           /usr/local/bin/yarn \
+           /usr/local/bin/yarnpkg \
+           /root/.npm \
+           /tmp/* \
+           /var/cache/apk/*
 COPY --from=export /out/ ./
 COPY --from=build /app/apps/web/dist ./web
 RUN node --input-type=module -e "await import('./dist/services/content/scriptPrompt.js')" \
