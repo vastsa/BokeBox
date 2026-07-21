@@ -41,7 +41,7 @@ import {
 type Step = 1 | 2 | 3 | 4;
 
 const DEFAULTS = {
-  baseUrl: 'https://api.oj.ink/v1',
+  baseUrl: 'https://api.xiaomimimo.com/v1',
   chatModel: 'mimo-v2.5',
   asrModel: 'mimo-v2.5-asr',
   asrProvider: 'mimo',
@@ -650,7 +650,7 @@ export function SetupPage() {
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 autoComplete="off"
-                placeholder="https://api.oj.ink/v1"
+                placeholder="https://api.xiaomimimo.com/v1"
               />
             </label>
             <div className="auth-tip">

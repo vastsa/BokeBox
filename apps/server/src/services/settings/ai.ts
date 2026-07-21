@@ -124,7 +124,7 @@ export type PublicAiConfig = {
 
 export const DEFAULT_AI: AiConfig = {
   apiKey: '',
-  baseUrl: 'https://api.oj.ink/v1',
+  baseUrl: 'https://api.xiaomimimo.com/v1',
   chatModel: 'mimo-v2.5',
   asrModel: 'mimo-v2.5-asr',
   ttsModel: 'mimo-v2.5-tts',
