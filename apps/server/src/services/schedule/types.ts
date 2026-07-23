@@ -3,6 +3,7 @@
  */
 import type { ScriptPromptOptions, TtsOptions } from '../../types/job.js';
 
+/** 历史兼容保留 rss/url_list；新建统一写 plugin */
 export type ScheduleKind = 'rss' | 'url_list' | 'plugin';
 
 export type SchedulePreset =

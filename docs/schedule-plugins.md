@@ -32,6 +32,25 @@ storage/plugins/schedule/<dir>/
 | `schedule.rss` | RSS/Atom | 启用 |
 | `schedule.url-list` | 固定 URL 列表 | 启用 |
 
+## 统一模型（设置 → 订阅）
+
+每条订阅只选 **插件 + 参数 + 节奏**，不再区分「是不是插件」：
+
+```json
+{
+  "kind": "plugin",
+  "sourceConfig": {
+    "pluginId": "schedule.rss",
+    "params": { "feedUrl": "https://example.com/feed.xml" },
+    "feedUrl": "https://example.com/feed.xml"
+  }
+}
+```
+
+- URL 列表：`pluginId=schedule.url-list`，`params.urls=[...]`
+- 自定义插件：同上，params 由插件解释
+- 历史 `kind=rss|url_list` 仍可执行，保存时会归一到 plugin
+
 外部示例：
 
 - `examples/schedule-plugin-echo`

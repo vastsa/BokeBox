@@ -8,7 +8,6 @@ import {
   runScheduleApi,
   updateScheduleApi,
   type Schedule,
-  type ScheduleKind,
   type SchedulePluginDescriptor,
   type SchedulePreset,
 } from '../../api/client';
@@ -16,12 +15,14 @@ import type { AlbumSummary } from '../../types/album';
 import { useI18n } from '../../i18n';
 import { SettingsBlock, SettingsCard, SettingsPanel } from './SettingsChrome';
 
+const PLUGIN_RSS = 'schedule.rss';
+const PLUGIN_URL_LIST = 'schedule.url-list';
+
 type Draft = {
   name: string;
-  kind: ScheduleKind;
+  pluginId: string;
   feedUrl: string;
   urlsText: string;
-  pluginId: string;
   paramsText: string;
   preset: SchedulePreset;
   cron: string;
@@ -33,12 +34,11 @@ type Draft = {
   titlePrefix: string;
 };
 
-const emptyDraft = (): Draft => ({
+const emptyDraft = (defaultPluginId = PLUGIN_RSS): Draft => ({
   name: '',
-  kind: 'rss',
+  pluginId: defaultPluginId,
   feedUrl: '',
   urlsText: '',
-  pluginId: '',
   paramsText: '',
   preset: 'daily',
   cron: '0 8 * * *',
@@ -49,6 +49,15 @@ const emptyDraft = (): Draft => ({
   onlyNew: true,
   titlePrefix: '',
 });
+
+/** 旧 kind 或显式 pluginId → 统一插件 id */
+function resolvePluginId(s: Schedule): string {
+  const explicit = String(s.sourceConfig.pluginId || '').trim();
+  if (explicit) return explicit;
+  if (s.kind === 'url_list') return PLUGIN_URL_LIST;
+  if (s.kind === 'rss') return PLUGIN_RSS;
+  return explicit;
+}
 
 function formatTime(iso: string | null | undefined, locale: string): string {
   if (!iso) return '—';
@@ -67,6 +76,14 @@ function statusClass(status: Schedule['lastStatus']): string {
   return '';
 }
 
+function pluginLabel(
+  pluginId: string,
+  plugins: SchedulePluginDescriptor[],
+): string {
+  const p = plugins.find((x) => x.id === pluginId);
+  return p ? `${p.name}` : pluginId || '—';
+}
+
 export function ScheduleSettingsTab({
   active,
   onMessage,
@@ -81,11 +98,16 @@ export function ScheduleSettingsTab({
   const [items, setItems] = useState<Schedule[]>([]);
   const [albums, setAlbums] = useState<AlbumSummary[]>([]);
   const [plugins, setPlugins] = useState<SchedulePluginDescriptor[]>([]);
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [draft, setDraft] = useState<Draft>(() => emptyDraft());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+
+  const enabledPlugins = useMemo(
+    () => plugins.filter((p) => p.enabled && !p.loadError),
+    [plugins],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -125,35 +147,68 @@ export function ScheduleSettingsTab({
 
   const sourceSummary = useCallback(
     (s: Schedule) => {
-      if (s.kind === 'rss') return s.sourceConfig.feedUrl || '—';
-      if (s.kind === 'plugin') {
-        return s.sourceConfig.pluginId || '—';
+      const pluginId = resolvePluginId(s);
+      if (pluginId === PLUGIN_RSS) {
+        return s.sourceConfig.feedUrl || s.sourceConfig.params?.feedUrl
+          ? String(s.sourceConfig.feedUrl || s.sourceConfig.params?.feedUrl)
+          : pluginId;
       }
-      const urls = s.sourceConfig.urls || [];
-      if (!urls.length) return '—';
-      if (urls.length === 1) return urls[0]!;
-      return t('settings.scheduleUrlCount', { n: urls.length });
+      if (pluginId === PLUGIN_URL_LIST) {
+        const urls =
+          s.sourceConfig.urls ||
+          (Array.isArray(s.sourceConfig.params?.urls)
+            ? (s.sourceConfig.params?.urls as string[])
+            : []);
+        if (!urls.length) return pluginId;
+        if (urls.length === 1) return urls[0]!;
+        return t('settings.scheduleUrlCount', { n: urls.length });
+      }
+      if (s.sourceConfig.params && Object.keys(s.sourceConfig.params).length) {
+        return `${pluginId} · JSON`;
+      }
+      return pluginId || '—';
     },
     [t],
   );
 
   const openCreate = () => {
     setEditingId(null);
-    setDraft(emptyDraft());
+    const preferred =
+      enabledPlugins.find((p) => p.id === PLUGIN_RSS)?.id ||
+      enabledPlugins[0]?.id ||
+      PLUGIN_RSS;
+    setDraft(emptyDraft(preferred));
     setShowForm(true);
   };
 
   const openEdit = (s: Schedule) => {
     setEditingId(s.id);
+    const pluginId = resolvePluginId(s);
+    const params = s.sourceConfig.params || {};
+    const feedUrl = String(
+      s.sourceConfig.feedUrl || params.feedUrl || '',
+    ).trim();
+    const urlsFromParams = Array.isArray(params.urls)
+      ? (params.urls as unknown[]).map((u) => String(u || ''))
+      : [];
+    const urls = s.sourceConfig.urls?.length
+      ? s.sourceConfig.urls
+      : urlsFromParams;
+
+    // 内置插件参数用专用字段；其余进 JSON（去掉已提升字段）
+    let paramsText = '';
+    if (pluginId !== PLUGIN_RSS && pluginId !== PLUGIN_URL_LIST) {
+      paramsText = Object.keys(params).length
+        ? JSON.stringify(params, null, 2)
+        : '';
+    }
+
     setDraft({
       name: s.name,
-      kind: s.kind,
-      feedUrl: s.sourceConfig.feedUrl || '',
-      urlsText: (s.sourceConfig.urls || []).join('\n'),
-      pluginId: s.sourceConfig.pluginId || '',
-      paramsText: s.sourceConfig.params
-        ? JSON.stringify(s.sourceConfig.params, null, 2)
-        : '',
+      pluginId,
+      feedUrl,
+      urlsText: urls.join('\n'),
+      paramsText,
       preset: s.preset,
       cron: s.cron,
       timezone: s.timezone || 'Asia/Shanghai',
@@ -166,51 +221,72 @@ export function ScheduleSettingsTab({
     setShowForm(true);
   };
 
-  const bodyFromDraft = useMemo(() => {
-    return () => {
+  const bodyFromDraft = useCallback(() => {
+    const pluginId = draft.pluginId.trim();
+    if (!pluginId) {
+      throw new Error(t('settings.schedulePluginPick'));
+    }
+
+    let params: Record<string, unknown> = {};
+    if (pluginId === PLUGIN_RSS) {
+      const feedUrl = draft.feedUrl.trim();
+      if (!feedUrl) throw new Error(t('settings.scheduleFeedUrlRequired'));
+      params = { feedUrl };
+    } else if (pluginId === PLUGIN_URL_LIST) {
       const urls = draft.urlsText
         .split(/[\n,]+/)
         .map((x) => x.trim())
         .filter(Boolean);
-      let params: Record<string, unknown> | undefined;
-      if (draft.paramsText.trim()) {
-        try {
-          const parsed = JSON.parse(draft.paramsText) as unknown;
-          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-            throw new Error('params');
-          }
-          params = parsed as Record<string, unknown>;
-        } catch {
-          throw new Error(t('settings.scheduleParamsInvalid'));
+      if (!urls.length) throw new Error(t('settings.scheduleUrlsRequired'));
+      params = { urls };
+    } else if (draft.paramsText.trim()) {
+      try {
+        const parsed = JSON.parse(draft.paramsText) as unknown;
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('params');
         }
+        params = parsed as Record<string, unknown>;
+      } catch {
+        throw new Error(t('settings.scheduleParamsInvalid'));
       }
-      const sourceConfig =
-        draft.kind === 'rss'
-          ? { feedUrl: draft.feedUrl.trim() }
-          : draft.kind === 'url_list'
-            ? { urls }
-            : {
-                pluginId: draft.pluginId.trim(),
-                params,
-              };
-      return {
-        name: draft.name.trim(),
-        enabled: draft.enabled,
-        kind: draft.kind,
-        sourceConfig,
-        preset: draft.preset,
-        cron: draft.preset === 'cron' ? draft.cron.trim() : undefined,
-        timezone: draft.timezone.trim() || 'Asia/Shanghai',
-        jobDefaults: {
-          albumId: draft.albumId || null,
-          titlePrefix: draft.titlePrefix.trim() || undefined,
-          published: true,
-        },
-        limits: {
-          maxItemsPerRun: draft.maxItemsPerRun,
-          onlyNew: draft.onlyNew,
-        },
-      };
+    }
+
+    // 同步顶层字段，便于列表摘要与兼容旧读法
+    const sourceConfig: {
+      pluginId: string;
+      params: Record<string, unknown>;
+      feedUrl?: string;
+      urls?: string[];
+    } = {
+      pluginId,
+      params,
+    };
+    if (pluginId === PLUGIN_RSS) {
+      sourceConfig.feedUrl = String(params.feedUrl || '');
+    }
+    if (pluginId === PLUGIN_URL_LIST) {
+      sourceConfig.urls = Array.isArray(params.urls)
+        ? (params.urls as string[])
+        : [];
+    }
+
+    return {
+      name: draft.name.trim(),
+      enabled: draft.enabled,
+      kind: 'plugin' as const,
+      sourceConfig,
+      preset: draft.preset,
+      cron: draft.preset === 'cron' ? draft.cron.trim() : undefined,
+      timezone: draft.timezone.trim() || 'Asia/Shanghai',
+      jobDefaults: {
+        albumId: draft.albumId || null,
+        titlePrefix: draft.titlePrefix.trim() || undefined,
+        published: true,
+      },
+      limits: {
+        maxItemsPerRun: draft.maxItemsPerRun,
+        onlyNew: draft.onlyNew,
+      },
     };
   }, [draft, t]);
 
@@ -295,17 +371,65 @@ export function ScheduleSettingsTab({
     }
   };
 
+  const paramFields = (() => {
+    if (draft.pluginId === PLUGIN_RSS) {
+      return (
+        <label className="settings-field settings-field-span">
+          <span>{t('settings.scheduleFeedUrl')}</span>
+          <input
+            className="nl-input"
+            value={draft.feedUrl}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, feedUrl: e.target.value }))
+            }
+            placeholder="https://example.com/feed.xml"
+          />
+        </label>
+      );
+    }
+    if (draft.pluginId === PLUGIN_URL_LIST) {
+      return (
+        <label className="settings-field settings-field-span">
+          <span>{t('settings.scheduleUrls')}</span>
+          <textarea
+            className="nl-input"
+            rows={4}
+            value={draft.urlsText}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, urlsText: e.target.value }))
+            }
+            placeholder={t('settings.scheduleUrlsPh')}
+          />
+        </label>
+      );
+    }
+    return (
+      <label className="settings-field settings-field-span">
+        <span>{t('settings.scheduleParams')}</span>
+        <textarea
+          className="nl-input"
+          rows={4}
+          value={draft.paramsText}
+          onChange={(e) =>
+            setDraft((d) => ({ ...d, paramsText: e.target.value }))
+          }
+          placeholder={t('settings.scheduleParamsPh')}
+        />
+      </label>
+    );
+  })();
+
   return (
     <SettingsPanel id="schedules" active={active}>
       <div className="settings-stack">
         <SettingsCard>
           <SettingsBlock
             title={t('settings.scheduleTitle')}
-            desc={t('settings.scheduleDesc')}
+            desc={t('settings.scheduleDescUnified')}
           >
             <div className="settings-card-actions" style={{ marginTop: 0 }}>
               <span className="settings-card-hint">
-                {t('settings.scheduleHint')}
+                {t('settings.scheduleHintUnified')}
               </span>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
@@ -351,96 +475,36 @@ export function ScheduleSettingsTab({
                 </label>
 
                 <label className="settings-field">
-                  <span>{t('settings.scheduleKind')}</span>
+                  <span>{t('settings.schedulePlugin')}</span>
                   <select
                     className="nl-input"
-                    value={draft.kind}
+                    value={draft.pluginId}
                     onChange={(e) =>
                       setDraft((d) => ({
                         ...d,
-                        kind: e.target.value as ScheduleKind,
+                        pluginId: e.target.value,
                       }))
                     }
                   >
-                    <option value="rss">{t('settings.scheduleKindRss')}</option>
-                    <option value="url_list">
-                      {t('settings.scheduleKindUrlList')}
-                    </option>
-                    <option value="plugin">
-                      {t('settings.scheduleKindPlugin')}
-                    </option>
+                    {!enabledPlugins.length ? (
+                      <option value="">{t('settings.schedulePluginNone')}</option>
+                    ) : null}
+                    {enabledPlugins.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.id})
+                      </option>
+                    ))}
+                    {/* 编辑旧数据时插件可能已停用，仍展示当前值 */}
+                    {draft.pluginId &&
+                    !enabledPlugins.some((p) => p.id === draft.pluginId) ? (
+                      <option value={draft.pluginId}>
+                        {draft.pluginId} ({t('settings.schedulePluginDisabled')})
+                      </option>
+                    ) : null}
                   </select>
                 </label>
 
-                {draft.kind === 'rss' ? (
-                  <label className="settings-field settings-field-span">
-                    <span>{t('settings.scheduleFeedUrl')}</span>
-                    <input
-                      className="nl-input"
-                      value={draft.feedUrl}
-                      onChange={(e) =>
-                        setDraft((d) => ({ ...d, feedUrl: e.target.value }))
-                      }
-                      placeholder="https://example.com/feed.xml"
-                    />
-                  </label>
-                ) : null}
-
-                {draft.kind === 'url_list' ? (
-                  <label className="settings-field settings-field-span">
-                    <span>{t('settings.scheduleUrls')}</span>
-                    <textarea
-                      className="nl-input"
-                      rows={4}
-                      value={draft.urlsText}
-                      onChange={(e) =>
-                        setDraft((d) => ({ ...d, urlsText: e.target.value }))
-                      }
-                      placeholder={t('settings.scheduleUrlsPh')}
-                    />
-                  </label>
-                ) : null}
-
-                {draft.kind === 'plugin' ? (
-                  <>
-                    <label className="settings-field settings-field-span">
-                      <span>{t('settings.schedulePlugin')}</span>
-                      <select
-                        className="nl-input"
-                        value={draft.pluginId}
-                        onChange={(e) =>
-                          setDraft((d) => ({ ...d, pluginId: e.target.value }))
-                        }
-                      >
-                        <option value="">
-                          {t('settings.schedulePluginPick')}
-                        </option>
-                        {plugins
-                          .filter((p) => p.enabled && !p.loadError)
-                          .map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} ({p.id})
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                    <label className="settings-field settings-field-span">
-                      <span>{t('settings.scheduleParams')}</span>
-                      <textarea
-                        className="nl-input"
-                        rows={4}
-                        value={draft.paramsText}
-                        onChange={(e) =>
-                          setDraft((d) => ({
-                            ...d,
-                            paramsText: e.target.value,
-                          }))
-                        }
-                        placeholder={t('settings.scheduleParamsPh')}
-                      />
-                    </label>
-                  </>
-                ) : null}
+                {paramFields}
 
                 <label className="settings-field">
                   <span>{t('settings.schedulePreset')}</span>
@@ -615,6 +679,7 @@ export function ScheduleSettingsTab({
             <ul className="schedule-list">
               {items.map((s) => {
                 const busy = busyId === s.id;
+                const pluginId = resolvePluginId(s);
                 return (
                   <li key={s.id} className="schedule-item">
                     <div className="schedule-item-main">
@@ -642,17 +707,16 @@ export function ScheduleSettingsTab({
                         ) : null}
                       </div>
                       <p className="schedule-item-meta">
-                        {s.kind === 'rss'
-                          ? t('settings.scheduleKindRss')
-                          : s.kind === 'plugin'
-                            ? t('settings.scheduleKindPlugin')
-                            : t('settings.scheduleKindUrlList')}
+                        {pluginLabel(pluginId, plugins)}
                         {' · '}
                         {presetLabel(s.preset, s.cron)}
                         {' · '}
                         {s.timezone}
                       </p>
-                      <p className="schedule-item-source" title={sourceSummary(s)}>
+                      <p
+                        className="schedule-item-source"
+                        title={sourceSummary(s)}
+                      >
                         {sourceSummary(s)}
                       </p>
                       <p className="schedule-item-meta">

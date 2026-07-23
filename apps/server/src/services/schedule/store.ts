@@ -104,9 +104,10 @@ function rowToRun(row: RunRow): ScheduleRun {
 
 function normalizeKind(raw: unknown): ScheduleKind {
   const k = String(raw || '').trim();
+  // 兼容历史：rss / url_list 仍可读；新建默认 plugin
   if (k === 'url_list') return 'url_list';
-  if (k === 'plugin') return 'plugin';
-  return 'rss';
+  if (k === 'rss') return 'rss';
+  return 'plugin';
 }
 
 function normalizePreset(raw: unknown): SchedulePreset {
@@ -138,45 +139,69 @@ function normalizeSourceConfig(
   input?: ScheduleSourceConfig | null,
 ): ScheduleSourceConfig {
   const cfg = input || {};
-  const pluginId = String(cfg.pluginId || '').trim() || undefined;
-  const params =
+  let pluginId = String(cfg.pluginId || '').trim() || undefined;
+  // 历史 kind 补齐 pluginId
+  if (!pluginId) {
+    if (kind === 'rss') pluginId = 'schedule.rss';
+    else if (kind === 'url_list') pluginId = 'schedule.url-list';
+  }
+
+  let params: Record<string, unknown> | undefined =
     cfg.params && typeof cfg.params === 'object' && !Array.isArray(cfg.params)
-      ? (cfg.params as Record<string, unknown>)
+      ? { ...(cfg.params as Record<string, unknown>) }
       : undefined;
 
-  if (kind === 'rss') {
-    const feedUrl = String(cfg.feedUrl || '').trim();
-    return { feedUrl, pluginId, params };
-  }
-  if (kind === 'plugin') {
-    return {
-      pluginId,
-      params,
-      feedUrl: cfg.feedUrl ? String(cfg.feedUrl).trim() : undefined,
-      urls: Array.isArray(cfg.urls)
-        ? cfg.urls.map((u) => String(u || '').trim()).filter(Boolean)
-        : undefined,
-    };
-  }
-  const urls = Array.isArray(cfg.urls)
+  const feedUrlRaw = String(cfg.feedUrl || params?.feedUrl || '').trim();
+  const urlsRaw = Array.isArray(cfg.urls)
     ? cfg.urls.map((u) => String(u || '').trim()).filter(Boolean)
-    : String((cfg as { feedUrl?: string }).feedUrl || '')
-        .split(/[\n,]+/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-  return { urls, pluginId, params };
+    : Array.isArray(params?.urls)
+      ? (params!.urls as unknown[]).map((u) => String(u || '').trim()).filter(Boolean)
+      : String((cfg as { feedUrl?: string }).feedUrl || '')
+          .split(/[\n,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+  // 统一把内置参数写入 params，便于 plugin.fetch
+  if (pluginId === 'schedule.rss' || kind === 'rss') {
+    params = { ...(params || {}), feedUrl: feedUrlRaw || String(params?.feedUrl || '') };
+  }
+  if (pluginId === 'schedule.url-list' || kind === 'url_list') {
+    params = { ...(params || {}), urls: urlsRaw.length ? urlsRaw : (params?.urls as string[]) || [] };
+  }
+
+  return {
+    pluginId,
+    params,
+    feedUrl: feedUrlRaw || undefined,
+    urls: urlsRaw.length ? urlsRaw : undefined,
+  };
 }
 
 function validateSource(kind: ScheduleKind, cfg: ScheduleSourceConfig): string | null {
-  if (kind === 'rss') {
-    if (!cfg.feedUrl) return '请填写 RSS 地址';
+  const pluginId =
+    String(cfg.pluginId || '').trim() ||
+    (kind === 'rss'
+      ? 'schedule.rss'
+      : kind === 'url_list'
+        ? 'schedule.url-list'
+        : '');
+  if (!pluginId) return '请选择订阅插件';
+
+  const feedUrl = String(cfg.feedUrl || cfg.params?.feedUrl || '').trim();
+  const urls = Array.isArray(cfg.urls)
+    ? cfg.urls
+    : Array.isArray(cfg.params?.urls)
+      ? (cfg.params?.urls as unknown[])
+      : [];
+
+  if (pluginId === 'schedule.rss' || kind === 'rss') {
+    if (!feedUrl) return '请填写 RSS 地址';
     return null;
   }
-  if (kind === 'plugin') {
-    if (!cfg.pluginId) return '请选择订阅插件';
+  if (pluginId === 'schedule.url-list' || kind === 'url_list') {
+    if (!urls.length) return '请至少填写一个 URL';
     return null;
   }
-  if (!cfg.urls?.length) return '请至少填写一个 URL';
   return null;
 }
 
@@ -190,7 +215,7 @@ export function validateScheduleInput(
 
   const kind = input.kind
     ? normalizeKind(input.kind)
-    : existing?.kind || 'rss';
+    : existing?.kind || 'plugin';
   const sourceConfig = input.sourceConfig
     ? normalizeSourceConfig(kind, input.sourceConfig)
     : existing
@@ -227,7 +252,7 @@ function buildScheduleFromInput(
   id: string,
   now: string,
 ): Schedule {
-  const kind = normalizeKind(input.kind);
+  const kind = normalizeKind(input.kind || 'plugin');
   const preset = normalizePreset(input.preset);
   const cron = cronFromPreset(preset, input.cron);
   const timezone = String(input.timezone || 'Asia/Shanghai').trim() || 'Asia/Shanghai';
