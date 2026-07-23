@@ -130,7 +130,7 @@ Create, listen, and manage task assets in one private space.
 
 | Home | Player |
 | :---: | :---: |
-| <img src="docs/img/home_en.webp" alt="BokeBox home" /> | <img src="docs/img/lis_en.webp" alt="BokeBox player" /> |
+| <img src="docs/img/home_en.webp" width="100%" alt="BokeBox home" /> | <img src="docs/img/lis_en.webp" width="100%" alt="BokeBox player" /> |
 
 You get:
 
@@ -143,21 +143,15 @@ You get:
 
 ## ⚙️ Settings at a glance
 
-Tune the voice, persona, prompt templates, MCP access, subscriptions, and public site details from one settings center.
+Tune voice, persona, prompts, MCP, site info, and subscriptions from one settings center.
 
 | Voice | Persona |
 | :---: | :---: |
-| <img src="docs/img/settings-voice.webp" alt="BokeBox voice settings" /> | <img src="docs/img/settings-persona.webp" alt="BokeBox persona settings" /> |
-| MCP | Prompt templates |
-| <img src="docs/img/settings-mcp.webp" alt="BokeBox MCP settings" /> | <img src="docs/img/settings-prompts.webp" alt="BokeBox prompt template settings" /> |
-
-<p align="center">
-  <img src="docs/img/settings-site.webp" alt="BokeBox site settings" width="78%" />
-</p>
-
-<p align="center">
-  <img src="docs/img/settings-dingyue.webp" alt="BokeBox subscription schedules" width="78%" />
-</p>
+| <img src="docs/img/settings-voice.webp" width="100%" alt="BokeBox voice settings" /> | <img src="docs/img/settings-persona.webp" width="100%" alt="BokeBox persona settings" /> |
+| **MCP** | **Prompt templates** |
+| <img src="docs/img/settings-mcp.webp" width="100%" alt="BokeBox MCP settings" /> | <img src="docs/img/settings-prompts.webp" width="100%" alt="BokeBox prompt template settings" /> |
+| **Site** | **Subscriptions** |
+| <img src="docs/img/settings-site.webp" width="100%" alt="BokeBox site settings" /> | <img src="docs/img/settings-dingyue.webp" width="100%" alt="BokeBox subscription schedules" /> |
 
 ---
 

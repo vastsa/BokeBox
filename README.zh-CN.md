@@ -130,7 +130,7 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 | 首页 | 播放页 |
 | :---: | :---: |
-| <img src="docs/img/home_zh.webp" alt="BokeBox 桌面" /> | <img src="docs/img/lis_zh.webp" alt="BokeBox 播放" /> |
+| <img src="docs/img/home_zh.webp" width="100%" alt="BokeBox 桌面" /> | <img src="docs/img/lis_zh.webp" width="100%" alt="BokeBox 播放" /> |
 
 你将拥有：
 
@@ -143,21 +143,15 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 ## ⚙️ 设置中心
 
-在一个设置中心里统一管理音色、人设、提示词模板、MCP 接入、订阅与站点信息。
+音色、人设、提示词、MCP、站点与订阅，统一在一个设置中心里完成。
 
 | 音色 | 人设 |
 | :---: | :---: |
-| <img src="docs/img/settings-voice.webp" alt="BokeBox 音色设置" /> | <img src="docs/img/settings-persona.webp" alt="BokeBox 人设设置" /> |
-| MCP | 提示词模板 |
-| <img src="docs/img/settings-mcp.webp" alt="BokeBox MCP 设置" /> | <img src="docs/img/settings-prompts.webp" alt="BokeBox 提示词模板设置" /> |
-
-<p align="center">
-  <img src="docs/img/settings-site.webp" alt="BokeBox 站点设置" width="78%" />
-</p>
-
-<p align="center">
-  <img src="docs/img/settings-dingyue.webp" alt="BokeBox 订阅设置" width="78%" />
-</p>
+| <img src="docs/img/settings-voice.webp" width="100%" alt="BokeBox 音色设置" /> | <img src="docs/img/settings-persona.webp" width="100%" alt="BokeBox 人设设置" /> |
+| **MCP** | **提示词模板** |
+| <img src="docs/img/settings-mcp.webp" width="100%" alt="BokeBox MCP 设置" /> | <img src="docs/img/settings-prompts.webp" width="100%" alt="BokeBox 提示词模板设置" /> |
+| **站点** | **订阅** |
+| <img src="docs/img/settings-site.webp" width="100%" alt="BokeBox 站点设置" /> | <img src="docs/img/settings-dingyue.webp" width="100%" alt="BokeBox 订阅设置" /> |
 
 ---
 
