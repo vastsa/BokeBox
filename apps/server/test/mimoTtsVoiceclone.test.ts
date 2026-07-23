@@ -68,3 +68,15 @@ describe('mimo voiceclone body', () => {
     assert.ok(p.endsWith('/data/storage/samples/x.mp3') || p.includes('samples/x.mp3'));
   });
 });
+
+describe('mimo voiceclone cache', () => {
+  it('toCloneVoiceDataUri reuses data URI cache', async () => {
+    const { toCloneVoiceDataUri } = await import('../src/providers/tts/mimoTts.js');
+    const uri = 'data:audio/mpeg;base64,QUJDRA==';
+    const a = await toCloneVoiceDataUri(uri);
+    const b = await toCloneVoiceDataUri(uri);
+    assert.equal(a, b);
+    assert.ok(a.startsWith('data:audio/mpeg;base64,'));
+  });
+});
+

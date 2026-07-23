@@ -119,17 +119,21 @@ export function GlobalTtsSettings() {
   const modeLabel =
     value.mode === 'voicedesign' && advanced
       ? tOutside('tts.modeCustom')
-      : profile.voiceUi === 'reference'
-        ? tOutside('tts.modeReferenceShort')
-        : tOutside('tts.modeDefault');
+      : value.mode === 'voiceclone'
+        ? tOutside('tts.modeClone')
+        : profile.voiceUi === 'reference'
+          ? tOutside('tts.modeReferenceShort')
+          : tOutside('tts.modeDefault');
   const voiceLabel =
     value.mode === 'voicedesign' && advanced
       ? value.voiceDesign?.trim() || tOutside('tts.noDesc')
-      : formatTtsVoiceLabel(
-          value.voice,
-          profile,
-          tOutside('tts.refPluginDefaultShort'),
-        );
+      : value.mode === 'voiceclone'
+        ? value.voice?.trim() || tOutside('tts.cloneUsePluginDefault')
+        : formatTtsVoiceLabel(
+            value.voice,
+            profile,
+            tOutside('tts.refPluginDefaultShort'),
+          );
   const styleLabel =
     advanced && value.mode === 'default' && value.styleTags?.length
       ? value.styleTags.join('、')

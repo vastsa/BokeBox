@@ -90,6 +90,35 @@ const DEFAULT_VOICECLONE_MODEL = 'mimo-v2.5-tts-voiceclone';
 /** 参考音频体积上限（避免把超大文件塞进 base64） */
 const MAX_CLONE_AUDIO_BYTES = 8 * 1024 * 1024;
 
+/** 多段口播会多次 synthesizeChunk：缓存已编码的 data URI */
+const cloneDataUriCache = new Map<string, string>();
+const CLONE_CACHE_MAX = 8;
+
+function cacheCloneDataUri(key: string, uri: string): string {
+  if (cloneDataUriCache.has(key)) cloneDataUriCache.delete(key);
+  cloneDataUriCache.set(key, uri);
+  while (cloneDataUriCache.size > CLONE_CACHE_MAX) {
+    const first = cloneDataUriCache.keys().next().value;
+    if (first === undefined) break;
+    cloneDataUriCache.delete(first);
+  }
+  return uri;
+}
+
+function sniffAudioMime(buf: Buffer, fallback = 'audio/mpeg'): string {
+  if (!buf || buf.length < 12) return fallback;
+  if (buf.slice(0, 4).toString('ascii') === 'RIFF' && buf.slice(8, 12).toString('ascii') === 'WAVE') {
+    return 'audio/wav';
+  }
+  if (buf.slice(0, 3).toString('ascii') === 'ID3') return 'audio/mpeg';
+  if (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0) return 'audio/mpeg';
+  if (buf.slice(0, 4).toString('ascii') === 'OggS') return 'audio/ogg';
+  if (buf.slice(0, 4).toString('ascii') === 'fLaC') return 'audio/flac';
+  // ftyp....M4A / mp4
+  if (buf.slice(4, 8).toString('ascii') === 'ftyp') return 'audio/mp4';
+  return fallback;
+}
+
 export function resolveMimoPresetVoice(voice?: string): string {
   const candidate = voice?.trim() || getDefaultTtsVoice();
   if (PRESET_VOICE_IDS.has(candidate as (typeof MIMO_PRESET_VOICES)[number]['id'])) {
@@ -181,28 +210,60 @@ export function resolveCloneAudioFilePath(
 
 /**
  * 把路径或 data URI 规范成 API 需要的 data:audio/...;base64,...
+ * 同一路径在多段合成中会命中内存缓存，避免重复读盘与编码。
  */
 export async function toCloneVoiceDataUri(
   raw: string,
   storageDir?: string,
 ): Promise<string> {
-  const s = String(raw || '').trim();
+  const s = String(raw || '').trim().replace(/^['"]|['"]$/g, '');
   if (!s) {
     throw new Error('音色克隆缺少参考音频');
   }
-  if (isDataAudioUri(s)) {
-    // 粗略校验体积：base64 约 4/3
-    const b64 = s.split(',')[1] || '';
+
+  // 允许无 data: 前缀的纯 base64（少见，兼容手滑粘贴）
+  let normalized = s;
+  if (!isDataAudioUri(normalized) && /^[A-Za-z0-9+/=\s]+$/.test(normalized) && normalized.replace(/\s/g, '').length > 128) {
+    normalized = `data:audio/mpeg;base64,${normalized.replace(/\s/g, '')}`;
+  }
+
+  if (isDataAudioUri(normalized)) {
+    const cached = cloneDataUriCache.get(normalized.slice(0, 120));
+    if (cached) return cached;
+    const b64 = normalized.split(',')[1] || '';
     const approx = Math.floor((b64.length * 3) / 4);
     if (approx > MAX_CLONE_AUDIO_BYTES) {
       throw new Error(
         `参考音频过大（约 ${(approx / 1024 / 1024).toFixed(1)}MB，上限 ${MAX_CLONE_AUDIO_BYTES / 1024 / 1024}MB）`,
       );
     }
-    return s;
+    // 统一去掉空白
+    const head = normalized.slice(0, normalized.indexOf(',') + 1);
+    const compact = `${head}${b64.replace(/\s/g, '')}`;
+    return cacheCloneDataUri(normalized.slice(0, 120), compact);
   }
 
   const filePath = resolveCloneAudioFilePath(s, storageDir);
+  let st: { size: number; mtimeMs: number };
+  try {
+    const stat = await fs.stat(filePath);
+    st = { size: stat.size, mtimeMs: stat.mtimeMs };
+  } catch {
+    throw new Error(
+      `无法读取参考音频：${filePath}（可填 storage 相对路径，如 samples/clone.mp3，或 data URI）`,
+    );
+  }
+  if (!st.size) throw new Error(`参考音频为空：${filePath}`);
+  if (st.size > MAX_CLONE_AUDIO_BYTES) {
+    throw new Error(
+      `参考音频过大（${(st.size / 1024 / 1024).toFixed(1)}MB，上限 ${MAX_CLONE_AUDIO_BYTES / 1024 / 1024}MB）`,
+    );
+  }
+
+  const cacheKey = `${filePath}|${st.size}|${st.mtimeMs}`;
+  const hit = cloneDataUriCache.get(cacheKey);
+  if (hit) return hit;
+
   let buf: Buffer;
   try {
     buf = await fs.readFile(filePath);
@@ -211,14 +272,9 @@ export async function toCloneVoiceDataUri(
       `无法读取参考音频：${filePath}（可填 storage 相对路径，如 samples/clone.mp3，或 data URI）`,
     );
   }
-  if (!buf.length) throw new Error(`参考音频为空：${filePath}`);
-  if (buf.byteLength > MAX_CLONE_AUDIO_BYTES) {
-    throw new Error(
-      `参考音频过大（${(buf.byteLength / 1024 / 1024).toFixed(1)}MB，上限 ${MAX_CLONE_AUDIO_BYTES / 1024 / 1024}MB）`,
-    );
-  }
-  const mime = mimeFromAudioPath(filePath);
-  return `data:${mime};base64,${buf.toString('base64')}`;
+  const mime = sniffAudioMime(buf, mimeFromAudioPath(filePath));
+  const uri = `data:${mime};base64,${buf.toString('base64')}`;
+  return cacheCloneDataUri(cacheKey, uri);
 }
 
 export type MimoTtsRequestBody = {
@@ -315,14 +371,23 @@ export function pickCloneAudioSource(
   tts?: TtsOptions,
   ctx?: TtsPluginContext,
 ): string {
-  const fromTask = String(tts?.voice || '').trim();
+  const fromTask = String(tts?.voice || '').trim().replace(/^['"]|['"]$/g, '');
   // 任务级若是预置名，不当作参考音频
-  if (fromTask && !PRESET_VOICE_IDS.has(fromTask as never)) {
+  if (
+    fromTask &&
+    !PRESET_VOICE_IDS.has(fromTask as never) &&
+    fromTask !== 'voiceclone' &&
+    fromTask !== 'clone-ref'
+  ) {
     return fromTask;
   }
-  const fromDataUri = String(ctx?.getConfig?.('cloneAudioDataUri') || '').trim();
+  const fromDataUri = String(ctx?.getConfig?.('cloneAudioDataUri') || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '');
   if (fromDataUri) return fromDataUri;
-  const fromPath = String(ctx?.getConfig?.('cloneAudioPath') || '').trim();
+  const fromPath = String(ctx?.getConfig?.('cloneAudioPath') || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '');
   return fromPath;
 }
 
@@ -412,7 +477,7 @@ export const mimoTtsProvider: TtsProvider = {
         },
         {
           type: 'info',
-          text: '音色克隆：提供 5–30 秒清晰人声参考（mp3/wav）。可填 storage 相对路径（如 samples/my-voice.mp3），或 data:audio/mpeg;base64,...。也可在插件配置里设置默认 cloneAudioPath。',
+          text: '音色克隆：5–30 秒清晰人声（mp3/wav，≤8MB）。填 storage 相对路径如 samples/my-voice.mp3，或 data URI；也可在插件配置设置默认 cloneAudioPath。多段口播会自动复用同一次参考编码。',
           when: { mode: 'voiceclone' },
         },
         {
@@ -439,6 +504,9 @@ export const mimoTtsProvider: TtsProvider = {
     input: TtsChunkInput,
     ctx?: TtsPluginContext,
   ): Promise<TtsChunkResult> {
+    const text = String(input.text || '').replace(/\r\n/g, '\n').trim();
+    if (!text) throw new Error('MiMo TTS 文本为空');
+
     const ep = resolveCloudEndpoint('tts', 'mimo');
     const pluginModel = sanitizeMimoTtsModel(
       String(ctx?.getConfig?.('model') ?? '').trim() ||
@@ -448,14 +516,19 @@ export const mimoTtsProvider: TtsProvider = {
     const mode: TtsMode = input.tts?.mode || 'default';
 
     let cloneVoiceDataUri: string | undefined;
-    let clonePrompt = String(ctx?.getConfig?.('clonePrompt') ?? '').trim();
+    const clonePrompt = String(ctx?.getConfig?.('clonePrompt') ?? '').trim();
     if (mode === 'voiceclone') {
       const source = pickCloneAudioSource(input.tts, ctx);
+      if (!source) {
+        throw new Error(
+          '音色克隆未配置参考音频：请在音色面板填写路径/data URI，或在插件配置 cloneAudioPath',
+        );
+      }
       cloneVoiceDataUri = await toCloneVoiceDataUri(source, ctx?.storageDir);
     }
 
     const cloneModelCfg = String(ctx?.getConfig?.('cloneModel') ?? '').trim();
-    const built = buildMimoTtsBody(input.text, input.tts, {
+    const built = buildMimoTtsBody(text, input.tts, {
       applyLeadingStyle: input.applyLeadingStyle,
       model: sanitizeMimoTtsModel(input.model?.trim() || pluginModel),
       voiceDesignModel: input.voiceDesignModel,
@@ -464,11 +537,7 @@ export const mimoTtsProvider: TtsProvider = {
       clonePrompt,
     });
 
-    // 克隆模型名强制：避免误用 asr 清洗后掉回 default
-    const requestModel =
-      built.resolvedMode === 'voiceclone'
-        ? cloneModelCfg || DEFAULT_VOICECLONE_MODEL
-        : built.model;
+    const requestModel = built.model;
 
     const res = await pluginFetch('tts', 'mimo', '/chat/completions', {
       method: 'POST',
@@ -481,7 +550,13 @@ export const mimoTtsProvider: TtsProvider = {
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`MiMo TTS 合成失败 (${res.status}): ${errText}`);
+      const hint =
+        built.resolvedMode === 'voiceclone'
+          ? '（克隆模式请确认模型为 mimo-v2.5-tts-voiceclone，且参考音频清晰）'
+          : '';
+      throw new Error(
+        `MiMo TTS 合成失败 (${res.status})${hint}: ${errText.slice(0, 800)}`,
+      );
     }
 
     const data = (await res.json()) as {
@@ -496,9 +571,7 @@ export const mimoTtsProvider: TtsProvider = {
       provider: 'mimo',
       model: requestModel,
       voice:
-        built.resolvedMode === 'voiceclone'
-          ? 'voiceclone'
-          : built.voice,
+        built.resolvedMode === 'voiceclone' ? 'voiceclone' : built.voice,
       mode: built.resolvedMode,
       demo: false,
     };
