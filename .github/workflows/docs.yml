@@ -41,7 +41,9 @@ jobs:
       - name: Build docs
         # GitHub project pages 默认 base 为 /<repo>/
         # 若使用 user/org pages 或自定义域，可去掉 -- 或改 base
-        run: pnpm --filter @bokebox/docs exec vitepress build . --base /BokeBox/
+        env:
+          DOCS_BASE: /BokeBox/
+        run: pnpm docs:build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

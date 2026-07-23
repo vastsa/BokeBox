@@ -150,3 +150,9 @@ git push origin v1.0.0
 - 首次使用 GHCR 后，如需公开拉取：
 
   仓库 GitHub Packages 页面 → Package settings → Change visibility → Public
+
+## 相关文档
+
+- [部署指南](../guide/deployment.md)
+- [配置与环境变量](../guide/configuration.md)
+- [快速开始](../guide/getting-started.md)

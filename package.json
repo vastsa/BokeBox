@@ -21,9 +21,9 @@
     "typecheck": "pnpm --filter @bokebox/shared build && pnpm -r typecheck",
     "test": "pnpm --filter @bokebox/shared build && pnpm --filter @bokebox/server test",
     "lint": "pnpm typecheck",
-    "docs:dev": "pnpm --filter @bokebox/docs dev",
-    "docs:build": "pnpm --filter @bokebox/docs build",
-    "docs:preview": "pnpm --filter @bokebox/docs preview"
+    "docs:dev": "pnpm --filter @bokebox/docs dev:docs",
+    "docs:build": "pnpm --filter @bokebox/docs build:docs",
+    "docs:preview": "pnpm --filter @bokebox/docs preview:docs"
   },
   "engines": {
     "node": ">=22.5"

@@ -1,3 +1,7 @@
+---
+description: 三步启动 BokeBox：本地开发、Docker 与文档站预览。
+---
+
 # 快速开始
 
 > 更完整的产品说明见仓库 [README.zh-CN.md](https://github.com/vastsa/BokeBox/blob/main/README.zh-CN.md)。  
@@ -30,9 +34,9 @@ pnpm dev
 - Web：终端输出的本地地址（通常 `http://localhost:5173`）
 - API：默认 `http://localhost:8787`
 
-## Docker
+密钥与模型变量说明见 [配置与环境变量](./configuration.md)。
 
-### 拉取预构建镜像（推荐）
+## Docker 一键
 
 ```bash
 cp .env.example .env
@@ -41,58 +45,29 @@ docker pull ghcr.io/vastsa/bokebox:latest
 # 访问 http://localhost:8787
 ```
 
-### 本地源码构建
+更多方式（本地构建、国内源、反向代理）见 [部署](./deployment.md)。
 
-```bash
-cp .env.example .env
-./start.sh docker.local
-```
+## 第一期节目
 
-### 国内镜像构建（大陆服务器）
+1. 浏览器打开站点，完成初始化  
+2. 在设置中确认 AI 服务可用  
+3. 丢一条链接 / 上传文稿或视频  
+4. 等流水线跑完，在听播库打开播放  
 
-```bash
-cp .env.example .env
-./start.sh docker.cn
-# 使用 DaoCloud Node 镜像 + 阿里云 apt + npmmirror
-# 系统安装 ffmpeg，避免 GitHub 下载超时
-```
-
-停止：
-
-```bash
-pnpm docker:down
-# 或
-./start.sh docker:down
-```
-
-## 环境变量
-
-完整变量清单见仓库根目录 [`.env.example`](https://github.com/vastsa/BokeBox/blob/main/.env.example)。
-
-常见项：
-
-| 变量 | 说明 |
-| --- | --- |
-| 模型 / API Key | LLM、TTS 等提供方密钥 |
-| 端口 | Web / API 监听端口 |
-| 存储路径 | 任务媒体与数据库位置（默认 `storage/`） |
-
-镜像发布与 CI 说明见 [Docker CI/CD](../ops/ci-cd.md)。
+想用 AI 客户端直接创建任务？看 [MCP 接入](./mcp.md)。
 
 ## 文档站（本站）
 
-在 monorepo 内预览文档：
-
 ```bash
 pnpm docs:dev      # 本地热更新
-pnpm docs:build    # 构建静态站
+pnpm docs:build    # 构建静态站 → docs/.vitepress/dist
 pnpm docs:preview  # 预览构建产物
 ```
 
 ## 下一步
 
-- [项目介绍](./introduction.md) — 产品定位与架构
-- [Source 插件](../plugins/source.md) — 扩展内容源
-- [ASR / TTS 插件](../plugins/asr-tts.md) — 转写与合成
-- [Schedule 订阅](../plugins/schedule.md) — 定时进匣
-- [插件开发总入口](../development/source-plugin.md) — 写自己的插件
+- [项目介绍](./introduction.md) — 产品定位  
+- [功能清单](./features.md) — 能力全景  
+- [架构概览](./architecture.md) — 数据流与 monorepo  
+- [插件体系](../plugins/) — 扩展内容源与音色  
+- [Docker CI/CD](../ops/ci-cd.md) — 镜像发布  

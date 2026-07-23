@@ -13,11 +13,11 @@ hero:
       text: 快速开始
       link: /guide/getting-started
     - theme: alt
-      text: 查看 GitHub
-      link: https://github.com/vastsa/BokeBox
+      text: 功能清单
+      link: /guide/features
     - theme: alt
-      text: 插件体系
-      link: /plugins/source
+      text: GitHub
+      link: https://github.com/vastsa/BokeBox
 
 features:
   - icon: 🎧
@@ -25,7 +25,7 @@ features:
     details: AI 重写为口播结构，有开场、重点与收尾，不是干巴巴朗读字幕。
   - icon: 🔌
     title: 输入可扩展
-    details: 视频 / 链接 / 文稿 / 会议与课程等均可进匣；Source 插件继续扩展内容源。
+    details: 视频 / 链接 / 文稿 / 会议与课程等均可进匣；Source 与 Schedule 插件继续扩展。
   - icon: 🎙️
     title: 人设与音色
     details: 主播是谁、对谁讲、什么风格、用什么声音 —— 全局默认或单集临时改。
@@ -40,18 +40,48 @@ features:
     details: 单用户本地部署，任务与进度留在你这边。开源协议 LGPL-3.0。
 ---
 
+## 界面一览
+
+<div class="bokebox-gallery">
+  <figure>
+    <img src="/img/home_zh.webp" alt="BokeBox 桌面" />
+    <figcaption>桌面 · 任务与进度</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/lis_zh.webp" alt="BokeBox 播放" />
+    <figcaption>播放器 · 听播体验</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/settings-persona.webp" alt="人设设置" />
+    <figcaption>设置 · 人设</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/settings-voice.webp" alt="音色设置" />
+    <figcaption>设置 · 音色</figcaption>
+  </figure>
+</div>
+
 ## 文档导航
 
-| 分类 | 说明 |
+| 分类 | 页面 |
 | --- | --- |
-| [快速开始](/guide/getting-started) | 本地启动、Docker、环境变量 |
-| [项目介绍](/guide/introduction) | 产品定位与能力一览 |
-| [Source 插件](/plugins/source) | 内容获取插件架构 |
-| [ASR / TTS 插件](/plugins/asr-tts) | 转写与合成插件 |
-| [Schedule 订阅](/plugins/schedule) | 定时订阅插件 |
-| [插件开发](/development/source-plugin) | 写自己的 Source / TTS / Schedule 插件 |
-| [Docker CI/CD](/ops/ci-cd) | 镜像构建与发布流水线 |
-| [Design Tokens](/development/web-design-tokens) | 前端字号与颜色 Token |
+| 入门 | [快速开始](/guide/getting-started) · [项目介绍](/guide/introduction) · [功能清单](/guide/features) |
+| 使用 | [配置](/guide/configuration) · [部署](/guide/deployment) · [MCP](/guide/mcp) · [架构](/guide/architecture) |
+| 插件 | [总览](/plugins/) · [Source](/plugins/source) · [ASR/TTS](/plugins/asr-tts) · [Schedule](/plugins/schedule) |
+| 开发 | [总览](/development/) · [Source](/development/source-plugin) · [TTS](/development/tts-plugin) · [Schedule](/development/schedule-plugin) |
+| 运维 | [Docker CI/CD](/ops/ci-cd) |
+| 前端 | [Design Tokens](/development/web-design-tokens) |
+
+## 30 秒看懂
+
+```text
+  你丢进去的                    BokeBox 交还给你的
+ ─────────────                 ─────────────────
+  会议录像 / 纪要               有节奏的口播节目
+  课程回放 / 材料    ──AI──▶    可自定义的主播人设
+  深度长文 / 文稿               预置 / 描述定制音色
+  任意链接（可插件扩展）         封面 · 闪卡 · 听播进度
+```
 
 ## 仓库
 

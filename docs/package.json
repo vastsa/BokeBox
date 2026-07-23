@@ -5,9 +5,9 @@
   "type": "module",
   "description": "BokeBox 文档站点（VitePress）",
   "scripts": {
-    "dev": "vitepress dev .",
-    "build": "vitepress build .",
-    "preview": "vitepress preview ."
+    "dev:docs": "vitepress dev .",
+    "build:docs": "vitepress build .",
+    "preview:docs": "vitepress preview ."
   },
   "devDependencies": {
     "vitepress": "^1.6.3",

@@ -1,47 +1,53 @@
 import { defineConfig } from 'vitepress'
 
-// https://vitepress.dev/reference/site-config
+const repo = 'https://github.com/vastsa/BokeBox'
+
 export default defineConfig({
   title: 'BokeBox',
   description:
     'BokeBox · 私人 AI 播客工作室：多源内容转化为可收听的私人播客。开源 · LGPL-3.0',
   lang: 'zh-CN',
-  // 以仓库 docs/ 为站点根；GitHub Pages 可按需改 base
-  base: '/',
+  // 本地 / 自定义域用 '/'；GitHub Pages 项目站由 CI 传入 --base /BokeBox/
+  base: process.env.DOCS_BASE || '/',
   cleanUrls: true,
+  // 本地推广草稿与包 README 不进入文档站
+  srcExclude: ['**/promo/**', 'README.md'],
   lastUpdated: true,
   ignoreDeadLinks: [
-    // 本地开发 API / 示例命令中的地址
     /^https?:\/\/localhost/,
-    // monorepo 外目录（构建时不在 docs 根下）
     /\.\.\/\.\.\/examples\//,
     /\.\.\/\.\.\/apps\//,
   ],
   head: [
     ['link', { rel: 'icon', href: '/img/logo.webp', type: 'image/webp' }],
     ['meta', { name: 'theme-color', content: '#7C5CFF' }],
-    [
-      'meta',
-      {
-        property: 'og:title',
-        content: 'BokeBox · 私人 AI 播客工作室',
-      },
-    ],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:title', content: 'BokeBox · 私人 AI 播客工作室' }],
     [
       'meta',
       {
         property: 'og:description',
-        content: '内容进匣，AI 成播。多源输入、人设音色可定制、MCP 与插件扩展、本地私有部署。',
+        content:
+          '内容进匣，AI 成播。多源输入、人设音色可定制、MCP 与插件扩展、本地私有部署。',
       },
     ],
     [
       'meta',
       {
         property: 'og:image',
-        content: 'https://raw.githubusercontent.com/vastsa/BokeBox/main/docs/img/banner_zh.webp',
+        content:
+          'https://raw.githubusercontent.com/vastsa/BokeBox/main/docs/img/banner_zh.webp',
       },
     ],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
   ],
+  markdown: {
+    lineNumbers: false,
+    theme: {
+      light: 'github-light',
+      dark: 'github-dark',
+    },
+  },
   themeConfig: {
     logo: '/img/logo.webp',
     siteTitle: 'BokeBox',
@@ -67,13 +73,41 @@ export default defineConfig({
       },
     },
     nav: [
-      { text: '指南', link: '/guide/getting-started' },
-      { text: '插件', link: '/plugins/source' },
-      { text: '开发', link: '/development/source-plugin' },
+      {
+        text: '指南',
+        items: [
+          { text: '快速开始', link: '/guide/getting-started' },
+          { text: '项目介绍', link: '/guide/introduction' },
+          { text: '功能清单', link: '/guide/features' },
+          { text: '架构概览', link: '/guide/architecture' },
+          { text: '配置与环境变量', link: '/guide/configuration' },
+          { text: '部署', link: '/guide/deployment' },
+          { text: 'MCP 接入', link: '/guide/mcp' },
+        ],
+      },
+      {
+        text: '插件',
+        items: [
+          { text: '插件总览', link: '/plugins/' },
+          { text: 'Source', link: '/plugins/source' },
+          { text: 'ASR / TTS', link: '/plugins/asr-tts' },
+          { text: 'Schedule', link: '/plugins/schedule' },
+        ],
+      },
+      {
+        text: '开发',
+        items: [
+          { text: '开发总览', link: '/development/' },
+          { text: 'Source 插件', link: '/development/source-plugin' },
+          { text: 'TTS 插件', link: '/development/tts-plugin' },
+          { text: 'Schedule 插件', link: '/development/schedule-plugin' },
+          { text: 'Design Tokens', link: '/development/web-design-tokens' },
+        ],
+      },
       { text: '运维', link: '/ops/ci-cd' },
       {
         text: 'GitHub',
-        link: 'https://github.com/vastsa/BokeBox',
+        link: repo,
       },
     ],
     sidebar: {
@@ -83,6 +117,16 @@ export default defineConfig({
           items: [
             { text: '快速开始', link: '/guide/getting-started' },
             { text: '项目介绍', link: '/guide/introduction' },
+            { text: '功能清单', link: '/guide/features' },
+          ],
+        },
+        {
+          text: '深入',
+          items: [
+            { text: '架构概览', link: '/guide/architecture' },
+            { text: '配置与环境变量', link: '/guide/configuration' },
+            { text: '部署', link: '/guide/deployment' },
+            { text: 'MCP 接入', link: '/guide/mcp' },
           ],
         },
       ],
@@ -90,9 +134,19 @@ export default defineConfig({
         {
           text: '插件说明',
           items: [
+            { text: '插件总览', link: '/plugins/' },
             { text: 'Source 插件', link: '/plugins/source' },
             { text: 'ASR / TTS 插件', link: '/plugins/asr-tts' },
             { text: 'Schedule 订阅插件', link: '/plugins/schedule' },
+          ],
+        },
+        {
+          text: '去写插件',
+          items: [
+            { text: '开发总览', link: '/development/' },
+            { text: 'Source 开发', link: '/development/source-plugin' },
+            { text: 'TTS 开发', link: '/development/tts-plugin' },
+            { text: 'Schedule 开发', link: '/development/schedule-plugin' },
           ],
         },
       ],
@@ -100,6 +154,7 @@ export default defineConfig({
         {
           text: '插件开发',
           items: [
+            { text: '开发总览', link: '/development/' },
             { text: 'Source 插件开发', link: '/development/source-plugin' },
             { text: 'TTS 插件开发', link: '/development/tts-plugin' },
             { text: 'Schedule 插件开发', link: '/development/schedule-plugin' },
@@ -111,26 +166,33 @@ export default defineConfig({
             { text: 'Design Tokens', link: '/development/web-design-tokens' },
           ],
         },
+        {
+          text: '背景',
+          items: [
+            { text: '架构概览', link: '/guide/architecture' },
+            { text: '插件总览', link: '/plugins/' },
+          ],
+        },
       ],
       '/ops/': [
         {
           text: '运维与发布',
-          items: [{ text: 'Docker CI/CD', link: '/ops/ci-cd' }],
+          items: [
+            { text: 'Docker CI/CD', link: '/ops/ci-cd' },
+            { text: '部署指南', link: '/guide/deployment' },
+            { text: '环境变量', link: '/guide/configuration' },
+          ],
         },
       ],
     },
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/vastsa/BokeBox' },
-    ],
+    socialLinks: [{ icon: 'github', link: repo }],
     editLink: {
-      pattern: 'https://github.com/vastsa/BokeBox/edit/main/docs/:path',
+      pattern: `${repo}/edit/main/docs/:path`,
       text: '在 GitHub 上编辑此页',
     },
     footer: {
-      message:
-        'Released under the <a href="https://github.com/vastsa/BokeBox/blob/main/LICENSE">LGPL-3.0</a> License.',
-      copyright:
-        'Copyright © 2024-present <a href="https://github.com/vastsa/BokeBox">BokeBox</a>',
+      message: `Released under the <a href="${repo}/blob/main/LICENSE">LGPL-3.0</a> License.`,
+      copyright: `Copyright © 2024-present <a href="${repo}">BokeBox</a>`,
     },
     docFooter: {
       prev: '上一页',
@@ -149,10 +211,7 @@ export default defineConfig({
     lightModeSwitchTitle: '切换到浅色模式',
     darkModeSwitchTitle: '切换到深色模式',
   },
-  // public 目录：docs/public 下的文件会原样拷贝到站点根
-  // 图片仍放在 docs/img，通过 rewrites / 直接引用 /img 路径
   vite: {
-    // monorepo 根有其他 vite 项目时，避免错误解析
     server: {
       fs: {
         allow: ['..'],
