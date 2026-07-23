@@ -26,3 +26,7 @@ description: BokeBox 插件开发入口与示例索引。
 
 - [架构概览](../guide/architecture.md)
 - [插件体系说明](../plugins/)
+
+## 文档本身
+
+- [贡献文档](./contributing-docs.md) — 目录约定与写作说明

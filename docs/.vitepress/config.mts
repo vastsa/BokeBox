@@ -11,8 +11,23 @@ export default defineConfig({
   base: process.env.DOCS_BASE || '/',
   cleanUrls: true,
   // 本地推广草稿与包 README 不进入文档站
-  srcExclude: ['**/promo/**', 'README.md'],
+  srcExclude: [
+    '**/promo/**',
+    'README.md',
+    // 兼容跳转页仅服务 GitHub 浏览，不进入文档站信息架构
+    'source-plugins.md',
+    'asr-tts-plugins.md',
+    'schedule-plugins.md',
+    'source-plugin-development.md',
+    'tts-plugin-development.md',
+    'schedule-plugin-development.md',
+    'web-design-tokens.md',
+    'ci-cd.md',
+  ],
   lastUpdated: true,
+  sitemap: {
+    hostname: process.env.DOCS_SITE_URL || 'https://vastsa.github.io/BokeBox/',
+  },
   ignoreDeadLinks: [
     /^https?:\/\/localhost/,
     /\.\.\/\.\.\/examples\//,
@@ -77,12 +92,16 @@ export default defineConfig({
         text: '指南',
         items: [
           { text: '快速开始', link: '/guide/getting-started' },
+          { text: '做完第一期', link: '/guide/first-episode' },
           { text: '项目介绍', link: '/guide/introduction' },
           { text: '功能清单', link: '/guide/features' },
+          { text: '制作流水线', link: '/guide/pipeline' },
+          { text: '定时订阅', link: '/guide/schedule' },
           { text: '架构概览', link: '/guide/architecture' },
           { text: '配置与环境变量', link: '/guide/configuration' },
           { text: '部署', link: '/guide/deployment' },
           { text: 'MCP 接入', link: '/guide/mcp' },
+          { text: '常见问题', link: '/guide/faq' },
         ],
       },
       {
@@ -102,6 +121,7 @@ export default defineConfig({
           { text: 'TTS 插件', link: '/development/tts-plugin' },
           { text: 'Schedule 插件', link: '/development/schedule-plugin' },
           { text: 'Design Tokens', link: '/development/web-design-tokens' },
+          { text: '贡献文档', link: '/development/contributing-docs' },
         ],
       },
       { text: '运维', link: '/ops/ci-cd' },
@@ -116,17 +136,26 @@ export default defineConfig({
           text: '入门',
           items: [
             { text: '快速开始', link: '/guide/getting-started' },
+            { text: '做完第一期', link: '/guide/first-episode' },
             { text: '项目介绍', link: '/guide/introduction' },
             { text: '功能清单', link: '/guide/features' },
+            { text: '常见问题', link: '/guide/faq' },
           ],
         },
         {
-          text: '深入',
+          text: '使用',
+          items: [
+            { text: '制作流水线', link: '/guide/pipeline' },
+            { text: '定时订阅', link: '/guide/schedule' },
+            { text: 'MCP 接入', link: '/guide/mcp' },
+          ],
+        },
+        {
+          text: '部署与架构',
           items: [
             { text: '架构概览', link: '/guide/architecture' },
             { text: '配置与环境变量', link: '/guide/configuration' },
             { text: '部署', link: '/guide/deployment' },
-            { text: 'MCP 接入', link: '/guide/mcp' },
           ],
         },
       ],
@@ -161,9 +190,10 @@ export default defineConfig({
           ],
         },
         {
-          text: '前端',
+          text: '前端与文档',
           items: [
             { text: 'Design Tokens', link: '/development/web-design-tokens' },
+            { text: '贡献文档', link: '/development/contributing-docs' },
           ],
         },
         {
@@ -181,6 +211,7 @@ export default defineConfig({
             { text: 'Docker CI/CD', link: '/ops/ci-cd' },
             { text: '部署指南', link: '/guide/deployment' },
             { text: '环境变量', link: '/guide/configuration' },
+            { text: '常见问题', link: '/guide/faq' },
           ],
         },
       ],

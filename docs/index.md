@@ -13,8 +13,8 @@ hero:
       text: 快速开始
       link: /guide/getting-started
     - theme: alt
-      text: 功能清单
-      link: /guide/features
+      text: 做完第一期
+      link: /guide/first-episode
     - theme: alt
       text: GitHub
       link: https://github.com/vastsa/BokeBox
@@ -65,12 +65,11 @@ features:
 
 | 分类 | 页面 |
 | --- | --- |
-| 入门 | [快速开始](/guide/getting-started) · [项目介绍](/guide/introduction) · [功能清单](/guide/features) |
-| 使用 | [配置](/guide/configuration) · [部署](/guide/deployment) · [MCP](/guide/mcp) · [架构](/guide/architecture) |
+| 入门 | [快速开始](/guide/getting-started) · [做完第一期](/guide/first-episode) · [介绍](/guide/introduction) · [功能](/guide/features) · [FAQ](/guide/faq) |
+| 使用 | [流水线](/guide/pipeline) · [定时订阅](/guide/schedule) · [MCP](/guide/mcp) |
+| 部署 | [配置](/guide/configuration) · [部署](/guide/deployment) · [架构](/guide/architecture) · [CI/CD](/ops/ci-cd) |
 | 插件 | [总览](/plugins/) · [Source](/plugins/source) · [ASR/TTS](/plugins/asr-tts) · [Schedule](/plugins/schedule) |
-| 开发 | [总览](/development/) · [Source](/development/source-plugin) · [TTS](/development/tts-plugin) · [Schedule](/development/schedule-plugin) |
-| 运维 | [Docker CI/CD](/ops/ci-cd) |
-| 前端 | [Design Tokens](/development/web-design-tokens) |
+| 开发 | [总览](/development/) · [Source](/development/source-plugin) · [TTS](/development/tts-plugin) · [Schedule](/development/schedule-plugin) · [Tokens](/development/web-design-tokens) |
 
 ## 30 秒看懂
 

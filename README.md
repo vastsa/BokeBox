@@ -223,7 +223,7 @@ A product-level map of what BokeBox can do today (aligned with Settings, task de
 - Unified model: schedule plugin + params + cron (timezone-aware)
 - Built-ins: RSS/Atom, URL list, GitHub Trending, Hacker News
 - Dedupe + per-run caps; run now / force run; run history
-- External schedule plugins under `storage/plugins/schedule/` (zip install; see [docs/schedule-plugin-development.md](./docs/schedule-plugin-development.md))
+- External schedule plugins under `storage/plugins/schedule/` (zip install; see [docs/development/schedule-plugin.md](./docs/development/schedule-plugin.md))
 - MCP tools: `list_schedules` / `create_schedule` / `run_schedule_now` / `list_schedule_plugins`
 
 ### Plugin system
@@ -231,10 +231,10 @@ A product-level map of what BokeBox can do today (aligned with Settings, task de
 - **ASR / TTS plugins**: switch built-in or external providers with isolated config
 - Settings support rescan, zip install, and uninstall of external plugins
 - Docs & examples:
-  - [docs/source-plugins.md](./docs/source-plugins.md)
-  - [docs/source-plugin-development.md](./docs/source-plugin-development.md)
-  - [docs/asr-tts-plugins.md](./docs/asr-tts-plugins.md)
-  - [docs/tts-plugin-development.md](./docs/tts-plugin-development.md)
+  - [docs/plugins/source.md](./docs/plugins/source.md)
+  - [docs/development/source-plugin.md](./docs/development/source-plugin.md)
+  - [docs/plugins/asr-tts.md](./docs/plugins/asr-tts.md)
+  - [docs/development/tts-plugin.md](./docs/development/tts-plugin.md)
   - [examples/source-plugin-echo](./examples/source-plugin-echo)
   - [examples/tts-plugin-echo](./examples/tts-plugin-echo) · [examples/tts-plugin-fishspeech](./examples/tts-plugin-fishspeech)
 
@@ -264,7 +264,7 @@ pnpm docs:build    # static build
 pnpm docs:preview  # preview dist
 ```
 
-Sections: Guide (start / config / deploy / MCP / architecture) · Plugins · Development · Ops.  
+Sections: Getting started · First episode · Pipeline · Schedules · MCP · Deploy · Plugins · Development · Ops.  
 Legacy paths `docs/*.md` still redirect to the new pages.
 
 
@@ -399,7 +399,7 @@ OPENAI_TTS_MODEL=mimo-v2.5-tts
 OPENAI_TTS_DEFAULT_VOICE=冰糖
 ```
 
-Full variables: `.env.example`. CI/CD & image publish: [`docs/ci-cd.md`](docs/ci-cd.md). Web font/color tokens: [`docs/web-design-tokens.md`](docs/web-design-tokens.md).
+Full variables: `.env.example`. CI/CD & image publish: [`docs/ops/ci-cd.md`](docs/ops/ci-cd.md). Web font/color tokens: [`docs/development/web-design-tokens.md`](docs/development/web-design-tokens.md).
 
 ### Pipeline (sketch)
 
@@ -433,11 +433,11 @@ BokeBox is **not locked to one media type**. Beyond built-in video / link / draf
 
 - Drop plugins into `storage/plugins/source/`, rescan in Settings  
 - Plugins normalize inputs into the same pipeline: spoken script → voice → cover / flashcards  
-- Developer guide: [docs/source-plugin-development.md](./docs/source-plugin-development.md)
-- Architecture notes: [docs/source-plugins.md](./docs/source-plugins.md)
+- Developer guide: [docs/development/source-plugin.md](./docs/development/source-plugin.md)
+- Architecture notes: [docs/plugins/source.md](./docs/plugins/source.md)
 - Example plugin: [examples/source-plugin-echo](./examples/source-plugin-echo)
-- ASR/TTS plugins: [docs/asr-tts-plugins.md](./docs/asr-tts-plugins.md)
-- TTS plugin developer guide: [docs/tts-plugin-development.md](./docs/tts-plugin-development.md)
+- ASR/TTS plugins: [docs/plugins/asr-tts.md](./docs/plugins/asr-tts.md)
+- TTS plugin developer guide: [docs/development/tts-plugin.md](./docs/development/tts-plugin.md)
 - TTS examples: [examples/tts-plugin-echo](./examples/tts-plugin-echo) · [examples/tts-plugin-fishspeech](./examples/tts-plugin-fishspeech)
-- Web design tokens (font/color): [docs/web-design-tokens.md](./docs/web-design-tokens.md)
+- Web design tokens (font/color): [docs/development/web-design-tokens.md](./docs/development/web-design-tokens.md)
 

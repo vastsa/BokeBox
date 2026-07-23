@@ -54,6 +54,8 @@ docker pull ghcr.io/vastsa/bokebox:latest
 3. 丢一条链接 / 上传文稿或视频  
 4. 等流水线跑完，在听播库打开播放  
 
+分步图文式说明见 **[做完第一期节目](./first-episode.md)**。  
+流水线阶段说明见 [制作流水线](./pipeline.md)。  
 想用 AI 客户端直接创建任务？看 [MCP 接入](./mcp.md)。
 
 ## 文档站（本站）
