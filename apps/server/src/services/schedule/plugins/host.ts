@@ -56,8 +56,18 @@ const builtinRss: SchedulePlugin = {
   },
   async fetch(input, ctx) {
     const feedUrl = String(input.params.feedUrl || '').trim();
-    const items = await fetchRssItems(feedUrl);
-    return { items, strategy: 'builtin-rss', rawMeta: { feedUrl, ua: ctx.getConfig('userAgent') } };
+    // 订阅 params 优先，否则插件中心全局配置
+    const ua = String(
+      input.params.userAgent ?? ctx.getConfig('userAgent') ?? '',
+    ).trim();
+    const items = await fetchRssItems(feedUrl, {
+      userAgent: ua || undefined,
+    });
+    return {
+      items,
+      strategy: 'builtin-rss',
+      rawMeta: { feedUrl, ua: ua || undefined },
+    };
   },
 };
 

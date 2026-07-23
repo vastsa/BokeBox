@@ -144,19 +144,22 @@ export function parseFeedXml(xml: string): ScheduleItemCandidate[] {
 
 export async function fetchRssItems(
   feedUrl: string,
-  options: { timeoutMs?: number } = {},
+  options: { timeoutMs?: number; userAgent?: string } = {},
 ): Promise<ScheduleItemCandidate[]> {
   const url = String(feedUrl || '').trim();
   if (!isValidHttpUrl(url)) {
     throw new Error('RSS 地址无效');
   }
+  const userAgent =
+    String(options.userAgent || '').trim() ||
+    'BokeBoxSchedule/1.0 (+https://github.com/vastsa/BokeBox)';
   let res: Response;
   try {
     res = await safeFetch(url, {
       timeoutMs: options.timeoutMs ?? 30_000,
       headers: {
         Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
-        'User-Agent': 'BokeBoxSchedule/1.0 (+https://github.com/vastsa/BokeBox)',
+        'User-Agent': userAgent,
       },
     });
   } catch (err) {

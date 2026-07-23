@@ -2,8 +2,15 @@
  * 进程内调度器：每分钟扫描 due 订阅并执行
  * 单实例部署足够；多实例需另加分布式锁
  */
-import { listDueSchedules, pruneOldRuns } from './store.js';
+import {
+  bumpScheduleNextRun,
+  listDueSchedules,
+  pruneOldRuns,
+  resolveSchedulePluginId,
+} from './store.js';
 import { runScheduleOnce } from './runner.js';
+import { ensureBuiltinSchedulePlugins } from './plugins/host.js';
+import { isSchedulePluginEnabled } from './plugins/registry.js';
 
 let timer: ReturnType<typeof setInterval> | null = null;
 let tickRunning = false;
@@ -36,8 +43,22 @@ async function tick(): Promise<void> {
   try {
     const now = new Date().toISOString();
     const due = listDueSchedules(now);
+    // 内置插件懒注册，便于判断 enabled
+    ensureBuiltinSchedulePlugins();
     await mapPool(due, MAX_PARALLEL, async (schedule) => {
       try {
+        const pluginId = resolveSchedulePluginId(schedule);
+        if (!pluginId || !isSchedulePluginEnabled(pluginId)) {
+          // 插件停用：推进 next_run，避免 30s 热循环刷日志
+          bumpScheduleNextRun(schedule);
+          console.info(
+            '[schedule] skip (plugin disabled) id=%s name=%s plugin=%s',
+            schedule.id,
+            schedule.name,
+            pluginId || '—',
+          );
+          return;
+        }
         const run = await runScheduleOnce(schedule.id);
         console.info(
           '[schedule] run id=%s name=%s status=%s created=%s skipped=%s fetched=%s',

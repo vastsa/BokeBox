@@ -43,15 +43,27 @@ export function selectScheduleItems(
   const selected: ScheduleItemCandidate[] = [];
   let skipped = 0;
   const max = Math.max(1, options.maxItems);
+  const batchKeys = new Set<string>();
   for (const item of items) {
     if (!isValidHttpUrl(item.url)) {
       skipped += 1;
       continue;
     }
-    if (options.onlyNew && options.isSeen(item.key)) {
+    const key = String(item.key || '').trim();
+    if (!key) {
       skipped += 1;
       continue;
     }
+    // 同一轮候选内相同 key 只取第一条
+    if (batchKeys.has(key)) {
+      skipped += 1;
+      continue;
+    }
+    if (options.onlyNew && options.isSeen(key)) {
+      skipped += 1;
+      continue;
+    }
+    batchKeys.add(key);
     selected.push(item);
     if (selected.length >= max) break;
   }
@@ -140,6 +152,57 @@ async function createJobFromItem(
   return id;
 }
 
+function baseRunStub(
+  runId: string,
+  scheduleId: string,
+  startedAt: string,
+): ScheduleRun {
+  return {
+    id: runId,
+    scheduleId,
+    status: 'running',
+    startedAt,
+    finishedAt: null,
+    fetched: 0,
+    createdJobs: 0,
+    skipped: 0,
+    errors: [],
+    jobIds: [],
+  };
+}
+
+/** finish 失败时尽量仍返回可用 Run，避免调用方拿不到结果 */
+function safeFinishScheduleRun(
+  schedule: Schedule,
+  run: ScheduleRun,
+  result: {
+    status: ScheduleRunStatus;
+    fetched: number;
+    createdJobs: number;
+    skipped: number;
+    errors: string[];
+    jobIds: string[];
+  },
+): ScheduleRun {
+  try {
+    return finishScheduleRun(schedule, run, result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[schedule] finishScheduleRun failed:', msg);
+    const now = new Date().toISOString();
+    return {
+      ...run,
+      status: result.status === 'running' ? 'failed' : result.status,
+      finishedAt: now,
+      fetched: result.fetched,
+      createdJobs: result.createdJobs,
+      skipped: result.skipped,
+      errors: [...result.errors, `收尾写库失败: ${msg}`].slice(0, 20),
+      jobIds: result.jobIds,
+    };
+  }
+}
+
 export async function runScheduleOnce(
   scheduleId: string,
   options: { force?: boolean } = {},
@@ -156,16 +219,18 @@ export async function runScheduleOnce(
   running.add(scheduleId);
   const runId = nanoid(12);
   const startedAt = new Date().toISOString();
-  markScheduleRunStart(scheduleId, runId, startedAt);
+  // 启动即预占 next_run，避免长任务期间被 scheduler 反复 due
+  markScheduleRunStart(schedule, runId, startedAt);
 
   const errors: string[] = [];
   const jobIds: string[] = [];
   let fetched = 0;
   let createdJobs = 0;
   let skipped = 0;
+  const runStub = baseRunStub(runId, scheduleId, startedAt);
 
   try {
-    let items = await collectCandidates(schedule);
+    const items = await collectCandidates(schedule);
     fetched = items.length;
 
     // RSS 通常新条目在前；url_list 保持配置顺序
@@ -199,18 +264,7 @@ export async function runScheduleOnce(
     else if (createdJobs === 0 && fetched > 0 && onlyNew) status = 'success';
 
     const latest = getSchedule(scheduleId) || schedule;
-    return finishScheduleRun(latest, {
-      id: runId,
-      scheduleId,
-      status: 'running',
-      startedAt,
-      finishedAt: null,
-      fetched: 0,
-      createdJobs: 0,
-      skipped: 0,
-      errors: [],
-      jobIds: [],
-    }, {
+    return safeFinishScheduleRun(latest, runStub, {
       status,
       fetched,
       createdJobs,
@@ -222,18 +276,7 @@ export async function runScheduleOnce(
     const msg = err instanceof Error ? err.message : String(err);
     errors.push(msg);
     const latest = getSchedule(scheduleId) || schedule;
-    return finishScheduleRun(latest, {
-      id: runId,
-      scheduleId,
-      status: 'running',
-      startedAt,
-      finishedAt: null,
-      fetched: 0,
-      createdJobs: 0,
-      skipped: 0,
-      errors: [],
-      jobIds: [],
-    }, {
+    return safeFinishScheduleRun(latest, runStub, {
       status: 'failed',
       fetched,
       createdJobs,

@@ -16,6 +16,12 @@ import type {
   UpdateScheduleInput,
 } from './types.js';
 import { cronFromPreset, getNextRunAt, isValidCron } from './cron.js';
+import { isValidHttpUrl } from '../import/index.js';
+import { ensureBuiltinSchedulePlugins } from './plugins/host.js';
+import {
+  getSchedulePluginRegistration,
+  isSchedulePluginEnabled,
+} from './plugins/registry.js';
 
 interface ScheduleRow {
   id: string;
@@ -177,29 +183,62 @@ function normalizeSourceConfig(
   };
 }
 
-function validateSource(kind: ScheduleKind, cfg: ScheduleSourceConfig): string | null {
-  const pluginId =
-    String(cfg.pluginId || '').trim() ||
-    (kind === 'rss'
-      ? 'schedule.rss'
-      : kind === 'url_list'
-        ? 'schedule.url-list'
-        : '');
+function resolvePluginIdForValidation(
+  kind: ScheduleKind,
+  cfg: ScheduleSourceConfig,
+): string {
+  const explicit = String(cfg.pluginId || '').trim();
+  if (explicit) return explicit;
+  if (kind === 'rss') return 'schedule.rss';
+  if (kind === 'url_list') return 'schedule.url-list';
+  return '';
+}
+
+function validateSource(
+  kind: ScheduleKind,
+  cfg: ScheduleSourceConfig,
+  options: { requirePluginReady?: boolean } = {},
+): string | null {
+  const pluginId = resolvePluginIdForValidation(kind, cfg);
   if (!pluginId) return '请选择订阅插件';
+
+  const requirePluginReady = options.requirePluginReady !== false;
+
+  // 确保内置插件已注册，再验存在/启用
+  try {
+    ensureBuiltinSchedulePlugins();
+  } catch {
+    // 注册失败时仍允许保存基本字段，运行时会再报错
+  }
+
+  if (requirePluginReady) {
+    const reg = getSchedulePluginRegistration(pluginId);
+    if (!reg?.plugin) {
+      return reg?.loadError
+        ? `订阅插件加载失败: ${pluginId} (${reg.loadError})`
+        : `订阅插件不存在: ${pluginId}`;
+    }
+    if (!isSchedulePluginEnabled(pluginId)) {
+      return `订阅插件未启用: ${pluginId}`;
+    }
+  }
 
   const feedUrl = String(cfg.feedUrl || cfg.params?.feedUrl || '').trim();
   const urls = Array.isArray(cfg.urls)
-    ? cfg.urls
+    ? cfg.urls.map((u) => String(u || '').trim()).filter(Boolean)
     : Array.isArray(cfg.params?.urls)
-      ? (cfg.params?.urls as unknown[])
+      ? (cfg.params?.urls as unknown[]).map((u) => String(u || '').trim()).filter(Boolean)
       : [];
 
   if (pluginId === 'schedule.rss' || kind === 'rss') {
     if (!feedUrl) return '请填写 RSS 地址';
+    if (!isValidHttpUrl(feedUrl)) return 'RSS 地址无效（需要 http/https）';
     return null;
   }
   if (pluginId === 'schedule.url-list' || kind === 'url_list') {
     if (!urls.length) return '请至少填写一个 URL';
+    const bad = urls.find((u) => !isValidHttpUrl(u));
+    if (bad) return `URL 无效（需要 http/https）: ${bad}`;
     return null;
   }
   return null;
@@ -221,7 +260,12 @@ export function validateScheduleInput(
     : existing
       ? existing.sourceConfig
       : normalizeSourceConfig(kind, {});
-  const srcErr = validateSource(kind, sourceConfig);
+  // 新建或改动 source/kind 时要求插件存在且启用；仅改名/节奏等放行，方便停用插件后仍能改订阅
+  const requirePluginReady =
+    !existing ||
+    input.sourceConfig !== undefined ||
+    input.kind !== undefined;
+  const srcErr = validateSource(kind, sourceConfig, { requirePluginReady });
   if (srcErr) return srcErr;
 
   const preset = input.preset
@@ -355,6 +399,20 @@ export function updateSchedule(
     input.enabled === undefined ? existing.enabled : Boolean(input.enabled);
   const now = new Date().toISOString();
 
+  // 仅调度相关字段变化时重算 next_run，避免改名/专辑把到期任务顺延掉
+  const scheduleTimingChanged =
+    enabled !== existing.enabled ||
+    cron !== existing.cron ||
+    timezone !== existing.timezone ||
+    preset !== existing.preset;
+
+  let nextRunAt = existing.nextRunAt;
+  if (!enabled) {
+    nextRunAt = null;
+  } else if (scheduleTimingChanged) {
+    nextRunAt = getNextRunAt(cron, timezone, new Date(now));
+  }
+
   const next: Schedule = {
     ...existing,
     name:
@@ -375,7 +433,7 @@ export function updateSchedule(
       input.limits !== undefined
         ? normalizeLimits({ ...existing.limits, ...input.limits })
         : existing.limits,
-    nextRunAt: enabled ? getNextRunAt(cron, timezone, new Date(now)) : null,
+    nextRunAt,
     updatedAt: now,
   };
 
@@ -433,11 +491,15 @@ export function listDueSchedules(nowIso: string): Schedule[] {
   return rows.map(rowToSchedule);
 }
 
-export function markScheduleRunStart(scheduleId: string, runId: string, now: string): ScheduleRun {
+export function markScheduleRunStart(
+  schedule: Schedule,
+  runId: string,
+  now: string,
+): ScheduleRun {
   const db = getDb();
   const run: ScheduleRun = {
     id: runId,
-    scheduleId,
+    scheduleId: schedule.id,
     status: 'running',
     startedAt: now,
     finishedAt: null,
@@ -447,6 +509,22 @@ export function markScheduleRunStart(scheduleId: string, runId: string, now: str
     errors: [],
     jobIds: [],
   };
+
+  // 启动即预占 next_run，防止长任务期间 scheduler 反复捞到同一条
+  let nextRunAt: string | null = schedule.nextRunAt;
+  if (schedule.enabled) {
+    try {
+      const claimed = getNextRunAt(
+        schedule.cron,
+        schedule.timezone,
+        new Date(now),
+      );
+      if (claimed) nextRunAt = claimed;
+    } catch {
+      // 保持原 next_run，finish 时再尝试
+    }
+  }
+
   db.prepare(
     `INSERT INTO schedule_runs (
       id, schedule_id, status, started_at, finished_at,
@@ -468,9 +546,14 @@ export function markScheduleRunStart(scheduleId: string, runId: string, now: str
     job_ids_json: '[]',
   });
   db.prepare(
-    `UPDATE schedules SET last_run_at = @now, last_status = 'running', last_error = NULL, updated_at = @now
+    `UPDATE schedules SET
+      last_run_at = @now,
+      last_status = 'running',
+      last_error = NULL,
+      next_run_at = @next_run_at,
+      updated_at = @now
      WHERE id = @id`,
-  ).run({ id: scheduleId, now });
+  ).run({ id: schedule.id, now, next_run_at: nextRunAt });
   return run;
 }
 
@@ -487,9 +570,22 @@ export function finishScheduleRun(
   },
 ): ScheduleRun {
   const now = new Date().toISOString();
-  const nextRunAt = schedule.enabled
-    ? getNextRunAt(schedule.cron, schedule.timezone, new Date(now))
-    : null;
+  // 优先按结束时间重算；失败则保留启动时预占的 next_run，避免把库写成 running 卡住
+  let nextRunAt: string | null = schedule.enabled ? schedule.nextRunAt : null;
+  if (schedule.enabled) {
+    try {
+      const computed = getNextRunAt(
+        schedule.cron,
+        schedule.timezone,
+        new Date(now),
+      );
+      if (computed) nextRunAt = computed;
+    } catch {
+      // keep pre-claimed
+    }
+  } else {
+    nextRunAt = null;
+  }
   const finished: ScheduleRun = {
     ...run,
     status: result.status,
@@ -554,6 +650,45 @@ export function listScheduleRuns(
     )
     .all(scheduleId, Math.min(100, Math.max(1, limit))) as unknown as RunRow[];
   return rows.map(rowToRun);
+}
+
+/**
+ * 仅推进下次执行时间（插件停用跳过、软延迟等）
+ */
+export function bumpScheduleNextRun(
+  schedule: Schedule,
+  from: Date = new Date(),
+): string | null {
+  if (!schedule.enabled) {
+    const db = getDb();
+    const now = new Date().toISOString();
+    db.prepare(
+      `UPDATE schedules SET next_run_at = NULL, updated_at = ? WHERE id = ?`,
+    ).run(now, schedule.id);
+    return null;
+  }
+  let nextRunAt: string | null = schedule.nextRunAt;
+  try {
+    nextRunAt = getNextRunAt(schedule.cron, schedule.timezone, from);
+  } catch {
+    // keep
+  }
+  const now = new Date().toISOString();
+  getDb()
+    .prepare(
+      `UPDATE schedules SET next_run_at = ?, updated_at = ? WHERE id = ?`,
+    )
+    .run(nextRunAt, now, schedule.id);
+  return nextRunAt;
+}
+
+/** 从订阅解析插件 id（与 runner/host 约定一致） */
+export function resolveSchedulePluginId(schedule: Schedule): string {
+  const explicit = String(schedule.sourceConfig?.pluginId || '').trim();
+  if (explicit) return explicit;
+  if (schedule.kind === 'url_list') return 'schedule.url-list';
+  if (schedule.kind === 'rss') return 'schedule.rss';
+  return '';
 }
 
 export function isItemSeen(scheduleId: string, itemKey: string): boolean {

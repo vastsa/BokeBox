@@ -37,4 +37,36 @@ describe('selectScheduleItems', () => {
     assert.equal(skipped, 1);
     assert.equal(selected[0]!.key, 'a');
   });
+
+  it('dedupes keys within the same batch', () => {
+    const batch = [
+      { key: 'same', url: 'https://example.com/1', title: '1' },
+      { key: 'same', url: 'https://example.com/2', title: '2' },
+      { key: 'other', url: 'https://example.com/3', title: '3' },
+    ];
+    const { selected, skipped } = selectScheduleItems(batch, {
+      maxItems: 5,
+      onlyNew: true,
+      isSeen: () => false,
+    });
+    assert.equal(selected.length, 2);
+    assert.equal(selected[0]!.url, 'https://example.com/1');
+    assert.equal(selected[1]!.key, 'other');
+    assert.equal(skipped, 1);
+  });
+
+  it('skips empty keys', () => {
+    const batch = [
+      { key: '', url: 'https://example.com/x', title: 'x' },
+      { key: 'ok', url: 'https://example.com/y', title: 'y' },
+    ];
+    const { selected, skipped } = selectScheduleItems(batch, {
+      maxItems: 5,
+      onlyNew: false,
+      isSeen: () => false,
+    });
+    assert.equal(selected.length, 1);
+    assert.equal(selected[0]!.key, 'ok');
+    assert.equal(skipped, 1);
+  });
 });
