@@ -12,10 +12,12 @@ import {
   type SchedulePluginDescriptor,
   type SchedulePreset,
   type ScheduleRun,
+  type ScheduleRunStatus,
   type SourcePluginConfigField,
 } from '../../api/client';
 import type { AlbumSummary } from '../../types/album';
 import { useI18n } from '../../i18n';
+import { navigate } from '../../lib/router';
 import {
   PluginConfigFields,
   draftToConfigPatch,
@@ -84,13 +86,32 @@ function formatTime(iso: string | null | undefined, locale: string): string {
   }
 }
 
-function statusClass(status: Schedule['lastStatus']): string {
+function statusClass(status: Schedule['lastStatus'] | ScheduleRunStatus | null): string {
   if (status === 'success') return 'is-ok';
   if (status === 'partial') return 'is-warn';
   if (status === 'failed') return 'is-bad';
   if (status === 'running') return 'is-run';
   return '';
 }
+
+function formatDuration(
+  startedAt: string | null | undefined,
+  finishedAt: string | null | undefined,
+): string | null {
+  if (!startedAt || !finishedAt) return null;
+  const start = Date.parse(startedAt);
+  const end = Date.parse(finishedAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+  const ms = end - start;
+  if (ms < 1000) return `${ms}ms`;
+  const sec = ms / 1000;
+  if (sec < 60) return `${sec < 10 ? sec.toFixed(1) : Math.round(sec)}s`;
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}m ${s}s`;
+}
+
+const RUNS_LIMIT = 15;
 
 function pluginLabel(
   pluginId: string,
@@ -170,6 +191,9 @@ export function ScheduleSettingsTab({
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
+  const [expandedRunDetailId, setExpandedRunDetailId] = useState<string | null>(
+    null,
+  );
   const [runsMap, setRunsMap] = useState<Record<string, ScheduleRun[]>>({});
   const [runsLoadingId, setRunsLoadingId] = useState<string | null>(null);
 
@@ -442,6 +466,36 @@ export function ScheduleSettingsTab({
     }
   };
 
+  const statusLabel = useCallback(
+    (status: ScheduleRunStatus | Schedule['lastStatus'] | null | undefined) => {
+      if (status === 'success') return t('settings.scheduleStatusSuccess');
+      if (status === 'partial') return t('settings.scheduleStatusPartial');
+      if (status === 'failed') return t('settings.scheduleStatusFailed');
+      if (status === 'running') return t('settings.scheduleStatusRunning');
+      return status || '—';
+    },
+    [t],
+  );
+
+  const loadRuns = useCallback(
+    async (id: string, options: { silent?: boolean } = {}) => {
+      if (!options.silent) setRunsLoadingId(id);
+      try {
+        const runs = await fetchScheduleRuns(id, RUNS_LIMIT);
+        setRunsMap((prev) => ({ ...prev, [id]: runs }));
+        return runs;
+      } catch (err) {
+        if (!options.silent) {
+          onError(err instanceof Error ? err.message : String(err));
+        }
+        return null;
+      } finally {
+        if (!options.silent) setRunsLoadingId(null);
+      }
+    },
+    [onError],
+  );
+
   const onRun = async (s: Schedule, force = false) => {
     setBusyId(s.id);
     onError(null);
@@ -449,13 +503,20 @@ export function ScheduleSettingsTab({
       const res = await runScheduleApi(s.id, { force });
       onMessage(
         t(force ? 'settings.scheduleRunForceDone' : 'settings.scheduleRunDone', {
-          status: res.run.status,
+          status: statusLabel(res.run.status),
           n: res.run.createdJobs,
         }),
       );
+      setExpandedRunId(s.id);
+      setExpandedRunDetailId(res.run.id);
       try {
-        const runs = await fetchScheduleRuns(s.id, 5);
-        setRunsMap((prev) => ({ ...prev, [s.id]: runs }));
+        // 把本次 run 顶到列表，再拉全量校正
+        setRunsMap((prev) => {
+          const cur = prev[s.id] || [];
+          const rest = cur.filter((x) => x.id !== res.run.id);
+          return { ...prev, [s.id]: [res.run, ...rest].slice(0, RUNS_LIMIT) };
+        });
+        await loadRuns(s.id, { silent: true });
       } catch {
         // ignore
       }
@@ -470,19 +531,12 @@ export function ScheduleSettingsTab({
   const toggleRuns = async (id: string) => {
     if (expandedRunId === id) {
       setExpandedRunId(null);
+      setExpandedRunDetailId(null);
       return;
     }
     setExpandedRunId(id);
-    if (runsMap[id]?.length) return;
-    setRunsLoadingId(id);
-    try {
-      const runs = await fetchScheduleRuns(id, 5);
-      setRunsMap((prev) => ({ ...prev, [id]: runs }));
-    } catch (err) {
-      onError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setRunsLoadingId(null);
-    }
+    // 每次展开都刷新，避免看到过期账本
+    await loadRuns(id);
   };
 
   const onDelete = async (s: Schedule) => {
@@ -854,7 +908,7 @@ export function ScheduleSettingsTab({
                               statusClass(s.lastStatus),
                             ].join(' ')}
                           >
-                            {s.lastStatus}
+                            {statusLabel(s.lastStatus)}
                           </span>
                         ) : null}
                       </div>
@@ -898,8 +952,12 @@ export function ScheduleSettingsTab({
                         {' · '}
                         {t('settings.scheduleLastRun')}:{' '}
                         {formatTime(s.lastRunAt, locale)}
-                        {s.lastError ? ` · ${s.lastError}` : ''}
                       </p>
+                      {s.lastError ? (
+                        <p className="schedule-item-last-error" title={s.lastError}>
+                          {s.lastError}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="schedule-item-actions">
                       <button
@@ -959,38 +1017,147 @@ export function ScheduleSettingsTab({
                     </div>
                     {expandedRunId === s.id ? (
                       <div className="schedule-runs">
-                        {runsLoadingId === s.id ? (
+                        <div className="schedule-runs-toolbar">
+                          <span className="settings-card-hint">
+                            {t('settings.scheduleShowRuns')}
+                            {(runsMap[s.id] || []).length
+                              ? ` · ${(runsMap[s.id] || []).length}`
+                              : ''}
+                          </span>
+                          <button
+                            type="button"
+                            className="nl-btn schedule-runs-refresh"
+                            disabled={runsLoadingId === s.id}
+                            onClick={() => void loadRuns(s.id)}
+                          >
+                            {t('settings.scheduleRefreshRuns')}
+                          </button>
+                        </div>
+                        {runsLoadingId === s.id && !(runsMap[s.id] || []).length ? (
                           <p className="settings-card-hint">
                             {t('common.loading')}
                           </p>
                         ) : (runsMap[s.id] || []).length ? (
                           <ul className="schedule-runs-list">
-                            {(runsMap[s.id] || []).map((r) => (
-                              <li key={r.id} className="schedule-runs-item">
-                                <span
+                            {(runsMap[s.id] || []).map((r) => {
+                              const open = expandedRunDetailId === r.id;
+                              const duration = formatDuration(
+                                r.startedAt,
+                                r.finishedAt,
+                              );
+                              const errCount = r.errors?.length || 0;
+                              const jobCount = r.jobIds?.length || 0;
+                              return (
+                                <li
+                                  key={r.id}
                                   className={[
-                                    'schedule-badge',
-                                    statusClass(r.status),
-                                  ].join(' ')}
+                                    'schedule-runs-item',
+                                    open ? 'is-open' : '',
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' ')}
                                 >
-                                  {r.status}
-                                </span>
-                                <span>
-                                  {formatTime(r.startedAt, locale)}
-                                  {' · '}
-                                  {t('settings.scheduleRunStats', {
-                                    fetched: r.fetched,
-                                    created: r.createdJobs,
-                                    skipped: r.skipped,
-                                  })}
-                                </span>
-                                {r.errors?.length ? (
-                                  <span className="schedule-runs-error">
-                                    {r.errors[0]}
-                                  </span>
-                                ) : null}
-                              </li>
-                            ))}
+                                  <button
+                                    type="button"
+                                    className="schedule-runs-summary"
+                                    onClick={() =>
+                                      setExpandedRunDetailId(open ? null : r.id)
+                                    }
+                                  >
+                                    <span
+                                      className={[
+                                        'schedule-badge',
+                                        statusClass(r.status),
+                                      ].join(' ')}
+                                    >
+                                      {statusLabel(r.status)}
+                                    </span>
+                                    <span className="schedule-runs-summary-text">
+                                      {formatTime(r.startedAt, locale)}
+                                      {' · '}
+                                      {t('settings.scheduleRunStats', {
+                                        fetched: r.fetched,
+                                        created: r.createdJobs,
+                                        skipped: r.skipped,
+                                      })}
+                                      {duration
+                                        ? ` · ${t('settings.scheduleRunDuration', {
+                                            duration,
+                                          })}`
+                                        : ''}
+                                      {errCount
+                                        ? ` · ${t('settings.scheduleRunErrors', {
+                                            n: errCount,
+                                          })}`
+                                        : ''}
+                                      {jobCount
+                                        ? ` · ${t('settings.scheduleRunJobs')} ${jobCount}`
+                                        : ''}
+                                    </span>
+                                  </button>
+                                  {!open && errCount ? (
+                                    <p className="schedule-runs-error">
+                                      {r.errors[0]}
+                                      {errCount > 1
+                                        ? ` ${t('settings.scheduleRunMoreErrors', {
+                                            n: errCount - 1,
+                                          })}`
+                                        : ''}
+                                    </p>
+                                  ) : null}
+                                  {open ? (
+                                    <div className="schedule-runs-detail">
+                                      <p className="schedule-runs-detail-meta">
+                                        id: {r.id}
+                                        {r.finishedAt
+                                          ? ` · ${formatTime(r.finishedAt, locale)}`
+                                          : ''}
+                                      </p>
+                                      {jobCount ? (
+                                        <div className="schedule-runs-jobs">
+                                          <span className="schedule-runs-jobs-label">
+                                            {t('settings.scheduleRunJobs')}
+                                          </span>
+                                          <div className="schedule-runs-jobs-list">
+                                            {r.jobIds.map((jobId) => (
+                                              <button
+                                                key={jobId}
+                                                type="button"
+                                                className="schedule-runs-job-chip"
+                                                title={t(
+                                                  'settings.scheduleRunOpenJob',
+                                                )}
+                                                onClick={() =>
+                                                  navigate({
+                                                    name: 'job',
+                                                    id: jobId,
+                                                  })
+                                                }
+                                              >
+                                                {jobId}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ) : null}
+                                      {errCount ? (
+                                        <ul className="schedule-runs-error-list">
+                                          {r.errors.map((msg, idx) => (
+                                            <li key={`${r.id}-err-${idx}`}>
+                                              {msg}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      ) : (
+                                        <p className="settings-card-hint">
+                                          —
+                                        </p>
+                                      )}
+                                    </div>
+                                  ) : null}
+                                </li>
+                              );
+                            })}
                           </ul>
                         ) : (
                           <p className="settings-card-hint">

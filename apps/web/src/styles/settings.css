@@ -2004,12 +2004,20 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
   color: var(--text-2);
   font-size: var(--fs-sm);
   line-height: 1.45;
+  word-break: break-word;
 }
 .schedule-item-source {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 42rem;
+}
+.schedule-item-last-error {
+  margin: 0.25rem 0 0;
+  color: #dc2626;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  word-break: break-word;
 }
 .schedule-item-actions {
   display: flex;
@@ -2064,26 +2072,122 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
   padding-top: 0.55rem;
   border-top: 1px dashed var(--border);
 }
+.schedule-runs-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+.schedule-runs-refresh {
+  font-size: var(--fs-sm);
+  padding: 0.2rem 0.55rem;
+}
 .schedule-runs-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 .schedule-runs-item {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem 0.65rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
   font-size: var(--fs-sm);
   color: var(--text-2);
 }
+.schedule-runs-item.is-open {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+  background: color-mix(in srgb, var(--brand) 6%, var(--surface));
+}
+.schedule-runs-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.schedule-runs-summary:hover .schedule-runs-summary-text {
+  color: var(--text-1);
+}
+.schedule-runs-summary-text {
+  flex: 1;
+  min-width: 12rem;
+  line-height: 1.4;
+}
 .schedule-runs-error {
+  margin: 0;
   color: #dc2626;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+  padding-left: 0.1rem;
+}
+.schedule-runs-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+}
+.schedule-runs-detail-meta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-3, var(--text-2));
+  word-break: break-all;
+}
+.schedule-runs-jobs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+}
+.schedule-runs-jobs-label {
+  font-weight: var(--fw-bold, 600);
+  color: var(--text-1);
+}
+.schedule-runs-jobs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.schedule-runs-job-chip {
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--border));
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+  color: var(--brand-2, var(--brand));
+  border-radius: var(--radius-pill);
+  padding: 0.12rem 0.5rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  cursor: pointer;
+}
+.schedule-runs-job-chip:hover {
+  background: color-mix(in srgb, var(--brand) 18%, transparent);
+}
+.schedule-runs-error-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #dc2626;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }

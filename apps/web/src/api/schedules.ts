@@ -148,7 +148,7 @@ export async function fetchSchedulePresets(): Promise<SchedulePresetOption[]> {
 
 export async function fetchScheduleRuns(
   id: string,
-  limit = 5,
+  limit = 15,
 ): Promise<ScheduleRun[]> {
   const data = await request<{ runs: ScheduleRun[] }>(
     `/schedules/${encodeURIComponent(id)}/runs?limit=${limit}`,

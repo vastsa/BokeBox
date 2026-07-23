@@ -49,7 +49,8 @@ Cadence: `preset` = `hourly` / `every_6h` / `daily` / `weekly` / `cron`; plus `t
 - **Dedupe** via seen items  
 - **Caps** per run (`maxItemsPerRun`)  
 - **Run now / force** for debug or backfill  
-- **Run history**; failed items can retry next tick  
+- **Run history** stored in `schedule_runs` (status / fetched / created / skipped / errors / jobIds); expand in Settings and open jobs  
+- **Retry-friendly**: only successful job creates mark seen; failures retry next cycle, or force-run to ignore dedupe  
 - Plugins **only emit candidate URLs** — jobs use the [Pipeline](./pipeline.md)
 
 ## MCP
