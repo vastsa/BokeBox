@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   createSilentWav,
   mergeWavBuffersWithGaps,
+  resolveSentenceGapSec,
   wavDurationSec,
 } from '../src/providers/tts/audioUtils.js';
 import {
@@ -15,14 +16,41 @@ import {
 describe('sentence gap merge', () => {
   it('inserts silence between wav sentences and reports speech ranges', () => {
     const a = createSilentWav(0.2, { channels: 1, sampleRate: 24000, bitsPerSample: 16 });
-    // not silence for identity - still valid wav duration
     const b = createSilentWav(0.3, { channels: 1, sampleRate: 24000, bitsPerSample: 16 });
-    const merged = mergeWavBuffersWithGaps([a, b], 0.25);
+    const merged = mergeWavBuffersWithGaps([a, b], 0.55);
     assert.equal(merged.speechRanges.length, 2);
     assert.ok(Math.abs(merged.speechRanges[0].endSec - 0.2) < 0.02);
-    assert.ok(Math.abs(merged.speechRanges[1].startSec - 0.45) < 0.03);
-    assert.ok(Math.abs(merged.totalDurationSec - 0.75) < 0.04);
-    assert.ok(wavDurationSec(merged.audio) > 0.7);
+    assert.ok(Math.abs(merged.speechRanges[1].startSec - 0.75) < 0.03);
+    assert.ok(Math.abs(merged.totalDurationSec - 1.05) < 0.04);
+    assert.deepEqual(merged.gapsSec, [0.55]);
+    assert.ok(wavDurationSec(merged.audio) > 1.0);
+  });
+
+  it('supports per-sentence gap list and adaptive resolver', () => {
+    const a = createSilentWav(0.2, { channels: 1, sampleRate: 24000, bitsPerSample: 16 });
+    const b = createSilentWav(0.2, { channels: 1, sampleRate: 24000, bitsPerSample: 16 });
+    const c = createSilentWav(0.2, { channels: 1, sampleRate: 24000, bitsPerSample: 16 });
+    const merged = mergeWavBuffersWithGaps([a, b, c], [0.5, 0.9]);
+    assert.deepEqual(merged.gapsSec, [0.5, 0.9]);
+    assert.ok(Math.abs(merged.speechRanges[1].startSec - 0.7) < 0.03);
+    assert.ok(Math.abs(merged.speechRanges[2].startSec - 1.8) < 0.04);
+
+    const shortGap = resolveSentenceGapSec({ text: '好的。', durationSec: 0.5 });
+    const longGap = resolveSentenceGapSec({
+      text: '这是一句明显更长、需要听众消化的结论性表达。',
+      durationSec: 4.5,
+    });
+    const questionGap = resolveSentenceGapSec({ text: '你觉得呢？', durationSec: 1.2 });
+    const paraGap = resolveSentenceGapSec({
+      text: '先说到这里。',
+      durationSec: 1.5,
+      isParagraphBreak: true,
+    });
+    assert.ok(shortGap >= 0.42 && shortGap <= 0.55);
+    assert.ok(longGap > shortGap);
+    assert.ok(questionGap > resolveSentenceGapSec({ text: '你觉得呢。', durationSec: 1.2 }));
+    assert.ok(paraGap >= longGap || paraGap >= 0.7);
+    assert.ok(longGap <= 1.25);
   });
 });
 

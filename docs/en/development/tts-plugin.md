@@ -39,5 +39,5 @@ Synthesize spoken-script segments to audio the host can stitch. Surface voices/c
 - Split on `。！？!?` and newlines: **one sentence → one `synthesizeChunk` call**
 - `maxCharsPerRequest` only hard-splits an oversized single sentence
 - Style/mood tags are planned **per sentence** (global base + scene controls like laugh/serious/breath), not a single opening-only tag
-- Host synthesizes segments sequentially, inserts inter-sentence silence, merges audio, and writes `podcast.srt`
+- Host synthesizes segments sequentially, inserts adaptive inter-sentence pauses (~0.45–1.2s by length/punctuation/paragraph), merges audio, and writes `podcast.srt`
 

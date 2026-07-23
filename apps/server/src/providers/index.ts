@@ -73,6 +73,7 @@ export {
   splitScriptWithRanges,
   mergeWavBuffers,
   mergeWavBuffersWithGaps,
+  resolveSentenceGapSec,
   createSilentWav,
   readWavPcmFormat,
   wavDurationSec,

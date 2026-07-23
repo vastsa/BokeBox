@@ -9,6 +9,7 @@ import {
   detectAudioFormat,
   listTtsProviderDescriptors,
   mergeWavBuffersWithGaps,
+  resolveSentenceGapSec,
   MIMO_AUDIO_TAG_EXAMPLES,
   MIMO_PRESET_VOICES,
   MIMO_SPEECH_STYLE_TAGS,
@@ -257,20 +258,35 @@ export async function synthesizePodcastAudio(options: {
     if (chunkResult.mode) usedMode = chunkResult.mode;
   }
 
-  // 句间静音：逐句合成后插入自然停顿，并据此生成精确 SRT
-  const SENTENCE_GAP_SEC = 0.32;
+  // 句间静音：按句长/标点/段落自适应停顿，避免 0.3s 级硬切过于突然
   const allWav = buffers.every(
     (b) => detectAudioFormat(b) === 'wav' || b.slice(0, 4).toString() === 'RIFF',
   );
+  const sentenceGapsSec = chunks.map((chunk, index) => {
+    if (index >= chunks.length - 1) return 0;
+    const next = chunks[index + 1];
+    // 源文本里两句之间隔了换行，视为段落换气
+    const between = synthesisScript.slice(chunk.sourceEnd, next.sourceStart);
+    const isParagraphBreak = /
+/.test(between);
+    return resolveSentenceGapSec({
+      text: chunk.text,
+      durationSec: chunkDurationsSec[index] || 0,
+      isParagraphBreak,
+      isLast: false,
+    });
+  });
 
   let merged: Buffer;
   let speechRanges: Array<{ startSec: number; endSec: number }> | undefined;
+  let appliedGapsSec: number[] = [];
   let totalDuration = 0;
 
   if (allWav) {
-    const gapMerged = mergeWavBuffersWithGaps(buffers, SENTENCE_GAP_SEC);
+    const gapMerged = mergeWavBuffersWithGaps(buffers, sentenceGapsSec);
     merged = gapMerged.audio;
     speechRanges = gapMerged.speechRanges;
+    appliedGapsSec = gapMerged.gapsSec || sentenceGapsSec.slice(0, -1);
     totalDuration =
       gapMerged.totalDurationSec ||
       wavDurationSec(merged) ||
@@ -318,7 +334,9 @@ export async function synthesizePodcastAudio(options: {
         // 句间 gap 计入后续锚点：除末段外把 gap 并入该 chunk 占用时长
         durationSec:
           chunkDurationsSec[index] +
-          (allWav && index < chunks.length - 1 ? SENTENCE_GAP_SEC : 0),
+          (allWav && index < chunks.length - 1
+            ? appliedGapsSec[index] || sentenceGapsSec[index] || 0
+            : 0),
       }))
     : undefined;
 
@@ -328,7 +346,10 @@ export async function synthesizePodcastAudio(options: {
     const candidate = buildScriptTimingFromSpeechRanges({
       script: synthesisScript,
       speechRanges,
-      gapSec: allWav ? SENTENCE_GAP_SEC : 0,
+      gapSec: allWav
+        ? appliedGapsSec.reduce((a, b) => a + b, 0) /
+          Math.max(1, appliedGapsSec.length)
+        : 0,
       durationSec,
     });
     if (isValidScriptTimingFile(candidate)) {

@@ -163,23 +163,89 @@ export function createSilentWav(
   return Buffer.concat([header, pcm]);
 }
 
+
 /**
- * 拼接多段 WAV，并在段间插入固定静音。
- * gapSec 用于句间停顿；返回最终音频与每段 speech 的起止（不含后随静音）。
+ * 句间停顿（秒）：比固定短静音更接近口播换气。
+ * - 短句稍短、长句稍长
+ * - 问句/感叹稍长
+ * - 段落边界（原文本以换行切开）更长
+ */
+export function resolveSentenceGapSec(options: {
+  text?: string;
+  durationSec?: number;
+  isParagraphBreak?: boolean;
+  isLast?: boolean;
+}): number {
+  if (options.isLast) return 0;
+
+  const text = String(options.text || '').trim();
+  const dur = Math.max(0, Number(options.durationSec) || 0);
+  const spokenLen = text
+    .replace(/[\[\(（][^\]\)）]{0,32}[\]\)）]/gu, '')
+    .replace(/\s+/gu, '')
+    .length;
+
+  // 基础：0.55s，随句长/时长上浮
+  let gap = 0.55;
+  if (spokenLen >= 18 || dur >= 2.2) gap = 0.7;
+  if (spokenLen >= 36 || dur >= 4) gap = 0.85;
+  if (spokenLen >= 56 || dur >= 6) gap = 1.0;
+
+  const end = text.slice(-1);
+  if (end === '？' || end === '?') gap += 0.18;
+  else if (end === '！' || end === '!') gap += 0.12;
+  else if (end === '。' || end === '.') gap += 0.06;
+  else if (end === '；' || end === ';') gap += 0.1;
+
+  if (options.isParagraphBreak) gap += 0.28;
+
+  // 极短应答句（嗯/好/对）不要拖太久
+  if (spokenLen > 0 && spokenLen <= 4 && dur > 0 && dur < 0.9) {
+    gap = Math.min(gap, 0.45);
+  }
+
+  // 夹逼到听感舒适区间
+  return Number(Math.min(1.25, Math.max(0.42, gap)).toFixed(3));
+}
+
+/**
+ * 拼接多段 WAV，并在段间插入静音。
+ * gapSec 可为固定秒数，或与 buffers 等长的逐段后置停顿（最后一段忽略）。
  */
 export function mergeWavBuffersWithGaps(
   buffers: Buffer[],
-  gapSec = 0.28,
+  gapSec: number | number[] = 0.55,
 ): {
   audio: Buffer;
   speechRanges: Array<{ startSec: number; endSec: number }>;
+  /** 实际插入的逐段后置停顿（长度 buffers-1） */
+  gapsSec: number[];
+  /** @deprecated 使用 gapsSec；保留平均停顿便于旧调用 */
   gapSec: number;
   totalDurationSec: number;
 } {
   if (!buffers.length) {
-    return { audio: Buffer.alloc(0), speechRanges: [], gapSec: 0, totalDurationSec: 0 };
+    return {
+      audio: Buffer.alloc(0),
+      speechRanges: [],
+      gapsSec: [],
+      gapSec: 0,
+      totalDurationSec: 0,
+    };
   }
-  if (buffers.length === 1 || gapSec <= 0) {
+
+  const gapList: number[] = buffers.map((_, index) => {
+    if (index >= buffers.length - 1) return 0;
+    if (Array.isArray(gapSec)) {
+      const v = Number(gapSec[index]);
+      return Number.isFinite(v) && v > 0 ? v : 0;
+    }
+    const v = Number(gapSec);
+    return Number.isFinite(v) && v > 0 ? v : 0;
+  });
+  const hasGap = gapList.some((v) => v > 0);
+
+  if (buffers.length === 1 || !hasGap) {
     const audio = mergeWavBuffers(buffers);
     const ranges: Array<{ startSec: number; endSec: number }> = [];
     let cursor = 0;
@@ -191,6 +257,7 @@ export function mergeWavBuffersWithGaps(
     return {
       audio,
       speechRanges: ranges,
+      gapsSec: [],
       gapSec: 0,
       totalDurationSec: cursor || wavDurationSec(audio),
     };
@@ -202,14 +269,27 @@ export function mergeWavBuffersWithGaps(
     return {
       audio,
       speechRanges: [],
+      gapsSec: [],
       gapSec: 0,
       totalDurationSec: wavDurationSec(audio),
     };
   }
 
-  const silence = createSilentWav(gapSec, fmt);
+  // 缓存不同时长静音，避免每段重新 alloc
+  const silenceCache = new Map<string, Buffer>();
+  const silenceFor = (sec: number): Buffer => {
+    const key = sec.toFixed(3);
+    let buf = silenceCache.get(key);
+    if (!buf) {
+      buf = createSilentWav(sec, fmt);
+      silenceCache.set(key, buf);
+    }
+    return buf;
+  };
+
   const pieces: Buffer[] = [];
   const speechRanges: Array<{ startSec: number; endSec: number }> = [];
+  const appliedGaps: number[] = [];
   let cursor = 0;
   for (let i = 0; i < buffers.length; i += 1) {
     const buf = buffers[i];
@@ -221,15 +301,25 @@ export function mergeWavBuffersWithGaps(
     pieces.push(buf);
     cursor += dur;
     if (i < buffers.length - 1) {
-      pieces.push(silence);
-      cursor += gapSec;
+      const gap = gapList[i] || 0;
+      if (gap > 0) {
+        pieces.push(silenceFor(gap));
+        cursor += gap;
+        appliedGaps.push(gap);
+      } else {
+        appliedGaps.push(0);
+      }
     }
   }
   const audio = mergeWavBuffers(pieces);
+  const avgGap = appliedGaps.length
+    ? appliedGaps.reduce((a, b) => a + b, 0) / appliedGaps.length
+    : 0;
   return {
     audio,
     speechRanges,
-    gapSec,
+    gapsSec: appliedGaps,
+    gapSec: Number(avgGap.toFixed(3)),
     totalDurationSec: Number(cursor.toFixed(3)),
   };
 }
