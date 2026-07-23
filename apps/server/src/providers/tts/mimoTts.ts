@@ -462,7 +462,7 @@ export const mimoTtsProvider: TtsProvider = {
         {
           type: 'tags',
           bind: 'styleTags',
-          label: '开头风格',
+          label: '风格底色',
           optional: true,
           options: [...MIMO_SPEECH_STYLE_TAGS],
           when: { mode: 'default' },

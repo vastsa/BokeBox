@@ -1,4 +1,4 @@
-import { podcastAudioUrl, coverImageUrl } from '../../api/client';
+import { podcastAudioUrl, podcastSrtUrl, coverImageUrl } from '../../api/client';
 import { ScriptPromptSummary } from '../../components/admin/ScriptPromptSummary';
 import { TtsSummary } from '../../components/admin/TtsSummary';
 import { MiniPlayer } from '../../components/listen/MiniPlayer';
@@ -102,6 +102,15 @@ export function JobOverviewPanel({
                     >
                       <IconDownload size={14} />
                       {t('common.download')}
+                    </a>
+                  )}
+                  {!!job.podcast?.scriptTiming?.length && (
+                    <a
+                      href={podcastSrtUrl(job.id, true, String(job.updatedAt))}
+                      className="nl-btn nl-btn-ghost"
+                    >
+                      <IconDownload size={14} />
+                      {t('job.downloadSrt')}
                     </a>
                   )}
                   {canListen && (

@@ -72,9 +72,17 @@ export {
   splitScript,
   splitScriptWithRanges,
   mergeWavBuffers,
+  mergeWavBuffersWithGaps,
+  createSilentWav,
+  readWavPcmFormat,
   wavDurationSec,
   detectAudioFormat,
 } from './audioUtils.js';
 export type { ScriptChunk } from './audioUtils.js';
 
 export { resolveVoicePanel, compileVoicePanelFromUi } from './voicePanel.js';
+export {
+  planSentenceStyleTags,
+  applyPlannedStyleToSentence,
+} from './styleTagPlanner.js';
+export type { SentenceStylePlan } from './styleTagPlanner.js';

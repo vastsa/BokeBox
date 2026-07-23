@@ -112,6 +112,44 @@ export async function mediaRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  app.get<{ Params: { id: string }; Querystring: { download?: string } }>(
+    '/jobs/:id/srt',
+    async (req, reply) => {
+      const job = await getJob(req.params.id);
+      if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
+      if (!getRequestUser(req) && !isPubliclyListenable(job)) {
+        return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });
+      }
+      const paths = jobPaths(job.id);
+      let filePath = paths.podcastSrt;
+      if (!(await pathExists(filePath))) {
+        // 兼容旧任务：有时间轴则即时生成
+        const { readScriptTiming, buildSrtFromTiming, writePodcastSrt } = await import(
+          '../../services/job/scriptTiming.js'
+        );
+        const timing = await readScriptTiming(job.id);
+        if (!timing?.lines?.length) {
+          return reply.code(404).send({ error: t(getRequestLocale(req), 'job.srtMissing') });
+        }
+        await writePodcastSrt(job.id, timing);
+        if (!(await pathExists(filePath))) {
+          const body = buildSrtFromTiming(timing.lines);
+          if (!body) {
+            return reply.code(404).send({ error: t(getRequestLocale(req), 'job.srtMissing') });
+          }
+          reply.header('Content-Type', 'application/x-subrip; charset=utf-8');
+          const filename = `${(job.podcast?.title || job.title || job.id).replace(/[\\/:*?"<>|]/g, '_')}.srt`;
+          if (req.query.download === '1') {
+            reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+          }
+          return body;
+        }
+      }
+      const filename = `${(job.podcast?.title || job.title || job.id).replace(/[\\/:*?"<>|]/g, '_')}.srt`;
+      return sendMedia(req, reply, filePath, filename, req.query.download === '1');
+    },
+  );
+
   app.get<{ Params: { id: string } }>('/jobs/:id/transcript', async (req, reply) => {
     const job = await getJob(req.params.id);
     if (!job) return reply.code(404).send({ error: t(getRequestLocale(req), 'job.notFound') });

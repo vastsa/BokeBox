@@ -113,6 +113,127 @@ export function wavDurationSec(buf: Buffer): number {
   }
 }
 
+
+/** 从首段 WAV 读取 PCM 参数；失败返回 null */
+export function readWavPcmFormat(
+  buf: Buffer,
+): { channels: number; sampleRate: number; bitsPerSample: number } | null {
+  if (!buf || buf.slice(0, 4).toString() !== 'RIFF') return null;
+  try {
+    const fmt = findChunk(buf, 'fmt ');
+    if (!fmt) return null;
+    return {
+      channels: fmt.chunk.readUInt16LE(0),
+      sampleRate: fmt.chunk.readUInt32LE(4),
+      bitsPerSample: fmt.chunk.readUInt16LE(14),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** 生成指定时长的静音 PCM WAV（与参考格式一致） */
+export function createSilentWav(
+  durationSec: number,
+  format: { channels: number; sampleRate: number; bitsPerSample: number },
+): Buffer {
+  const seconds = Math.max(0, Number(durationSec) || 0);
+  const channels = Math.max(1, format.channels || 1);
+  const sampleRate = Math.max(1, format.sampleRate || 24000);
+  const bitsPerSample = format.bitsPerSample === 8 ? 8 : 16;
+  const bytesPerSample = bitsPerSample / 8;
+  const frameCount = Math.max(0, Math.round(seconds * sampleRate));
+  const pcm = Buffer.alloc(frameCount * channels * bytesPerSample, 0);
+  const byteRate = sampleRate * channels * bytesPerSample;
+  const blockAlign = channels * bytesPerSample;
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+}
+
+/**
+ * 拼接多段 WAV，并在段间插入固定静音。
+ * gapSec 用于句间停顿；返回最终音频与每段 speech 的起止（不含后随静音）。
+ */
+export function mergeWavBuffersWithGaps(
+  buffers: Buffer[],
+  gapSec = 0.28,
+): {
+  audio: Buffer;
+  speechRanges: Array<{ startSec: number; endSec: number }>;
+  gapSec: number;
+  totalDurationSec: number;
+} {
+  if (!buffers.length) {
+    return { audio: Buffer.alloc(0), speechRanges: [], gapSec: 0, totalDurationSec: 0 };
+  }
+  if (buffers.length === 1 || gapSec <= 0) {
+    const audio = mergeWavBuffers(buffers);
+    const ranges: Array<{ startSec: number; endSec: number }> = [];
+    let cursor = 0;
+    for (const buf of buffers) {
+      const dur = wavDurationSec(buf);
+      ranges.push({ startSec: cursor, endSec: cursor + dur });
+      cursor += dur;
+    }
+    return {
+      audio,
+      speechRanges: ranges,
+      gapSec: 0,
+      totalDurationSec: cursor || wavDurationSec(audio),
+    };
+  }
+
+  const fmt = readWavPcmFormat(buffers[0]);
+  if (!fmt) {
+    const audio = mergeWavBuffers(buffers);
+    return {
+      audio,
+      speechRanges: [],
+      gapSec: 0,
+      totalDurationSec: wavDurationSec(audio),
+    };
+  }
+
+  const silence = createSilentWav(gapSec, fmt);
+  const pieces: Buffer[] = [];
+  const speechRanges: Array<{ startSec: number; endSec: number }> = [];
+  let cursor = 0;
+  for (let i = 0; i < buffers.length; i += 1) {
+    const buf = buffers[i];
+    const dur = wavDurationSec(buf);
+    speechRanges.push({
+      startSec: Number(cursor.toFixed(3)),
+      endSec: Number((cursor + dur).toFixed(3)),
+    });
+    pieces.push(buf);
+    cursor += dur;
+    if (i < buffers.length - 1) {
+      pieces.push(silence);
+      cursor += gapSec;
+    }
+  }
+  const audio = mergeWavBuffers(pieces);
+  return {
+    audio,
+    speechRanges,
+    gapSec,
+    totalDurationSec: Number(cursor.toFixed(3)),
+  };
+}
+
 /**
  * 简单拼接多个 WAV：仅当全部为标准 PCM WAV 时合并 data chunk。
  * 若无法解析，退回直接 concat（多数情况下单段即可）。

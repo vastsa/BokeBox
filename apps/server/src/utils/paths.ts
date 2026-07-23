@@ -104,6 +104,7 @@ export interface JobPaths {
   showNotes: string;
   flashcards: string;
   scriptTiming: string;
+  podcastSrt: string;
   podcastMp3: string;
   podcastWav: string;
   /** 默认封面路径（兼容旧 png）；实际多为 cover.webp + 缩略图变体 */
@@ -147,6 +148,7 @@ export function jobPaths(jobId: string): JobPaths {
     showNotes: path.join(dir, 'shownotes.md'),
     flashcards: path.join(dir, 'flashcards.json'),
     scriptTiming: path.join(dir, 'script-timing.json'),
+    podcastSrt: path.join(dir, 'podcast.srt'),
     podcastMp3: path.join(dir, 'podcast.mp3'),
     podcastWav: path.join(dir, 'podcast.wav'),
     cover: path.join(dir, 'cover.webp'),

@@ -429,3 +429,145 @@ export function isValidScriptTimingFile(
     (row) => row.startSec <= timing.durationSec + tolerance,
   );
 }
+
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function pad3(n: number): string {
+  return String(n).padStart(3, '0');
+}
+
+/** 秒 → SRT 时间码 HH:MM:SS,mmm */
+export function formatSrtTimestamp(sec: number): string {
+  const safe = Math.max(0, Number(sec) || 0);
+  const totalMs = Math.round(safe * 1000);
+  const ms = totalMs % 1000;
+  const totalSec = Math.floor(totalMs / 1000);
+  const s = totalSec % 60;
+  const totalMin = Math.floor(totalSec / 60);
+  const m = totalMin % 60;
+  const h = Math.floor(totalMin / 60);
+  return `${pad2(h)}:${pad2(m)}:${pad2(s)},${pad3(ms)}`;
+}
+
+/** 由时间轴生成 SRT（一行一句，已去音频标签） */
+export function buildSrtFromTiming(lines: ScriptLineTiming[]): string {
+  const rows = (lines || []).filter(
+    (line) =>
+      line &&
+      String(line.text || '').trim() &&
+      Number.isFinite(line.startSec) &&
+      Number.isFinite(line.endSec) &&
+      line.endSec > line.startSec,
+  );
+  if (!rows.length) return '';
+  return (
+    rows
+      .map((line, index) => {
+        const text = stripAudioTags(line.text).replace(/\s+/gu, ' ').trim();
+        return [
+          String(index + 1),
+          `${formatSrtTimestamp(line.startSec)} --> ${formatSrtTimestamp(line.endSec)}`,
+          text,
+        ].join('\n');
+      })
+      .join('\n\n') + '\n'
+  );
+}
+
+/** 写入 podcast.srt（与 script-timing 同步） */
+export async function writePodcastSrt(
+  jobId: string,
+  timing: ScriptTimingFile | { lines: ScriptLineTiming[] },
+): Promise<string | null> {
+  const body = buildSrtFromTiming(timing.lines || []);
+  const file = jobPaths(jobId).podcastSrt;
+  if (!body) {
+    try {
+      await fs.unlink(file);
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+  await fs.writeFile(file, body, 'utf8');
+  return file;
+}
+
+/**
+ * 按「句音频实测 + 句间静音」直接构建时间轴。
+ * speechRanges 对应每句语音起止（不含后随 gap）。
+ */
+export function buildScriptTimingFromSpeechRanges(options: {
+  script: string;
+  speechRanges: Array<{ startSec: number; endSec: number }>;
+  gapSec?: number;
+  durationSec?: number;
+}): ScriptTimingFile {
+  const lines = parseScriptLinesDetailed(options.script);
+  const ranges = options.speechRanges || [];
+  if (!lines.length || !ranges.length) {
+    return {
+      version: 1,
+      durationSec: options.durationSec || 0,
+      source: 'estimated',
+      lines: [],
+    };
+  }
+
+  const count = Math.min(lines.length, ranges.length);
+  const timed: ScriptLineTiming[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const range = ranges[i];
+    timed.push({
+      text: lines[i].text,
+      startSec: Number(range.startSec.toFixed(3)),
+      endSec: Number(range.endSec.toFixed(3)),
+    });
+  }
+
+  // 若句数多于 speech range（极少见），用末尾均分兜底
+  if (lines.length > count) {
+    const lastEnd = timed[timed.length - 1]?.endSec || 0;
+    const remain = lines.slice(count);
+    const tailDur = Math.max(0.2, (options.durationSec || lastEnd) - lastEnd);
+    timed.push(
+      ...distribute(
+        remain.map((l) => ({ text: l.text, weight: l.weight })),
+        lastEnd,
+        tailDur,
+      ),
+    );
+  }
+
+  const durationSec =
+    (Number.isFinite(options.durationSec) && (options.durationSec || 0) > 0
+      ? options.durationSec!
+      : timed[timed.length - 1]?.endSec) || 0;
+
+  if (timed.length) {
+    // 保证单调且最后一句不越过总时长
+    for (let i = 0; i < timed.length; i += 1) {
+      if (i > 0 && timed[i].startSec < timed[i - 1].endSec) {
+        timed[i].startSec = timed[i - 1].endSec;
+      }
+      if (timed[i].endSec <= timed[i].startSec) {
+        timed[i].endSec = Number((timed[i].startSec + 0.05).toFixed(3));
+      }
+    }
+    timed[timed.length - 1].endSec = Math.min(
+      timed[timed.length - 1].endSec,
+      Number(durationSec.toFixed(3)),
+    );
+  }
+
+  return {
+    version: 1,
+    durationSec: Number(durationSec.toFixed(3)),
+    source: 'measured',
+    lines: timed,
+  };
+}
+

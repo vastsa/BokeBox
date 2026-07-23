@@ -8,7 +8,7 @@ import {
   applyAssistantStyleTags,
   detectAudioFormat,
   listTtsProviderDescriptors,
-  mergeWavBuffers,
+  mergeWavBuffersWithGaps,
   MIMO_AUDIO_TAG_EXAMPLES,
   MIMO_PRESET_VOICES,
   MIMO_SPEECH_STYLE_TAGS,
@@ -17,12 +17,16 @@ import {
   createTtsContext,
   assertTtsPluginConfigReady,
   splitScriptWithRanges,
+  planSentenceStyleTags,
+  applyPlannedStyleToSentence,
   wavDurationSec,
 } from '../../providers/index.js';
 import {
   buildScriptTiming,
+  buildScriptTimingFromSpeechRanges,
   detectSilenceIntervals,
   probeAudioDurationSec,
+  writePodcastSrt,
   writeScriptTiming,
 } from '../job/scriptTiming.js';
 
@@ -113,8 +117,8 @@ export function getActiveTtsUiMeta() {
  * TTS 合成门面：
  * - 解析当前 TtsProvider（可热切换）
  * - 按句号/问号/叹号/换行一句一段（超长单句才按 maxChars 硬切）
- * - 每段都可注入风格标签，不再仅限首段
- * - 拼接 / 转码 / 写时间轴
+ * - 按句规划场景语气标签（全局风格底色 + 句级控制），不再整段复用同一套
+ * - 句间插入静音 / 拼接转码 / 写时间轴与 SRT
  */
 export async function synthesizePodcastAudio(options: {
   script: string;
@@ -174,6 +178,7 @@ export async function synthesizePodcastAudio(options: {
       durationSec,
     });
     await writeScriptTiming(options.jobId, timing);
+    await writePodcastSrt(options.jobId, timing);
     return {
       audioPath: mp3Fallback,
       demo: true,
@@ -210,12 +215,30 @@ export async function synthesizePodcastAudio(options: {
   let usedMode: TtsMode = mode;
 
   for (let i = 0; i < chunks.length; i++) {
+    // 按句规划场景语气：用户全局风格作底色 + 句内场景控制标签
+    const acceptsStyle =
+      providerAcceptsAudioTags(provider.meta.supportsStyleTags, mode) &&
+      mode === 'default';
+    let chunkText = chunks[i].text;
+    let chunkTts = ttsForProvider;
+    if (acceptsStyle) {
+      const plan = planSentenceStyleTags(chunkText, {
+        preferredStyle: ttsForProvider?.styleTags,
+        index: i,
+        total: chunks.length,
+      });
+      chunkText = applyPlannedStyleToSentence(chunkText, plan);
+      // 句内已写入规划标签；避免 provider 再无脑重复整份全局 tags
+      chunkTts = ttsForProvider
+        ? { ...ttsForProvider, styleTags: plan.styleTags }
+        : { mode: 'default', styleTags: plan.styleTags };
+    }
     const chunkResult = await provider.synthesizeChunk(
       {
-        text: chunks[i].text,
-        tts: ttsForProvider,
-        // 每句都注入语气/风格标签，避免只有首段带情绪
-        applyLeadingStyle: true,
+        text: chunkText,
+        tts: chunkTts,
+        // 每句都允许注入；具体标签已按场景裁剪
+        applyLeadingStyle: acceptsStyle,
       },
       ttsCtx,
     );
@@ -233,13 +256,37 @@ export async function synthesizePodcastAudio(options: {
     if (chunkResult.mode) usedMode = chunkResult.mode;
   }
 
+  // 句间静音：逐句合成后插入自然停顿，并据此生成精确 SRT
+  const SENTENCE_GAP_SEC = 0.32;
   const allWav = buffers.every(
     (b) => detectAudioFormat(b) === 'wav' || b.slice(0, 4).toString() === 'RIFF',
   );
-  const merged = allWav ? mergeWavBuffers(buffers) : Buffer.concat(buffers);
-  const totalDuration =
-    chunkDurationsSec.reduce((a, b) => a + b, 0) ||
-    (allWav ? wavDurationSec(merged) : 0);
+
+  let merged: Buffer;
+  let speechRanges: Array<{ startSec: number; endSec: number }> | undefined;
+  let totalDuration = 0;
+
+  if (allWav) {
+    const gapMerged = mergeWavBuffersWithGaps(buffers, SENTENCE_GAP_SEC);
+    merged = gapMerged.audio;
+    speechRanges = gapMerged.speechRanges;
+    totalDuration =
+      gapMerged.totalDurationSec ||
+      wavDurationSec(merged) ||
+      chunkDurationsSec.reduce((a, b) => a + b, 0);
+  } else {
+    // 非 WAV（少见）：无法安全插静音，直接拼接
+    merged = Buffer.concat(buffers);
+    totalDuration = chunkDurationsSec.reduce((a, b) => a + b, 0);
+    if (chunkDurationsSec.every((value) => value > 0)) {
+      let cursor = 0;
+      speechRanges = chunkDurationsSec.map((dur) => {
+        const range = { startSec: cursor, endSec: cursor + dur };
+        cursor += dur;
+        return range;
+      });
+    }
+  }
 
   const format = detectAudioFormat(merged);
   let audioPath = mp3Fallback;
@@ -263,33 +310,44 @@ export async function synthesizePodcastAudio(options: {
     throw new Error('合成音频时长探测失败，已停止写入不可靠时间轴');
   }
 
-  const measuredChunks = chunkDurationsSec.every((value) => value > 0)
-    ? chunks.map((chunk, index) => ({
-        sourceStart: chunk.sourceStart,
-        sourceEnd: chunk.sourceEnd,
-        durationSec: chunkDurationsSec[index],
-      }))
-    : undefined;
+  let timing =
+    speechRanges && speechRanges.length
+      ? buildScriptTimingFromSpeechRanges({
+          script: synthesisScript,
+          speechRanges,
+          gapSec: allWav ? SENTENCE_GAP_SEC : 0,
+          durationSec,
+        })
+      : buildScriptTiming({
+          script: synthesisScript,
+          durationSec,
+          chunks: chunkDurationsSec.every((value) => value > 0)
+            ? chunks.map((chunk, index) => ({
+                sourceStart: chunk.sourceStart,
+                sourceEnd: chunk.sourceEnd,
+                durationSec: chunkDurationsSec[index],
+              }))
+            : undefined,
+        });
 
-  let timing = buildScriptTiming({
-    script: synthesisScript,
-    durationSec,
-    chunks: measuredChunks,
-  });
-  try {
-    const silences = await detectSilenceIntervals(audioPath);
-    if (silences.length) {
-      timing = buildScriptTiming({
-        script: synthesisScript,
-        durationSec,
-        chunks: measuredChunks,
-        silences,
-      });
+  // 已有逐句实测区间时不再做静音吸附，避免把句间 pad 误判成句界漂移
+  if (!speechRanges?.length) {
+    try {
+      const silences = await detectSilenceIntervals(audioPath);
+      if (silences.length) {
+        timing = buildScriptTiming({
+          script: synthesisScript,
+          durationSec,
+          silences,
+        });
+      }
+    } catch {
+      // 静音分析失败时保留已有时间轴
     }
-  } catch {
-    // 静音分析失败时保留分块实测
   }
+
   await writeScriptTiming(options.jobId, timing);
+  await writePodcastSrt(options.jobId, timing);
 
   return {
     audioPath,

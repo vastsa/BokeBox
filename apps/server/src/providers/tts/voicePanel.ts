@@ -155,7 +155,7 @@ export function compileVoicePanelFromUi(
     fields.push({
       type: 'tags',
       bind: 'styleTags',
-      label: '开头风格',
+      label: '风格底色',
       optional: true,
       options: [...MIMO_STYLE_TAGS],
       when: { mode: 'default' },

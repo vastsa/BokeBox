@@ -59,5 +59,5 @@ Examples:
 
 - One sentence per `synthesizeChunk` (split on `。！？!?` / newlines)
 - `maxCharsPerRequest` only hard-splits oversized sentences
-- Style/mood tags applied on every segment, not only the first
+- Style/mood tags planned per sentence (global base + scene-aware controls), not only the first
 

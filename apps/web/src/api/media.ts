@@ -64,6 +64,18 @@ export function podcastAudioUrl(
   });
 }
 
+/** 口播逐句字幕 SRT（依赖 script-timing / 合成阶段写出） */
+export function podcastSrtUrl(
+  id: string,
+  download = false,
+  cacheKey?: string,
+): string {
+  return appendQuery(`${BASE}/jobs/${id}/srt`, {
+    download: download ? '1' : undefined,
+    v: cacheKey,
+  });
+}
+
 export function sourceAudioUrl(id: string): string {
   return appendQuery(`${BASE}/jobs/${id}/source-audio`, {});
 }

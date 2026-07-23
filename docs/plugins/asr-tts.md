@@ -16,7 +16,7 @@ storage/plugins/
   tts/      # 语音合成
 ```
 
-宿主 TTS 合成约定：按句号/问号/叹号/换行 **一句一段** 调用 `synthesizeChunk`；`maxCharsPerRequest` 只用于超长单句硬切；风格/语气标签 **每段都会注入**（不限首段）。
+宿主 TTS 合成约定：按句号/问号/叹号/换行 **一句一段** 调用 `synthesizeChunk`；句间插入静音；风格/语气标签 **按句规划场景注入**；合成后写时间轴与 `podcast.srt`（`GET /api/jobs/:id/srt`）。
 
 ## API
 
