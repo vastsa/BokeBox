@@ -33,3 +33,11 @@ Synthesize spoken-script segments to audio the host can stitch. Surface voices/c
 
 - [/development/tts-plugin](/development/tts-plugin)
 - [docs/development/tts-plugin.md](https://github.com/vastsa/BokeBox/blob/main/docs/development/tts-plugin.md)
+
+## Host synthesis behavior
+
+- Split on `。！？!?` and newlines: **one sentence → one `synthesizeChunk` call**
+- `maxCharsPerRequest` only hard-splits an oversized single sentence
+- Style/mood tags are applied on **every** segment (`applyLeadingStyle: true`), not just the first
+- Host synthesizes segments sequentially and merges audio
+

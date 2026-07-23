@@ -54,3 +54,10 @@ Examples:
 - [TTS development](../development/tts-plugin.md)
 - [Install & manage](../development/plugin-install.md)
 - [Examples](../development/examples.md)
+
+## Host TTS synthesis
+
+- One sentence per `synthesizeChunk` (split on `。！？!?` / newlines)
+- `maxCharsPerRequest` only hard-splits oversized sentences
+- Style/mood tags applied on every segment, not only the first
+

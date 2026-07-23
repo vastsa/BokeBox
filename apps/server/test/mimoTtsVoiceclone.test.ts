@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  applyAssistantStyleTags,
   buildMimoTtsBody,
   pickCloneAudioSource,
   resolveCloneAudioFilePath,
@@ -77,6 +78,34 @@ describe('mimo voiceclone cache', () => {
     const b = await toCloneVoiceDataUri(uri);
     assert.equal(a, b);
     assert.ok(a.startsWith('data:audio/mpeg;base64,'));
+  });
+});
+
+
+describe('mimo style tags per sentence', () => {
+  it('injects style tags when applyLeadingStyle is true', () => {
+    const out = applyAssistantStyleTags('今天天气不错。', {
+      styleTags: ['轻快', '微笑'],
+      applyLeadingStyle: true,
+    });
+    assert.equal(out, '(轻快 微笑)今天天气不错。');
+  });
+
+  it('skips style tags only when applyLeadingStyle is explicitly false', () => {
+    const out = applyAssistantStyleTags('今天天气不错。', {
+      styleTags: ['轻快'],
+      applyLeadingStyle: false,
+    });
+    assert.equal(out, '今天天气不错。');
+  });
+
+  it('buildMimoTtsBody applies tags for non-first sentences too', () => {
+    const body = buildMimoTtsBody(
+      '第二句继续讲。',
+      { mode: 'default', voice: '冰糖', styleTags: ['沉稳'] },
+      { applyLeadingStyle: true, model: 'mimo-v2.5-tts' },
+    );
+    assert.equal(body.messages[0]!.content, '(沉稳)第二句继续讲。');
   });
 });
 

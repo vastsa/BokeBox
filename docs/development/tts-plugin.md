@@ -186,14 +186,29 @@ meta: {
 
 - [ ] `meta.voicePanel.fields` 非空，页面完全由你定义  
 - [ ] `synthesizeChunk` 正确处理任务 `voice` 覆盖与插件默认  
-- [ ] 长文本适配 `maxCharsPerRequest`  
+- [ ] 宿主按句（`。！？!?` / 换行）逐段调用 `synthesizeChunk`；`maxCharsPerRequest` 仅兜底超长单句  
+- [ ] 风格/语气标签按段注入（不限首段）；`applyLeadingStyle` 默认可为 true  
 - [ ] 返回优先 `format: 'wav'`  
 - [ ] README 说明每个字段含义与音色 id 来源  
 - [ ] 不把密钥写进仓库  
 
 ---
 
-## 7. 何时需要改宿主？
+## 7. 宿主合成约定
+
+宿主 `synthesizePodcastAudio` 行为：
+
+1. **按句切分**：以 `。！？!?` 与换行 `\n` 为句界，**一句一次** `synthesizeChunk`
+2. **超长单句**：仅当单句超过 `meta.maxCharsPerRequest` 时硬切（逗号/分号/空白优先）
+3. **语气标签**：每段传入 `applyLeadingStyle: true`，风格/语气词不限于全文首段
+4. **串行合成**后拼接音频，并写脚本时间轴
+
+插件侧只需保证单次 `synthesizeChunk` 对短句稳定返回；不必自己再做全文切段。
+
+---
+
+## 8. 何时需要改宿主？
+
 
 | 需求 | 是否改主仓 |
 |------|------------|

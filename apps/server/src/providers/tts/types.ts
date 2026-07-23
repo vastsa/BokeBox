@@ -152,7 +152,7 @@ export interface TtsProviderMeta {
    * 任务级 tts.voice 始终可覆盖此配置。
    */
   voiceConfigKey?: string;
-  /** 单次请求建议最大字符数；门面会据此切段 */
+  /** 单次请求建议最大字符数；门面按句合成，仅在单句超长时用此值硬切 */
   maxCharsPerRequest: number;
   suggestedModels?: {
     tts?: string;
@@ -164,7 +164,10 @@ export interface TtsProviderMeta {
 export interface TtsChunkInput {
   text: string;
   tts?: TtsOptions;
-  /** 分段合成时仅首段注入开头风格标签 */
+  /**
+   * 是否在本段文本开头注入风格/语气标签。
+   * 宿主按句合成时每段都会传 true；插件可忽略。
+   */
   applyLeadingStyle?: boolean;
   model?: string;
   voiceDesignModel?: string;

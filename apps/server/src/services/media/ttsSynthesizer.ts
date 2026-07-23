@@ -112,7 +112,8 @@ export function getActiveTtsUiMeta() {
 /**
  * TTS 合成门面：
  * - 解析当前 TtsProvider（可热切换）
- * - 按提供方 maxChars 切段
+ * - 按句号/问号/叹号/换行一句一段（超长单句才按 maxChars 硬切）
+ * - 每段都可注入风格标签，不再仅限首段
  * - 拼接 / 转码 / 写时间轴
  */
 export async function synthesizePodcastAudio(options: {
@@ -195,6 +196,7 @@ export async function synthesizePodcastAudio(options: {
     );
   }
 
+  // maxChars 只兜底「单句过长」；正常路径按句号一句一合成
   const maxChars = Math.max(80, provider.meta.maxCharsPerRequest || 500);
   const chunks = splitScriptWithRanges(synthesisScript, maxChars);
   const buffers: Buffer[] = [];
@@ -212,7 +214,8 @@ export async function synthesizePodcastAudio(options: {
       {
         text: chunks[i].text,
         tts: ttsForProvider,
-        applyLeadingStyle: i === 0,
+        // 每句都注入语气/风格标签，避免只有首段带情绪
+        applyLeadingStyle: true,
       },
       ttsCtx,
     );

@@ -75,6 +75,7 @@ describe('script timing contract', () => {
   it('keeps every parsed line exactly once across ranged chunks', () => {
     const script =
       '第一句内容。第二句内容。\n\n第三句内容。第四句内容。\n第五句内容。';
+    // maxLen 再小也按句拆，不再合并多句
     const chunks = splitScriptWithRanges(script, 18);
     const durationSec = chunks.length * 4;
     const timing = buildScriptTiming({
@@ -192,5 +193,39 @@ describe('script timing contract', () => {
     assert.equal(resolved.usedProvidedTiming, false);
     assert.equal(resolved.source, 'estimated');
     assert.equal(resolved.lines.at(-1)?.endSec, 60);
+  });
+});
+
+
+describe('tts sentence split', () => {
+  it('splits one sentence per chunk even when maxLen allows packing', () => {
+    const script = '第一句内容。第二句内容。第三句内容。';
+    const chunks = splitScriptWithRanges(script, 500);
+    assert.deepEqual(
+      chunks.map((chunk) => chunk.text),
+      ['第一句内容。', '第二句内容。', '第三句内容。'],
+    );
+    assert.equal(chunks[0].sourceStart, 0);
+    // 相邻句在规范化串中首尾相接：end == next.start
+    assert.equal(chunks[0].sourceEnd, chunks[1].sourceStart);
+    assert.ok(chunks[1].sourceEnd <= chunks[2].sourceStart || chunks[1].sourceEnd === chunks[2].sourceStart);
+  });
+
+  it('keeps newline-only units as independent chunks', () => {
+    const script = '第一句内容。\n第二句内容\n第三句内容。';
+    const chunks = splitScriptWithRanges(script, 500);
+    assert.deepEqual(
+      chunks.map((chunk) => chunk.text),
+      ['第一句内容。', '第二句内容', '第三句内容。'],
+    );
+  });
+
+  it('only hard-splits a single oversized sentence by maxLen', () => {
+    // 实现下限 limit=max(80, maxLen)，所以用明显超过 80 的无句号长文
+    const long = '甲'.repeat(200);
+    const chunks = splitScriptWithRanges(long, 80);
+    assert.ok(chunks.length >= 2);
+    assert.ok(chunks.every((chunk) => chunk.text.length <= 80));
+    assert.equal(chunks.map((chunk) => chunk.text).join(''), long);
   });
 });

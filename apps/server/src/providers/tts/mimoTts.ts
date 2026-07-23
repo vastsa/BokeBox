@@ -140,13 +140,14 @@ function normalizeStyleTagList(tags?: string[] | string | null): string[] {
 }
 
 /**
- * 解析并重建 assistant 文本开头的风格标签。
- * 自然口播不强制任何默认标签。
+ * 解析并重建 assistant 文本开头的风格/语气标签。
+ * 自然口播不强制任何默认标签；有配置时按句注入，不限首段。
  */
 export function applyAssistantStyleTags(
   text: string,
   options?: {
     styleTags?: string[] | string;
+    /** 默认 true：对本段注入 styleTags；显式 false 时跳过 */
     applyLeadingStyle?: boolean;
   },
 ): string {

@@ -45,12 +45,15 @@ function splitOversizedRange(
 
 /**
  * 按句切分合成文本，并直接保留源范围。
+ * 一句一合成：以句号/问号/叹号/换行为单位，不再按 maxChars 合并多句。
+ * maxLen 仅用于「单句过长」时的硬切，避免单次请求爆炸。
  * 时间轴不得再通过 indexOf 反推范围，否则空行归一化后会重复/遗漏句子。
  */
 export function splitScriptWithRanges(text: string, maxLen: number): ScriptChunk[] {
   const normalized = String(text || '').replace(/\r\n/g, '\n').trim();
   if (!normalized) return [];
-  const limit = Math.max(1, Math.floor(maxLen));
+  // maxLen 仅兜底超长单句；无效/过小值时给一个安全下限
+  const limit = Math.max(80, Math.floor(maxLen) || 500);
 
   const rawUnits: SourceRange[] = [];
   let start = 0;
@@ -65,6 +68,7 @@ export function splitScriptWithRanges(text: string, maxLen: number): ScriptChunk
     if (tail) rawUnits.push(tail);
   }
 
+  // 一句一段；仅当单句超过 limit 时再硬切
   const units = rawUnits.flatMap((range) =>
     range.end - range.start > limit
       ? splitOversizedRange(normalized, range, limit)
@@ -72,38 +76,15 @@ export function splitScriptWithRanges(text: string, maxLen: number): ScriptChunk
   );
 
   const chunks: ScriptChunk[] = [];
-  let chunkStart = -1;
-  let chunkEnd = -1;
-  const flush = () => {
-    if (chunkStart < 0 || chunkEnd <= chunkStart) return;
-    const range = trimRange(normalized, { start: chunkStart, end: chunkEnd });
-    if (range) {
-      chunks.push({
-        text: normalized.slice(range.start, range.end),
-        sourceStart: range.start,
-        sourceEnd: range.end,
-      });
-    }
-    chunkStart = -1;
-    chunkEnd = -1;
-  };
-
   for (const unit of units) {
-    if (chunkStart < 0) {
-      chunkStart = unit.start;
-      chunkEnd = unit.end;
-      continue;
-    }
-    const candidateLength = normalized.slice(chunkStart, unit.end).trim().length;
-    if (candidateLength > limit) {
-      flush();
-      chunkStart = unit.start;
-      chunkEnd = unit.end;
-    } else {
-      chunkEnd = unit.end;
-    }
+    const range = trimRange(normalized, unit);
+    if (!range) continue;
+    chunks.push({
+      text: normalized.slice(range.start, range.end),
+      sourceStart: range.start,
+      sourceEnd: range.end,
+    });
   }
-  flush();
 
   return chunks.length
     ? chunks
