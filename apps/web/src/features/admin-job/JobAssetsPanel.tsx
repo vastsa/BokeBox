@@ -9,7 +9,14 @@ import { useI18n } from '../../i18n';
 import type { Job } from '../../types/job';
 import { AssetRow } from './AssetRow';
 
-export function JobAssetsPanel({ job }: { job: Job }) {
+export function JobAssetsPanel({
+  job,
+  embedded = false,
+}: {
+  job: Job;
+  /** 嵌在概览 Tab 内时去掉外层 panel 壳 */
+  embedded?: boolean;
+}) {
   const { t } = useI18n();
 
   const items = [
@@ -53,15 +60,17 @@ export function JobAssetsPanel({ job }: { job: Job }) {
 
   const readyCount = items.filter((item) => item.ready).length;
 
-  return (
-    <section className="jd-panel jd-panel-assets">
-      <div className="jd-side-head">
-        <h2 className="jd-side-title">{t('job.assetsTitle')}</h2>
-        <span className="jd-side-count">
-          {readyCount}/{items.length}
-        </span>
-      </div>
-      <div className="jd-assets">
+  const body = (
+    <>
+      {!embedded && (
+        <div className="jd-side-head">
+          <h2 className="jd-side-title">{t('job.assetsTitle')}</h2>
+          <span className="jd-side-count">
+            {readyCount}/{items.length}
+          </span>
+        </div>
+      )}
+      <div className={embedded ? 'jd-assets jd-assets-grid' : 'jd-assets'}>
         {items.map((item) => (
           <AssetRow
             key={item.key}
@@ -71,6 +80,10 @@ export function JobAssetsPanel({ job }: { job: Job }) {
           />
         ))}
       </div>
-    </section>
+    </>
   );
+
+  if (embedded) return body;
+
+  return <section className="jd-panel jd-panel-assets">{body}</section>;
 }

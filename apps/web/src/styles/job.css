@@ -724,7 +724,7 @@ html[data-theme="dark"] .mini-player {
   word-break: break-word;
 }
 
-/* ── Layout ── */
+/* ── Layout：上（Hero）中（概览 Tab）下（内容 + 侧栏） ── */
 .jd-layout {
   display: grid;
   gap: var(--space-4);
@@ -746,6 +746,79 @@ html[data-theme="dark"] .mini-player {
   flex-direction: column;
   gap: var(--space-4);
   min-width: 0;
+}
+
+/* ── 中部概览：节目效果 / 资产状态 / 生成配置 横排 Tab ── */
+.jd-overview {
+  padding: 0;
+  overflow: hidden;
+}
+.jd-overview-tabs {
+  /* 与内容 tabs 共用 .jd-tabs，仅确保三等分观感 */
+  justify-content: flex-start;
+}
+.jd-overview-tabs .jd-tab {
+  flex: 1 1 0;
+  text-align: center;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  min-width: 0;
+}
+.jd-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-xs, 18px);
+  padding: 0 var(--space-1_5);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-extrabold);
+  font-variant-numeric: tabular-nums;
+}
+.jd-tab.is-active .jd-tab-badge {
+  background: color-mix(in srgb, var(--brand-soft) 80%, var(--surface));
+  color: var(--brand-2);
+}
+.jd-overview-body {
+  /* 覆盖内容区可能的 max-height，概览区完整展开 */
+  max-height: none !important;
+  overflow: visible !important;
+}
+.jd-overview-head {
+  margin-bottom: var(--space-2);
+}
+.jd-overview-head:empty,
+.jd-overview-head .jd-panel-head-copy:empty {
+  display: contents;
+}
+.jd-overview-assets .jd-assets-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-1_5);
+}
+@media (min-width: 720px) {
+  .jd-overview-assets .jd-assets-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+}
+@media (min-width: 1100px) {
+  .jd-overview-assets .jd-assets-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.jd-overview-config {
+  max-width: 100%;
+}
+@media (min-width: 840px) {
+  .jd-overview-config {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
 }
 
 /* ── Panels ── */

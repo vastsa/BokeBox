@@ -1,20 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   fetchJob,
-  podcastAudioUrl,
   updateJob,
-  coverImageUrl,
 } from '../api/client';
-import { ScriptPromptSummary } from '../components/admin/ScriptPromptSummary';
-import { TtsSummary } from '../components/admin/TtsSummary';
-import { MiniPlayer } from '../components/listen/MiniPlayer';
 import {
-  IconDownload,
   IconRefresh,
-  IconWave,
 } from '../components/icons';
 import {
-  coverGradientFor,
   formatTime,
 } from '../lib/format';
 import { navigate, type Route } from '../lib/router';
@@ -27,9 +19,12 @@ import {
   pipelineIndex,
 } from '../features/admin-job/pipelineSteps';
 import { JobDetailHero } from '../features/admin-job/JobDetailHero';
-import { JobAssetsPanel } from '../features/admin-job/JobAssetsPanel';
 import { JobReprocessPanel } from '../features/admin-job/JobReprocessPanel';
 import { JobContentPanel, type ContentTab } from '../features/admin-job/JobContentPanel';
+import {
+  JobOverviewPanel,
+  type OverviewTab,
+} from '../features/admin-job/JobOverviewPanel';
 import { AppShell } from '../layouts/AppShell';
 import { AdminChrome } from '../components/admin/AdminChrome';
 import {
@@ -47,6 +42,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
   const [fromStep, setFromStep] = useState<PipelineFromStep>('extract');
   const [jobContentLocale, setJobContentLocale] = useState<Locale>('zh-CN');
   const [tab, setTab] = useState<ContentTab>('script');
+  const [overviewTab, setOverviewTab] = useState<OverviewTab>('result');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [followScript, setFollowScript] = useState(false);
   const [playState, setPlayState] = useState({
@@ -90,6 +86,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
     setFollowScript(false);
     setConfirmDelete(false);
     setFromStep('extract');
+    setOverviewTab('result');
   }, [id]);
 
   // 任务就绪后，默认选最省时的可行起点
@@ -120,11 +117,6 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
     job?.sourceKind,
   ]);
 
-  const cover = useMemo(
-    () => (job ? coverGradientFor(job.id, job.podcast?.coverGradient) : ''),
-    [job],
-  );
-
   if (error) {
     return (
       <AppShell route={route}>
@@ -147,12 +139,12 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
   if (!job) {
     return (
       <AppShell route={route}>
-        <div className="admin-container space-y-3 py-8">
-          <div className="nl-shimmer h-10 w-36" />
+        <div className="admin-container space-y-3 py-8 jd-page">
           <div className="nl-shimmer h-28" />
+          <div className="nl-shimmer h-48" />
           <div className="jd-layout">
             <div className="nl-shimmer h-80" />
-            <div className="nl-shimmer h-80" />
+            <div className="nl-shimmer h-56" />
           </div>
         </div>
       </AppShell>
@@ -198,6 +190,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
         subtitle={t('admin.jobDetailSub')}
       >
       <div className="admin-container nl-enter jd-page">
+        {/* 上：任务头图 / 状态 */}
         <JobDetailHero
           job={job}
           title={title}
@@ -211,104 +204,19 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
           runAction={runAction}
         />
 
+        {/* 中：节目效果 / 资产状态 / 生成配置（横排 Tab） */}
+        <JobOverviewPanel
+          job={job}
+          tab={overviewTab}
+          active={active}
+          seekRequest={seekRequest}
+          onTabChange={setOverviewTab}
+          onStateChange={setPlayState}
+        />
+
+        {/* 下：内容详情 + 任务信息 / 重处理 */}
         <div className="jd-layout">
           <div className="jd-main">
-            <section className="jd-panel jd-panel-result">
-              <div className="jd-panel-head">
-                <div className="jd-panel-head-copy">
-                  <h2>{t('job.resultTitle')}</h2>
-                  {job.podcast?.estimatedMinutes ? (
-                    <p className="jd-panel-sub">
-                      {t('common.minutes', { n: job.podcast.estimatedMinutes })}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="jd-panel-actions">
-                  {job.hasPodcastAudio && (
-                    <a
-                      href={podcastAudioUrl(job.id, true)}
-                      className="nl-btn nl-btn-secondary"
-                    >
-                      <IconDownload size={14} />
-                      {t('common.download')}
-                    </a>
-                  )}
-                  {canListen && (
-                    <button
-                      type="button"
-                      className="nl-btn nl-btn-ghost"
-                      onClick={() => navigate({ name: 'player', id: job.id })}
-                    >
-                      {t('job.immersive')}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="jd-result-body">
-                {job.hasPodcastAudio ? (
-                  <MiniPlayer
-                    key={job.updatedAt}
-                    trackId={job.id}
-                    src={podcastAudioUrl(job.id, false, String(job.updatedAt))}
-                    title={title}
-                    downloadUrl={podcastAudioUrl(job.id, true)}
-                    coverClassName={cover}
-                    coverImageUrl={
-                      job.podcast?.hasCoverImage
-                        ? coverImageUrl(job.id, job.updatedAt, 'md')
-                        : undefined
-                    }
-                    summary={job.podcast?.summary}
-                    seekRequest={seekRequest}
-                    onStateChange={setPlayState}
-                  />
-                ) : (
-                  <div className="jd-placeholder">
-                    <IconWave size={18} />
-                    <span>
-                      {active ? t('job.audioGenerating') : t('job.audioMissing')}
-                    </span>
-                  </div>
-                )}
-
-                {(job.podcast?.summary ||
-                  !!job.podcast?.tags?.length ||
-                  !!job.podcast?.outline?.length) && (
-                  <div className="jd-result-meta">
-                    {job.podcast?.summary && (
-                      <p className="jd-summary">{job.podcast.summary}</p>
-                    )}
-
-                    {!!job.podcast?.tags?.length && (
-                      <div className="jd-tags">
-                        {job.podcast.tags.map((tag) => (
-                          <span key={tag}>{tag}</span>
-                        ))}
-                      </div>
-                    )}
-
-                    {!!job.podcast?.outline?.length && (
-                      <div className="jd-outline">
-                        <div className="jd-outline-h">{t('job.outline')}</div>
-                        <ol>
-                          {job.podcast.outline.map((seg, i) => (
-                            <li key={`${seg.title}-${i}`}>
-                              <em>{String(i + 1).padStart(2, '0')}</em>
-                              <div>
-                                <strong>{seg.title}</strong>
-                                {seg.summary && <p>{seg.summary}</p>}
-                              </div>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </section>
-
             <JobContentPanel
               job={job}
               tab={tab}
@@ -324,26 +232,6 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
           </div>
 
           <aside className="jd-side">
-            <JobAssetsPanel job={job} />
-
-            <section className="jd-panel jd-panel-config">
-              <div className="jd-side-head">
-                <h2 className="jd-side-title">{t('job.configTitle')}</h2>
-                <span className="nl-chip">{t('common.readonly')}</span>
-              </div>
-
-              <div className="jd-config-stack">
-                <div className="jd-config-block">
-                  <div className="jd-config-label">{t('job.ttsConfig')}</div>
-                  <TtsSummary value={job.tts} />
-                </div>
-                <div className="jd-config-block">
-                  <div className="jd-config-label">{t('job.persona')}</div>
-                  <ScriptPromptSummary value={job.scriptPrompt} />
-                </div>
-              </div>
-            </section>
-
             <section className="jd-panel jd-meta-panel">
               <div className="jd-side-head">
                 <h2 className="jd-side-title">{t('job.infoTitle')}</h2>

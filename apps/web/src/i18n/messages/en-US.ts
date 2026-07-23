@@ -477,6 +477,7 @@ export const enUS: MessageTree = {
     processFailed: 'Processing failed',
     actionFailed: 'Action failed',
     resultTitle: 'Episode result',
+    overviewTabs: 'Job overview',
     immersive: 'Immersive play',
     audioGenerating: 'Generating podcast audio…',
     audioMissing: 'Podcast audio not ready',

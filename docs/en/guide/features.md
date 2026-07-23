@@ -30,6 +30,7 @@ Aligned with Settings, job detail, and the listening library.
 
 ## Episode assets
 
+- Job detail uses a top / middle / bottom layout: status & pipeline on top; horizontal tabs in the middle (episode result / asset status / generation config); content detail and reprocess below  
 - Transcript, script, notes, flashcards, cover, audio  
 - AI covers (custom cover prompts)  
 - Flashcards for active recall  

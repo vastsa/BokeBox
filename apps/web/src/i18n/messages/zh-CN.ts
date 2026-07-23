@@ -472,6 +472,7 @@ export const zhCN = {
     processFailed: '处理失败',
     actionFailed: '操作失败',
     resultTitle: '节目成果',
+    overviewTabs: '任务概览',
     immersive: '沉浸播放',
     audioGenerating: '播客音频生成中…',
     audioMissing: '尚未生成播客音频',
