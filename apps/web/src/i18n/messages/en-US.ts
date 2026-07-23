@@ -643,6 +643,7 @@ export const enUS: MessageTree = {
     scheduleParams: 'Plugin params (JSON)',
     scheduleParamsPh: 'e.g. { "since": "daily", "language": "typescript" }',
     scheduleParamsInvalid: 'Plugin params must be a JSON object',
+    scheduleParamsOptional: 'Optional. Leave empty when you have nothing to override — empty objects are not saved.',
     schedulePluginParams: 'Plugin params',
     schedulePluginParamsHint: 'Filled from the plugin configSchema. Empty fields fall back to plugin hub defaults. Secrets belong in the plugin hub.',
     pluginTabSchedule: 'Schedules',

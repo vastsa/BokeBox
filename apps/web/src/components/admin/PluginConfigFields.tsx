@@ -246,6 +246,8 @@ export function draftToConfigPatch(
       continue;
     }
     if (field.type === 'boolean') {
+      // 未选择时不写，避免「全是 false」的空覆盖
+      if (raw === '' || raw === undefined || raw === null) continue;
       patch[field.key] = raw === 'true';
       continue;
     }
@@ -256,7 +258,8 @@ export function draftToConfigPatch(
       patch[field.key] = n;
       continue;
     }
-    patch[field.key] = raw === undefined ? '' : String(raw);
+    if (String(raw ?? '').trim() === '') continue;
+    patch[field.key] = String(raw).trim();
   }
   return patch;
 }

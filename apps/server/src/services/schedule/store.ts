@@ -140,6 +140,23 @@ function normalizeLimits(input?: Partial<ScheduleLimits> | null): ScheduleLimits
   };
 }
 
+/** 去掉空值；全空则不写 params 字段 */
+function compactParams(
+  params: Record<string, unknown> | undefined | null,
+): Record<string, unknown> | undefined {
+  if (!params || typeof params !== 'object' || Array.isArray(params)) {
+    return undefined;
+  }
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === 'string' && v.trim() === '') continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+    out[k] = typeof v === 'string' ? v.trim() : v;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 function normalizeSourceConfig(
   kind: ScheduleKind,
   input?: ScheduleSourceConfig | null,
@@ -172,12 +189,16 @@ function normalizeSourceConfig(
     params = { ...(params || {}), feedUrl: feedUrlRaw || String(params?.feedUrl || '') };
   }
   if (pluginId === 'schedule.url-list' || kind === 'url_list') {
-    params = { ...(params || {}), urls: urlsRaw.length ? urlsRaw : (params?.urls as string[]) || [] };
+    params = {
+      ...(params || {}),
+      urls: urlsRaw.length ? urlsRaw : (params?.urls as string[]) || [],
+    };
   }
 
   return {
     pluginId,
-    params,
+    // 无有效参数时不落库空对象
+    params: compactParams(params),
     feedUrl: feedUrlRaw || undefined,
     urls: urlsRaw.length ? urlsRaw : undefined,
   };

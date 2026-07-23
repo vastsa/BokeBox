@@ -126,34 +126,29 @@ function pluginLabel(
   return p ? p.name : pluginId || '—';
 }
 
-/** 用订阅 params 覆盖插件默认值，生成表单 draft */
+/**
+ * 仅用「本订阅已存 params」生成表单 draft。
+ * 不把插件中心默认值灌进订阅，避免无覆盖时仍写出一坨 params。
+ * 留空 = 运行时走插件全局配置。
+ */
 function buildSchemaDraft(
   schema: SourcePluginConfigField[] | undefined,
   params: Record<string, unknown>,
-  plugin?: SchedulePluginDescriptor | null,
+  _plugin?: SchedulePluginDescriptor | null,
 ): PluginConfigDraft {
   const draft: PluginConfigDraft = {};
   for (const field of schema || []) {
-    const fromParams = params[field.key];
-    const fromPlugin = plugin?.configValues?.[field.key];
-    const fallback =
-      field.default !== undefined && field.default !== null
-        ? field.default
-        : '';
-
-    let raw: unknown = fromParams;
-    if (raw === undefined || raw === null || raw === '') {
-      raw = fromPlugin;
-    }
-    if (raw === undefined || raw === null || raw === '') {
-      raw = fallback;
-    }
+    const raw = params[field.key];
 
     if (field.type === 'boolean') {
-      draft[field.key] =
-        raw === true || raw === 'true' || raw === 1 || raw === '1'
-          ? 'true'
-          : 'false';
+      if (raw === undefined || raw === null || raw === '') {
+        draft[field.key] = '';
+      } else {
+        draft[field.key] =
+          raw === true || raw === 'true' || raw === 1 || raw === '1'
+            ? 'true'
+            : 'false';
+      }
     } else if (field.type === 'password') {
       // 订阅级一般不存密钥；密钥走插件中心全局配置
       draft[field.key] = '';
@@ -171,7 +166,8 @@ function stripEmptyParams(
   for (const [k, v] of Object.entries(patch)) {
     if (v === undefined || v === null) continue;
     if (typeof v === 'string' && v.trim() === '') continue;
-    out[k] = v;
+    if (Array.isArray(v) && v.length === 0) continue;
+    out[k] = typeof v === 'string' ? v.trim() : v;
   }
   return out;
 }
@@ -404,20 +400,26 @@ export function ScheduleSettingsTab({
       }
     }
 
+    // 无有效参数不写 params（避免落库 {}）
+    const compact = stripEmptyParams(params);
     const sourceConfig: {
       pluginId: string;
-      params: Record<string, unknown>;
+      params?: Record<string, unknown>;
       feedUrl?: string;
       urls?: string[];
     } = {
       pluginId,
-      params,
     };
-    if (isRss) sourceConfig.feedUrl = String(params.feedUrl || '');
+    if (Object.keys(compact).length) {
+      sourceConfig.params = compact;
+    }
+    if (isRss) sourceConfig.feedUrl = String(compact.feedUrl || params.feedUrl || '');
     if (isUrlList) {
-      sourceConfig.urls = Array.isArray(params.urls)
-        ? (params.urls as string[])
-        : [];
+      sourceConfig.urls = Array.isArray(compact.urls)
+        ? (compact.urls as string[])
+        : Array.isArray(params.urls)
+          ? (params.urls as string[])
+          : [];
     }
 
     return {
@@ -637,13 +639,16 @@ export function ScheduleSettingsTab({
           <span>{t('settings.scheduleParams')}</span>
           <textarea
             className="nl-input"
-            rows={4}
+            rows={3}
             value={draft.paramsText}
             onChange={(e) =>
               setDraft((d) => ({ ...d, paramsText: e.target.value }))
             }
             placeholder={t('settings.scheduleParamsPh')}
           />
+          <span className="settings-card-hint">
+            {t('settings.scheduleParamsOptional')}
+          </span>
         </label>
       ) : null}
     </>
