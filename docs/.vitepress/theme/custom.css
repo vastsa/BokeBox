@@ -60,3 +60,46 @@
   background: var(--vp-c-brand-soft);
   border-radius: 0 8px 8px 0;
 }
+
+/* 404 */
+.bokebox-notfound {
+  text-align: center;
+  padding: 4rem 1.5rem 5rem;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.bokebox-notfound img {
+  margin-bottom: 1.25rem;
+  border-radius: 20px;
+}
+
+.bokebox-notfound h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+}
+
+.bokebox-notfound p {
+  color: var(--vp-c-text-2);
+  line-height: 1.7;
+  margin: 0.5rem 0;
+}
+
+.bokebox-notfound-actions a {
+  font-weight: 600;
+  color: var(--vp-c-brand-1);
+}
+
+/* 文档内表格更易扫读 */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  font-size: 0.92em;
+}
+
+/* 首页 features 图标对齐 */
+.VPFeature .icon {
+  font-size: 1.35rem;
+}

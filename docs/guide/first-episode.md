@@ -8,7 +8,7 @@ description: 从零完成 BokeBox 第一期私人播客。
 
 ## 1. 确认 AI 服务
 
-打开 **设置 → AI 服务**（或检查 `.env` 中的 `OPENAI_*`）：
+打开 **设置 → AI 服务**（分区说明见 [设置中心](./settings.md)）（或检查 `.env` 中的 `OPENAI_*`）：
 
 - API Key / Base URL 可用  
 - Chat / ASR / TTS 模型 ID 与提供方一致  

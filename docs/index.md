@@ -65,11 +65,11 @@ features:
 
 | 分类 | 页面 |
 | --- | --- |
-| 入门 | [快速开始](/guide/getting-started) · [做完第一期](/guide/first-episode) · [介绍](/guide/introduction) · [功能](/guide/features) · [FAQ](/guide/faq) |
+| 入门 | [快速开始](/guide/getting-started) · [做完第一期](/guide/first-episode) · [设置中心](/guide/settings) · [介绍](/guide/introduction) · [功能](/guide/features) · [FAQ](/guide/faq) |
 | 使用 | [流水线](/guide/pipeline) · [定时订阅](/guide/schedule) · [MCP](/guide/mcp) |
 | 部署 | [配置](/guide/configuration) · [部署](/guide/deployment) · [架构](/guide/architecture) · [CI/CD](/ops/ci-cd) |
 | 插件 | [总览](/plugins/) · [Source](/plugins/source) · [ASR/TTS](/plugins/asr-tts) · [Schedule](/plugins/schedule) |
-| 开发 | [总览](/development/) · [Source](/development/source-plugin) · [TTS](/development/tts-plugin) · [Schedule](/development/schedule-plugin) · [Tokens](/development/web-design-tokens) |
+| 开发 | [总览](/development/) · [示例](/development/examples) · [安装](/development/plugin-install) · [Source](/development/source-plugin) · [TTS](/development/tts-plugin) · [Schedule](/development/schedule-plugin) · [Tokens](/development/web-design-tokens) |
 
 ## 30 秒看懂
 
@@ -81,6 +81,8 @@ features:
   深度长文 / 文稿               预置 / 描述定制音色
   任意链接（可插件扩展）         封面 · 闪卡 · 听播进度
 ```
+
+English map: [/en/](/en/)
 
 ## 仓库
 

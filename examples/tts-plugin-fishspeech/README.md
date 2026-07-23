@@ -105,4 +105,4 @@ Docker 访问宿主机服务时，可将 baseUrl 写成 `http://host.docker.inte
 
 - API：https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech
 - 自托管：https://github.com/fishaudio/fish-speech
-- 宿主 TTS 插件说明：`docs/asr-tts-plugins.md`
+- 宿主 TTS 插件说明：`docs/plugins/asr-tts.md`

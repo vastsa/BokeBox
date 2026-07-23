@@ -103,6 +103,8 @@ pnpm docs:dev
 
 仍保留兼容跳转页；正文在 `guide/` / `plugins/` / `development/` / `ops/` 下。
 
+设置分区说明见 [设置中心](./settings.md)。
+
 ## 还解决不了？
 
 - Issues：<https://github.com/vastsa/BokeBox/issues>  

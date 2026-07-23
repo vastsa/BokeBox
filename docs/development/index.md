@@ -6,6 +6,11 @@ description: BokeBox 插件开发入口与示例索引。
 
 面向要扩展 BokeBox 的作者。仓库协议 **LGPL-3.0**，请保留归属与协议信息。
 
+先扫一眼：
+
+- [示例插件目录](./examples.md) — 仓库 `examples/` 一览  
+- [插件安装与管理](./plugin-install.md) — 复制 / zip / rescan / 启停  
+
 ## 选哪条路径
 
 | 你想做的事 | 文档 | 示例 |

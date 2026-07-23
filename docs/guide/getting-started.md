@@ -68,6 +68,7 @@ pnpm docs:preview  # 预览构建产物
 
 ## 下一步
 
+- [设置中心](./settings.md) — 各设置分区
 - [项目介绍](./introduction.md) — 产品定位  
 - [功能清单](./features.md) — 能力全景  
 - [架构概览](./architecture.md) — 数据流与 monorepo  

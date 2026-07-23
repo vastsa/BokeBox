@@ -24,4 +24,4 @@ zip -r ../schedule-plugin-echo.zip plugin.json index.js README.md
 
 ## 契约摘要
 
-见仓库文档：`docs/schedule-plugin-development.md`
+见仓库文档：`docs/development/schedule-plugin.md`

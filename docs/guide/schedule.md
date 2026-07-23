@@ -43,6 +43,17 @@ description: BokeBox 定时订阅：RSS、榜单与 Schedule 插件。
 
 插件 **只产出候选 URL**，不直接写 Job 媒体；创建任务后走 [制作流水线](./pipeline.md)。
 
+## 内置 pluginId 参考
+
+| pluginId | 典型 params |
+| --- | --- |
+| `schedule.rss` | `{ "feedUrl": "https://example.com/feed.xml" }` |
+| `schedule.url-list` | `{ "urls": ["https://a.com", "https://b.com"] }` |
+| `schedule.github-trending` | `{ "since": "daily", "language": "TypeScript" }`（字段以插件为准） |
+| `schedule.hacker-news` | `{ "feed": "top" }` 等（以插件为准） |
+
+节奏：`preset` 可为 `hourly` / `every_6h` / `daily` / `weekly` / `cron`；`cron` + `timezone`（默认 `Asia/Shanghai`）。
+
 ## MCP
 
 | 工具 | 说明 |
@@ -53,7 +64,33 @@ description: BokeBox 定时订阅：RSS、榜单与 Schedule 插件。
 | `run_schedule_now` | 立即跑一轮 |
 | `list_schedule_plugins` | 可用订阅插件 |
 
-完整 MCP 说明见 [MCP 接入](./mcp.md)。
+### create_schedule 示例
+
+```json
+{
+  "name": "我的博客",
+  "pluginId": "schedule.rss",
+  "feedUrl": "https://example.com/feed.xml",
+  "preset": "daily",
+  "timezone": "Asia/Shanghai",
+  "maxItemsPerRun": 3,
+  "onlyNew": true
+}
+```
+
+```json
+{
+  "name": "HN Top",
+  "pluginId": "schedule.hacker-news",
+  "params": { "feed": "top" },
+  "preset": "every_6h",
+  "maxItemsPerRun": 5
+}
+```
+
+立即跑一轮：`run_schedule_now`，`force: true` 时忽略去重。
+
+完整工具表见 [MCP 接入](./mcp.md)。
 
 ## 相关
 

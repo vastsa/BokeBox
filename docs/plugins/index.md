@@ -32,3 +32,8 @@ BokeBox 把可替换能力拆成四类插件，共用 **plugin-kit**（启停、
 - 先读对应「说明」理解架构  
 - 再读「开发」写自己的插件  
 - 从 `examples/` 复制一份改起最快
+
+## 安装
+
+- [插件安装与管理](../development/plugin-install.md)
+- [示例插件目录](../development/examples.md)

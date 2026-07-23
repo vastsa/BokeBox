@@ -3,7 +3,7 @@
 用于验证 BokeBox Source 插件热加载，不发起真实网络请求。
 
 完整开发规范见：  
-[docs/source-plugin-development.md](../../docs/source-plugin-development.md)
+[docs/development/source-plugin.md](../../docs/development/source-plugin.md)
 
 ## 安装
 

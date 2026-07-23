@@ -93,6 +93,7 @@ export default defineConfig({
         items: [
           { text: '快速开始', link: '/guide/getting-started' },
           { text: '做完第一期', link: '/guide/first-episode' },
+          { text: '设置中心', link: '/guide/settings' },
           { text: '项目介绍', link: '/guide/introduction' },
           { text: '功能清单', link: '/guide/features' },
           { text: '制作流水线', link: '/guide/pipeline' },
@@ -117,6 +118,8 @@ export default defineConfig({
         text: '开发',
         items: [
           { text: '开发总览', link: '/development/' },
+          { text: '示例插件', link: '/development/examples' },
+          { text: '安装与管理', link: '/development/plugin-install' },
           { text: 'Source 插件', link: '/development/source-plugin' },
           { text: 'TTS 插件', link: '/development/tts-plugin' },
           { text: 'Schedule 插件', link: '/development/schedule-plugin' },
@@ -125,6 +128,7 @@ export default defineConfig({
         ],
       },
       { text: '运维', link: '/ops/ci-cd' },
+      { text: 'EN', link: '/en/' },
       {
         text: 'GitHub',
         link: repo,
@@ -137,6 +141,7 @@ export default defineConfig({
           items: [
             { text: '快速开始', link: '/guide/getting-started' },
             { text: '做完第一期', link: '/guide/first-episode' },
+          { text: '设置中心', link: '/guide/settings' },
             { text: '项目介绍', link: '/guide/introduction' },
             { text: '功能清单', link: '/guide/features' },
             { text: '常见问题', link: '/guide/faq' },
@@ -173,6 +178,8 @@ export default defineConfig({
           text: '去写插件',
           items: [
             { text: '开发总览', link: '/development/' },
+          { text: '示例插件', link: '/development/examples' },
+          { text: '安装与管理', link: '/development/plugin-install' },
             { text: 'Source 开发', link: '/development/source-plugin' },
             { text: 'TTS 开发', link: '/development/tts-plugin' },
             { text: 'Schedule 开发', link: '/development/schedule-plugin' },
@@ -184,6 +191,8 @@ export default defineConfig({
           text: '插件开发',
           items: [
             { text: '开发总览', link: '/development/' },
+          { text: '示例插件', link: '/development/examples' },
+          { text: '安装与管理', link: '/development/plugin-install' },
             { text: 'Source 插件开发', link: '/development/source-plugin' },
             { text: 'TTS 插件开发', link: '/development/tts-plugin' },
             { text: 'Schedule 插件开发', link: '/development/schedule-plugin' },
