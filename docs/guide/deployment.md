@@ -136,6 +136,26 @@ pnpm docker:down
 ./start.sh docker:down
 ```
 
+
+## 文档站（Vercel）
+
+文档是静态站点，可用 Vercel 单独部署（与应用 Docker 部署无关）。
+
+仓库根 `vercel.json` 已配置：
+
+```text
+install  → pnpm install
+build    → pnpm docs:build
+output   → docs/.vitepress/dist
+cleanUrls → true
+```
+
+- Root Directory：**留空**（仓库根）
+- **不要**设置环境变量 `DOCS_BASE=/BokeBox/`（仅 GitHub Pages 子路径需要）
+- 部署后首页应为 `/`，内页如 `/guide/getting-started`（无 `.html`）
+
+若出现全站 404，优先检查 Output Directory 是否指向 `docs/.vitepress/dist`，以及构建日志是否跑的是 `pnpm docs:build`。
+
 ## 相关
 
 - [配置与环境变量](./configuration.md)

@@ -1,0 +1,124 @@
+---
+description: Deploy BokeBox locally or with Docker.
+---
+
+# Deployment
+
+Aimed at **single-user private deploy**. Data lives under local `storage/`.
+
+## Options
+
+| Mode | When | Command |
+| --- | --- | --- |
+| Local dev | Coding | `./start.sh` or `pnpm dev` |
+| Prod single port | Small VPS / bare Node | `./start.sh prod` |
+| Docker prebuilt | Recommended prod | `./start.sh docker` |
+| Docker local build | Custom Dockerfile | `./start.sh docker.local` |
+| Docker CN build | Slow base pulls in CN | `./start.sh docker.cn` |
+
+## Dev mode
+
+```bash
+git clone https://github.com/vastsa/BokeBox.git
+cd BokeBox
+cp .env.example .env
+./start.sh
+```
+
+- Web: usually `http://localhost:5173`
+- API: `http://localhost:8787`
+
+## Prod single port
+
+```bash
+cp .env.example .env
+./start.sh prod
+```
+
+Builds the web app; server serves static + API (`PORT`).
+
+## Docker prebuilt (recommended)
+
+```bash
+cp .env.example .env
+docker pull ghcr.io/vastsa/bokebox:latest
+./start.sh docker
+```
+
+Or `docker compose up -d`. `./storage` is mounted for persistence.
+
+Tags: `latest`, `sha-<short>` — see [CI/CD](../ops/ci-cd.md).
+
+## Docker local / CN
+
+```bash
+./start.sh docker.local
+./start.sh docker.cn
+```
+
+## Reverse proxy (Nginx sketch)
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name podcast.example.com;
+
+  location / {
+    proxy_pass http://127.0.0.1:8787;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 512m;
+  }
+}
+```
+
+```bash
+PUBLIC_BASE_URL=https://podcast.example.com
+```
+
+## Health
+
+```bash
+curl -s http://127.0.0.1:8787/api/health
+```
+
+## Backup
+
+- Entire `storage/` (db, media, plugins)  
+- `.env` (never commit secrets)  
+
+## Stop
+
+```bash
+pnpm docker:down
+# or ./start.sh docker:down
+```
+
+
+## Docs site (Vercel)
+
+Static docs can deploy on Vercel independently of the app Docker deploy.
+
+Root `vercel.json`:
+
+```text
+install  → pnpm install
+build    → pnpm docs:build
+output   → docs/.vitepress/dist
+cleanUrls → true
+```
+
+- Root Directory: **empty** (repo root)
+- Do **not** set `DOCS_BASE=/BokeBox/` (GitHub project pages only)
+- Home `/`, pages like `/guide/getting-started` (no `.html`)
+
+If everything 404s, check Output Directory and that the build runs `pnpm docs:build`.
+
+## Related
+
+- [Configuration](./configuration.md)
+- [Docker CI/CD](../ops/ci-cd.md)
+- [Getting started](./getting-started.md)
