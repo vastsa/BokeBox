@@ -58,6 +58,15 @@ function clampTtsForPanel(
         styleTags: undefined,
       };
     }
+    if (value.mode === 'voiceclone') {
+      return {
+        mode: 'voiceclone',
+        // 参考音频路径 / data URI，不强制落入预置网格
+        voice: value.voice ? String(value.voice) : '',
+        voiceDesign: undefined,
+        styleTags: undefined,
+      };
+    }
     let voice = value.voice ? String(value.voice) : profile.defaultVoice;
     if (hasVoiceGrid && profile.voices.length) {
       const allowed = new Set(profile.voices.map((v) => v.id));

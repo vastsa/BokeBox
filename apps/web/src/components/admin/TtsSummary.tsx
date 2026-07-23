@@ -6,6 +6,7 @@ import { useI18n } from '../../i18n';
 const MODE_LABEL: Record<string, string> = {
   default: 'modeDefault',
   voicedesign: 'modeCustom',
+  voiceclone: 'modeClone',
   // 历史兼容
   sing: 'modeDefault',
 };
@@ -13,6 +14,7 @@ const MODE_LABEL: Record<string, string> = {
 const MODE_DESC: Record<string, string> = {
   default: 'modeDefaultHint',
   voicedesign: 'modeCustomHint',
+  voiceclone: 'modeCloneHint',
   sing: 'modeDefaultHint',
 };
 
@@ -51,7 +53,8 @@ export function TtsSummary({
 
   if (compact) {
     const parts = [modeLabel];
-    if (modeKey !== 'voicedesign') parts.push(voiceLabel);
+    if (modeKey === 'voiceclone') parts.push(voiceLabel || t('tts.cloneRef'));
+    else if (modeKey !== 'voicedesign') parts.push(voiceLabel);
     if (showStyleRow && styleTags.length) parts.push(styleTags.join(' '));
     return <span>{parts.join(' · ')}</span>;
   }
@@ -68,7 +71,7 @@ export function TtsSummary({
       </div>
 
       <div className="tts-summary-grid">
-        {modeKey !== 'voicedesign' && (
+        {modeKey !== 'voicedesign' && modeKey !== 'voiceclone' && (
           <div className="tts-summary-item">
             <span className="label">{voiceFieldLabel}</span>
             <span className="value" title={voiceLabel}>
@@ -82,6 +85,15 @@ export function TtsSummary({
             <span className="label">{t('tts.labelDesc')}</span>
             <span className="value is-wrap">
               {tts.voiceDesign?.trim() || t('common.notFilled')}
+            </span>
+          </div>
+        )}
+
+        {modeKey === 'voiceclone' && (
+          <div className="tts-summary-item is-wide">
+            <span className="label">{t('tts.labelCloneRef')}</span>
+            <span className="value is-wrap">
+              {tts.voice?.trim() || t('tts.cloneUsePluginDefault')}
             </span>
           </div>
         )}

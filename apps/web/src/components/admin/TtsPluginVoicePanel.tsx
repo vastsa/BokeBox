@@ -120,13 +120,29 @@ export function TtsPluginVoicePanel({
                 className={['tts-mode', active ? 'is-active' : ''].join(' ')}
                 onClick={() => {
                   const nextMode = m.id as TtsMode;
-                  onChange({
-                    ...value,
-                    mode: nextMode,
-                    ...(nextMode === 'voicedesign'
-                      ? { styleTags: undefined }
-                      : { voiceDesign: undefined }),
-                  });
+                  if (nextMode === 'voicedesign') {
+                    onChange({
+                      ...value,
+                      mode: 'voicedesign',
+                      styleTags: undefined,
+                    });
+                  } else if (nextMode === 'voiceclone') {
+                    onChange({
+                      ...value,
+                      mode: 'voiceclone',
+                      voiceDesign: undefined,
+                      styleTags: undefined,
+                      // 清空预置音色名，避免当成参考音频
+                      voice:
+                        value.mode === 'voiceclone' ? value.voice : '',
+                    });
+                  } else {
+                    onChange({
+                      ...value,
+                      mode: 'default',
+                      voiceDesign: undefined,
+                    });
+                  }
                 }}
               >
                 <div className="title">{m.label}</div>

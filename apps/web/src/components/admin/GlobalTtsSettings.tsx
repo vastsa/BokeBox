@@ -34,6 +34,12 @@ function summarizeTts(
         })
       : tOutside('tts.customVoice');
   }
+  if (tts.mode === 'voiceclone') {
+    const ref = tts.voice?.trim();
+    return ref
+      ? `${tOutside('tts.modeClone')} · ${ref.length > 28 ? `${ref.slice(0, 28)}…` : ref}`
+      : tOutside('tts.modeClone');
+  }
   const parts = [
     p.voiceUi === 'reference'
       ? tOutside('tts.modeReferenceShort')

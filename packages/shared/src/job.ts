@@ -20,8 +20,8 @@ export type PipelineFromStep =
 /** 素材类型：本地/URL 导入后的识别结果 */
 export type SourceKind = 'video' | 'audio' | 'text';
 
-/** TTS 模式：自然口播 / 自定义音色 */
-export type TtsMode = 'default' | 'voicedesign';
+/** TTS 模式：自然口播 / 文字设计音色 / 参考音频克隆 */
+export type TtsMode = 'default' | 'voicedesign' | 'voiceclone';
 
 /**
  * MiMo mimo-v2.5-tts 预置精品音色 Voice ID
@@ -118,17 +118,15 @@ export interface ScriptPromptOptions {
 export interface TtsOptions {
   mode: TtsMode;
   /**
-   * 预置精品音色 ID（仅 default 使用 mimo-v2.5-tts）
-   * 例：冰糖 / 茉莉 / 苏打 / 白桦 / mimo_default
+   * - default：预置音色 ID（冰糖 / 茉莉 / …）
+   * - voiceclone：参考音频路径或 data:audio/...;base64,...（也可用插件默认 cloneAudioPath）
    */
   voice?: PresetVoiceId | string;
   /** voicedesign 自定义音色描述 */
   voiceDesign?: string;
   /**
-   * assistant 文本开头的风格标签（音频标签控制）
+   * assistant 文本开头的风格标签（音频标签控制，仅 default）
    * 例：['磁性','沉稳'] → (磁性 沉稳)正文…
-   * 文档：https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/audio/speech-synthesis-v2.5
-   * 注意：自然口播不支持 user 侧「风格指令」
    */
   styleTags?: string[];
 }

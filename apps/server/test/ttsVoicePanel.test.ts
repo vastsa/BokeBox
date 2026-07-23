@@ -5,13 +5,17 @@ import { mimoTtsProvider } from '../src/providers/tts/mimoTts.js';
 import { resolveVoicePanel } from '../src/providers/tts/voicePanel.js';
 
 describe('tts voicePanel regression (edge / mimo)', () => {
-  it('mimo panel keeps modeTabs + voiceGrid + tags + voiceDesign textarea', () => {
+  it('mimo panel keeps modeTabs + voiceGrid + tags + voiceDesign + voiceclone fields', () => {
     const panel = resolveVoicePanel(mimoTtsProvider.meta);
     const types = panel.fields.map((f) => f.type);
     assert.ok(types.includes('modeTabs'));
     assert.ok(types.includes('voiceGrid'));
     assert.ok(types.includes('tags'));
     assert.ok(types.includes('textarea'));
+    assert.ok(types.includes('text')); // clone path field
+    assert.ok(types.includes('info'));
+    const modes = mimoTtsProvider.meta.modes || [];
+    assert.ok(modes.some((m) => m.id === 'voiceclone'));
     assert.equal(mimoTtsProvider.meta.supportsStyleTags, true);
     assert.equal(mimoTtsProvider.meta.supportsVoiceDesign, true);
     assert.ok((mimoTtsProvider.meta.voices || []).length >= 8);

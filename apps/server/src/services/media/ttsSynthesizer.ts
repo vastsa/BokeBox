@@ -41,6 +41,11 @@ export const TTS_MODE_META: Record<
     modelHint: 'mimo-v2.5-tts-voicedesign',
     description: '文字描述定制音色（不支持预置音色/音频标签）',
   },
+  voiceclone: {
+    label: '音色克隆',
+    modelHint: 'mimo-v2.5-tts-voiceclone',
+    description: '参考音频克隆说话人音色',
+  },
 };
 
 /** @deprecated 兼容旧导入：MiMo 预置音色 */
@@ -68,7 +73,7 @@ export function providerAcceptsAudioTags(
   supportsStyleTags: boolean,
   mode: TtsMode,
 ): boolean {
-  return supportsStyleTags && mode !== 'voicedesign';
+  return supportsStyleTags && mode === 'default';
 }
 
 /** 当前激活 TTS 提供方的模式/音色元数据（供 /health 等接口） */
@@ -173,8 +178,10 @@ export async function synthesizePodcastAudio(options: {
       demo: true,
       mode,
       voice:
-        mode === 'voicedesign'
-          ? undefined
+        mode === 'voicedesign' || mode === 'voiceclone'
+          ? mode === 'voiceclone'
+            ? 'voiceclone'
+            : undefined
           : options.tts?.voice || resolvePresetVoice(options.tts?.voice),
       provider: 'demo',
       scriptTiming: timing.lines,
@@ -193,7 +200,11 @@ export async function synthesizePodcastAudio(options: {
   const buffers: Buffer[] = [];
   const chunkDurationsSec: number[] = [];
   let usedVoice: string | undefined =
-    mode === 'voicedesign' ? undefined : options.tts?.voice;
+    mode === 'voicedesign'
+      ? undefined
+      : mode === 'voiceclone'
+        ? 'voiceclone'
+        : options.tts?.voice;
   let usedMode: TtsMode = mode;
 
   for (let i = 0; i < chunks.length; i++) {

@@ -51,7 +51,43 @@ export function ensureBuiltinTtsPlugins(): void {
   registerTtsPlugin(
     asBuiltin(mimoTtsProvider, {
       defaultEnabled: true,
-      configSchema: cloudEndpointSchema('mimo-v2.5-tts'),
+      configSchema: [
+        ...cloudEndpointSchema('mimo-v2.5-tts'),
+        {
+          key: 'cloneModel',
+          label: '音色克隆模型',
+          type: 'string',
+          required: false,
+          default: 'mimo-v2.5-tts-voiceclone',
+          placeholder: 'mimo-v2.5-tts-voiceclone',
+          description: 'mode=voiceclone 时使用的模型 id',
+        },
+        {
+          key: 'cloneAudioPath',
+          label: '默认参考音频路径',
+          type: 'string',
+          required: false,
+          placeholder: 'samples/my-voice.mp3',
+          description:
+            '相对 storage 或绝对路径。任务音色面板未填时作为克隆参考。',
+        },
+        {
+          key: 'cloneAudioDataUri',
+          label: '默认参考音频 data URI',
+          type: 'textarea',
+          required: false,
+          placeholder: 'data:audio/mpeg;base64,...',
+          description: '可选；优先于路径。体积大时建议用路径而非直接贴 base64。',
+        },
+        {
+          key: 'clonePrompt',
+          label: '克隆 user 提示（可选）',
+          type: 'string',
+          required: false,
+          placeholder: '参考音频里说的那句话（可留空）',
+          description: '对应官方示例 messages[0].content，多数场景可留空。',
+        },
+      ],
     }),
     { origin: 'builtin', apiVersion: 1 },
   );
