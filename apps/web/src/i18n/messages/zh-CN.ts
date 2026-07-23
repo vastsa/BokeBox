@@ -587,6 +587,12 @@ export const zhCN = {
     scheduleTimezone: '时区',
     scheduleAlbum: '落入专辑',
     scheduleAlbumNone: '不指定专辑',
+    scheduleSourcePlugin: '内容获取插件',
+    scheduleSourcePluginAuto: '自动匹配',
+    scheduleSourcePluginHint:
+      '订阅只负责发现链接；真正下载/解析由 Source 插件完成。默认自动匹配，也可固定某个已启用插件。',
+    scheduleSourcePluginPinned: '采集：{id}',
+    scheduleSourcePluginMissing: '不可用',
     scheduleMaxItems: '每轮最多新建',
     scheduleTitlePrefix: '标题前缀',
     scheduleTitlePrefixPh: '可选，如「早报 · 」',

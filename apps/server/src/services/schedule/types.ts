@@ -35,6 +35,12 @@ export interface ScheduleJobDefaults {
   tts?: Partial<TtsOptions> | null;
   scriptPromptMode?: 'global' | 'custom';
   scriptPrompt?: Partial<ScriptPromptOptions> | null;
+  /**
+   * 内容采集 Source 插件 id；空/省略 = pipeline 自动匹配。
+   * 不要填 schedule.*（那是订阅发现插件）。
+   */
+  sourcePluginId?: string | null;
+  /** @deprecated 同 sourcePluginId，兼容旧数据 */
   pluginId?: string;
 }
 

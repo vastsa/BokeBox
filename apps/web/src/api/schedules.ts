@@ -21,6 +21,9 @@ export interface ScheduleJobDefaults {
   published?: boolean;
   locale?: string;
   titlePrefix?: string;
+  /** 内容采集 Source 插件；空 = 自动匹配 */
+  sourcePluginId?: string | null;
+  /** @deprecated 同 sourcePluginId */
   pluginId?: string;
 }
 

@@ -8,7 +8,7 @@ description: BokeBox schedules — RSS, charts, and Schedule plugins.
 
 ## Unified model
 
-Each schedule = **plugin + params + cron** (optional timezone).
+Each schedule = **schedule plugin + params + cron** (optional timezone). Content ingest auto-matches a **Source** plugin by default; you can pin one in Settings.
 
 ```json
 {

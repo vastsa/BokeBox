@@ -78,6 +78,20 @@ async function collectCandidates(
   return result.items;
 }
 
+/**
+ * 解析订阅任务应使用的 Source 插件 id。
+ * 只认 jobDefaults.sourcePluginId / pluginId；忽略 schedule.* 发现插件。
+ */
+export function resolveJobSourcePluginId(
+  defaults: Schedule['jobDefaults'] | null | undefined,
+): string | undefined {
+  const raw = String(
+    defaults?.sourcePluginId || defaults?.pluginId || '',
+  ).trim();
+  if (!raw || raw.startsWith('schedule.')) return undefined;
+  return raw;
+}
+
 function buildTitle(schedule: Schedule, item: ScheduleItemCandidate): string {
   const prefix = String(schedule.jobDefaults.titlePrefix || '').trim();
   const base =
@@ -117,10 +131,8 @@ async function createJobFromItem(
   const id = nanoid(12);
   const now = new Date().toISOString();
   const title = buildTitle(schedule, item);
-  // 内容获取仍走 Source 插件自动匹配；此处 pluginId 仅作任务元数据（订阅来源）
-  const sourceMetaPlugin =
-    String(schedule.sourceConfig.pluginId || defaults.pluginId || '').trim() ||
-    undefined;
+  // 内容采集：仅 jobDefaults.sourcePluginId（或兼容 pluginId）；空则 Source 自动匹配
+  const sourcePluginId = resolveJobSourcePluginId(defaults);
 
   const job: Job = {
     id,
@@ -134,10 +146,7 @@ async function createJobFromItem(
     locale: resolveJobLocale(defaults.locale),
     videoPath: '',
     sourceUrl: item.url,
-    // 不把 schedule.* 写入 sourcePluginId，避免 pipeline 当成 Source 插件
-    sourcePluginId: sourceMetaPlugin?.startsWith('schedule.')
-      ? undefined
-      : sourceMetaPlugin,
+    sourcePluginId,
     sourceKind: 'video',
     tts,
     scriptPrompt,

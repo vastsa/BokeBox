@@ -6,6 +6,7 @@ import {
   fetchSchedulePlugins,
   fetchScheduleRuns,
   fetchSchedules,
+  fetchSourcePlugins,
   runScheduleApi,
   updateScheduleApi,
   type Schedule,
@@ -14,6 +15,7 @@ import {
   type ScheduleRun,
   type ScheduleRunStatus,
   type SourcePluginConfigField,
+  type SourcePluginDescriptor,
 } from '../../api/client';
 import type { AlbumSummary } from '../../types/album';
 import { useI18n } from '../../i18n';
@@ -44,6 +46,8 @@ type Draft = {
   timezone: string;
   enabled: boolean;
   albumId: string;
+  /** 内容采集 Source 插件；空 = 自动匹配 */
+  sourcePluginId: string;
   maxItemsPerRun: number;
   onlyNew: boolean;
   titlePrefix: string;
@@ -62,6 +66,7 @@ function emptyDraft(defaultPluginId = PLUGIN_RSS): Draft {
     timezone: 'Asia/Shanghai',
     enabled: true,
     albumId: '',
+    sourcePluginId: '',
     maxItemsPerRun: 3,
     onlyNew: true,
     titlePrefix: '',
@@ -185,6 +190,9 @@ export function ScheduleSettingsTab({
   const [items, setItems] = useState<Schedule[]>([]);
   const [albums, setAlbums] = useState<AlbumSummary[]>([]);
   const [plugins, setPlugins] = useState<SchedulePluginDescriptor[]>([]);
+  const [sourcePlugins, setSourcePlugins] = useState<SourcePluginDescriptor[]>(
+    [],
+  );
   const [draft, setDraft] = useState<Draft>(() => emptyDraft());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -219,16 +227,20 @@ export function ScheduleSettingsTab({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [list, albumList, pluginList] = await Promise.all([
+      const [list, albumList, pluginList, sourcePluginList] = await Promise.all([
         fetchSchedules(),
         fetchAllAlbums().catch(() => [] as AlbumSummary[]),
         fetchSchedulePlugins()
           .then((r) => r.plugins || [])
           .catch(() => [] as SchedulePluginDescriptor[]),
+        fetchSourcePlugins()
+          .then((r) => (r.plugins || []).filter((p) => p.enabled && !p.loadError))
+          .catch(() => [] as SourcePluginDescriptor[]),
       ]);
       setItems(list);
       setAlbums(albumList);
       setPlugins(pluginList);
+      setSourcePlugins(sourcePluginList);
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -335,6 +347,9 @@ export function ScheduleSettingsTab({
       timezone: s.timezone || 'Asia/Shanghai',
       enabled: s.enabled,
       albumId: s.jobDefaults.albumId || '',
+      sourcePluginId: String(
+        s.jobDefaults.sourcePluginId || s.jobDefaults.pluginId || '',
+      ).trim(),
       maxItemsPerRun: s.limits.maxItemsPerRun,
       onlyNew: s.limits.onlyNew,
       titlePrefix: s.jobDefaults.titlePrefix || '',
@@ -417,6 +432,9 @@ export function ScheduleSettingsTab({
         albumId: draft.albumId || null,
         titlePrefix: draft.titlePrefix.trim() || undefined,
         published: true,
+        sourcePluginId: draft.sourcePluginId.trim() || null,
+        // 清掉旧字段，避免和 sourcePluginId 语义打架
+        pluginId: undefined,
       },
       limits: {
         maxItemsPerRun: draft.maxItemsPerRun,
@@ -799,6 +817,39 @@ export function ScheduleSettingsTab({
                 </label>
 
                 <label className="settings-field">
+                  <span>{t('settings.scheduleSourcePlugin')}</span>
+                  <select
+                    className="nl-input"
+                    value={draft.sourcePluginId}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        sourcePluginId: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">
+                      {t('settings.scheduleSourcePluginAuto')}
+                    </option>
+                    {sourcePlugins.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                    {draft.sourcePluginId &&
+                    !sourcePlugins.some((p) => p.id === draft.sourcePluginId) ? (
+                      <option value={draft.sourcePluginId}>
+                        {draft.sourcePluginId} (
+                        {t('settings.scheduleSourcePluginMissing')})
+                      </option>
+                    ) : null}
+                  </select>
+                  <span className="settings-card-hint">
+                    {t('settings.scheduleSourcePluginHint')}
+                  </span>
+                </label>
+
+                <label className="settings-field">
                   <span>{t('settings.scheduleMaxItems')}</span>
                   <input
                     className="nl-input"
@@ -939,6 +990,20 @@ export function ScheduleSettingsTab({
                         {presetLabel(s.preset, s.cron)}
                         {' · '}
                         {s.timezone}
+                        {' · '}
+                        {(() => {
+                          const sp = String(
+                            s.jobDefaults.sourcePluginId ||
+                              s.jobDefaults.pluginId ||
+                              '',
+                          ).trim();
+                          if (!sp) return t('settings.scheduleSourcePluginAuto');
+                          const name =
+                            sourcePlugins.find((p) => p.id === sp)?.name || sp;
+                          return t('settings.scheduleSourcePluginPinned', {
+                            id: name,
+                          });
+                        })()}
                       </p>
                       <p
                         className="schedule-item-source"

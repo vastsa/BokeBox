@@ -356,6 +356,11 @@ export function listMcpTools(): McpToolDefinition[] {
           },
           enabled: { type: 'boolean', description: '是否启用，默认 true' },
           albumId: { type: 'string', description: '可选：落入专辑 id' },
+          sourcePluginId: {
+            type: 'string',
+            description:
+              '内容采集 Source 插件 id；省略则自动匹配。不要填 schedule.*',
+          },
           maxItemsPerRun: {
             type: 'number',
             description: '每轮最多新建任务数，默认 3，最大 20',
@@ -803,6 +808,12 @@ function toolCreateSchedule(args: Record<string, unknown>): McpToolResult {
       titlePrefix:
         args.titlePrefix != null ? String(args.titlePrefix) : undefined,
       published: true,
+      sourcePluginId: (() => {
+        const v = String(
+          args.sourcePluginId ?? args.pluginIdSource ?? '',
+        ).trim();
+        return v && !v.startsWith('schedule.') ? v : undefined;
+      })(),
     },
     limits: {
       maxItemsPerRun:

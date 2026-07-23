@@ -592,6 +592,12 @@ export const enUS: MessageTree = {
     scheduleTimezone: 'Timezone',
     scheduleAlbum: 'Target album',
     scheduleAlbumNone: 'No album',
+    scheduleSourcePlugin: 'Source plugin',
+    scheduleSourcePluginAuto: 'Auto match',
+    scheduleSourcePluginHint:
+      'Schedules only discover URLs; downloading/parsing uses Source plugins. Auto-match by default, or pin an enabled plugin.',
+    scheduleSourcePluginPinned: 'Source: {id}',
+    scheduleSourcePluginMissing: 'unavailable',
     scheduleMaxItems: 'Max new jobs / run',
     scheduleTitlePrefix: 'Title prefix',
     scheduleTitlePrefixPh: 'Optional, e.g. "Daily · "',

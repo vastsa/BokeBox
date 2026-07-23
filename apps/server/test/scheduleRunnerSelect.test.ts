@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { selectScheduleItems } from '../src/services/schedule/runner.js';
+import {
+  resolveJobSourcePluginId,
+  selectScheduleItems,
+} from '../src/services/schedule/runner.js';
 
 describe('selectScheduleItems', () => {
   const items = [
@@ -68,5 +71,31 @@ describe('selectScheduleItems', () => {
     assert.equal(selected.length, 1);
     assert.equal(selected[0]!.key, 'ok');
     assert.equal(skipped, 1);
+  });
+});
+
+
+describe('resolveJobSourcePluginId', () => {
+  it('prefers sourcePluginId over pluginId', () => {
+    assert.equal(
+      resolveJobSourcePluginId({
+        sourcePluginId: 'source.foo',
+        pluginId: 'source.bar',
+      }),
+      'source.foo',
+    );
+  });
+
+  it('falls back to pluginId and ignores schedule.*', () => {
+    assert.equal(
+      resolveJobSourcePluginId({ pluginId: 'source.direct-http' }),
+      'source.direct-http',
+    );
+    assert.equal(
+      resolveJobSourcePluginId({ pluginId: 'schedule.rss' }),
+      undefined,
+    );
+    assert.equal(resolveJobSourcePluginId({}), undefined);
+    assert.equal(resolveJobSourcePluginId(null), undefined);
   });
 });
