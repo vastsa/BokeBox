@@ -401,12 +401,24 @@
   gap: var(--space-2_5);
 }
 .settings-card-hint {
-  flex: 1 1 140px;
+  margin: 0;
   min-width: 0;
+  max-width: 42rem;
   font-size: var(--fs-sm);
   line-height: var(--lh-normal);
   color: var(--text-3);
   word-break: break-word;
+}
+/* 仅卡片底栏与按钮并排时伸缩，表单里的说明不再被 flex 撑大 */
+.settings-card-actions > .settings-card-hint {
+  flex: 1 1 auto;
+  max-width: none;
+}
+.settings-field > .settings-card-hint {
+  flex: none;
+  display: block;
+  margin-top: 0.15rem;
+  max-width: 36rem;
 }
 
 /* 兼容旧类名 */
