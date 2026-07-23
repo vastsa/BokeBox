@@ -143,7 +143,7 @@ You get:
 
 ## ⚙️ Settings at a glance
 
-Tune the voice, persona, prompt templates, MCP access, and public site details from one settings center.
+Tune the voice, persona, prompt templates, MCP access, subscriptions, and public site details from one settings center.
 
 | Voice | Persona |
 | :---: | :---: |
@@ -153,6 +153,10 @@ Tune the voice, persona, prompt templates, MCP access, and public site details f
 
 <p align="center">
   <img src="docs/img/settings-site.webp" alt="BokeBox site settings" width="78%" />
+</p>
+
+<p align="center">
+  <img src="docs/img/settings-dingyue.webp" alt="BokeBox subscription schedules" width="78%" />
 </p>
 
 ---

@@ -143,7 +143,7 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 ## ⚙️ 设置中心
 
-在一个设置中心里统一管理音色、人设、提示词模板、MCP 接入与站点信息。
+在一个设置中心里统一管理音色、人设、提示词模板、MCP 接入、订阅与站点信息。
 
 | 音色 | 人设 |
 | :---: | :---: |
@@ -153,6 +153,10 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 <p align="center">
   <img src="docs/img/settings-site.webp" alt="BokeBox 站点设置" width="78%" />
+</p>
+
+<p align="center">
+  <img src="docs/img/settings-dingyue.webp" alt="BokeBox 订阅设置" width="78%" />
 </p>
 
 ---
