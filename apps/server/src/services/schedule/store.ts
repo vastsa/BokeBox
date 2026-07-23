@@ -604,3 +604,40 @@ export function pruneOldRuns(keepPerSchedule = 50): void {
     del.run(row.id, row.id, keepPerSchedule);
   }
 }
+
+
+/**
+ * 启动时收口异常中断的 running 状态（进程被 kill 等）
+ */
+export function recoverStuckScheduleRuns(
+  reason = '进程重启，中断的执行已标记失败',
+): { runs: number; schedules: number } {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const runResult = db
+    .prepare(
+      `UPDATE schedule_runs
+       SET status = 'failed',
+           finished_at = COALESCE(finished_at, ?),
+           errors_json = CASE
+             WHEN errors_json IS NULL OR errors_json = '' OR errors_json = '[]'
+             THEN ?
+             ELSE errors_json
+           END
+       WHERE status = 'running'`,
+    )
+    .run(now, JSON.stringify([reason]));
+  const schedResult = db
+    .prepare(
+      `UPDATE schedules
+       SET last_status = 'failed',
+           last_error = COALESCE(last_error, ?),
+           updated_at = ?
+       WHERE last_status = 'running'`,
+    )
+    .run(reason, now);
+  return {
+    runs: Number(runResult.changes || 0),
+    schedules: Number(schedResult.changes || 0),
+  };
+}

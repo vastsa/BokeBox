@@ -145,3 +145,13 @@ export async function fetchSchedulePresets(): Promise<SchedulePresetOption[]> {
   );
   return data.presets || [];
 }
+
+export async function fetchScheduleRuns(
+  id: string,
+  limit = 5,
+): Promise<ScheduleRun[]> {
+  const data = await request<{ runs: ScheduleRun[] }>(
+    `/schedules/${encodeURIComponent(id)}/runs?limit=${limit}`,
+  );
+  return data.runs || [];
+}

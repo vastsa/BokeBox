@@ -29,6 +29,36 @@ import type {
 
 const running = new Set<string>();
 
+/**
+ * 从候选中选出本轮要建任务的条目（纯函数，便于单测）
+ */
+export function selectScheduleItems(
+  items: ScheduleItemCandidate[],
+  options: {
+    maxItems: number;
+    onlyNew: boolean;
+    isSeen: (key: string) => boolean;
+  },
+): { selected: ScheduleItemCandidate[]; skipped: number } {
+  const selected: ScheduleItemCandidate[] = [];
+  let skipped = 0;
+  const max = Math.max(1, options.maxItems);
+  for (const item of items) {
+    if (!isValidHttpUrl(item.url)) {
+      skipped += 1;
+      continue;
+    }
+    if (options.onlyNew && options.isSeen(item.key)) {
+      skipped += 1;
+      continue;
+    }
+    selected.push(item);
+    if (selected.length >= max) break;
+  }
+  return { selected, skipped };
+}
+
+
 async function collectCandidates(
   schedule: Schedule,
 ): Promise<ScheduleItemCandidate[]> {
@@ -136,33 +166,24 @@ export async function runScheduleOnce(
     const max = schedule.limits.maxItemsPerRun;
     const onlyNew = schedule.limits.onlyNew && !options.force;
 
-    const selected: ScheduleItemCandidate[] = [];
-    for (const item of items) {
-      if (!isValidHttpUrl(item.url)) {
-        skipped += 1;
-        continue;
-      }
-      if (onlyNew && isItemSeen(schedule.id, item.key)) {
-        skipped += 1;
-        continue;
-      }
-      selected.push(item);
-      if (selected.length >= max) break;
-    }
+    const picked = selectScheduleItems(items, {
+      maxItems: max,
+      onlyNew,
+      isSeen: (key) => isItemSeen(schedule.id, key),
+    });
+    const selected = picked.selected;
+    skipped = picked.skipped;
 
     for (const item of selected) {
       try {
         const jobId = await createJobFromItem(schedule, item);
         jobIds.push(jobId);
         createdJobs += 1;
+        // 仅成功建 Job 记 seen；失败保留机会下一轮重试（force 可跳过 seen）
         markItemSeen(schedule.id, item.key, jobId, item.url);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         errors.push(`${item.url}: ${msg}`);
-        // 失败也记 seen，避免毒条目反复重试把额度打爆；force 时可再试
-        if (onlyNew) {
-          markItemSeen(schedule.id, item.key, null, item.url);
-        }
       }
     }
 

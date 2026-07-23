@@ -19,7 +19,11 @@ import { albumRoutes } from './routes/albums.js';
 import { settingsRoutes } from './routes/settings.js';
 import { scheduleRoutes } from './routes/schedules.js';
 import { schedulePluginRoutes } from './routes/schedulePlugins.js';
-import { startScheduler, refreshExternalSchedulePlugins } from './services/schedule/index.js';
+import {
+  startScheduler,
+  refreshExternalSchedulePlugins,
+  recoverStuckScheduleRuns,
+} from './services/schedule/index.js';
 import { refreshExternalSourcePlugins } from './sources/index.js';
 import { refreshExternalAsrPlugins } from './providers/asr/index.js';
 import { refreshExternalTtsPlugins } from './providers/tts/index.js';
@@ -197,6 +201,19 @@ async function main() {
     }
   } catch (err) {
     console.warn('[schedule] external plugin scan failed:', err);
+  }
+
+  try {
+    const recovered = recoverStuckScheduleRuns();
+    if (recovered.runs || recovered.schedules) {
+      console.info(
+        '[schedule] recovered stuck running runs=%s schedules=%s',
+        recovered.runs,
+        recovered.schedules,
+      );
+    }
+  } catch (err) {
+    console.warn('[schedule] recover stuck runs failed:', err);
   }
 
   startScheduler();

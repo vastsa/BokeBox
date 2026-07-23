@@ -121,16 +121,25 @@ export const builtinHackerNews: SchedulePlugin = {
     const picked = ids.slice(0, limit);
     const items: ScheduleItemCandidate[] = [];
 
-    // 顺序请求，避免对 Firebase 并发过高
-    for (const id of picked) {
-      try {
-        const story = await fetchJson<HnStory | null>(
-          ctx,
-          `${HN_API}/item/${id}.json`,
-        );
+    // 小并发拉取 item，控制对 Firebase 的压力
+    const concurrency = 4;
+    for (let i = 0; i < picked.length; i += concurrency) {
+      const chunk = picked.slice(i, i + concurrency);
+      const stories = await Promise.all(
+        chunk.map(async (id) => {
+          try {
+            return await fetchJson<HnStory | null>(
+              ctx,
+              `${HN_API}/item/${id}.json`,
+            );
+          } catch {
+            return null;
+          }
+        }),
+      );
+      for (const story of stories) {
         if (!story || !story.id) continue;
         const title = String(story.title || `HN #${story.id}`).trim();
-        // 无外链时落到 HN 讨论页（Ask/部分帖）
         const url =
           String(story.url || '').trim() ||
           `https://news.ycombinator.com/item?id=${story.id}`;
@@ -146,8 +155,6 @@ export const builtinHackerNews: SchedulePlugin = {
             ? new Date(story.time * 1000).toISOString()
             : null,
         });
-      } catch {
-        // 单条失败跳过
       }
     }
 

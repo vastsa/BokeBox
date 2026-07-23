@@ -4,12 +4,14 @@ import {
   deleteScheduleApi,
   fetchAllAlbums,
   fetchSchedulePlugins,
+  fetchScheduleRuns,
   fetchSchedules,
   runScheduleApi,
   updateScheduleApi,
   type Schedule,
   type SchedulePluginDescriptor,
   type SchedulePreset,
+  type ScheduleRun,
 } from '../../api/client';
 import type { AlbumSummary } from '../../types/album';
 import { useI18n } from '../../i18n';
@@ -115,6 +117,9 @@ export function ScheduleSettingsTab({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
+  const [runsMap, setRunsMap] = useState<Record<string, ScheduleRun[]>>({});
+  const [runsLoadingId, setRunsLoadingId] = useState<string | null>(null);
 
   const enabledPlugins = useMemo(
     () => plugins.filter((p) => p.enabled && !p.loadError),
@@ -376,16 +381,46 @@ export function ScheduleSettingsTab({
     try {
       const res = await runScheduleApi(s.id, { force });
       onMessage(
-        t('settings.scheduleRunDone', {
-          status: res.run.status,
-          n: res.run.createdJobs,
-        }),
+        t(
+          force
+            ? 'settings.scheduleRunForceDone'
+            : 'settings.scheduleRunDone',
+          {
+            status: res.run.status,
+            n: res.run.createdJobs,
+          },
+        ),
       );
+      // 刷新该订阅运行历史缓存
+      try {
+        const runs = await fetchScheduleRuns(s.id, 5);
+        setRunsMap((prev) => ({ ...prev, [s.id]: runs }));
+      } catch {
+        // ignore
+      }
       await load();
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const toggleRuns = async (id: string) => {
+    if (expandedRunId === id) {
+      setExpandedRunId(null);
+      return;
+    }
+    setExpandedRunId(id);
+    if (runsMap[id]?.length) return;
+    setRunsLoadingId(id);
+    try {
+      const runs = await fetchScheduleRuns(id, 5);
+      setRunsMap((prev) => ({ ...prev, [id]: runs }));
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRunsLoadingId(null);
     }
   };
 
@@ -840,8 +875,28 @@ export function ScheduleSettingsTab({
                         className="nl-btn"
                         disabled={busy}
                         onClick={() => void onRun(s, false)}
+                        title={t('settings.scheduleRunHint')}
                       >
                         {t('settings.scheduleRun')}
+                      </button>
+                      <button
+                        type="button"
+                        className="nl-btn"
+                        disabled={busy}
+                        onClick={() => void onRun(s, true)}
+                        title={t('settings.scheduleRunForceHint')}
+                      >
+                        {t('settings.scheduleRunForce')}
+                      </button>
+                      <button
+                        type="button"
+                        className="nl-btn"
+                        disabled={busy || runsLoadingId === s.id}
+                        onClick={() => void toggleRuns(s.id)}
+                      >
+                        {expandedRunId === s.id
+                          ? t('settings.scheduleHideRuns')
+                          : t('settings.scheduleShowRuns')}
                       </button>
                       <button
                         type="button"
@@ -870,6 +925,46 @@ export function ScheduleSettingsTab({
                         {t('common.delete')}
                       </button>
                     </div>
+                    {expandedRunId === s.id ? (
+                      <div className="schedule-runs">
+                        {runsLoadingId === s.id ? (
+                          <p className="settings-card-hint">{t('common.loading')}</p>
+                        ) : (runsMap[s.id] || []).length ? (
+                          <ul className="schedule-runs-list">
+                            {(runsMap[s.id] || []).map((r) => (
+                              <li key={r.id} className="schedule-runs-item">
+                                <span
+                                  className={[
+                                    'schedule-badge',
+                                    statusClass(r.status),
+                                  ].join(' ')}
+                                >
+                                  {r.status}
+                                </span>
+                                <span>
+                                  {formatTime(r.startedAt, locale)}
+                                  {' · '}
+                                  {t('settings.scheduleRunStats', {
+                                    fetched: r.fetched,
+                                    created: r.createdJobs,
+                                    skipped: r.skipped,
+                                  })}
+                                </span>
+                                {r.errors?.length ? (
+                                  <span className="schedule-runs-error">
+                                    {r.errors[0]}
+                                  </span>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="settings-card-hint">
+                            {t('settings.scheduleRunsEmpty')}
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
