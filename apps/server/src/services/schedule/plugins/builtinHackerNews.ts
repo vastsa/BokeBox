@@ -84,10 +84,11 @@ export const builtinHackerNews: SchedulePlugin = {
   configSchema: [
     {
       key: 'feed',
-      label: 'Feed',
+      label: 'HN 频道',
       type: 'select',
       required: false,
       default: 'top',
+      description: 'Hacker News Firebase 列表接口频道',
       options: [
         { value: 'top', label: 'Top' },
         { value: 'new', label: 'New' },

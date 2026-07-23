@@ -622,6 +622,8 @@ export const zhCN = {
     scheduleParams: '插件参数 (JSON)',
     scheduleParamsPh: '例如 { "since": "daily", "language": "typescript" }',
     scheduleParamsInvalid: '插件参数必须是 JSON 对象',
+    schedulePluginParams: '插件参数',
+    schedulePluginParamsHint: '按插件 configSchema 填写；未填项沿用插件中心默认配置。密钥请在插件中心设置。',
     pluginTabSchedule: '订阅',
     pluginKindSchedule: '定时订阅插件',
     pluginKindScheduleDesc: '为定时任务提供 RSS、榜单、API 等候选内容源；可 zip 上传。',

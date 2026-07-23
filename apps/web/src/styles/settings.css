@@ -1944,6 +1944,20 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
 .settings-field-span {
   grid-column: 1 / -1;
 }
+.schedule-schema-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.schedule-schema-label {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-2);
+}
+.schedule-schema-fields .plugin-config-grid {
+  margin-top: 0.15rem;
+}
 .settings-field .nl-input,
 .settings-field textarea.nl-input {
   width: 100%;

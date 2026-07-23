@@ -44,6 +44,7 @@ const builtinRss: SchedulePlugin = {
       type: 'string',
       required: false,
       placeholder: 'BokeBoxSchedule/1.0',
+      description: '可选；订阅级可覆盖，默认优先使用插件中心配置',
     },
   ],
   isAvailable() {

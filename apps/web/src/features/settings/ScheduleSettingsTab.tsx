@@ -12,27 +12,30 @@ import {
   type SchedulePluginDescriptor,
   type SchedulePreset,
   type ScheduleRun,
+  type SourcePluginConfigField,
 } from '../../api/client';
 import type { AlbumSummary } from '../../types/album';
 import { useI18n } from '../../i18n';
+import {
+  PluginConfigFields,
+  draftToConfigPatch,
+  type PluginConfigDraft,
+} from '../../components/admin/PluginConfigFields';
 import { SettingsBlock, SettingsCard, SettingsPanel } from './SettingsChrome';
 
 const PLUGIN_RSS = 'schedule.rss';
 const PLUGIN_URL_LIST = 'schedule.url-list';
-const PLUGIN_GH = 'schedule.github-trending';
-const PLUGIN_HN = 'schedule.hacker-news';
 
 type Draft = {
   name: string;
   pluginId: string;
+  /** RSS */
   feedUrl: string;
+  /** URL 列表 */
   urlsText: string;
-  /** GitHub Trending */
-  ghSince: string;
-  ghLanguage: string;
-  ghSpoken: string;
-  /** Hacker News */
-  hnFeed: string;
+  /** 来自 configSchema 的订阅级参数草稿 */
+  schemaDraft: PluginConfigDraft;
+  /** 无 schema 时的自由 JSON */
   paramsText: string;
   preset: SchedulePreset;
   cron: string;
@@ -44,25 +47,24 @@ type Draft = {
   titlePrefix: string;
 };
 
-const emptyDraft = (defaultPluginId = PLUGIN_RSS): Draft => ({
-  name: '',
-  pluginId: defaultPluginId,
-  feedUrl: '',
-  urlsText: '',
-  ghSince: 'daily',
-  ghLanguage: '',
-  ghSpoken: '',
-  hnFeed: 'top',
-  paramsText: '',
-  preset: 'daily',
-  cron: '0 8 * * *',
-  timezone: 'Asia/Shanghai',
-  enabled: true,
-  albumId: '',
-  maxItemsPerRun: 3,
-  onlyNew: true,
-  titlePrefix: '',
-});
+function emptyDraft(defaultPluginId = PLUGIN_RSS): Draft {
+  return {
+    name: '',
+    pluginId: defaultPluginId,
+    feedUrl: '',
+    urlsText: '',
+    schemaDraft: {},
+    paramsText: '',
+    preset: 'daily',
+    cron: '0 8 * * *',
+    timezone: 'Asia/Shanghai',
+    enabled: true,
+    albumId: '',
+    maxItemsPerRun: 3,
+    onlyNew: true,
+    titlePrefix: '',
+  };
+}
 
 /** 旧 kind 或显式 pluginId → 统一插件 id */
 function resolvePluginId(s: Schedule): string {
@@ -95,7 +97,57 @@ function pluginLabel(
   plugins: SchedulePluginDescriptor[],
 ): string {
   const p = plugins.find((x) => x.id === pluginId);
-  return p ? `${p.name}` : pluginId || '—';
+  return p ? p.name : pluginId || '—';
+}
+
+/** 用订阅 params 覆盖插件默认值，生成表单 draft */
+function buildSchemaDraft(
+  schema: SourcePluginConfigField[] | undefined,
+  params: Record<string, unknown>,
+  plugin?: SchedulePluginDescriptor | null,
+): PluginConfigDraft {
+  const draft: PluginConfigDraft = {};
+  for (const field of schema || []) {
+    const fromParams = params[field.key];
+    const fromPlugin = plugin?.configValues?.[field.key];
+    const fallback =
+      field.default !== undefined && field.default !== null
+        ? field.default
+        : '';
+
+    let raw: unknown = fromParams;
+    if (raw === undefined || raw === null || raw === '') {
+      raw = fromPlugin;
+    }
+    if (raw === undefined || raw === null || raw === '') {
+      raw = fallback;
+    }
+
+    if (field.type === 'boolean') {
+      draft[field.key] =
+        raw === true || raw === 'true' || raw === 1 || raw === '1'
+          ? 'true'
+          : 'false';
+    } else if (field.type === 'password') {
+      // 订阅级一般不存密钥；密钥走插件中心全局配置
+      draft[field.key] = '';
+    } else {
+      draft[field.key] = raw === undefined || raw === null ? '' : String(raw);
+    }
+  }
+  return draft;
+}
+
+function stripEmptyParams(
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === 'string' && v.trim() === '') continue;
+    out[k] = v;
+  }
+  return out;
 }
 
 export function ScheduleSettingsTab({
@@ -125,6 +177,20 @@ export function ScheduleSettingsTab({
     () => plugins.filter((p) => p.enabled && !p.loadError),
     [plugins],
   );
+
+  const selectedPlugin = useMemo(
+    () => plugins.find((p) => p.id === draft.pluginId) || null,
+    [plugins, draft.pluginId],
+  );
+
+  const paramSchema = useMemo(
+    () => (selectedPlugin?.configSchema || []) as SourcePluginConfigField[],
+    [selectedPlugin],
+  );
+
+  const hasParamSchema = paramSchema.length > 0;
+  const isRss = draft.pluginId === PLUGIN_RSS;
+  const isUrlList = draft.pluginId === PLUGIN_URL_LIST;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -165,37 +231,34 @@ export function ScheduleSettingsTab({
   const sourceSummary = useCallback(
     (s: Schedule) => {
       const pluginId = resolvePluginId(s);
+      const params = s.sourceConfig.params || {};
       if (pluginId === PLUGIN_RSS) {
-        return s.sourceConfig.feedUrl || s.sourceConfig.params?.feedUrl
-          ? String(s.sourceConfig.feedUrl || s.sourceConfig.params?.feedUrl)
-          : pluginId;
+        return String(s.sourceConfig.feedUrl || params.feedUrl || pluginId);
       }
       if (pluginId === PLUGIN_URL_LIST) {
         const urls =
           s.sourceConfig.urls ||
-          (Array.isArray(s.sourceConfig.params?.urls)
-            ? (s.sourceConfig.params?.urls as string[])
-            : []);
+          (Array.isArray(params.urls) ? (params.urls as string[]) : []);
         if (!urls.length) return pluginId;
         if (urls.length === 1) return urls[0]!;
         return t('settings.scheduleUrlCount', { n: urls.length });
       }
-      if (pluginId === PLUGIN_GH) {
-        const p = s.sourceConfig.params || {};
-        const since = String(p.since || 'daily');
-        const lang = String(p.language || '').trim();
-        return lang ? `trending/${lang} · ${since}` : `trending · ${since}`;
-      }
-      if (pluginId === PLUGIN_HN) {
-        const feed = String(s.sourceConfig.params?.feed || 'top');
-        return `HN · ${feed}`;
-      }
-      if (s.sourceConfig.params && Object.keys(s.sourceConfig.params).length) {
-        return `${pluginId} · JSON`;
-      }
-      return pluginId || '—';
+      const keys = Object.keys(params);
+      if (!keys.length) return pluginId || '—';
+      // 展示前两个参数摘要
+      const bits = keys.slice(0, 2).map((k) => `${k}=${String(params[k])}`);
+      return bits.join(' · ') + (keys.length > 2 ? ' …' : '');
     },
     [t],
+  );
+
+  const applyPluginDefaults = useCallback(
+    (pluginId: string, params: Record<string, unknown> = {}) => {
+      const plugin = plugins.find((p) => p.id === pluginId) || null;
+      const schema = (plugin?.configSchema || []) as SourcePluginConfigField[];
+      return buildSchemaDraft(schema, params, plugin);
+    },
+    [plugins],
   );
 
   const openCreate = () => {
@@ -204,14 +267,16 @@ export function ScheduleSettingsTab({
       enabledPlugins.find((p) => p.id === PLUGIN_RSS)?.id ||
       enabledPlugins[0]?.id ||
       PLUGIN_RSS;
-    setDraft(emptyDraft(preferred));
+    const base = emptyDraft(preferred);
+    base.schemaDraft = applyPluginDefaults(preferred, {});
+    setDraft(base);
     setShowForm(true);
   };
 
   const openEdit = (s: Schedule) => {
     setEditingId(s.id);
     const pluginId = resolvePluginId(s);
-    const params = s.sourceConfig.params || {};
+    const params = { ...(s.sourceConfig.params || {}) };
     const feedUrl = String(
       s.sourceConfig.feedUrl || params.feedUrl || '',
     ).trim();
@@ -222,29 +287,25 @@ export function ScheduleSettingsTab({
       ? s.sourceConfig.urls
       : urlsFromParams;
 
-    // 内置插件参数用专用字段；其余进 JSON
-    let paramsText = '';
-    if (
-      pluginId !== PLUGIN_RSS &&
-      pluginId !== PLUGIN_URL_LIST &&
-      pluginId !== PLUGIN_GH &&
-      pluginId !== PLUGIN_HN
-    ) {
-      paramsText = Object.keys(params).length
-        ? JSON.stringify(params, null, 2)
-        : '';
-    }
+    // 结构化字段不重复塞进 JSON
+    const paramsForSchema = { ...params };
+    delete paramsForSchema.feedUrl;
+    delete paramsForSchema.urls;
+
+    const plugin = plugins.find((p) => p.id === pluginId);
+    const schema = (plugin?.configSchema || []) as SourcePluginConfigField[];
+    const hasSchema = schema.length > 0;
 
     setDraft({
       name: s.name,
       pluginId,
       feedUrl,
       urlsText: urls.join('\n'),
-      ghSince: String(params.since || 'daily'),
-      ghLanguage: String(params.language || ''),
-      ghSpoken: String(params.spokenLanguage || ''),
-      hnFeed: String(params.feed || 'top'),
-      paramsText,
+      schemaDraft: buildSchemaDraft(schema, paramsForSchema, plugin),
+      paramsText:
+        !hasSchema && Object.keys(paramsForSchema).length
+          ? JSON.stringify(paramsForSchema, null, 2)
+          : '',
       preset: s.preset,
       cron: s.cron,
       timezone: s.timezone || 'Asia/Shanghai',
@@ -257,6 +318,15 @@ export function ScheduleSettingsTab({
     setShowForm(true);
   };
 
+  const onPluginChange = (pluginId: string) => {
+    setDraft((d) => ({
+      ...d,
+      pluginId,
+      schemaDraft: applyPluginDefaults(pluginId, {}),
+      paramsText: '',
+    }));
+  };
+
   const bodyFromDraft = useCallback(() => {
     const pluginId = draft.pluginId.trim();
     if (!pluginId) {
@@ -264,38 +334,37 @@ export function ScheduleSettingsTab({
     }
 
     let params: Record<string, unknown> = {};
-    if (pluginId === PLUGIN_RSS) {
+
+    if (isRss) {
       const feedUrl = draft.feedUrl.trim();
       if (!feedUrl) throw new Error(t('settings.scheduleFeedUrlRequired'));
-      params = { feedUrl };
-    } else if (pluginId === PLUGIN_URL_LIST) {
+      params.feedUrl = feedUrl;
+    } else if (isUrlList) {
       const urls = draft.urlsText
         .split(/[\n,]+/)
         .map((x) => x.trim())
         .filter(Boolean);
       if (!urls.length) throw new Error(t('settings.scheduleUrlsRequired'));
-      params = { urls };
-    } else if (pluginId === PLUGIN_GH) {
-      params = {
-        since: draft.ghSince || 'daily',
-        language: draft.ghLanguage.trim() || undefined,
-        spokenLanguage: draft.ghSpoken.trim() || undefined,
-      };
-    } else if (pluginId === PLUGIN_HN) {
-      params = { feed: draft.hnFeed || 'top' };
-    } else if (draft.paramsText.trim()) {
+      params.urls = urls;
+    }
+
+    if (hasParamSchema) {
+      const patch = stripEmptyParams(
+        draftToConfigPatch(paramSchema, draft.schemaDraft),
+      );
+      params = { ...params, ...patch };
+    } else if (!isRss && !isUrlList && draft.paramsText.trim()) {
       try {
         const parsed = JSON.parse(draft.paramsText) as unknown;
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
           throw new Error('params');
         }
-        params = parsed as Record<string, unknown>;
+        params = { ...params, ...(parsed as Record<string, unknown>) };
       } catch {
         throw new Error(t('settings.scheduleParamsInvalid'));
       }
     }
 
-    // 同步顶层字段，便于列表摘要与兼容旧读法
     const sourceConfig: {
       pluginId: string;
       params: Record<string, unknown>;
@@ -305,10 +374,8 @@ export function ScheduleSettingsTab({
       pluginId,
       params,
     };
-    if (pluginId === PLUGIN_RSS) {
-      sourceConfig.feedUrl = String(params.feedUrl || '');
-    }
-    if (pluginId === PLUGIN_URL_LIST) {
+    if (isRss) sourceConfig.feedUrl = String(params.feedUrl || '');
+    if (isUrlList) {
       sourceConfig.urls = Array.isArray(params.urls)
         ? (params.urls as string[])
         : [];
@@ -332,7 +399,7 @@ export function ScheduleSettingsTab({
         onlyNew: draft.onlyNew,
       },
     };
-  }, [draft, t]);
+  }, [draft, t, isRss, isUrlList, hasParamSchema, paramSchema]);
 
   const onSave = async () => {
     setSaving(true);
@@ -381,17 +448,11 @@ export function ScheduleSettingsTab({
     try {
       const res = await runScheduleApi(s.id, { force });
       onMessage(
-        t(
-          force
-            ? 'settings.scheduleRunForceDone'
-            : 'settings.scheduleRunDone',
-          {
-            status: res.run.status,
-            n: res.run.createdJobs,
-          },
-        ),
+        t(force ? 'settings.scheduleRunForceDone' : 'settings.scheduleRunDone', {
+          status: res.run.status,
+          n: res.run.createdJobs,
+        }),
       );
-      // 刷新该订阅运行历史缓存
       try {
         const runs = await fetchScheduleRuns(s.id, 5);
         setRunsMap((prev) => ({ ...prev, [s.id]: runs }));
@@ -445,9 +506,9 @@ export function ScheduleSettingsTab({
     }
   };
 
-  const paramFields = (() => {
-    if (draft.pluginId === PLUGIN_RSS) {
-      return (
+  const paramFields = (
+    <>
+      {isRss ? (
         <label className="settings-field settings-field-span">
           <span>{t('settings.scheduleFeedUrl')}</span>
           <input
@@ -459,10 +520,9 @@ export function ScheduleSettingsTab({
             placeholder="https://example.com/feed.xml"
           />
         </label>
-      );
-    }
-    if (draft.pluginId === PLUGIN_URL_LIST) {
-      return (
+      ) : null}
+
+      {isUrlList ? (
         <label className="settings-field settings-field-span">
           <span>{t('settings.scheduleUrls')}</span>
           <textarea
@@ -475,90 +535,47 @@ export function ScheduleSettingsTab({
             placeholder={t('settings.scheduleUrlsPh')}
           />
         </label>
-      );
-    }
-    if (draft.pluginId === PLUGIN_GH) {
-      return (
-        <>
-          <label className="settings-field">
-            <span>{t('settings.scheduleGhSince')}</span>
-            <select
-              className="nl-input"
-              value={draft.ghSince}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, ghSince: e.target.value }))
-              }
-            >
-              <option value="daily">{t('settings.scheduleGhSinceDaily')}</option>
-              <option value="weekly">
-                {t('settings.scheduleGhSinceWeekly')}
-              </option>
-              <option value="monthly">
-                {t('settings.scheduleGhSinceMonthly')}
-              </option>
-            </select>
-          </label>
-          <label className="settings-field">
-            <span>{t('settings.scheduleGhLanguage')}</span>
-            <input
-              className="nl-input"
-              value={draft.ghLanguage}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, ghLanguage: e.target.value }))
-              }
-              placeholder="typescript"
-            />
-          </label>
-          <label className="settings-field settings-field-span">
-            <span>{t('settings.scheduleGhSpoken')}</span>
-            <input
-              className="nl-input"
-              value={draft.ghSpoken}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, ghSpoken: e.target.value }))
-              }
-              placeholder="zh"
-            />
-          </label>
-        </>
-      );
-    }
-    if (draft.pluginId === PLUGIN_HN) {
-      return (
-        <label className="settings-field">
-          <span>{t('settings.scheduleHnFeed')}</span>
-          <select
-            className="nl-input"
-            value={draft.hnFeed}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, hnFeed: e.target.value }))
+      ) : null}
+
+      {hasParamSchema ? (
+        <div className="settings-field-span schedule-schema-fields">
+          <div className="schedule-schema-label">
+            {t('settings.schedulePluginParams')}
+          </div>
+          <p className="settings-card-hint" style={{ marginBottom: '0.5rem' }}>
+            {t('settings.schedulePluginParamsHint')}
+          </p>
+          <PluginConfigFields
+            schema={paramSchema}
+            draft={draft.schemaDraft}
+            status={selectedPlugin?.configStatus}
+            idPrefix={`schedule-param-${draft.pluginId || 'x'}`}
+            onChange={(key, value) =>
+              setDraft((d) => ({
+                ...d,
+                schemaDraft: { ...d.schemaDraft, [key]: value },
+              }))
             }
-          >
-            <option value="top">Top</option>
-            <option value="new">New</option>
-            <option value="best">Best</option>
-            <option value="ask">Ask HN</option>
-            <option value="show">Show HN</option>
-            <option value="job">Jobs</option>
-          </select>
+          />
+        </div>
+      ) : null}
+
+      {!hasParamSchema && !isRss && !isUrlList ? (
+        <label className="settings-field settings-field-span">
+          <span>{t('settings.scheduleParams')}</span>
+          <textarea
+            className="nl-input"
+            rows={4}
+            value={draft.paramsText}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, paramsText: e.target.value }))
+            }
+            placeholder={t('settings.scheduleParamsPh')}
+          />
         </label>
-      );
-    }
-    return (
-      <label className="settings-field settings-field-span">
-        <span>{t('settings.scheduleParams')}</span>
-        <textarea
-          className="nl-input"
-          rows={4}
-          value={draft.paramsText}
-          onChange={(e) =>
-            setDraft((d) => ({ ...d, paramsText: e.target.value }))
-          }
-          placeholder={t('settings.scheduleParamsPh')}
-        />
-      </label>
-    );
-  })();
+      ) : null}
+    </>
+  );
 
   return (
     <SettingsPanel id="schedules" active={active}>
@@ -620,12 +637,7 @@ export function ScheduleSettingsTab({
                   <select
                     className="nl-input"
                     value={draft.pluginId}
-                    onChange={(e) =>
-                      setDraft((d) => ({
-                        ...d,
-                        pluginId: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => onPluginChange(e.target.value)}
                   >
                     {!enabledPlugins.length ? (
                       <option value="">{t('settings.schedulePluginNone')}</option>
@@ -635,7 +647,6 @@ export function ScheduleSettingsTab({
                         {p.name} ({p.id})
                       </option>
                     ))}
-                    {/* 编辑旧数据时插件可能已停用，仍展示当前值 */}
                     {draft.pluginId &&
                     !enabledPlugins.some((p) => p.id === draft.pluginId) ? (
                       <option value={draft.pluginId}>
@@ -855,6 +866,7 @@ export function ScheduleSettingsTab({
                           if (!pl) {
                             return (
                               <span className="schedule-badge is-bad">
+                                {' '}
                                 {t('settings.schedulePluginMissing')}
                               </span>
                             );
@@ -862,6 +874,7 @@ export function ScheduleSettingsTab({
                           if (!pl.enabled || pl.loadError) {
                             return (
                               <span className="schedule-badge is-bad">
+                                {' '}
                                 {t('settings.schedulePluginDisabled')}
                               </span>
                             );
@@ -947,7 +960,9 @@ export function ScheduleSettingsTab({
                     {expandedRunId === s.id ? (
                       <div className="schedule-runs">
                         {runsLoadingId === s.id ? (
-                          <p className="settings-card-hint">{t('common.loading')}</p>
+                          <p className="settings-card-hint">
+                            {t('common.loading')}
+                          </p>
                         ) : (runsMap[s.id] || []).length ? (
                           <ul className="schedule-runs-list">
                             {(runsMap[s.id] || []).map((r) => (

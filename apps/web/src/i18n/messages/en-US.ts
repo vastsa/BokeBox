@@ -627,6 +627,8 @@ export const enUS: MessageTree = {
     scheduleParams: 'Plugin params (JSON)',
     scheduleParamsPh: 'e.g. { "since": "daily", "language": "typescript" }',
     scheduleParamsInvalid: 'Plugin params must be a JSON object',
+    schedulePluginParams: 'Plugin params',
+    schedulePluginParamsHint: 'Filled from the plugin configSchema. Empty fields fall back to plugin hub defaults. Secrets belong in the plugin hub.',
     pluginTabSchedule: 'Schedules',
     pluginKindSchedule: 'Schedule plugins',
     pluginKindScheduleDesc: 'Provide RSS, rankings, or API feeds for scheduled jobs. Upload a zip to install.',
