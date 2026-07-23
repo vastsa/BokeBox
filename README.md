@@ -23,6 +23,7 @@
 
 <p align="center">
   <a href="#-30-second-pitch">Product</a> ·
+  <a href="#-feature-checklist">Features</a> ·
   <a href="#-who-its-for">Who it's for</a> ·
   <a href="#-ui-glimpse">UI</a> ·
   <a href="#-get-started">Get started</a>
@@ -169,6 +170,78 @@ Tune the voice, persona, prompt templates, MCP access, and public site details f
 
 4. **Put headphones on**  
    Open the player. Feels like a show made for you.
+
+---
+
+## 📋 Feature checklist
+
+A product-level map of what BokeBox can do today (aligned with Settings, task detail, and the listen library).
+
+### Multi-source input
+- Local upload: video / audio / text drafts
+- URL import: webpage body extraction, public video / audio direct links
+- Pick a Source plugin on create, or auto-match
+- Optionally assign an album, persona, and voice when creating
+
+### AI production pipeline
+- Extract audio → ASR transcript → spoken script → cover / notes / flashcards → TTS
+- Background jobs with progress and status on the home screen
+- Re-run from a chosen step (extract / transcribe / script / cover / flashcards / synthesize) and skip finished stages
+- Publish to the listen library, retry failed jobs, delete jobs
+
+### Persona · voice · prompts
+- Global host persona, or per-episode overrides
+- Preset voices + text-described custom voice (Voice Design)
+- Prompt hub for cover / podcast script / rewrite / flashcards, with `{{placeholders}}`
+- Content language: global default or per-job override
+
+### Episode assets
+- Task detail keeps transcript, spoken script, show notes, flashcards, cover, and audio
+- AI cover generation (customizable cover prompt)
+- Flashcards generate / regenerate independently for active recall
+- Tags and summaries browsable from home and the tag cloud
+
+### Listening experience
+- Immersive player: progress memory, playback speed, sleep timer (including “end of episode”)
+- Albums: create / organize / continuous play inside an album
+- Tag cloud to jump back to related episodes by theme
+- Listen library and production jobs live in one private space
+
+### Settings center
+- **Voice**: default TTS for new jobs
+- **Persona**: default host and show settings for script generation
+- **Prompts**: cover / podcast / rewrite / flashcard templates
+- **AI service**: API credentials, models, providers
+- **Plugins**: Source / ASR / TTS hub (scan, enable, upload zip, per-plugin config)
+- **MCP**: token, install configs, available tools
+- **Site**: site name, SEO, visitor access
+- **Account**: UI language, light/dark theme, password, open-source info
+
+### Plugin system
+- **Source plugins**: extend content acquisition (built-in `direct-http`; external plugins under `storage/plugins/source/`)
+- **ASR / TTS plugins**: switch built-in or external providers with isolated config
+- Settings support rescan, zip install, and uninstall of external plugins
+- Docs & examples:
+  - [docs/source-plugins.md](./docs/source-plugins.md)
+  - [docs/source-plugin-development.md](./docs/source-plugin-development.md)
+  - [docs/asr-tts-plugins.md](./docs/asr-tts-plugins.md)
+  - [docs/tts-plugin-development.md](./docs/tts-plugin-development.md)
+  - [examples/source-plugin-echo](./examples/source-plugin-echo)
+  - [examples/tts-plugin-echo](./examples/tts-plugin-echo) · [examples/tts-plugin-fishspeech](./examples/tts-plugin-fishspeech)
+
+### MCP (AI-native control)
+- Built-in MCP endpoint; server auto-issues a long-lived token
+- One-click install JSON for Cursor / Claude Desktop / Codex
+- Tools:
+  - `create_podcast_from_url` / `create_podcast_from_text`
+  - `list_jobs` / `get_job` / `update_job` / `retry_job` / `delete_job`
+  - `list_library` / `get_system_health`
+
+### Deploy & privacy
+- One-command local start: `./start.sh` (dev) / `./start.sh prod` (single port)
+- Docker: prebuilt image / local build / China-mirror build
+- Single-user private deploy; jobs, progress, and media stay local (SQLite + local storage)
+- License: LGPL-3.0 · Repo: https://github.com/vastsa/BokeBox
 
 ---
 

@@ -23,6 +23,7 @@
 
 <p align="center">
   <a href="#-30-秒看懂">了解产品</a> ·
+  <a href="#-功能清单">功能清单</a> ·
   <a href="#-谁适合用">适合谁</a> ·
   <a href="#-界面一览">界面</a> ·
   <a href="#-开始使用">开始使用</a>
@@ -169,6 +170,78 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 4. **戴上耳机**  
    打开播放页，像听一档真正为你制作的节目。
+
+---
+
+## 📋 功能清单
+
+按产品能力整理的当前功能全景（与设置中心、任务详情、听播库一致）。
+
+### 多源输入
+- 本地上传：视频 / 音频 / 文稿
+- URL 导入：网页正文抽取、公开视频 / 音频直链
+- 创建时可指定 Source 插件，或自动匹配
+- 创建时可归入专辑、选择人设与音色
+
+### AI 制作流水线
+- 音频提取 → 转写（ASR）→ 口播脚本 → 封面 / 笔记 / 闪卡 → TTS 合成
+- 后台异步任务，首页可见进度与状态
+- 可从指定步骤重跑（提取 / 转写 / 脚本 / 封面 / 闪卡 / 合成），跳过已完成步骤
+- 支持上架到听播库、重试失败任务、删除任务
+
+### 人设 · 音色 · 提示词
+- 全局主播人设与单集临时人设
+- 预置音色 + 文字描述定制音色（Voice Design）
+- 提示词模板中心：封面 / 口播 / 改写 / 闪卡，支持变量占位符
+- 内容语言可全局默认，也可按任务单独指定
+
+### 节目资产
+- 任务详情可回看：原转写、口播脚本、节目笔记、知识闪卡、封面、音频
+- AI 封面生成（可自定义封面提示词）
+- 知识闪卡独立生成 / 重新生成，支持主动回忆复习
+- 标签与节目摘要，首页 / 星图可浏览
+
+### 听播体验
+- 沉浸播放器：进度记忆、倍速、睡眠定时（含「播完本集」）
+- 专辑：创建 / 整理 / 专辑内连续收听
+- 星图标签浏览，按主题回到相关节目
+- 听播库与制作任务同空间管理
+
+### 设置中心
+- **音色**：新建任务默认 TTS 配置
+- **人设**：口播脚本默认主播与节目设定
+- **提示词**：封面 / 口播 / 改写 / 闪卡模板
+- **AI 服务**：接口凭证、模型参数、提供方选择
+- **插件**：内容获取 / ASR / TTS 统一管理（扫描、启用、上传 zip、参数配置）
+- **MCP**：Token、安装配置、可用工具
+- **站点**：站点名称、SEO、访客访问
+- **账户**：界面语言、亮/暗主题、密码与开源信息
+
+### 插件体系
+- **Source 插件**：扩展内容获取方式（内置 direct-http；外部插件目录 `storage/plugins/source/`）
+- **ASR / TTS 插件**：可切换内置与外部提供方，插件参数独立配置
+- 设置页支持重新扫描、上传安装、卸载外部插件
+- 文档与示例：
+  - [docs/source-plugins.md](./docs/source-plugins.md)
+  - [docs/source-plugin-development.md](./docs/source-plugin-development.md)
+  - [docs/asr-tts-plugins.md](./docs/asr-tts-plugins.md)
+  - [docs/tts-plugin-development.md](./docs/tts-plugin-development.md)
+  - [examples/source-plugin-echo](./examples/source-plugin-echo)
+  - [examples/tts-plugin-echo](./examples/tts-plugin-echo) · [examples/tts-plugin-fishspeech](./examples/tts-plugin-fishspeech)
+
+### MCP（AI 直接调用）
+- 内置 MCP 端点，服务端自动签发长期 Token
+- 设置页一键复制 Cursor / Claude Desktop / Codex 安装配置
+- 可用工具：
+  - `create_podcast_from_url` / `create_podcast_from_text`
+  - `list_jobs` / `get_job` / `update_job` / `retry_job` / `delete_job`
+  - `list_library` / `get_system_health`
+
+### 部署与私有化
+- 本地一键启动：`./start.sh`（开发）/ `./start.sh prod`（单端口）
+- Docker：预构建镜像 / 本地构建 / 国内镜像源构建
+- 单用户私有部署，任务、进度与媒体落本地（SQLite + 本地存储）
+- 开源协议：LGPL-3.0 · 仓库：https://github.com/vastsa/BokeBox
 
 ---
 
