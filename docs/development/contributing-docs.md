@@ -50,6 +50,12 @@ description: 一句话摘要
 
 `@bokebox/docs` 使用 `dev:docs` / `build:docs` / `preview:docs`，**不要**命名为 `dev`/`build`，以免被根目录 `pnpm -r dev/build` 误启动。
 
+
+## 与功能开发同步
+
+仓库根目录 `AGENTS.md` 规定：**功能新增 / 修改 / 删除时必须同步更新 docs**（含 `docs/en` 与导航）。  
+贡献文档或改产品代码时，请同时检查 guide / plugins / development 是否过期。
+
 ## 协议
 
 贡献内容随本仓库 **LGPL-3.0-only** 开源。
