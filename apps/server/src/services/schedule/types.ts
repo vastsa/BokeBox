@@ -3,7 +3,7 @@
  */
 import type { ScriptPromptOptions, TtsOptions } from '../../types/job.js';
 
-export type ScheduleKind = 'rss' | 'url_list';
+export type ScheduleKind = 'rss' | 'url_list' | 'plugin';
 
 export type SchedulePreset =
   | 'hourly'
@@ -15,10 +15,14 @@ export type SchedulePreset =
 export type ScheduleRunStatus = 'running' | 'success' | 'partial' | 'failed';
 
 export interface ScheduleSourceConfig {
-  /** RSS / Atom 地址 */
+  /** RSS / Atom 地址（kind=rss 或 plugin 参数） */
   feedUrl?: string;
-  /** 固定 URL 列表（如 GitHub 趋势页、日报页） */
+  /** 固定 URL 列表（kind=url_list） */
   urls?: string[];
+  /** 订阅插件 id（kind=plugin，或覆盖内置） */
+  pluginId?: string;
+  /** 插件自由参数（透传给 plugin.fetch） */
+  params?: Record<string, unknown>;
 }
 
 export interface ScheduleJobDefaults {

@@ -10,7 +10,7 @@ services/
   album/        专辑
   auth/         登录 / 初始化 / 改密
   mcp/          MCP 协议、Token、工具
-  schedule/     定时订阅（RSS / URL 列表）
+  schedule/     定时订阅（RSS / URL 列表 / 订阅插件）
   storageMigrator.ts  存储布局迁移（启动期）
 ```
 

@@ -103,7 +103,10 @@ function rowToRun(row: RunRow): ScheduleRun {
 }
 
 function normalizeKind(raw: unknown): ScheduleKind {
-  return String(raw || '').trim() === 'url_list' ? 'url_list' : 'rss';
+  const k = String(raw || '').trim();
+  if (k === 'url_list') return 'url_list';
+  if (k === 'plugin') return 'plugin';
+  return 'rss';
 }
 
 function normalizePreset(raw: unknown): SchedulePreset {
@@ -135,9 +138,25 @@ function normalizeSourceConfig(
   input?: ScheduleSourceConfig | null,
 ): ScheduleSourceConfig {
   const cfg = input || {};
+  const pluginId = String(cfg.pluginId || '').trim() || undefined;
+  const params =
+    cfg.params && typeof cfg.params === 'object' && !Array.isArray(cfg.params)
+      ? (cfg.params as Record<string, unknown>)
+      : undefined;
+
   if (kind === 'rss') {
     const feedUrl = String(cfg.feedUrl || '').trim();
-    return { feedUrl };
+    return { feedUrl, pluginId, params };
+  }
+  if (kind === 'plugin') {
+    return {
+      pluginId,
+      params,
+      feedUrl: cfg.feedUrl ? String(cfg.feedUrl).trim() : undefined,
+      urls: Array.isArray(cfg.urls)
+        ? cfg.urls.map((u) => String(u || '').trim()).filter(Boolean)
+        : undefined,
+    };
   }
   const urls = Array.isArray(cfg.urls)
     ? cfg.urls.map((u) => String(u || '').trim()).filter(Boolean)
@@ -145,12 +164,16 @@ function normalizeSourceConfig(
         .split(/[\n,]+/)
         .map((s) => s.trim())
         .filter(Boolean);
-  return { urls };
+  return { urls, pluginId, params };
 }
 
 function validateSource(kind: ScheduleKind, cfg: ScheduleSourceConfig): string | null {
   if (kind === 'rss') {
     if (!cfg.feedUrl) return '请填写 RSS 地址';
+    return null;
+  }
+  if (kind === 'plugin') {
+    if (!cfg.pluginId) return '请选择订阅插件';
     return null;
   }
   if (!cfg.urls?.length) return '请至少填写一个 URL';

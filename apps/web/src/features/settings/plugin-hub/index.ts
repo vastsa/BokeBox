@@ -3,6 +3,7 @@ export {
   fieldSpan,
   fromAi,
   fromSource,
+  fromSchedule,
   isSecretField,
   riskClass,
   type HubKind,

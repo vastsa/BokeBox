@@ -18,7 +18,8 @@ import { aiPluginRoutes } from './routes/aiPlugins.js';
 import { albumRoutes } from './routes/albums.js';
 import { settingsRoutes } from './routes/settings.js';
 import { scheduleRoutes } from './routes/schedules.js';
-import { startScheduler } from './services/schedule/index.js';
+import { schedulePluginRoutes } from './routes/schedulePlugins.js';
+import { startScheduler, refreshExternalSchedulePlugins } from './services/schedule/index.js';
 import { refreshExternalSourcePlugins } from './sources/index.js';
 import { refreshExternalAsrPlugins } from './providers/asr/index.js';
 import { refreshExternalTtsPlugins } from './providers/tts/index.js';
@@ -142,6 +143,7 @@ async function main() {
   await app.register(jobRoutes, { prefix: '/api' });
   await app.register(albumRoutes, { prefix: '/api' });
   await app.register(scheduleRoutes, { prefix: '/api' });
+  await app.register(schedulePluginRoutes, { prefix: '/api' });
   await app.register(listenRoutes, { prefix: '/api' });
   await app.register(sourceRoutes, { prefix: '/api' });
   await app.register(aiPluginRoutes, { prefix: '/api' });
@@ -181,6 +183,20 @@ async function main() {
       // SPA fallback：同样注入 SEO
       return sendSeoIndex(reply);
     });
+  }
+
+  try {
+    const scan = await refreshExternalSchedulePlugins();
+    if (scan.loaded.length || scan.failed.length) {
+      console.info(
+        '[schedule] external plugins loaded=%s failed=%s dir=%s',
+        scan.loaded.join(',') || '-',
+        scan.failed.map((f) => `${f.dirName}:${f.error}`).join('; ') || '-',
+        scan.pluginsDir,
+      );
+    }
+  } catch (err) {
+    console.warn('[schedule] external plugin scan failed:', err);
   }
 
   startScheduler();

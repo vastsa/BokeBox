@@ -3,11 +3,13 @@ import {
   createScheduleApi,
   deleteScheduleApi,
   fetchAllAlbums,
+  fetchSchedulePlugins,
   fetchSchedules,
   runScheduleApi,
   updateScheduleApi,
   type Schedule,
   type ScheduleKind,
+  type SchedulePluginDescriptor,
   type SchedulePreset,
 } from '../../api/client';
 import type { AlbumSummary } from '../../types/album';
@@ -19,6 +21,8 @@ type Draft = {
   kind: ScheduleKind;
   feedUrl: string;
   urlsText: string;
+  pluginId: string;
+  paramsText: string;
   preset: SchedulePreset;
   cron: string;
   timezone: string;
@@ -34,6 +38,8 @@ const emptyDraft = (): Draft => ({
   kind: 'rss',
   feedUrl: '',
   urlsText: '',
+  pluginId: '',
+  paramsText: '',
   preset: 'daily',
   cron: '0 8 * * *',
   timezone: 'Asia/Shanghai',
@@ -74,6 +80,7 @@ export function ScheduleSettingsTab({
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Schedule[]>([]);
   const [albums, setAlbums] = useState<AlbumSummary[]>([]);
+  const [plugins, setPlugins] = useState<SchedulePluginDescriptor[]>([]);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -83,12 +90,16 @@ export function ScheduleSettingsTab({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [list, albumList] = await Promise.all([
+      const [list, albumList, pluginList] = await Promise.all([
         fetchSchedules(),
         fetchAllAlbums().catch(() => [] as AlbumSummary[]),
+        fetchSchedulePlugins()
+          .then((r) => r.plugins || [])
+          .catch(() => [] as SchedulePluginDescriptor[]),
       ]);
       setItems(list);
       setAlbums(albumList);
+      setPlugins(pluginList);
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -115,6 +126,9 @@ export function ScheduleSettingsTab({
   const sourceSummary = useCallback(
     (s: Schedule) => {
       if (s.kind === 'rss') return s.sourceConfig.feedUrl || '—';
+      if (s.kind === 'plugin') {
+        return s.sourceConfig.pluginId || '—';
+      }
       const urls = s.sourceConfig.urls || [];
       if (!urls.length) return '—';
       if (urls.length === 1) return urls[0]!;
@@ -136,6 +150,10 @@ export function ScheduleSettingsTab({
       kind: s.kind,
       feedUrl: s.sourceConfig.feedUrl || '',
       urlsText: (s.sourceConfig.urls || []).join('\n'),
+      pluginId: s.sourceConfig.pluginId || '',
+      paramsText: s.sourceConfig.params
+        ? JSON.stringify(s.sourceConfig.params, null, 2)
+        : '',
       preset: s.preset,
       cron: s.cron,
       timezone: s.timezone || 'Asia/Shanghai',
@@ -154,14 +172,32 @@ export function ScheduleSettingsTab({
         .split(/[\n,]+/)
         .map((x) => x.trim())
         .filter(Boolean);
+      let params: Record<string, unknown> | undefined;
+      if (draft.paramsText.trim()) {
+        try {
+          const parsed = JSON.parse(draft.paramsText) as unknown;
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('params');
+          }
+          params = parsed as Record<string, unknown>;
+        } catch {
+          throw new Error(t('settings.scheduleParamsInvalid'));
+        }
+      }
+      const sourceConfig =
+        draft.kind === 'rss'
+          ? { feedUrl: draft.feedUrl.trim() }
+          : draft.kind === 'url_list'
+            ? { urls }
+            : {
+                pluginId: draft.pluginId.trim(),
+                params,
+              };
       return {
         name: draft.name.trim(),
         enabled: draft.enabled,
         kind: draft.kind,
-        sourceConfig:
-          draft.kind === 'rss'
-            ? { feedUrl: draft.feedUrl.trim() }
-            : { urls },
+        sourceConfig,
         preset: draft.preset,
         cron: draft.preset === 'cron' ? draft.cron.trim() : undefined,
         timezone: draft.timezone.trim() || 'Asia/Shanghai',
@@ -176,7 +212,7 @@ export function ScheduleSettingsTab({
         },
       };
     };
-  }, [draft]);
+  }, [draft, t]);
 
   const onSave = async () => {
     setSaving(true);
@@ -330,6 +366,9 @@ export function ScheduleSettingsTab({
                     <option value="url_list">
                       {t('settings.scheduleKindUrlList')}
                     </option>
+                    <option value="plugin">
+                      {t('settings.scheduleKindPlugin')}
+                    </option>
                   </select>
                 </label>
 
@@ -345,7 +384,9 @@ export function ScheduleSettingsTab({
                       placeholder="https://example.com/feed.xml"
                     />
                   </label>
-                ) : (
+                ) : null}
+
+                {draft.kind === 'url_list' ? (
                   <label className="settings-field settings-field-span">
                     <span>{t('settings.scheduleUrls')}</span>
                     <textarea
@@ -358,7 +399,48 @@ export function ScheduleSettingsTab({
                       placeholder={t('settings.scheduleUrlsPh')}
                     />
                   </label>
-                )}
+                ) : null}
+
+                {draft.kind === 'plugin' ? (
+                  <>
+                    <label className="settings-field settings-field-span">
+                      <span>{t('settings.schedulePlugin')}</span>
+                      <select
+                        className="nl-input"
+                        value={draft.pluginId}
+                        onChange={(e) =>
+                          setDraft((d) => ({ ...d, pluginId: e.target.value }))
+                        }
+                      >
+                        <option value="">
+                          {t('settings.schedulePluginPick')}
+                        </option>
+                        {plugins
+                          .filter((p) => p.enabled && !p.loadError)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} ({p.id})
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <label className="settings-field settings-field-span">
+                      <span>{t('settings.scheduleParams')}</span>
+                      <textarea
+                        className="nl-input"
+                        rows={4}
+                        value={draft.paramsText}
+                        onChange={(e) =>
+                          setDraft((d) => ({
+                            ...d,
+                            paramsText: e.target.value,
+                          }))
+                        }
+                        placeholder={t('settings.scheduleParamsPh')}
+                      />
+                    </label>
+                  </>
+                ) : null}
 
                 <label className="settings-field">
                   <span>{t('settings.schedulePreset')}</span>
@@ -562,7 +644,9 @@ export function ScheduleSettingsTab({
                       <p className="schedule-item-meta">
                         {s.kind === 'rss'
                           ? t('settings.scheduleKindRss')
-                          : t('settings.scheduleKindUrlList')}
+                          : s.kind === 'plugin'
+                            ? t('settings.scheduleKindPlugin')
+                            : t('settings.scheduleKindUrlList')}
                         {' · '}
                         {presetLabel(s.preset, s.cron)}
                         {' · '}

@@ -1,0 +1,30 @@
+{
+  "id": "schedule.echo",
+  "name": "Echo Schedule Plugin",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "apiVersion": 1,
+  "description": "演示订阅插件：根据前缀生成若干假条目，不发起网络请求",
+  "riskLevel": "low",
+  "capabilities": ["poll", "list"],
+  "defaultEnabled": false,
+  "permissions": ["config"],
+  "configSchema": [
+    {
+      "key": "prefix",
+      "label": "标题前缀",
+      "type": "string",
+      "required": false,
+      "default": "Echo",
+      "placeholder": "Echo"
+    },
+    {
+      "key": "count",
+      "label": "生成条数",
+      "type": "number",
+      "required": false,
+      "default": 2,
+      "description": "每次 fetch 生成的条目数（1-5）"
+    }
+  ]
+}

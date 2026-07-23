@@ -12,10 +12,7 @@ import {
   resolveTtsForJob,
 } from '../../routes/jobs/helpers.js';
 import { isValidHttpUrl } from '../import/index.js';
-import {
-  candidatesFromUrlList,
-  fetchRssItems,
-} from './rss.js';
+import { fetchScheduleCandidates } from './plugins/host.js';
 import {
   finishScheduleRun,
   getSchedule,
@@ -35,11 +32,8 @@ const running = new Set<string>();
 async function collectCandidates(
   schedule: Schedule,
 ): Promise<ScheduleItemCandidate[]> {
-  if (schedule.kind === 'url_list') {
-    return candidatesFromUrlList(schedule.sourceConfig.urls || []);
-  }
-  const feedUrl = String(schedule.sourceConfig.feedUrl || '').trim();
-  return fetchRssItems(feedUrl);
+  const result = await fetchScheduleCandidates(schedule);
+  return result.items;
 }
 
 function buildTitle(schedule: Schedule, item: ScheduleItemCandidate): string {

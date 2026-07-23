@@ -58,6 +58,12 @@ export const ASR_PLUGINS_DIR = path.join(STORAGE_DIR, 'plugins', 'asr');
  */
 export const TTS_PLUGINS_DIR = path.join(STORAGE_DIR, 'plugins', 'tts');
 
+/**
+ * 外部 Schedule 订阅插件目录
+ * storage/plugins/schedule/<plugin-dir>/plugin.json + entry
+ */
+export const SCHEDULE_PLUGINS_DIR = path.join(STORAGE_DIR, 'plugins', 'schedule');
+
 /** SQLite 主库 */
 export const SQLITE_DB = path.join(STORAGE_DIR, 'app.db');
 

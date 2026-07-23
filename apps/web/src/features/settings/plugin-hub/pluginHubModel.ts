@@ -3,13 +3,14 @@
  */
 import type {
   AiPluginDescriptor,
+  SchedulePluginDescriptor,
   SourcePluginConfigField,
   SourcePluginDescriptor,
   SourceRiskLevel,
 } from '../../../api/client';
 import type { AiPluginKind } from '../../../api/client';
 
-export type HubKind = 'source' | AiPluginKind;
+export type HubKind = 'source' | 'schedule' | AiPluginKind;
 
 export type HubPlugin = {
   id: string;
@@ -60,6 +61,25 @@ export function buildDraft(plugin: HubPlugin): Record<string, string> {
 }
 
 export function fromSource(p: SourcePluginDescriptor): HubPlugin {
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    version: p.version,
+    riskLevel: p.riskLevel,
+    defaultEnabled: p.defaultEnabled,
+    enabled: p.enabled,
+    available: p.available,
+    origin: p.origin,
+    loadError: p.loadError,
+    configSchema: p.configSchema,
+    configValues: p.configValues,
+    configStatus: p.configStatus,
+    configReady: p.configReady,
+  };
+}
+
+export function fromSchedule(p: SchedulePluginDescriptor): HubPlugin {
   return {
     id: p.id,
     name: p.name,

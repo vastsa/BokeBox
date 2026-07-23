@@ -1,0 +1,41 @@
+{
+  "id": "schedule.github-trending",
+  "name": "GitHub Trending",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "apiVersion": 1,
+  "description": "抓取 GitHub Trending 仓库列表（HTML 解析），生成可听条目链接",
+  "riskLevel": "medium",
+  "capabilities": ["list", "poll", "api"],
+  "defaultEnabled": false,
+  "permissions": ["network", "config"],
+  "configSchema": [
+    {
+      "key": "spokenLanguage",
+      "label": "Spoken language",
+      "type": "string",
+      "required": false,
+      "placeholder": "zh / en / 留空=全部",
+      "description": "对应 GitHub trending 的 spoken_language_code"
+    },
+    {
+      "key": "language",
+      "label": "Programming language",
+      "type": "string",
+      "required": false,
+      "placeholder": "typescript / python / 留空=全部"
+    },
+    {
+      "key": "since",
+      "label": "时间范围",
+      "type": "select",
+      "required": false,
+      "default": "daily",
+      "options": [
+        { "value": "daily", "label": "Today" },
+        { "value": "weekly", "label": "This week" },
+        { "value": "monthly", "label": "This month" }
+      ]
+    }
+  ]
+}

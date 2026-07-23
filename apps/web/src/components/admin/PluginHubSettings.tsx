@@ -1,23 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchAiPlugins,
+  fetchSchedulePlugins,
   fetchSourcePlugins,
   installAiPluginPackage,
+  installSchedulePluginPackage,
   installSourcePluginPackage,
   rescanAiPlugins,
+  rescanSchedulePlugins,
   rescanSourcePlugins,
   resetAiPluginConfigApi,
   resetAiPluginEnabledApi,
+  resetSchedulePluginConfigApi,
+  resetSchedulePluginEnabledApi,
   resetSourcePluginConfigApi,
   resetSourcePluginEnabledApi,
   saveAiPluginConfigApi,
+  saveSchedulePluginConfigApi,
   saveSourcePluginConfigApi,
   saveAiSettings,
   setAiPluginEnabledApi,
+  setSchedulePluginEnabledApi,
   setSourcePluginEnabledApi,
   uninstallAiPluginPackage,
+  uninstallSchedulePluginPackage,
   uninstallSourcePluginPackage,
   type AiPluginDescriptor,
+  type SchedulePluginDescriptor,
   type SourcePluginDescriptor,
   type SourceRiskLevel,
 } from '../../api/client';
@@ -26,6 +35,7 @@ import { useI18n } from '../../i18n';
 import {
   buildDraft,
   fromAi,
+  fromSchedule,
   fromSource,
   riskClass,
   type HubKind,
@@ -67,6 +77,13 @@ export function PluginHubSettings({
         empty: t('settings.sourceEmpty'),
       };
     }
+    if (kind === 'schedule') {
+      return {
+        title: t('settings.pluginKindSchedule'),
+        desc: t('settings.pluginKindScheduleDesc'),
+        empty: t('settings.pluginEmptySchedule'),
+      };
+    }
     if (kind === 'asr') {
       return {
         title: t('settings.pluginKindAsr'),
@@ -100,6 +117,10 @@ export function PluginHubSettings({
         const res = await fetchSourcePlugins();
         setPluginsDir(res.pluginsDir || '');
         applyPlugins((res.plugins || []).map(fromSource));
+      } else if (kind === 'schedule') {
+        const res = await fetchSchedulePlugins();
+        setPluginsDir(res.pluginsDir || '');
+        applyPlugins((res.plugins || []).map(fromSchedule));
       } else {
         const res = await fetchAiPlugins(kind);
         setPluginsDir(res.pluginsDir || '');
@@ -150,6 +171,18 @@ export function PluginHubSettings({
             failed: res.scan?.failed?.length || 0,
           }),
         );
+      } else if (kind === 'schedule') {
+        const res = await rescanSchedulePlugins();
+        setPluginsDir(res.scan?.pluginsDir || pluginsDir);
+        const list = (res.plugins || []).map(fromSchedule);
+        setPlugins(list);
+        setDrafts(Object.fromEntries(list.map((p) => [p.id, buildDraft(p)])));
+        onMessage?.(
+          t('settings.sourceRescanDone', {
+            loaded: res.scan?.loaded?.length || 0,
+            failed: res.scan?.failed?.length || 0,
+          }),
+        );
       } else {
         const res = await rescanAiPlugins(kind);
         setPluginsDir(res.scan?.pluginsDir || pluginsDir);
@@ -189,9 +222,13 @@ export function PluginHubSettings({
       const res =
         kind === 'source'
           ? await installSourcePluginPackage(file, true)
-          : await installAiPluginPackage(kind, file, true);
+          : kind === 'schedule'
+            ? await installSchedulePluginPackage(file, true)
+            : await installAiPluginPackage(kind, file, true);
       if (kind === 'source') {
         applyPlugins(((res.plugins || []) as SourcePluginDescriptor[]).map(fromSource));
+      } else if (kind === 'schedule') {
+        applyPlugins(((res.plugins || []) as SchedulePluginDescriptor[]).map(fromSchedule));
       } else {
         applyPlugins(((res.plugins || []) as AiPluginDescriptor[]).map(fromAi));
       }
@@ -230,9 +267,13 @@ export function PluginHubSettings({
       const res =
         kind === 'source'
           ? await uninstallSourcePluginPackage(plugin.id)
-          : await uninstallAiPluginPackage(kind, plugin.id);
+          : kind === 'schedule'
+            ? await uninstallSchedulePluginPackage(plugin.id)
+            : await uninstallAiPluginPackage(kind, plugin.id);
       if (kind === 'source') {
         applyPlugins(((res.plugins || []) as SourcePluginDescriptor[]).map(fromSource));
+      } else if (kind === 'schedule') {
+        applyPlugins(((res.plugins || []) as SchedulePluginDescriptor[]).map(fromSchedule));
       } else {
         applyPlugins(((res.plugins || []) as AiPluginDescriptor[]).map(fromAi));
       }
@@ -268,6 +309,9 @@ export function PluginHubSettings({
       if (kind === 'source') {
         const res = await setSourcePluginEnabledApi(plugin.id, enabled);
         applyPlugins((res.plugins || []).map(fromSource));
+      } else if (kind === 'schedule') {
+        const res = await setSchedulePluginEnabledApi(plugin.id, enabled);
+        applyPlugins((res.plugins || []).map(fromSchedule));
       } else {
         const res = await setAiPluginEnabledApi(kind, plugin.id, enabled);
         applyPlugins((res.plugins || []).map(fromAi));
@@ -319,6 +363,9 @@ export function PluginHubSettings({
       if (kind === 'source') {
         const res = await resetSourcePluginEnabledApi(plugin.id);
         applyPlugins((res.plugins || []).map(fromSource));
+      } else if (kind === 'schedule') {
+        const res = await resetSchedulePluginEnabledApi(plugin.id);
+        applyPlugins((res.plugins || []).map(fromSchedule));
       } else {
         const res = await resetAiPluginEnabledApi(kind, plugin.id);
         applyPlugins((res.plugins || []).map(fromAi));
@@ -351,6 +398,16 @@ export function PluginHubSettings({
       if (kind === 'source') {
         const res = await saveSourcePluginConfigApi(plugin.id, payload);
         const list = (res.plugins || []).map(fromSource);
+        const updated = list.find((p) => p.id === plugin.id);
+        setDrafts((prev) => {
+          const next = { ...prev };
+          if (updated) next[plugin.id] = buildDraft(updated);
+          return next;
+        });
+        applyPlugins(list);
+      } else if (kind === 'schedule') {
+        const res = await saveSchedulePluginConfigApi(plugin.id, payload);
+        const list = (res.plugins || []).map(fromSchedule);
         const updated = list.find((p) => p.id === plugin.id);
         setDrafts((prev) => {
           const next = { ...prev };
@@ -392,6 +449,16 @@ export function PluginHubSettings({
           return next;
         });
         applyPlugins(list);
+      } else if (kind === 'schedule') {
+        const res = await resetSchedulePluginConfigApi(plugin.id);
+        const list = (res.plugins || []).map(fromSchedule);
+        const updated = list.find((p) => p.id === plugin.id);
+        setDrafts((prev) => {
+          const next = { ...prev };
+          next[plugin.id] = updated ? buildDraft(updated) : {};
+          return next;
+        });
+        applyPlugins(list);
       } else {
         const res = await resetAiPluginConfigApi(kind, plugin.id);
         const list = (res.plugins || []).map(fromAi);
@@ -420,6 +487,7 @@ export function PluginHubSettings({
 
   const kinds: Array<{ id: HubKind; label: string }> = [
     { id: 'source', label: t('settings.pluginTabSource') },
+    { id: 'schedule', label: t('settings.pluginTabSchedule') },
     { id: 'asr', label: t('settings.pluginTabAsr') },
     { id: 'tts', label: t('settings.pluginTabTts') },
   ];

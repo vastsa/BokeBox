@@ -1,6 +1,6 @@
 import { request } from './http';
 
-export type ScheduleKind = 'rss' | 'url_list';
+export type ScheduleKind = 'rss' | 'url_list' | 'plugin';
 export type SchedulePreset =
   | 'hourly'
   | 'every_6h'
@@ -12,6 +12,8 @@ export type ScheduleRunStatus = 'running' | 'success' | 'partial' | 'failed';
 export interface ScheduleSourceConfig {
   feedUrl?: string;
   urls?: string[];
+  pluginId?: string;
+  params?: Record<string, unknown>;
 }
 
 export interface ScheduleJobDefaults {

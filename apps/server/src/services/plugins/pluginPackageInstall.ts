@@ -16,6 +16,7 @@ import {
   SOURCE_PLUGINS_DIR,
   STORAGE_DIR,
   TTS_PLUGINS_DIR,
+  SCHEDULE_PLUGINS_DIR,
 } from '../../utils/paths.js';
 import {
   ensureDir,
@@ -26,8 +27,9 @@ import { extractZipBuffer } from './zipExtract.js';
 import { refreshExternalSourcePlugins } from '../../sources/index.js';
 import { refreshExternalAsrPlugins } from '../../providers/asr/index.js';
 import { refreshExternalTtsPlugins } from '../../providers/tts/index.js';
+import { refreshExternalSchedulePlugins } from '../schedule/index.js';
 
-export type PluginPackageKind = 'source' | 'asr' | 'tts';
+export type PluginPackageKind = 'source' | 'asr' | 'tts' | 'schedule';
 
 export type PluginInstallResult = {
   ok: true;
@@ -47,6 +49,7 @@ const MAX_ZIP_BYTES = 80 * 1024 * 1024;
 function pluginsRoot(kind: PluginPackageKind): string {
   if (kind === 'source') return SOURCE_PLUGINS_DIR;
   if (kind === 'asr') return ASR_PLUGINS_DIR;
+  if (kind === 'schedule') return SCHEDULE_PLUGINS_DIR;
   return TTS_PLUGINS_DIR;
 }
 
@@ -118,6 +121,7 @@ async function copyDir(src: string, dest: string): Promise<number> {
 async function refreshKind(kind: PluginPackageKind): Promise<PluginScanResult> {
   if (kind === 'source') return refreshExternalSourcePlugins();
   if (kind === 'asr') return refreshExternalAsrPlugins();
+  if (kind === 'schedule') return refreshExternalSchedulePlugins();
   return refreshExternalTtsPlugins();
 }
 

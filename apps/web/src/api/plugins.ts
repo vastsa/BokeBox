@@ -123,6 +123,89 @@ export async function resetSourcePluginConfigApi(
   });
 }
 
+// ── Schedule 订阅插件 ────────────────────────────────────
+
+export type SchedulePluginCapability = 'poll' | 'rss' | 'list' | 'api';
+
+export type SchedulePluginDescriptor = {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  riskLevel: SourceRiskLevel;
+  capabilities: SchedulePluginCapability[];
+  defaultEnabled: boolean;
+  enabled: boolean;
+  available: boolean;
+  origin: SourcePluginOrigin;
+  dirName?: string;
+  dirPath?: string;
+  permissions?: SourcePluginPermission[];
+  apiVersion?: number;
+  loadError?: string;
+  configSchema?: SourcePluginConfigField[];
+  configValues?: Record<string, SourcePluginConfigValue | ''>;
+  configStatus?: Record<string, SourcePluginConfigFieldStatus>;
+  configReady?: boolean;
+};
+
+export type SchedulePluginsResponse = {
+  pluginsDir: string;
+  plugins: SchedulePluginDescriptor[];
+};
+
+export type SchedulePluginsRescanResponse = {
+  ok: boolean;
+  scan: SourcePluginsRescanResponse['scan'];
+  plugins: SchedulePluginDescriptor[];
+};
+
+export async function fetchSchedulePlugins(): Promise<SchedulePluginsResponse> {
+  return request('/schedule-plugins');
+}
+
+export async function rescanSchedulePlugins(): Promise<SchedulePluginsRescanResponse> {
+  return request('/schedule-plugins/rescan', { method: 'POST' });
+}
+
+export async function setSchedulePluginEnabledApi(
+  id: string,
+  enabled: boolean,
+): Promise<{ ok: boolean; id: string; enabled: boolean; plugins: SchedulePluginDescriptor[] }> {
+  return request(`/schedule-plugins/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+export async function resetSchedulePluginEnabledApi(
+  id: string,
+): Promise<{ ok: boolean; id: string; enabled: boolean; plugins: SchedulePluginDescriptor[] }> {
+  return request(`/schedule-plugins/${encodeURIComponent(id)}/reset`, {
+    method: 'POST',
+  });
+}
+
+export async function saveSchedulePluginConfigApi(
+  id: string,
+  config: Record<string, unknown>,
+): Promise<{ ok: boolean; plugins: SchedulePluginDescriptor[] }> {
+  return request(`/schedule-plugins/${encodeURIComponent(id)}/config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config }),
+  });
+}
+
+export async function resetSchedulePluginConfigApi(
+  id: string,
+): Promise<{ ok: boolean; plugins: SchedulePluginDescriptor[] }> {
+  return request(`/schedule-plugins/${encodeURIComponent(id)}/config/reset`, {
+    method: 'POST',
+  });
+}
+
 // ── ASR / TTS 插件（与 Source 同一套机制） ─────────────────
 
 export type AiPluginKind = 'asr' | 'tts';
@@ -333,7 +416,7 @@ export async function resetAiPluginConfigApi(
 
 export type PluginPackageInstallInfo = {
   ok: true;
-  kind: 'source' | 'asr' | 'tts';
+  kind: 'source' | 'asr' | 'tts' | 'schedule';
   pluginId: string;
   dirName: string;
   dirPath: string;
@@ -346,18 +429,18 @@ export type PluginPackageInstallInfo = {
 
 export type PluginPackageInstallResponse = {
   ok: boolean;
-  kind?: 'source' | 'asr' | 'tts';
+  kind?: 'source' | 'asr' | 'tts' | 'schedule';
   installed: PluginPackageInstallInfo;
-  plugins: SourcePluginDescriptor[] | AiPluginDescriptor[];
+  plugins: SourcePluginDescriptor[] | AiPluginDescriptor[] | SchedulePluginDescriptor[];
 };
 
 export type PluginPackageUninstallResponse = {
   ok: boolean;
-  kind?: 'source' | 'asr' | 'tts';
+  kind?: 'source' | 'asr' | 'tts' | 'schedule';
   pluginId: string;
   dirName: string;
   scan: SourcePluginsRescanResponse['scan'];
-  plugins: SourcePluginDescriptor[] | AiPluginDescriptor[];
+  plugins: SourcePluginDescriptor[] | AiPluginDescriptor[] | SchedulePluginDescriptor[];
 };
 
 async function postPluginZip(
@@ -402,6 +485,21 @@ export async function uninstallAiPluginPackage(
   id: string,
 ): Promise<PluginPackageUninstallResponse> {
   return request(`${aiPluginBase(kind)}/${encodeURIComponent(id)}/package`, {
+    method: 'DELETE',
+  });
+}
+
+export async function installSchedulePluginPackage(
+  file: File,
+  overwrite = true,
+): Promise<PluginPackageInstallResponse> {
+  return postPluginZip('/schedule-plugins/install', file, overwrite);
+}
+
+export async function uninstallSchedulePluginPackage(
+  id: string,
+): Promise<PluginPackageUninstallResponse> {
+  return request(`/schedule-plugins/${encodeURIComponent(id)}/package`, {
     method: 'DELETE',
   });
 }
