@@ -14,7 +14,7 @@ type BrandMarkProps = {
 
 /**
  * 全局品牌 Logo / IP 形象
- * 资源：apps/web/public/logo.svg（同源 docs/img/logo.svg）
+ * 资源：apps/web/public/logo.webp（同源 docs/img/logo.webp）
  */
 export function BrandMark({
   size = 32,

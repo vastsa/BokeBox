@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/img/logo.svg" width="120" height="120" alt="BokeBox" />
+  <img src="docs/img/logo.webp" width="120" height="120" alt="BokeBox" />
 </p>
 
 <h1 align="center">BokeBox</h1>

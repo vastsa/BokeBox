@@ -4,6 +4,6 @@ export const PROJECT_GITHUB_URL = 'https://github.com/vastsa/BokeBox/';
 export const PROJECT_LICENSE_SPDX = 'LGPL-3.0';
 export const PROJECT_LICENSE_LABEL = 'GNU LGPL v3';
 export const PROJECT_GHCR_IMAGE = 'ghcr.io/vastsa/bokebox';
-export const PROJECT_LOGO_URL = '/logo.svg';
-export const PROJECT_LOGO_DOC = 'docs/img/logo.svg';
+export const PROJECT_LOGO_URL = '/logo.webp';
+export const PROJECT_LOGO_DOC = 'docs/img/logo.webp';
 
