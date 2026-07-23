@@ -100,22 +100,22 @@ pnpm docker:down
 
 ## Docs site (Vercel)
 
-Static docs can deploy on Vercel independently of the app Docker deploy.
+Static docs only (not the app Docker deploy).
 
-Root `vercel.json`:
+**Recommended: Vercel Root Directory = `docs`**
 
-```text
-install  → pnpm install
-build    → pnpm docs:build
-output   → docs/.vitepress/dist
-cleanUrls → true
-```
+- Build: `pnpm docs:build`
+- Output: `.vitepress/dist`
+- Config: `docs/vercel.json`
 
-- Root Directory: **empty** (repo root)
-- Do **not** set `DOCS_BASE=/BokeBox/` (GitHub project pages only)
-- Home `/`, pages like `/guide/getting-started` (no `.html`)
+**Or empty Root (monorepo root)**
 
-If everything 404s, check Output Directory and that the build runs `pnpm docs:build`.
+- Build: `pnpm --filter @bokebox/docs run build:docs`
+- Output: `docs/.vitepress/dist`
+- Config: root `vercel.json`
+
+Do not set `DOCS_BASE=/BokeBox/`. If you see `docs:build not found`, align Root Directory with the build command and redeploy.
+
 
 ## Related
 

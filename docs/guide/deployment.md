@@ -139,22 +139,22 @@ pnpm docker:down
 
 ## 文档站（Vercel）
 
-文档是静态站点，可用 Vercel 单独部署（与应用 Docker 部署无关）。
+静态文档，与应用 Docker 无关。
 
-仓库根 `vercel.json` 已配置：
+**推荐：Vercel Root Directory = `docs`**
 
-```text
-install  → pnpm install
-build    → pnpm docs:build
-output   → docs/.vitepress/dist
-cleanUrls → true
-```
+- Build：`pnpm docs:build`
+- Output：`.vitepress/dist`
+- 配置见 `docs/vercel.json`
 
-- Root Directory：**留空**（仓库根）
-- **不要**设置环境变量 `DOCS_BASE=/BokeBox/`（仅 GitHub Pages 子路径需要）
-- 部署后首页应为 `/`，内页如 `/guide/getting-started`（无 `.html`）
+**或 Root 留空（仓库根）**
 
-若出现全站 404，优先检查 Output Directory 是否指向 `docs/.vitepress/dist`，以及构建日志是否跑的是 `pnpm docs:build`。
+- Build：`pnpm --filter @bokebox/docs run build:docs`
+- Output：`docs/.vitepress/dist`
+- 配置见根目录 `vercel.json`
+
+不要设置 `DOCS_BASE=/BokeBox/`。若日志出现 `docs:build not found`，把 Root Directory 与 Build 命令按上表对齐后 Redeploy。
+
 
 ## 相关
 

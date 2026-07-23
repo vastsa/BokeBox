@@ -48,20 +48,33 @@ img/             截图（README 共用）
 
 ### Vercel（推荐文档站）
 
-仓库根目录已提供 `vercel.json`：
+支持两种 Root Directory（二选一）：
+
+**方式 A — Root Directory = `docs`（推荐，与本次报错场景匹配）**
+
+使用 `docs/vercel.json`：
 
 | 项 | 值 |
 | --- | --- |
 | Install | `pnpm install` |
 | Build | `pnpm docs:build` |
+| Output | `.vitepress/dist` |
+
+**方式 B — Root Directory 留空（monorepo 根）**
+
+使用仓库根 `vercel.json`：
+
+| 项 | 值 |
+| --- | --- |
+| Install | `pnpm install` |
+| Build | `pnpm --filter @bokebox/docs run build:docs` |
 | Output | `docs/.vitepress/dist` |
-| cleanUrls | `true`（匹配 VitePress `cleanUrls`） |
 
 **注意：**
 
-1. Vercel 项目 **Root Directory 留空**（monorepo 根），不要填 `docs`  
-2. **不要**设置 `DOCS_BASE=/BokeBox/`（那是 GitHub Pages 项目路径用的）。Vercel 自定义域 / `*.vercel.app` 使用默认 `base: '/'`  
-3. 若仍 404：在 Vercel 部署日志确认 Output 里有 `index.html`，并 Redeploy  
+1. **不要**设置 `DOCS_BASE=/BokeBox/`（仅 GitHub Pages 子路径需要）  
+2. 若 Build 报 `Command "docs:build" not found`：说明当前在 monorepo 根却跑了 docs 子包命令，或 Root 配错——按上面 A/B 对齐  
+3. Redeploy 后确认产物含 `index.html`  
 
 ### GitHub Pages
 

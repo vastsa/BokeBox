@@ -7,7 +7,10 @@
   "scripts": {
     "dev:docs": "vitepress dev .",
     "build:docs": "vitepress build .",
-    "preview:docs": "vitepress preview ."
+    "preview:docs": "vitepress preview .",
+    "docs:dev": "vitepress dev .",
+    "docs:build": "vitepress build .",
+    "docs:preview": "vitepress preview ."
   },
   "devDependencies": {
     "vitepress": "^1.6.3",
