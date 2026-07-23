@@ -557,6 +557,7 @@ export const zhCN = {
     scheduleGhLanguage: '编程语言',
     scheduleGhSpoken: '口语语言（spoken）',
     scheduleHnFeed: 'HN 频道',
+    schedulePluginMissing: '插件未安装',
     schedulePluginDisabled: '已停用',
     schedulePluginNone: '暂无已启用插件',
     scheduleUrlsRequired: '请至少填写一个 URL',

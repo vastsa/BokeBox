@@ -562,6 +562,7 @@ export const enUS: MessageTree = {
     scheduleGhLanguage: 'Programming language',
     scheduleGhSpoken: 'Spoken language',
     scheduleHnFeed: 'HN feed',
+    schedulePluginMissing: 'plugin missing',
     schedulePluginDisabled: 'disabled',
     schedulePluginNone: 'No enabled plugins',
     scheduleUrlsRequired: 'Add at least one URL',

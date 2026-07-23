@@ -105,7 +105,10 @@ async function createJobFromItem(
   const id = nanoid(12);
   const now = new Date().toISOString();
   const title = buildTitle(schedule, item);
-  const pluginId = String(defaults.pluginId || '').trim() || undefined;
+  // 内容获取仍走 Source 插件自动匹配；此处 pluginId 仅作任务元数据（订阅来源）
+  const sourceMetaPlugin =
+    String(schedule.sourceConfig.pluginId || defaults.pluginId || '').trim() ||
+    undefined;
 
   const job: Job = {
     id,
@@ -119,7 +122,10 @@ async function createJobFromItem(
     locale: resolveJobLocale(defaults.locale),
     videoPath: '',
     sourceUrl: item.url,
-    sourcePluginId: pluginId,
+    // 不把 schedule.* 写入 sourcePluginId，避免 pipeline 当成 Source 插件
+    sourcePluginId: sourceMetaPlugin?.startsWith('schedule.')
+      ? undefined
+      : sourceMetaPlugin,
     sourceKind: 'video',
     tts,
     scriptPrompt,

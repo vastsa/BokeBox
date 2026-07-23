@@ -217,6 +217,15 @@ A product-level map of what BokeBox can do today (aligned with Settings, task de
 - **Site**: site name, SEO, visitor access
 - **Account**: UI language, light/dark theme, password, open-source info
 
+
+### Scheduled feeds
+- Settings → Schedules: pull sources on a cadence and auto-create podcast jobs
+- Unified model: schedule plugin + params + cron (timezone-aware)
+- Built-ins: RSS/Atom, URL list, GitHub Trending, Hacker News
+- Dedupe + per-run caps; run now / force run; run history
+- External schedule plugins under `storage/plugins/schedule/` (zip install; see [docs/schedule-plugin-development.md](./docs/schedule-plugin-development.md))
+- MCP tools: `list_schedules` / `create_schedule` / `run_schedule_now` / `list_schedule_plugins`
+
 ### Plugin system
 - **Source plugins**: extend content acquisition (built-in `direct-http`; external plugins under `storage/plugins/source/`)
 - **ASR / TTS plugins**: switch built-in or external providers with isolated config
@@ -244,6 +253,20 @@ A product-level map of what BokeBox can do today (aligned with Settings, task de
 - License: LGPL-3.0 · Repo: https://github.com/vastsa/BokeBox
 
 ---
+
+## 📚 Documentation site
+
+Docs are maintained with **VitePress** under `docs/`.
+
+```bash
+pnpm docs:dev      # local preview
+pnpm docs:build    # static build
+pnpm docs:preview  # preview dist
+```
+
+Sections: Guide (start / config / deploy / MCP / architecture) · Plugins · Development · Ops.  
+Legacy paths `docs/*.md` still redirect to the new pages.
+
 
 ## 🔌 MCP (AI-native control)
 

@@ -849,6 +849,25 @@ export function ScheduleSettingsTab({
                       </div>
                       <p className="schedule-item-meta">
                         {pluginLabel(pluginId, plugins)}
+                        {(() => {
+                          const pl = plugins.find((x) => x.id === pluginId);
+                          if (!pluginId) return null;
+                          if (!pl) {
+                            return (
+                              <span className="schedule-badge is-bad">
+                                {t('settings.schedulePluginMissing')}
+                              </span>
+                            );
+                          }
+                          if (!pl.enabled || pl.loadError) {
+                            return (
+                              <span className="schedule-badge is-bad">
+                                {t('settings.schedulePluginDisabled')}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
                         {' · '}
                         {presetLabel(s.preset, s.cron)}
                         {' · '}

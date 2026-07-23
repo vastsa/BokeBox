@@ -10,6 +10,25 @@ let tickRunning = false;
 let started = false;
 
 const TICK_MS = 30_000;
+/** 同一 tick 内最多并行执行的订阅数，避免互相堵死 */
+const MAX_PARALLEL = 2;
+
+async function mapPool<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  if (!items.length) return;
+  const concurrency = Math.max(1, Math.min(limit, items.length));
+  let idx = 0;
+  async function next(): Promise<void> {
+    while (idx < items.length) {
+      const cur = items[idx++]!;
+      await worker(cur);
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, () => next()));
+}
 
 async function tick(): Promise<void> {
   if (tickRunning) return;
@@ -17,7 +36,7 @@ async function tick(): Promise<void> {
   try {
     const now = new Date().toISOString();
     const due = listDueSchedules(now);
-    for (const schedule of due) {
+    await mapPool(due, MAX_PARALLEL, async (schedule) => {
       try {
         const run = await runScheduleOnce(schedule.id);
         console.info(
@@ -36,7 +55,7 @@ async function tick(): Promise<void> {
           err instanceof Error ? err.message : err,
         );
       }
-    }
+    });
     // 偶尔清理
     if (Math.random() < 0.05) pruneOldRuns(50);
   } catch (err) {

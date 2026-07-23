@@ -55,6 +55,15 @@ import type {
   TtsOptions,
 } from '../../types/job.js';
 import { isContentLocale, type Locale } from '../../i18n/index.js';
+import {
+  createSchedule,
+  getSchedule,
+  listSchedulePluginsPublic,
+  listScheduleRuns,
+  listSchedules,
+  runScheduleOnce,
+  type CreateScheduleInput,
+} from '../schedule/index.js';
 
 export type McpToolDefinition = {
   name: string;
@@ -278,6 +287,118 @@ export function listMcpTools(): McpToolDefinition[] {
       },
     },
     {
+      name: 'list_schedules',
+      description:
+        '列出定时订阅（RSS / URL 列表 / GitHub Trending / Hacker News / 自定义订阅插件）。',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          enabledOnly: {
+            type: 'boolean',
+            description: '仅返回已启用订阅，默认 false',
+          },
+        },
+      },
+    },
+    {
+      name: 'get_schedule',
+      description: '获取单条订阅详情及最近运行记录。',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: '订阅 ID' },
+          runsLimit: {
+            type: 'number',
+            description: '最近运行条数，默认 5，最大 20',
+          },
+        },
+        required: ['id'],
+      },
+    },
+    {
+      name: 'create_schedule',
+      description:
+        '创建定时订阅。统一模型：pluginId + params + 节奏。内置插件：schedule.rss / schedule.url-list / schedule.github-trending / schedule.hacker-news。',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: '订阅名称' },
+          pluginId: {
+            type: 'string',
+            description:
+              '订阅插件 id，如 schedule.rss、schedule.hacker-news',
+          },
+          params: {
+            type: 'object',
+            description:
+              '插件参数。RSS 用 {feedUrl}；URL 列表用 {urls:[]}；HN 用 {feed}；GH 用 {since,language}',
+          },
+          feedUrl: {
+            type: 'string',
+            description: '可选：RSS 地址（等同 params.feedUrl）',
+          },
+          urls: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '可选：URL 列表（等同 params.urls）',
+          },
+          preset: {
+            type: 'string',
+            description: 'hourly | every_6h | daily | weekly | cron，默认 daily',
+          },
+          cron: {
+            type: 'string',
+            description: 'preset=cron 时的 5 段 cron',
+          },
+          timezone: {
+            type: 'string',
+            description: 'IANA 时区，默认 Asia/Shanghai',
+          },
+          enabled: { type: 'boolean', description: '是否启用，默认 true' },
+          albumId: { type: 'string', description: '可选：落入专辑 id' },
+          maxItemsPerRun: {
+            type: 'number',
+            description: '每轮最多新建任务数，默认 3，最大 20',
+          },
+          onlyNew: {
+            type: 'boolean',
+            description: '仅处理新条目（去重），默认 true',
+          },
+          titlePrefix: { type: 'string', description: '可选任务标题前缀' },
+        },
+        required: ['name', 'pluginId'],
+      },
+    },
+    {
+      name: 'run_schedule_now',
+      description:
+        '立即执行一条订阅。force=true 时忽略去重，重新处理最新条目。',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: '订阅 ID' },
+          force: {
+            type: 'boolean',
+            description: '忽略 seen 去重，默认 false',
+          },
+        },
+        required: ['id'],
+      },
+    },
+    {
+      name: 'list_schedule_plugins',
+      description: '列出可用的定时订阅插件（含内置与外部）。',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          enabledOnly: {
+            type: 'boolean',
+            description: '仅已启用，默认 false',
+          },
+        },
+      },
+    },
+    {
       name: 'get_system_health',
       description: '查看 BokeBox 系统状态、AI 模型配置与 demo 模式。',
       inputSchema: {
@@ -310,6 +431,16 @@ export async function callMcpTool(
         return await toolDeleteJob(args);
       case 'list_library':
         return await toolListLibrary(args);
+      case 'list_schedules':
+        return toolListSchedules(args);
+      case 'get_schedule':
+        return toolGetSchedule(args);
+      case 'create_schedule':
+        return toolCreateSchedule(args);
+      case 'run_schedule_now':
+        return await toolRunScheduleNow(args);
+      case 'list_schedule_plugins':
+        return toolListSchedulePlugins(args);
       case 'get_system_health':
         return toolHealth();
       default:
@@ -596,5 +727,121 @@ function toolHealth() {
     time: new Date().toISOString(),
     openSource: 'https://github.com/vastsa/BokeBox/',
     license: 'LGPL-3.0-only',
+  });
+}
+
+function toolListSchedules(args: Record<string, unknown>): McpToolResult {
+  const enabledOnly = Boolean(args.enabledOnly);
+  let list = listSchedules();
+  if (enabledOnly) list = list.filter((s) => s.enabled);
+  return okJson({
+    total: list.length,
+    schedules: list.map((s) => ({
+      id: s.id,
+      name: s.name,
+      enabled: s.enabled,
+      kind: s.kind,
+      pluginId: s.sourceConfig.pluginId,
+      preset: s.preset,
+      cron: s.cron,
+      timezone: s.timezone,
+      maxItemsPerRun: s.limits.maxItemsPerRun,
+      onlyNew: s.limits.onlyNew,
+      nextRunAt: s.nextRunAt,
+      lastRunAt: s.lastRunAt,
+      lastStatus: s.lastStatus,
+      lastError: s.lastError,
+      albumId: s.jobDefaults.albumId,
+    })),
+  });
+}
+
+function toolGetSchedule(args: Record<string, unknown>): McpToolResult {
+  const id = String(args.id || '').trim();
+  if (!id) return errText('缺少 id');
+  const schedule = getSchedule(id);
+  if (!schedule) return errText(`订阅不存在: ${id}`);
+  const runsLimit = Math.min(20, Math.max(1, Number(args.runsLimit) || 5));
+  const runs = listScheduleRuns(id, runsLimit);
+  return okJson({ schedule, runs });
+}
+
+function toolCreateSchedule(args: Record<string, unknown>): McpToolResult {
+  const name = String(args.name || '').trim();
+  const pluginId = String(args.pluginId || '').trim();
+  if (!name) return errText('缺少 name');
+  if (!pluginId) return errText('缺少 pluginId');
+
+  const params: Record<string, unknown> =
+    args.params && typeof args.params === 'object' && !Array.isArray(args.params)
+      ? { ...(args.params as Record<string, unknown>) }
+      : {};
+  const feedUrl = String(args.feedUrl || params.feedUrl || '').trim();
+  const urls = Array.isArray(args.urls)
+    ? args.urls.map((u) => String(u || '').trim()).filter(Boolean)
+    : Array.isArray(params.urls)
+      ? (params.urls as unknown[]).map((u) => String(u || '').trim()).filter(Boolean)
+      : [];
+  if (feedUrl) params.feedUrl = feedUrl;
+  if (urls.length) params.urls = urls;
+
+  const input: CreateScheduleInput = {
+    name,
+    enabled: args.enabled === undefined ? true : Boolean(args.enabled),
+    kind: 'plugin',
+    sourceConfig: {
+      pluginId,
+      params,
+      feedUrl: feedUrl || undefined,
+      urls: urls.length ? urls : undefined,
+    },
+    preset: (String(args.preset || 'daily') as CreateScheduleInput['preset']),
+    cron: args.cron != null ? String(args.cron) : undefined,
+    timezone: args.timezone != null ? String(args.timezone) : 'Asia/Shanghai',
+    jobDefaults: {
+      albumId: args.albumId != null ? String(args.albumId) : null,
+      titlePrefix:
+        args.titlePrefix != null ? String(args.titlePrefix) : undefined,
+      published: true,
+    },
+    limits: {
+      maxItemsPerRun:
+        args.maxItemsPerRun != null ? Number(args.maxItemsPerRun) : 3,
+      onlyNew: args.onlyNew === undefined ? true : Boolean(args.onlyNew),
+    },
+  };
+
+  const schedule = createSchedule(input);
+  return okJson({ schedule });
+}
+
+async function toolRunScheduleNow(
+  args: Record<string, unknown>,
+): Promise<McpToolResult> {
+  const id = String(args.id || '').trim();
+  if (!id) return errText('缺少 id');
+  const force = Boolean(args.force);
+  const run = await runScheduleOnce(id, { force });
+  const schedule = getSchedule(id);
+  return okJson({ run, schedule });
+}
+
+function toolListSchedulePlugins(args: Record<string, unknown>): McpToolResult {
+  const enabledOnly = Boolean(args.enabledOnly);
+  let plugins = listSchedulePluginsPublic();
+  if (enabledOnly) plugins = plugins.filter((p) => p.enabled);
+  return okJson({
+    total: plugins.length,
+    plugins: plugins.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      enabled: p.enabled,
+      available: p.available,
+      origin: p.origin,
+      riskLevel: p.riskLevel,
+      capabilities: p.capabilities,
+      loadError: p.loadError,
+    })),
   });
 }

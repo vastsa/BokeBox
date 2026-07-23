@@ -212,10 +212,21 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 - **人设**：口播脚本默认主播与节目设定
 - **提示词**：封面 / 口播 / 改写 / 闪卡模板
 - **AI 服务**：接口凭证、模型参数、提供方选择
-- **插件**：内容获取 / ASR / TTS 统一管理（扫描、启用、上传 zip、参数配置）
+- **插件**：内容获取 / 定时订阅 / ASR / TTS 统一管理（扫描、启用、上传 zip、参数配置）
+- **订阅**：RSS / 榜单 / 自定义源定时进匣并自动成播
 - **MCP**：Token、安装配置、可用工具
 - **站点**：站点名称、SEO、访客访问
 - **账户**：界面语言、亮/暗主题、密码与开源信息
+
+
+### 定时订阅
+- 设置 → 订阅：按节奏自动拉取内容并创建播客任务
+- 统一模型：内容源插件 + 参数 + cron（时区可配）
+- 内置源：RSS/Atom、URL 列表、GitHub Trending、Hacker News
+- 去重限流：仅新条目、每轮条数上限；支持立即执行 / 强制执行
+- 运行记录可回看；失败条目可下轮重试
+- 外部订阅插件：`storage/plugins/schedule/`，可 zip 上传（见 [docs/schedule-plugin-development.md](./docs/schedule-plugin-development.md)）
+- MCP：`list_schedules` / `create_schedule` / `run_schedule_now` / `list_schedule_plugins`
 
 ### 插件体系
 - **Source 插件**：扩展内容获取方式（内置 direct-http；外部插件目录 `storage/plugins/source/`）
@@ -269,6 +280,20 @@ Cursor 示例配置：
 ```
 
 可选环境变量 `PUBLIC_BASE_URL`：当经反向代理暴露时，用于生成正确的安装地址。
+
+
+## 📚 文档站
+
+项目文档由 **VitePress** 维护，位于 `docs/`。
+
+```bash
+pnpm docs:dev      # 本地预览
+pnpm docs:build    # 构建静态站
+pnpm docs:preview  # 预览构建产物
+```
+
+在线结构：指南（开始 / 配置 / 部署 / MCP / 架构）· 插件 · 开发 · 运维。  
+兼容旧路径：`docs/*.md` 仍可从 README 跳转至新页面。
 
 
 ## 🔌 内容源插件
