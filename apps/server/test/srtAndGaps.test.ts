@@ -9,6 +9,7 @@ import {
   buildSrtFromTiming,
   buildScriptTimingFromSpeechRanges,
   formatSrtTimestamp,
+  isValidScriptTimingFile,
 } from '../src/services/job/scriptTiming.js';
 
 describe('sentence gap merge', () => {
@@ -46,12 +47,31 @@ describe('srt export', () => {
         { startSec: 2.42, endSec: 3.0 },
       ],
       gapSec: 0.32,
-      durationSec: 3.0,
+      durationSec: 3.32, // 末句后无 gap，但总时长可能来自 probe；末句 end 需贴合 duration
     });
     assert.equal(timing.source, 'measured');
     assert.equal(timing.lines.length, 3);
     assert.equal(timing.lines[0].text, '第一句。');
+    assert.equal(timing.lines[0].startSec, 0);
     assert.equal(timing.lines[1].startSec, 1.32);
-    assert.equal(timing.lines[2].endSec, 3);
+    assert.equal(timing.lines[2].endSec, 3.32);
+    assert.equal(timing.durationSec, 3.32);
+    assert.equal(isValidScriptTimingFile(timing), true);
+  });
+
+  it('maps mismatched sentence counts without failing validation shape', () => {
+    const timing = buildScriptTimingFromSpeechRanges({
+      script: '第一句。第二句。第三句。第四句。',
+      speechRanges: [
+        { startSec: 0, endSec: 1 },
+        { startSec: 1.3, endSec: 2.0 },
+      ],
+      durationSec: 4,
+    });
+    assert.equal(timing.lines.length, 4);
+    assert.equal(timing.lines[0].startSec, 0);
+    assert.equal(timing.lines.at(-1)?.endSec, 4);
+    assert.equal(timing.source, 'measured');
+    assert.equal(isValidScriptTimingFile(timing), true);
   });
 });

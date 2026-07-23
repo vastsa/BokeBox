@@ -508,47 +508,72 @@ export function buildScriptTimingFromSpeechRanges(options: {
 }): ScriptTimingFile {
   const lines = parseScriptLinesDetailed(options.script);
   const ranges = options.speechRanges || [];
+  const fallbackDuration =
+    Number.isFinite(options.durationSec) && (options.durationSec || 0) > 0
+      ? Number(options.durationSec)
+      : 0;
+
   if (!lines.length || !ranges.length) {
+    // 交给上层走 estimated；这里返回空会触发写入校验失败
     return {
       version: 1,
-      durationSec: options.durationSec || 0,
+      durationSec: fallbackDuration,
       source: 'estimated',
       lines: [],
     };
   }
 
-  const count = Math.min(lines.length, ranges.length);
+  // 以「解析出的歌词行」为权威行数；speechRanges 是 TTS 切段锚点。
+  // 行数与切段不一致时，把 ranges 按时长比例映射到每一行，避免长度校验失败。
+  const totalSpeech = ranges.reduce(
+    (sum, range) => sum + Math.max(0, range.endSec - range.startSec),
+    0,
+  );
+  const spanEnd = Math.max(...ranges.map((r) => r.endSec), 0);
+  const spanStart = Math.min(...ranges.map((r) => r.startSec), 0);
+  const anchorDuration = Math.max(totalSpeech, spanEnd - spanStart, fallbackDuration, 0.01);
+
   const timed: ScriptLineTiming[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const range = ranges[i];
-    timed.push({
-      text: lines[i].text,
-      startSec: Number(range.startSec.toFixed(3)),
-      endSec: Number(range.endSec.toFixed(3)),
-    });
-  }
 
-  // 若句数多于 speech range（极少见），用末尾均分兜底
-  if (lines.length > count) {
-    const lastEnd = timed[timed.length - 1]?.endSec || 0;
-    const remain = lines.slice(count);
-    const tailDur = Math.max(0.2, (options.durationSec || lastEnd) - lastEnd);
-    timed.push(
-      ...distribute(
-        remain.map((l) => ({ text: l.text, weight: l.weight })),
-        lastEnd,
-        tailDur,
-      ),
+  if (lines.length === ranges.length) {
+    for (let i = 0; i < lines.length; i += 1) {
+      timed.push({
+        text: lines[i].text,
+        startSec: Number(ranges[i].startSec.toFixed(3)),
+        endSec: Number(ranges[i].endSec.toFixed(3)),
+      });
+    }
+  } else {
+    // 行数 ≠ 切段数：按字重把总时间轴均分到每一行（保留 measured 语义）
+    const weights = lines.map((line) => Math.max(1, line.weight || 1));
+    const weightSum = weights.reduce((a, b) => a + b, 0) || 1;
+    // 用 speechRanges 覆盖的完整时间窗（含句间 gap）
+    const windowStart = Number(spanStart.toFixed(3));
+    const windowEnd = Number(
+      Math.max(spanEnd, fallbackDuration || spanEnd).toFixed(3),
     );
+    const windowDur = Math.max(0.01, windowEnd - windowStart);
+    let acc = 0;
+    for (let i = 0; i < lines.length; i += 1) {
+      const start = windowStart + (acc / weightSum) * windowDur;
+      acc += weights[i];
+      const end = windowStart + (acc / weightSum) * windowDur;
+      timed.push({
+        text: lines[i].text,
+        startSec: Number(start.toFixed(3)),
+        endSec: Number(end.toFixed(3)),
+      });
+    }
   }
 
-  const durationSec =
-    (Number.isFinite(options.durationSec) && (options.durationSec || 0) > 0
-      ? options.durationSec!
-      : timed[timed.length - 1]?.endSec) || 0;
+  const durationSec = Math.max(
+    fallbackDuration,
+    timed[timed.length - 1]?.endSec || 0,
+    anchorDuration,
+  );
 
   if (timed.length) {
-    // 保证单调且最后一句不越过总时长
+    // 单调修复
     for (let i = 0; i < timed.length; i += 1) {
       if (i > 0 && timed[i].startSec < timed[i - 1].endSec) {
         timed[i].startSec = timed[i - 1].endSec;
@@ -556,11 +581,20 @@ export function buildScriptTimingFromSpeechRanges(options: {
       if (timed[i].endSec <= timed[i].startSec) {
         timed[i].endSec = Number((timed[i].startSec + 0.05).toFixed(3));
       }
+      if (timed[i].endSec > durationSec) {
+        timed[i].endSec = Number(durationSec.toFixed(3));
+      }
     }
-    timed[timed.length - 1].endSec = Math.min(
-      timed[timed.length - 1].endSec,
-      Number(durationSec.toFixed(3)),
-    );
+    timed[0].startSec = 0;
+    // 校验要求：最后一句 end 必须贴合总时长（允许尾静音并入末句）
+    timed[timed.length - 1].endSec = Number(durationSec.toFixed(3));
+    if (timed[timed.length - 1].endSec <= timed[timed.length - 1].startSec) {
+      const prev = timed.length > 1 ? timed[timed.length - 2].endSec : 0;
+      timed[timed.length - 1].startSec = Number(Math.max(0, prev).toFixed(3));
+      timed[timed.length - 1].endSec = Number(
+        Math.max(timed[timed.length - 1].startSec + 0.05, durationSec).toFixed(3),
+      );
+    }
   }
 
   return {

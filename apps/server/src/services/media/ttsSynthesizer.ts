@@ -25,6 +25,7 @@ import {
   buildScriptTiming,
   buildScriptTimingFromSpeechRanges,
   detectSilenceIntervals,
+  isValidScriptTimingFile,
   probeAudioDurationSec,
   writePodcastSrt,
   writeScriptTiming,
@@ -310,40 +311,66 @@ export async function synthesizePodcastAudio(options: {
     throw new Error('合成音频时长探测失败，已停止写入不可靠时间轴');
   }
 
-  let timing =
-    speechRanges && speechRanges.length
-      ? buildScriptTimingFromSpeechRanges({
-          script: synthesisScript,
-          speechRanges,
-          gapSec: allWav ? SENTENCE_GAP_SEC : 0,
-          durationSec,
-        })
-      : buildScriptTiming({
-          script: synthesisScript,
-          durationSec,
-          chunks: chunkDurationsSec.every((value) => value > 0)
-            ? chunks.map((chunk, index) => ({
-                sourceStart: chunk.sourceStart,
-                sourceEnd: chunk.sourceEnd,
-                durationSec: chunkDurationsSec[index],
-              }))
-            : undefined,
-        });
+  const measuredChunks = chunkDurationsSec.every((value) => value > 0)
+    ? chunks.map((chunk, index) => ({
+        sourceStart: chunk.sourceStart,
+        sourceEnd: chunk.sourceEnd,
+        // 句间 gap 计入后续锚点：除末段外把 gap 并入该 chunk 占用时长
+        durationSec:
+          chunkDurationsSec[index] +
+          (allWav && index < chunks.length - 1 ? SENTENCE_GAP_SEC : 0),
+      }))
+    : undefined;
 
-  // 已有逐句实测区间时不再做静音吸附，避免把句间 pad 误判成句界漂移
-  if (!speechRanges?.length) {
+  let timing: import('../job/scriptTiming.js').ScriptTimingFile | null = null;
+
+  if (speechRanges?.length) {
+    const candidate = buildScriptTimingFromSpeechRanges({
+      script: synthesisScript,
+      speechRanges,
+      gapSec: allWav ? SENTENCE_GAP_SEC : 0,
+      durationSec,
+    });
+    if (isValidScriptTimingFile(candidate)) {
+      timing = candidate;
+    }
+  }
+
+  if (!timing) {
+    timing = buildScriptTiming({
+      script: synthesisScript,
+      durationSec,
+      chunks: measuredChunks,
+    });
+  }
+
+  // speech-range 不可用时，再尝试静音吸附精修
+  if (timing.source !== 'measured' || !speechRanges?.length) {
     try {
       const silences = await detectSilenceIntervals(audioPath);
       if (silences.length) {
-        timing = buildScriptTiming({
+        const snapped = buildScriptTiming({
           script: synthesisScript,
           durationSec,
+          chunks: measuredChunks,
           silences,
         });
+        if (isValidScriptTimingFile(snapped)) timing = snapped;
       }
     } catch {
       // 静音分析失败时保留已有时间轴
     }
+  }
+
+  // 最终兜底：保证可写入
+  if (!isValidScriptTimingFile(timing)) {
+    timing = buildScriptTiming({
+      script: synthesisScript,
+      durationSec,
+    });
+  }
+  if (!isValidScriptTimingFile(timing)) {
+    throw new Error('拒绝写入无效的口播时间轴');
   }
 
   await writeScriptTiming(options.jobId, timing);
