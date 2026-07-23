@@ -15,13 +15,15 @@
 
 <p align="center">
   <a href="https://github.com/vastsa/BokeBox/"><img src="https://img.shields.io/badge/Open%20Source-GitHub-181717?style=flat-square&logo=github" alt="GitHub" /></a>
-  <a href="#-30-second-pitch"><img src="https://img.shields.io/badge/AI-Spoken%20Scripts-7C5CFF?style=flat-square" alt="AI" /></a>
-  <a href="#-problems-it-solves"><img src="https://img.shields.io/badge/Private-Single%20user-0EA5E9?style=flat-square" alt="Private" /></a>
+  <a href="https://bokebox.aiuo.net/"><img src="https://img.shields.io/badge/Demo-Live-0EA5E9?style=flat-square" alt="Demo" /></a>
+  <a href="https://bkb-docs.aiuo.net/"><img src="https://img.shields.io/badge/Docs-Online-7C5CFF?style=flat-square" alt="Docs" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-LGPL--3.0-22C55E?style=flat-square" alt="LGPL-3.0" /></a>
   <a href="https://github.com/vastsa/BokeBox"><img src="https://visitor-badge.laobi.icu/badge?page_id=vastsa.BokeBox&left_text=visitors&left_color=555&right_color=22C55E" alt="visitors" /></a>
 </p>
 
 <p align="center">
+  <a href="https://bokebox.aiuo.net/">Demo</a> ·
+  <a href="https://bkb-docs.aiuo.net/">Docs</a> ·
   <a href="#-30-second-pitch">Product</a> ·
   <a href="#-feature-checklist">Features</a> ·
   <a href="#-who-its-for">Who it's for</a> ·
@@ -254,7 +256,9 @@ A product-level map of what BokeBox can do today (aligned with Settings, task de
 
 ## 📚 Documentation site
 
-Docs are maintained with **VitePress** under `docs/`.
+- **Online docs**: <https://bkb-docs.aiuo.net>  (中文 / English)
+- **Live demo**: <https://bokebox.aiuo.net>  (public instance for trying; do not put real secrets)
+- Source docs: repo `docs/` (VitePress)
 
 ```bash
 pnpm docs:dev      # local preview
@@ -293,7 +297,10 @@ Optional env `PUBLIC_BASE_URL` helps generate the correct install URL behind a r
 
 ## 🚀 Get started
 
-> Three steps to ship. Deeper deploy & model notes are in the appendix.
+> Prefer clicking first? Live demo: <https://bokebox.aiuo.net>  
+> Deploy & config details: [online docs](https://bkb-docs.aiuo.net) or the appendix below.
+
+> Three steps (local / Docker):
 
 ```bash
 git clone https://github.com/vastsa/BokeBox.git

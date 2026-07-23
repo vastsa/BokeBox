@@ -4,6 +4,9 @@ description: Start BokeBox in three steps — local dev, Docker, and the docs si
 
 # Getting started
 
+> Demo: <https://bokebox.aiuo.net/> · Docs: <https://bkb-docs.aiuo.net/>
+
+
 > Full product copy: [README.md](https://github.com/vastsa/BokeBox/blob/main/README.md).  
 > Repo: <https://github.com/vastsa/BokeBox> · License: LGPL-3.0
 

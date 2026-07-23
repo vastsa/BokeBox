@@ -4,6 +4,9 @@ description: 三步启动 BokeBox：本地开发、Docker 与文档站预览。
 
 # 快速开始
 
+> 演示站：<https://bokebox.aiuo.net/> · 在线文档：<https://bkb-docs.aiuo.net/>
+
+
 > 更完整的产品说明见仓库 [README.zh-CN.md](https://github.com/vastsa/BokeBox/blob/main/README.zh-CN.md)。  
 > 仓库：<https://github.com/vastsa/BokeBox> · 协议：LGPL-3.0
 

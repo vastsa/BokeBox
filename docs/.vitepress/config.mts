@@ -303,7 +303,7 @@ export default defineConfig({
   ],
   lastUpdated: true,
   sitemap: {
-    hostname: process.env.DOCS_SITE_URL || 'https://vastsa.github.io/BokeBox/',
+    hostname: process.env.DOCS_SITE_URL || 'https://bkb-docs.aiuo.net/',
   },
   ignoreDeadLinks: [
     /^https?:\/\/localhost/,

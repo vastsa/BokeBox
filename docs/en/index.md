@@ -82,6 +82,12 @@ features:
   Any link (plugin-extensible)       Cover · flashcards · progress
 ```
 
+## Live links
+
+- Demo: <https://bokebox.aiuo.net/>
+- Docs: <https://bkb-docs.aiuo.net/>
+- Source: <https://github.com/vastsa/BokeBox>
+
 ## Repo
 
 - Source: <https://github.com/vastsa/BokeBox>

@@ -84,6 +84,12 @@ features:
 
 English map: [/en/](/en/)
 
+## 在线地址
+
+- 演示站：<https://bokebox.aiuo.net/>
+- 文档站：<https://bkb-docs.aiuo.net/>
+- 源码：<https://github.com/vastsa/BokeBox>
+
 ## 仓库
 
 - 源码：<https://github.com/vastsa/BokeBox>
