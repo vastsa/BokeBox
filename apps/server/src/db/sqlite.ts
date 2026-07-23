@@ -119,6 +119,58 @@ export function initDatabase(): DatabaseSync {
       ON album_items(album_id, position);
     CREATE INDEX IF NOT EXISTS idx_album_items_job
       ON album_items(job_id);
+
+    CREATE TABLE IF NOT EXISTS schedules (
+      id TEXT PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      kind TEXT NOT NULL DEFAULT 'rss',
+      source_config_json TEXT NOT NULL DEFAULT '{}',
+      preset TEXT NOT NULL DEFAULT 'daily',
+      cron TEXT NOT NULL DEFAULT '0 8 * * *',
+      timezone TEXT NOT NULL DEFAULT 'Asia/Shanghai',
+      job_defaults_json TEXT NOT NULL DEFAULT '{}',
+      limits_json TEXT NOT NULL DEFAULT '{}',
+      last_run_at TEXT,
+      next_run_at TEXT,
+      last_status TEXT,
+      last_error TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_schedules_next_run
+      ON schedules(enabled, next_run_at);
+    CREATE INDEX IF NOT EXISTS idx_schedules_updated
+      ON schedules(updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS schedule_runs (
+      id TEXT PRIMARY KEY NOT NULL,
+      schedule_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      started_at TEXT NOT NULL,
+      finished_at TEXT,
+      fetched INTEGER NOT NULL DEFAULT 0,
+      created_jobs INTEGER NOT NULL DEFAULT 0,
+      skipped INTEGER NOT NULL DEFAULT 0,
+      errors_json TEXT NOT NULL DEFAULT '[]',
+      job_ids_json TEXT NOT NULL DEFAULT '[]'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_schedule_runs_schedule
+      ON schedule_runs(schedule_id, started_at DESC);
+
+    CREATE TABLE IF NOT EXISTS schedule_seen_items (
+      schedule_id TEXT NOT NULL,
+      item_key TEXT NOT NULL,
+      job_id TEXT,
+      url TEXT NOT NULL DEFAULT '',
+      first_seen_at TEXT NOT NULL,
+      PRIMARY KEY (schedule_id, item_key)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_schedule_seen_schedule
+      ON schedule_seen_items(schedule_id, first_seen_at DESC);
   `);
 
   ensureJobColumns();

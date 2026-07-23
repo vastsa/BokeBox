@@ -1925,3 +1925,121 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
 }
 
 
+
+
+/* 定时订阅 */
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+  margin-top: 0.75rem;
+}
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.settings-field-span {
+  grid-column: 1 / -1;
+}
+.settings-field .nl-input,
+.settings-field textarea.nl-input {
+  width: 100%;
+}
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  margin-top: 0.25rem;
+}
+.schedule-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.schedule-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+.schedule-item-main {
+  min-width: min(100%, 16rem);
+  flex: 1;
+}
+.schedule-item-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+}
+.schedule-item-meta,
+.schedule-item-source {
+  margin: 0.3rem 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+.schedule-item-source {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 42rem;
+}
+.schedule-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+.schedule-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: var(--fw-extrabold);
+  background: color-mix(in srgb, var(--text-2) 14%, transparent);
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.schedule-badge.is-on {
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+  color: var(--brand-2);
+}
+.schedule-badge.is-off {
+  opacity: 0.8;
+}
+.schedule-badge.is-ok {
+  background: color-mix(in srgb, #22c55e 18%, transparent);
+  color: #16a34a;
+}
+.schedule-badge.is-warn {
+  background: color-mix(in srgb, #f59e0b 18%, transparent);
+  color: #d97706;
+}
+.schedule-badge.is-bad {
+  background: color-mix(in srgb, #ef4444 18%, transparent);
+  color: #dc2626;
+}
+.schedule-badge.is-run {
+  background: color-mix(in srgb, #3b82f6 18%, transparent);
+  color: #2563eb;
+}
+@media (max-width: 720px) {
+  .settings-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -17,6 +17,8 @@ import { sourceRoutes } from './routes/sources.js';
 import { aiPluginRoutes } from './routes/aiPlugins.js';
 import { albumRoutes } from './routes/albums.js';
 import { settingsRoutes } from './routes/settings.js';
+import { scheduleRoutes } from './routes/schedules.js';
+import { startScheduler } from './services/schedule/index.js';
 import { refreshExternalSourcePlugins } from './sources/index.js';
 import { refreshExternalAsrPlugins } from './providers/asr/index.js';
 import { refreshExternalTtsPlugins } from './providers/tts/index.js';
@@ -139,6 +141,7 @@ async function main() {
   await app.register(settingsRoutes, { prefix: '/api' });
   await app.register(jobRoutes, { prefix: '/api' });
   await app.register(albumRoutes, { prefix: '/api' });
+  await app.register(scheduleRoutes, { prefix: '/api' });
   await app.register(listenRoutes, { prefix: '/api' });
   await app.register(sourceRoutes, { prefix: '/api' });
   await app.register(aiPluginRoutes, { prefix: '/api' });
@@ -179,6 +182,8 @@ async function main() {
       return sendSeoIndex(reply);
     });
   }
+
+  startScheduler();
 
   await app.listen({ port: PORT, host: HOST });
   app.log.info(`BokeBox listening on http://${HOST}:${PORT}`);

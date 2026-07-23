@@ -6,6 +6,7 @@ export type SettingsTab =
   | 'prompts'
   | 'ai'
   | 'sources'
+  | 'schedules'
   | 'mcp'
   | 'site'
   | 'account';

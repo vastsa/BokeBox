@@ -4,7 +4,6 @@
 import path from 'node:path';
 import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
-import { getAlbum, appendJobToAlbum } from '../../services/album/albumStore.js';
 import type { ScriptPromptOptions, TtsMode, TtsOptions } from '../../types/job.js';
 import {
   getGlobalScriptPrompt,
@@ -248,17 +247,5 @@ export async function sendMedia(
   return reply.send(createReadStream(filePath));
 }
 
-export async function attachJobToAlbumIfNeeded(
-  albumIdRaw: unknown,
-  jobId: string,
-): Promise<void> {
-  const albumId = String(albumIdRaw || '').trim();
-  if (!albumId) return;
-  const album = await getAlbum(albumId);
-  if (!album) {
-    console.warn(`[album] attach skipped, album not found: ${albumId}`);
-    return;
-  }
-  await appendJobToAlbum(albumId, jobId);
-}
+export { attachJobToAlbumIfNeeded } from '../../services/album/albumStore.js';
 

@@ -586,3 +586,19 @@ export function invalidateAlbumCache(id?: string): void {
   albumCache.clear();
   albumItemsCache.clear();
 }
+
+/** 任务挂到专辑；专辑不存在时跳过并打日志 */
+export async function attachJobToAlbumIfNeeded(
+  albumIdRaw: unknown,
+  jobId: string,
+): Promise<void> {
+  const albumId = String(albumIdRaw || '').trim();
+  if (!albumId) return;
+  const album = await getAlbum(albumId);
+  if (!album) {
+    console.warn(`[album] attach skipped, album not found: ${albumId}`);
+    return;
+  }
+  await appendJobToAlbum(albumId, jobId);
+}
+

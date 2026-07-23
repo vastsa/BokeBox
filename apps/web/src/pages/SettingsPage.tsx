@@ -53,6 +53,7 @@ import {
 import { McpSettingsTab } from '../features/settings/McpSettingsTab';
 import { SiteSettingsTab } from '../features/settings/SiteSettingsTab';
 import { AccountSettingsTab } from '../features/settings/AccountSettingsTab';
+import { ScheduleSettingsTab } from '../features/settings/ScheduleSettingsTab';
 
 export function SettingsPage({ route }: { route: Route }) {
   const { t, locale, setLocale, locales, meta } = useI18n();
@@ -127,6 +128,11 @@ export function SettingsPage({ route }: { route: Route }) {
             id: 'sources' as const,
             label: t('settings.tabSources'),
             desc: t('settings.tabSourcesDesc'),
+          },
+          {
+            id: 'schedules' as const,
+            label: t('settings.tabSchedules'),
+            desc: t('settings.tabSchedulesDesc'),
           },
           {
             id: 'mcp' as const,
@@ -523,6 +529,11 @@ export function SettingsPage({ route }: { route: Route }) {
                   />
                 </SettingsPanel>
 
+                <ScheduleSettingsTab
+                  active={tab === 'schedules'}
+                  onMessage={setMsg}
+                  onError={setError}
+                />
 
                 <McpSettingsTab
                   active={tab === 'mcp'}

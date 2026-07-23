@@ -11,3 +11,4 @@ export * from './media';
 export * from './auth';
 export * from './mcp';
 export * from './plugins';
+export * from './schedules';
