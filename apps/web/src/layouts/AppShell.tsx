@@ -8,7 +8,6 @@ import {
   IconStars,
   IconUpload,
 } from '../components/icons';
-import { OpenSourceMark } from '../components/OpenSourceMark';
 import { useI18n } from '../i18n';
 import { PROJECT_GITHUB_URL } from '../lib/project';
 import { getToken } from '../lib/auth';
@@ -236,9 +235,6 @@ export function AppShell({
         </nav>
       )}
 
-      <footer className="open-source-shell" role="contentinfo">
-        <OpenSourceMark compact />
-      </footer>
     </div>
   );
 }

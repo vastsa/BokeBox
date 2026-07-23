@@ -1,7 +1,7 @@
 /* 专辑与分页 */
 /* ========== Albums ========== */
 .al-page {
-  /* 不设强制视口高度：由 page-shell flex 负责短页贴底，避免与 footer 叠加出滚动条 */
+  /* 不设强制视口高度：由 page-shell flex 负责短页布局 */
   min-height: 0;
 }
 .al-body { display: flex; flex-direction: column; gap: var(--space-4); }

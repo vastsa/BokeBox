@@ -877,8 +877,5 @@ html:has(.tc-page) .global-player .global-ctrl , html[data-route="tags"] .global
   background: rgba(255, 255, 255, 0.06) !important;
 }
 
-html:has(.tc-page) .open-source-shell , html[data-route="tags"] .open-source-shell {
-  display: none;
-}
 
 

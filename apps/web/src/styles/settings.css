@@ -1837,42 +1837,6 @@ html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="en-US"] {
   padding-top: var(--space-3);
   border-top: var(--bw-1) solid var(--separator);
 }
-.open-source-shell {
-  flex-shrink: 0;
-  width: min(var(--container-max), calc(100% - 2 * var(--page-x)));
-  max-width: 100%;
-  margin-inline: auto;
-  margin-top: auto; /* 内容不足时贴底 */
-  padding-top: var(--space-5);
-  /* 由 footer 统一承担底栏 / 迷你播放条安全区；main 不再重复预留 */
-  padding-bottom: calc(
-    var(--space-4) + var(--global-player-h, 0px) + env(safe-area-inset-bottom, 0px)
-  );
-}
-/* 有底部导航时抬高，避免被 fixed 底栏遮挡（--bottom-nav-h 已含 safe-area） */
-.page-shell:has(.bottom-nav) .open-source-shell {
-  padding-bottom: calc(
-    var(--bottom-nav-h) + var(--global-player-h, 0px) + var(--space-3)
-  );
-}
-/* 桌面端底栏隐藏，仅预留迷你播放条高度 */
-@media (min-width: 768px) {
-  .page-shell:has(.bottom-nav) .open-source-shell {
-    padding-bottom: calc(
-      var(--space-5) + var(--global-player-h, 0px) + env(safe-area-inset-bottom, 0px)
-    );
-  }
-}
-
-/* 有开源 footer 时，main 只保留与 footer 的间距，避免双重底栏留白撑出滚动条 */
-.page-shell:has(.open-source-shell) > main.page-bottom-pad {
-  padding-bottom: var(--space-2);
-}
-@media (min-width: 768px) {
-  .page-shell:has(.open-source-shell) > main.page-bottom-pad {
-    padding-bottom: var(--space-3);
-  }
-}
 .topbar-end {
   display: flex;
   align-items: center;
