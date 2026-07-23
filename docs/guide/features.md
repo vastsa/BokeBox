@@ -12,7 +12,7 @@ description: BokeBox 功能全景：流水线、听播、插件与 MCP。
 - URL 导入：网页正文抽取、公开视频 / 音频直链
 - 创建时可指定 Source 插件，或自动匹配
 - 创建时可归入专辑、选择人设与音色
-- 定时订阅：RSS / URL 列表 / Schedule 插件候选进匣
+- 定时订阅：RSS / 榜单 / Schedule 插件发现候选，Source 采集后进匣成播
 
 ## AI 制作流水线
 
@@ -52,6 +52,7 @@ description: BokeBox 功能全景：流水线、听播、插件与 MCP。
 | **提示词** | 封面 / 口播 / 改写 / 闪卡模板 |
 | **AI 服务** | 接口凭证、模型参数、提供方选择 |
 | **插件** | Source / ASR / TTS / Schedule（扫描、启用、上传 zip、参数） |
+| **订阅** | 定时源、节奏、Source 固定、运行记录 |
 | **MCP** | Token、安装配置、可用工具 |
 | **站点** | 站点名称、SEO、访客访问 |
 | **账户** | 界面语言、亮/暗主题、密码与开源信息 |
@@ -59,11 +60,11 @@ description: BokeBox 功能全景：流水线、听播、插件与 MCP。
 
 ## 定时订阅
 
-- 设置 → 订阅：按节奏自动拉取内容并创建播客任务
-- 统一模型：内容源插件 + 参数 + cron（时区可配）
-- 内置：RSS/Atom、URL 列表、GitHub Trending、Hacker News 等
-- 去重限流：仅新条目、每轮条数上限；支持立即执行 / 强制执行
-- 运行记录可回看；失败条目可下轮重试
+- 设置 → 订阅：按节奏发现链接并创建播客任务
+- **Schedule 发现 + Source 采集** 两层；Source 默认同自动匹配，可按订阅固定
+- 统一模型：订阅插件 + 可选 params（空不写）+ cron/时区 + 专辑/标题前缀
+- 内置：RSS/Atom、URL 列表、GitHub Trending、Hacker News；`configSchema` 动态表单
+- 去重限流、立即/强制执行、运行记录（错误 / 耗时 / Job 跳转）
 - 外部插件：`storage/plugins/schedule/`
 - 详见 [定时订阅](./schedule.md)
 

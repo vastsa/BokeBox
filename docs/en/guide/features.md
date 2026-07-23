@@ -59,10 +59,11 @@ Aligned with Settings, job detail, and the listening library.
 
 ## Schedules
 
-- Settings → Schedules: pull on a cadence and create jobs  
-- Model: plugin + params + cron (timezone)  
-- Built-ins: RSS/Atom, URL list, GitHub Trending, Hacker News, …  
-- Dedupe + per-run caps; run now / force  
+- Settings → Schedules: discover URLs on a cadence and create jobs  
+- **Schedule discover + Source ingest**; Source auto-match by default, pin optional  
+- Model: schedule plugin + optional params + cron/timezone + album/title prefix  
+- Built-ins: RSS/Atom, URL list, GitHub Trending, Hacker News; dynamic `configSchema` forms  
+- Dedupe, caps, run now/force, run history (errors / duration / job links)  
 - See [Schedules](./schedule.md)
 
 ## Plugin system

@@ -1,69 +1,129 @@
 ---
-description: BokeBox schedules — RSS, charts, and Schedule plugins.
+description: BokeBox schedules — RSS, charts, Schedule plugins, run history, and Source ingest.
 ---
 
 # Schedules
 
-**Settings → Schedules**: pull content on a cadence and create podcast jobs.
+**Settings → Schedules**: discover content on a cadence and create podcast jobs that enter the [Pipeline](./pipeline.md).
+
+## Two layers (important)
+
+A schedule is **not** one plugin doing everything:
+
+| Layer | Plugin kind | Role |
+| --- | --- | --- |
+| **Discover** | Schedule plugins | Emit candidates (`key` / `url` / `title`…) |
+| **Ingest** | Source plugins | Download/parse the URL, then ASR → script → TTS |
+
+- Schedule plugins **only emit URLs**; they do not write job media.  
+- Ingest **auto-matches** an enabled Source plugin by default (often built-in `direct-http`).  
+- You can **pin a Source plugin** per schedule (`jobDefaults.sourcePluginId`).  
+- Never use `schedule.*` as a Source plugin id.
+
+```text
+schedule due
+  → Schedule plugin fetch candidates
+  → dedupe / caps / run record
+  → createJob(sourceUrl)
+  → pipeline → Source ingest → episode
+```
 
 ## Unified model
 
-Each schedule = **schedule plugin + params + cron** (optional timezone). Content ingest auto-matches a **Source** plugin by default; you can pin one in Settings.
+Each schedule ≈:
+
+```text
+schedule plugin (pluginId)
++ optional params (overrides only)
++ cadence (preset / cron + timezone)
++ job defaults (album, title prefix, Source plugin…)
++ limits (maxItemsPerRun, onlyNew)
+```
+
+Sketch (live API / Settings win if names differ):
 
 ```json
 {
-  "pluginId": "schedule.rss",
-  "params": { "feedUrl": "https://example.com/feed.xml" },
+  "name": "My blog",
+  "kind": "plugin",
+  "sourceConfig": {
+    "pluginId": "schedule.rss",
+    "params": { "feedUrl": "https://example.com/feed.xml" }
+  },
+  "preset": "daily",
   "cron": "0 8 * * *",
-  "timezone": "Asia/Shanghai"
+  "timezone": "Asia/Shanghai",
+  "jobDefaults": {
+    "albumId": null,
+    "titlePrefix": "Daily · ",
+    "sourcePluginId": null,
+    "published": true
+  },
+  "limits": {
+    "maxItemsPerRun": 3,
+    "onlyNew": true
+  }
 }
 ```
 
-(Field names follow the live API / Settings UI.)
+### Params
 
-## Built-in capabilities
+- Plugins with `configSchema` get a **dynamic form** in Settings.  
+- **Leave empty when you have nothing to override** — empty fields / `{}` are **not saved**.  
+- Unset keys fall back to **plugin hub** config at runtime (`ctx.getConfig`).  
+- Schema-less custom plugins may use optional JSON; also optional.
 
-| Capability | Notes |
+## Built-in schedule plugins
+
+| pluginId | Notes | Typical params |
+| --- | --- | --- |
+| `schedule.rss` | RSS / Atom | `{ "feedUrl": "https://…" }` (required) |
+| `schedule.url-list` | Fixed URL list | `{ "urls": ["https://…"] }` (required) |
+| `schedule.github-trending` | GitHub Trending | `since` / `language` / `spokenLanguage` |
+| `schedule.hacker-news` | Hacker News | `feed`: top / new / best / ask / show / job |
+
+External dir: `storage/plugins/schedule/` (zip install).  
+Dev: [Schedule plugin development](../development/schedule-plugin.md) · Product: [Schedule plugins](../plugins/schedule.md)
+
+## Cadence
+
+| preset | Meaning (default tz `Asia/Shanghai`) |
 | --- | --- |
-| RSS / Atom | Blogs, news, podcast feeds |
-| URL list | Fixed URLs polled |
-| GitHub Trending | Built-in plugin |
-| Hacker News | Built-in plugin |
+| `hourly` | Every hour |
+| `every_6h` | Every 6 hours |
+| `daily` | Daily 08:00 |
+| `weekly` | Monday 08:00 |
+| `cron` | Custom 5-field cron |
 
-External plugins: `storage/plugins/schedule/` (zip upload supported).  
-Dev: [Schedule plugins](../development/schedule-plugin.md) · Product: [Schedule plugins](../plugins/schedule.md)
+## Settings UI
 
-## Built-in pluginId reference
+1. Pick **schedule plugin** + params (dynamic form)  
+2. Cadence / timezone, album, title prefix, max items, only-new  
+3. Optional: **Source plugin** (default auto-match)  
+4. **Run now** / **Force run** (skip dedupe)  
+5. **Run history**: expand rounds; open a round for status, duration, stats, full errors, job ids (jump to job)  
+6. Enable / disable / edit / delete  
 
-| pluginId | Typical params |
-| --- | --- |
-| `schedule.rss` | `{ "feedUrl": "https://example.com/feed.xml" }` |
-| `schedule.url-list` | `{ "urls": ["https://a.com", "https://b.com"] }` |
-| `schedule.github-trending` | `{ "since": "daily", "language": "TypeScript" }` (see plugin) |
-| `schedule.hacker-news` | `{ "feed": "top" }` (see plugin) |
+## Scheduling notes
 
-Cadence: `preset` = `hourly` / `every_6h` / `daily` / `weekly` / `cron`; plus `timezone` (default `Asia/Shanghai`).
-
-## Behavior
-
-- **Dedupe** via seen items  
-- **Caps** per run (`maxItemsPerRun`)  
-- **Run now / force** for debug or backfill  
-- **Run history** stored in `schedule_runs` (status / fetched / created / skipped / errors / jobIds); expand in Settings and open jobs  
-- **Retry-friendly**: only successful job creates mark seen; failures retry next cycle, or force-run to ignore dedupe  
-- Plugins **only emit candidate URLs** — jobs use the [Pipeline](./pipeline.md)
+- In-process scheduler ticks ~**30s**; limited parallelism per tick.  
+- Designed for **single instance**; multi-replica needs an external lock (not built-in).  
+- Pre-claims `next_run` when a run starts; recovers stuck `running` on boot.  
+- Dedupe: `schedule_seen_items` (only after **successful job create**).  
+- Ledger: `schedule_runs`.  
+- Disabled plugins advance `next_run` to avoid hot loops.
 
 ## MCP
 
 | Tool | Role |
 | --- | --- |
-| `list_schedules` | List schedules |
+| `list_schedules` | List |
 | `get_schedule` | Detail + recent runs |
-| `create_schedule` | Create (plugin + params + cadence) |
-| `run_schedule_now` | Run one cycle (`force` skips dedupe) |
+| `create_schedule` | Create (`pluginId`, optional `params` / `sourcePluginId`, cadence) |
+| `run_schedule_now` | One cycle (`force` skips dedupe) |
 | `list_schedule_plugins` | Available schedule plugins |
 
-### create_schedule examples
+### Examples
 
 ```json
 {
@@ -83,14 +143,17 @@ Cadence: `preset` = `hourly` / `every_6h` / `daily` / `weekly` / `cron`; plus `t
   "pluginId": "schedule.hacker-news",
   "params": { "feed": "top" },
   "preset": "every_6h",
-  "maxItemsPerRun": 5
+  "sourcePluginId": "source.direct-http",
+  "maxItemsPerRun": 2
 }
 ```
 
-Full tool table: [MCP](./mcp.md).
+Omit empty `params` entirely.
 
-## Related
+## See also
 
-- [Plugins](../plugins/)
-- [Features](./features.md)
-- [First episode](./first-episode.md)
+- [Pipeline](./pipeline.md)  
+- [Settings](./settings.md)  
+- [MCP](./mcp.md)  
+- [Schedule plugins](../plugins/schedule.md)  
+- [Source plugins](../plugins/source.md)  

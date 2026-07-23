@@ -89,7 +89,8 @@ storage/plugins/{source|asr|tts|schedule}/<dir>/
 
 ### 和「订阅 MCP 工具」的关系？
 
-任务类工具管 Job；`list_schedules` / `create_schedule` / `run_schedule_now` 等管订阅。见 [MCP](./mcp.md)。
+任务类工具管 Job；`list_schedules` / `create_schedule` / `run_schedule_now` 等管订阅。  
+订阅插件只负责发现链接；内容采集由 Source 插件完成。见 [定时订阅](./schedule.md) · [MCP](./mcp.md)。
 
 ## 文档站
 

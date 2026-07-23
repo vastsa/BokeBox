@@ -1,6 +1,7 @@
 ---
 description: Schedule subscription plugins.
 ---
+> **Boundary**: Schedule plugins only emit candidate URLs. Ingest is Source plugins (pin via `sourcePluginId` or auto-match). Product guide: [Schedules](../guide/schedule.md).
 
 # Schedule plugins
 

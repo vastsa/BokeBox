@@ -63,8 +63,8 @@ BokeBox 内置 **MCP（Model Context Protocol）** 端点，方便 Cursor / Clau
 | --- | --- |
 | `list_schedules` | 列出订阅 |
 | `get_schedule` | 单条订阅详情 |
-| `create_schedule` | 创建订阅（插件 + 参数 + 节奏） |
-| `run_schedule_now` | 立即执行一轮 |
+| `create_schedule` | 创建订阅（插件 + 可选参数 + 节奏；可 `sourcePluginId`；空 params 省略） |
+| `run_schedule_now` | 立即执行一轮（可 `force`） |
 | `list_schedule_plugins` | 可用 Schedule 插件 |
 
 订阅产品说明见 [定时订阅](./schedule.md)。

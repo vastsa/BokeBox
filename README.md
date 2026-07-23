@@ -212,19 +212,22 @@ A product-level map of what BokeBox can do today (aligned with Settings, task de
 - **Persona**: default host and show settings for script generation
 - **Prompts**: cover / podcast / rewrite / flashcard templates
 - **AI service**: API credentials, models, providers
-- **Plugins**: Source / ASR / TTS hub (scan, enable, upload zip, per-plugin config)
+- **Plugins**: Source / Schedule / ASR / TTS hub (scan, enable, upload zip, per-plugin config)
+- **Schedules**: timed ingest with optional Source pin and run history
 - **MCP**: token, install configs, available tools
 - **Site**: site name, SEO, visitor access
 - **Account**: UI language, light/dark theme, password, open-source info
 
 
 ### Scheduled feeds
-- Settings → Schedules: pull sources on a cadence and auto-create podcast jobs
-- Unified model: schedule plugin + params + cron (timezone-aware)
-- Built-ins: RSS/Atom, URL list, GitHub Trending, Hacker News
-- Dedupe + per-run caps; run now / force run; run history
-- External schedule plugins under `storage/plugins/schedule/` (zip install; see [docs/development/schedule-plugin.md](./docs/development/schedule-plugin.md))
-- MCP tools: `list_schedules` / `create_schedule` / `run_schedule_now` / `list_schedule_plugins`
+- Settings → Schedules: discover URLs on a cadence and auto-create podcast jobs
+- **Two layers**: Schedule plugins only discover candidates; ingest uses Source plugins (auto-match by default, or pin per schedule)
+- Config: schedule plugin + optional params (omit when empty) + cron/timezone + album/title prefix
+- Built-ins: RSS/Atom, URL list, GitHub Trending, Hacker News; dynamic forms from `configSchema`
+- Dedupe + per-run caps; run now / force run; run history with errors, duration, and job deep-links
+- External plugins: `storage/plugins/schedule/` (zip install; see [docs/development/schedule-plugin.md](./docs/development/schedule-plugin.md))
+- MCP: `list_schedules` / `get_schedule` / `create_schedule` / `run_schedule_now` / `list_schedule_plugins` (`sourcePluginId` supported)
+- Guide: [docs/en/guide/schedule.md](./docs/en/guide/schedule.md)
 
 ### Plugin system
 - **Source plugins**: extend content acquisition (built-in `direct-http`; external plugins under `storage/plugins/source/`)
@@ -237,6 +240,8 @@ A product-level map of what BokeBox can do today (aligned with Settings, task de
   - [docs/development/tts-plugin.md](./docs/development/tts-plugin.md)
   - [examples/source-plugin-echo](./examples/source-plugin-echo)
   - [examples/tts-plugin-echo](./examples/tts-plugin-echo) · [examples/tts-plugin-fishspeech](./examples/tts-plugin-fishspeech)
+  - [docs/plugins/schedule.md](./docs/plugins/schedule.md) · [docs/development/schedule-plugin.md](./docs/development/schedule-plugin.md)
+  - [examples/schedule-plugin-echo](./examples/schedule-plugin-echo) · [examples/schedule-plugin-github-trending](./examples/schedule-plugin-github-trending)
 
 ### MCP (AI-native control)
 - Built-in MCP endpoint; server auto-issues a long-lived token

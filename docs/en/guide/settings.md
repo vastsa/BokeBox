@@ -15,7 +15,7 @@ After login, **Settings** centralizes defaults, plugins, MCP, and site options.
 | **Prompts** | Cover / spoken / rewrite / flashcard templates |
 | **AI services** | Credentials, base URL, model IDs |
 | **Plugins** | Source / ASR / TTS / Schedule scan, toggle, config, upload |
-| **Schedules** | Timed feeds, run now, history |
+| **Schedules** | Schedule plugin & params, cadence, Source pin, run now/force, run history |
 | **MCP** | Token & client install snippets |
 | **Site** | Site name, SEO, guest access |
 | **Account** | UI language, theme, password, open-source info |
@@ -38,6 +38,12 @@ Many AI/deploy values also via [Configuration](./configuration.md).
 - [First episode](./first-episode.md)
 - [Pipeline](./pipeline.md)
 - [Schedules](./schedule.md)
+
+### Schedules tab
+
+- **Schedule** plugins discover URLs; **Source** plugins ingest (auto-match or pin).
+- Params are optional overrides only.
+- Run history links to created jobs. Full guide: [Schedules](./schedule.md).
 - [MCP](./mcp.md)
 - [Install plugins](../development/plugin-install.md)
 

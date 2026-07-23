@@ -213,20 +213,22 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 - **提示词**：封面 / 口播 / 改写 / 闪卡模板
 - **AI 服务**：接口凭证、模型参数、提供方选择
 - **插件**：内容获取 / 定时订阅 / ASR / TTS 统一管理（扫描、启用、上传 zip、参数配置）
-- **订阅**：RSS / 榜单 / 自定义源定时进匣并自动成播
+- **订阅**：RSS / 榜单 / 自定义源定时进匣；可选固定 Source 采集插件；运行记录可回看
 - **MCP**：Token、安装配置、可用工具
 - **站点**：站点名称、SEO、访客访问
 - **账户**：界面语言、亮/暗主题、密码与开源信息
 
 
 ### 定时订阅
-- 设置 → 订阅：按节奏自动拉取内容并创建播客任务
-- 统一模型：内容源插件 + 参数 + cron（时区可配）
-- 内置源：RSS/Atom、URL 列表、GitHub Trending、Hacker News
-- 去重限流：仅新条目、每轮条数上限；支持立即执行 / 强制执行
-- 运行记录可回看；失败条目可下轮重试
-- 外部订阅插件：`storage/plugins/schedule/`，可 zip 上传（见 [docs/development/schedule-plugin.md](./docs/development/schedule-plugin.md)）
-- MCP：`list_schedules` / `create_schedule` / `run_schedule_now` / `list_schedule_plugins`
+- 设置 → 订阅：按节奏自动发现链接并创建播客任务
+- **两层模型**：Schedule 插件只负责发现候选；真正下载/解析走 Source 插件（默认同自动匹配，可按订阅固定）
+- 统一配置：订阅插件 + 可选参数（空则不写）+ cron 时区 + 专辑/标题前缀
+- 内置源：RSS/Atom、URL 列表、GitHub Trending、Hacker News；参数表单按 `configSchema` 动态渲染
+- 去重限流：仅新条目、每轮条数上限；立即执行 / 强制执行（忽略去重）
+- 运行记录：`schedule_runs` 可展开查看错误、耗时，并跳转本轮创建的任务
+- 外部订阅插件：`storage/plugins/schedule/`，zip 上传（见 [docs/development/schedule-plugin.md](./docs/development/schedule-plugin.md)）
+- MCP：`list_schedules` / `get_schedule` / `create_schedule` / `run_schedule_now` / `list_schedule_plugins`（支持 `sourcePluginId`）
+- 使用说明：[docs/guide/schedule.md](./docs/guide/schedule.md)
 
 ### 插件体系
 - **Source 插件**：扩展内容获取方式（内置 direct-http；外部插件目录 `storage/plugins/source/`）
@@ -239,6 +241,8 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
   - [docs/development/tts-plugin.md](./docs/development/tts-plugin.md)
   - [examples/source-plugin-echo](./examples/source-plugin-echo)
   - [examples/tts-plugin-echo](./examples/tts-plugin-echo) · [examples/tts-plugin-fishspeech](./examples/tts-plugin-fishspeech)
+  - [docs/plugins/schedule.md](./docs/plugins/schedule.md) · [docs/development/schedule-plugin.md](./docs/development/schedule-plugin.md)
+  - [examples/schedule-plugin-echo](./examples/schedule-plugin-echo) · [examples/schedule-plugin-github-trending](./examples/schedule-plugin-github-trending)
 
 ### MCP（AI 直接调用）
 - 内置 MCP 端点，服务端自动签发长期 Token

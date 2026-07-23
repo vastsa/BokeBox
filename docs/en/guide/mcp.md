@@ -63,8 +63,8 @@ Settings usually provides Cursor / Claude Desktop / Codex snippets.
 | --- | --- |
 | `list_schedules` | List schedules |
 | `get_schedule` | One schedule + runs |
-| `create_schedule` | Create schedule |
-| `run_schedule_now` | Run now |
+| `create_schedule` | Create (plugin + optional params + cadence; optional `sourcePluginId`) |
+| `run_schedule_now` | Run now (`force` skips dedupe) |
 | `list_schedule_plugins` | Schedule plugins |
 
 Product: [Schedules](./schedule.md).

@@ -1,3 +1,5 @@
+> **职责边界**：Schedule 插件只产出候选 URL；采集走 Source。见 [定时订阅](../guide/schedule.md)。
+
 # Schedule 订阅插件
 
 > 与 Source/ASR/TTS 共用 `plugin-kit`（namespace=`schedule`）。  
