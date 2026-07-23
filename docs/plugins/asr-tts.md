@@ -97,7 +97,10 @@ export default {
 }
 ```
 
-第三方完整开发规范见 **[TTS 插件开发](../development/tts-plugin.md)**。
+开发规范：
+
+- **[ASR 插件开发](../development/asr-plugin.md)**
+- **[TTS 插件开发](../development/tts-plugin.md)**
 
 ## 示例
 
@@ -155,3 +158,9 @@ meta: {
 设置页「插件中心」支持上传 `.zip` 插件包（也可继续手动放入 `storage/plugins/<kind>/` 后扫描）。
 zip 根目录或唯一子目录需包含 `plugin.json` 与入口文件；同 id 默认覆盖安装，外部插件可卸载。
 
+## 相关
+
+- [ASR 插件开发](../development/asr-plugin.md)
+- [TTS 插件开发](../development/tts-plugin.md)
+- [插件安装与管理](../development/plugin-install.md)
+- [示例目录](../development/examples.md)

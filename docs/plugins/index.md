@@ -11,7 +11,7 @@ BokeBox 把可替换能力拆成四类插件，共用 **plugin-kit**（启停、
 | 类型 | 作用 | 目录 | 文档 |
 | --- | --- | --- | --- |
 | **Source** | 内容获取 → 统一 `SourceArtifact` | `storage/plugins/source/` | [说明](./source.md) · [开发](../development/source-plugin.md) |
-| **ASR** | 语音转写 | `storage/plugins/asr/` | [说明](./asr-tts.md) |
+| **ASR** | 语音转写 | `storage/plugins/asr/` | [说明](./asr-tts.md) · [开发](../development/asr-plugin.md) |
 | **TTS** | 语音合成 | `storage/plugins/tts/` | [说明](./asr-tts.md) · [开发](../development/tts-plugin.md) |
 | **Schedule** | 定时订阅候选 URL | `storage/plugins/schedule/` | [说明](./schedule.md) · [开发](../development/schedule-plugin.md) |
 

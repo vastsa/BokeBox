@@ -75,3 +75,5 @@ TTS / ASR / Schedule 将前缀换成对应路径即可。
 - [Source 开发](./source-plugin.md)
 - [TTS 开发](./tts-plugin.md)
 - [Schedule 开发](./schedule-plugin.md)
+
+- [ASR 插件开发](./asr-plugin.md)

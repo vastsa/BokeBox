@@ -16,6 +16,7 @@ For authors extending BokeBox. License **LGPL-3.0** — keep attribution.
 | Goal | Doc | Example |
 | --- | --- | --- |
 | New content source | [Source plugins](./source-plugin.md) | [source-plugin-echo](https://github.com/vastsa/BokeBox/tree/main/examples/source-plugin-echo) |
+| New ASR provider | [ASR plugins](./asr-plugin.md) | [asr-plugin-echo](https://github.com/vastsa/BokeBox/tree/main/examples/asr-plugin-echo) |
 | New TTS provider | [TTS plugins](./tts-plugin.md) | [tts-plugin-echo](https://github.com/vastsa/BokeBox/tree/main/examples/tts-plugin-echo) · [fishspeech](https://github.com/vastsa/BokeBox/tree/main/examples/tts-plugin-fishspeech) |
 | Timed candidates | [Schedule plugins](./schedule-plugin.md) | [schedule-plugin-echo](https://github.com/vastsa/BokeBox/tree/main/examples/schedule-plugin-echo) |
 | Web visual tokens | [Design Tokens](./web-design-tokens.md) | `apps/web/src/styles/index.css` |

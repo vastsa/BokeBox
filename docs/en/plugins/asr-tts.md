@@ -47,3 +47,10 @@ Examples:
 - [Plugins overview](./index.md)
 - [Install & manage](../development/plugin-install.md)
 - [Examples](../development/examples.md)
+
+## Related
+
+- [ASR development](../development/asr-plugin.md)
+- [TTS development](../development/tts-plugin.md)
+- [Install & manage](../development/plugin-install.md)
+- [Examples](../development/examples.md)

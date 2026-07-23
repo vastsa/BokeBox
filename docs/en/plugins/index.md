@@ -11,7 +11,7 @@ BokeBox splits replaceable capabilities into four plugin kinds that share **plug
 | Kind | Role | Directory | Docs |
 | --- | --- | --- | --- |
 | **Source** | Ingest → unified `SourceArtifact` | `storage/plugins/source/` | [Guide](./source.md) · [Dev](../development/source-plugin.md) |
-| **ASR** | Speech-to-text | `storage/plugins/asr/` | [Guide](./asr-tts.md) |
+| **ASR** | Speech-to-text | `storage/plugins/asr/` | [Guide](./asr-tts.md) · [Dev](../development/asr-plugin.md) |
 | **TTS** | Text-to-speech | `storage/plugins/tts/` | [Guide](./asr-tts.md) · [Dev](../development/tts-plugin.md) |
 | **Schedule** | Timed candidate URLs | `storage/plugins/schedule/` | [Guide](./schedule.md) · [Dev](../development/schedule-plugin.md) |
 

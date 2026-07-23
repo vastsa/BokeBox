@@ -16,6 +16,7 @@ description: BokeBox 插件开发入口与示例索引。
 | 你想做的事 | 文档 | 示例 |
 | --- | --- | --- |
 | 新的内容源（网页、平台、私有 API） | [Source 插件开发](./source-plugin.md) | [source-plugin-echo](https://github.com/vastsa/BokeBox/tree/main/examples/source-plugin-echo) |
+| 新的 ASR / 转写提供方 | [ASR 插件开发](./asr-plugin.md) | [asr-plugin-echo](https://github.com/vastsa/BokeBox/tree/main/examples/asr-plugin-echo) |
 | 新的 TTS / 音色提供方 | [TTS 插件开发](./tts-plugin.md) | [tts-plugin-echo](https://github.com/vastsa/BokeBox/tree/main/examples/tts-plugin-echo) · [tts-plugin-fishspeech](https://github.com/vastsa/BokeBox/tree/main/examples/tts-plugin-fishspeech) |
 | 定时从榜单 / RSS / API 拉候选 | [Schedule 插件开发](./schedule-plugin.md) | [schedule-plugin-echo](https://github.com/vastsa/BokeBox/tree/main/examples/schedule-plugin-echo) · [github-trending](https://github.com/vastsa/BokeBox/tree/main/examples/schedule-plugin-github-trending) |
 | 改 Web 视觉 Token | [Design Tokens](./web-design-tokens.md) | `apps/web/src/styles/index.css` |
