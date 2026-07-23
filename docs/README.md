@@ -46,43 +46,29 @@ img/             截图（README 共用）
 
 ## 部署
 
-### Vercel（推荐文档站）
+**正式文档站：Vercel** → <https://bkb-docs.aiuo.net/>
 
-支持两种 Root Directory（二选一）：
+仓库提供：
 
-**方式 A — Root Directory = `docs`（推荐，与本次报错场景匹配）**
+| 文件 | 场景 |
+| --- | --- |
+| `docs/vercel.json` | Vercel Root Directory = `docs`（推荐） |
+| `vercel.json` | Vercel Root 留空（monorepo 根） |
 
-使用 `docs/vercel.json`：
+推荐配置（Root = `docs`）：
 
 | 项 | 值 |
 | --- | --- |
 | Install | `pnpm install` |
 | Build | `pnpm docs:build` |
 | Output | `.vitepress/dist` |
+| cleanUrls | `true` |
 
-**方式 B — Root Directory 留空（monorepo 根）**
+**不要**设置 `DOCS_BASE=/BokeBox/`（仅旧 GitHub 项目页路径需要）。Vercel 自定义域使用 `base: '/'`。
 
-使用仓库根 `vercel.json`：
+GitHub Actions（`docs` workflow）**只做构建校验**，不再部署 GitHub Pages。
 
-| 项 | 值 |
-| --- | --- |
-| Install | `pnpm install` |
-| Build | `pnpm --filter @bokebox/docs run build:docs` |
-| Output | `docs/.vitepress/dist` |
 
-**注意：**
-
-1. **不要**设置 `DOCS_BASE=/BokeBox/`（仅 GitHub Pages 子路径需要）  
-2. 若 Build 报 `Command "docs:build" not found`：说明当前在 monorepo 根却跑了 docs 子包命令，或 Root 配错——按上面 A/B 对齐  
-3. Redeploy 后确认产物含 `index.html`  
-
-### GitHub Pages
-
-```bash
-DOCS_BASE=/BokeBox/ pnpm docs:build
-```
-
-见 `.github/workflows/docs.yml`。
 
 ## 协议与归属
 

@@ -137,23 +137,26 @@ pnpm docker:down
 ```
 
 
+
 ## 文档站（Vercel）
 
-静态文档，与应用 Docker 无关。
+正式地址：<https://bkb-docs.aiuo.net/>
 
-**推荐：Vercel Root Directory = `docs`**
+仅使用 **Vercel** 发布文档。GitHub Actions 的 `docs` 工作流只做构建校验，**不再**部署 GitHub Pages。
+
+**推荐：Root Directory = `docs`**
 
 - Build：`pnpm docs:build`
 - Output：`.vitepress/dist`
-- 配置见 `docs/vercel.json`
+- 配置：`docs/vercel.json`
 
 **或 Root 留空（仓库根）**
 
 - Build：`pnpm --filter @bokebox/docs run build:docs`
 - Output：`docs/.vitepress/dist`
-- 配置见根目录 `vercel.json`
+- 配置：根目录 `vercel.json`
 
-不要设置 `DOCS_BASE=/BokeBox/`。若日志出现 `docs:build not found`，把 Root Directory 与 Build 命令按上表对齐后 Redeploy。
+不要设置 `DOCS_BASE=/BokeBox/`。
 
 
 ## 相关

@@ -100,9 +100,11 @@ pnpm docker:down
 
 ## Docs site (Vercel)
 
-Static docs only (not the app Docker deploy).
+Production docs: <https://bkb-docs.aiuo.net/>
 
-**Recommended: Vercel Root Directory = `docs`**
+Use Vercel only (GitHub Actions only **builds** docs for CI, does not publish Pages).
+
+**Recommended: Root Directory = `docs`**
 
 - Build: `pnpm docs:build`
 - Output: `.vitepress/dist`
@@ -114,7 +116,7 @@ Static docs only (not the app Docker deploy).
 - Output: `docs/.vitepress/dist`
 - Config: root `vercel.json`
 
-Do not set `DOCS_BASE=/BokeBox/`. If you see `docs:build not found`, align Root Directory with the build command and redeploy.
+Do not set `DOCS_BASE=/BokeBox/`.
 
 
 ## Related
