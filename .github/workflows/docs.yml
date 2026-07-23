@@ -26,9 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 版本以 package.json packageManager 为准，勿再写 version 以免冲突
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -41,8 +40,10 @@ jobs:
       - name: Build docs
         # GitHub project pages 默认 base 为 /<repo>/
         # 若使用 user/org pages 或自定义域，可去掉 -- 或改 base
+        # 自定义域用 base=/；若改回 github.io 项目页可改为 /BokeBox/
         env:
-          DOCS_BASE: /BokeBox/
+          DOCS_BASE: /
+          DOCS_SITE_URL: https://bkb-docs.aiuo.net
         run: pnpm docs:build
 
       - name: Upload Pages artifact

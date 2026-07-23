@@ -40,9 +40,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
+        # 版本以 package.json packageManager 为准
         uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
