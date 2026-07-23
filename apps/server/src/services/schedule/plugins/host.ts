@@ -23,6 +23,8 @@ import type {
 } from './types.js';
 import type { Schedule } from '../types.js';
 import { candidatesFromUrlList, fetchRssItems } from '../rss.js';
+import { builtinGithubTrending } from './builtinGithubTrending.js';
+import { builtinHackerNews } from './builtinHackerNews.js';
 
 let builtinsReady = false;
 
@@ -89,6 +91,14 @@ export function ensureBuiltinSchedulePlugins(): void {
   if (builtinsReady) return;
   registerSchedulePlugin(builtinRss, { origin: 'builtin', apiVersion: 1 });
   registerSchedulePlugin(builtinUrlList, { origin: 'builtin', apiVersion: 1 });
+  registerSchedulePlugin(builtinGithubTrending, {
+    origin: 'builtin',
+    apiVersion: 1,
+  });
+  registerSchedulePlugin(builtinHackerNews, {
+    origin: 'builtin',
+    apiVersion: 1,
+  });
   builtinsReady = true;
 }
 

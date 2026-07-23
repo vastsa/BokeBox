@@ -17,12 +17,20 @@ import { SettingsBlock, SettingsCard, SettingsPanel } from './SettingsChrome';
 
 const PLUGIN_RSS = 'schedule.rss';
 const PLUGIN_URL_LIST = 'schedule.url-list';
+const PLUGIN_GH = 'schedule.github-trending';
+const PLUGIN_HN = 'schedule.hacker-news';
 
 type Draft = {
   name: string;
   pluginId: string;
   feedUrl: string;
   urlsText: string;
+  /** GitHub Trending */
+  ghSince: string;
+  ghLanguage: string;
+  ghSpoken: string;
+  /** Hacker News */
+  hnFeed: string;
   paramsText: string;
   preset: SchedulePreset;
   cron: string;
@@ -39,6 +47,10 @@ const emptyDraft = (defaultPluginId = PLUGIN_RSS): Draft => ({
   pluginId: defaultPluginId,
   feedUrl: '',
   urlsText: '',
+  ghSince: 'daily',
+  ghLanguage: '',
+  ghSpoken: '',
+  hnFeed: 'top',
   paramsText: '',
   preset: 'daily',
   cron: '0 8 * * *',
@@ -163,6 +175,16 @@ export function ScheduleSettingsTab({
         if (urls.length === 1) return urls[0]!;
         return t('settings.scheduleUrlCount', { n: urls.length });
       }
+      if (pluginId === PLUGIN_GH) {
+        const p = s.sourceConfig.params || {};
+        const since = String(p.since || 'daily');
+        const lang = String(p.language || '').trim();
+        return lang ? `trending/${lang} · ${since}` : `trending · ${since}`;
+      }
+      if (pluginId === PLUGIN_HN) {
+        const feed = String(s.sourceConfig.params?.feed || 'top');
+        return `HN · ${feed}`;
+      }
       if (s.sourceConfig.params && Object.keys(s.sourceConfig.params).length) {
         return `${pluginId} · JSON`;
       }
@@ -195,9 +217,14 @@ export function ScheduleSettingsTab({
       ? s.sourceConfig.urls
       : urlsFromParams;
 
-    // 内置插件参数用专用字段；其余进 JSON（去掉已提升字段）
+    // 内置插件参数用专用字段；其余进 JSON
     let paramsText = '';
-    if (pluginId !== PLUGIN_RSS && pluginId !== PLUGIN_URL_LIST) {
+    if (
+      pluginId !== PLUGIN_RSS &&
+      pluginId !== PLUGIN_URL_LIST &&
+      pluginId !== PLUGIN_GH &&
+      pluginId !== PLUGIN_HN
+    ) {
       paramsText = Object.keys(params).length
         ? JSON.stringify(params, null, 2)
         : '';
@@ -208,6 +235,10 @@ export function ScheduleSettingsTab({
       pluginId,
       feedUrl,
       urlsText: urls.join('\n'),
+      ghSince: String(params.since || 'daily'),
+      ghLanguage: String(params.language || ''),
+      ghSpoken: String(params.spokenLanguage || ''),
+      hnFeed: String(params.feed || 'top'),
       paramsText,
       preset: s.preset,
       cron: s.cron,
@@ -239,6 +270,14 @@ export function ScheduleSettingsTab({
         .filter(Boolean);
       if (!urls.length) throw new Error(t('settings.scheduleUrlsRequired'));
       params = { urls };
+    } else if (pluginId === PLUGIN_GH) {
+      params = {
+        since: draft.ghSince || 'daily',
+        language: draft.ghLanguage.trim() || undefined,
+        spokenLanguage: draft.ghSpoken.trim() || undefined,
+      };
+    } else if (pluginId === PLUGIN_HN) {
+      params = { feed: draft.hnFeed || 'top' };
     } else if (draft.paramsText.trim()) {
       try {
         const parsed = JSON.parse(draft.paramsText) as unknown;
@@ -400,6 +439,73 @@ export function ScheduleSettingsTab({
             }
             placeholder={t('settings.scheduleUrlsPh')}
           />
+        </label>
+      );
+    }
+    if (draft.pluginId === PLUGIN_GH) {
+      return (
+        <>
+          <label className="settings-field">
+            <span>{t('settings.scheduleGhSince')}</span>
+            <select
+              className="nl-input"
+              value={draft.ghSince}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, ghSince: e.target.value }))
+              }
+            >
+              <option value="daily">{t('settings.scheduleGhSinceDaily')}</option>
+              <option value="weekly">
+                {t('settings.scheduleGhSinceWeekly')}
+              </option>
+              <option value="monthly">
+                {t('settings.scheduleGhSinceMonthly')}
+              </option>
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>{t('settings.scheduleGhLanguage')}</span>
+            <input
+              className="nl-input"
+              value={draft.ghLanguage}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, ghLanguage: e.target.value }))
+              }
+              placeholder="typescript"
+            />
+          </label>
+          <label className="settings-field settings-field-span">
+            <span>{t('settings.scheduleGhSpoken')}</span>
+            <input
+              className="nl-input"
+              value={draft.ghSpoken}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, ghSpoken: e.target.value }))
+              }
+              placeholder="zh"
+            />
+          </label>
+        </>
+      );
+    }
+    if (draft.pluginId === PLUGIN_HN) {
+      return (
+        <label className="settings-field">
+          <span>{t('settings.scheduleHnFeed')}</span>
+          <select
+            className="nl-input"
+            value={draft.hnFeed}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, hnFeed: e.target.value }))
+            }
+          >
+            <option value="top">Top</option>
+            <option value="new">New</option>
+            <option value="best">Best</option>
+            <option value="ask">Ask HN</option>
+            <option value="show">Show HN</option>
+            <option value="job">Jobs</option>
+          </select>
         </label>
       );
     }
