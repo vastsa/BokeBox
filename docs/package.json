@@ -1,0 +1,26 @@
+{
+  "name": "@bokebox/docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "BokeBox 文档站点（VitePress）",
+  "scripts": {
+    "dev": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview ."
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3",
+    "vue": "^3.5.13"
+  },
+  "license": "LGPL-3.0-only",
+  "homepage": "https://github.com/vastsa/BokeBox/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vastsa/BokeBox.git",
+    "directory": "docs"
+  },
+  "bugs": {
+    "url": "https://github.com/vastsa/BokeBox/issues"
+  }
+}

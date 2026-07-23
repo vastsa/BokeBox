@@ -20,7 +20,10 @@
     "docker:cn": "./start.sh docker.cn",
     "typecheck": "pnpm --filter @bokebox/shared build && pnpm -r typecheck",
     "test": "pnpm --filter @bokebox/shared build && pnpm --filter @bokebox/server test",
-    "lint": "pnpm typecheck"
+    "lint": "pnpm typecheck",
+    "docs:dev": "pnpm --filter @bokebox/docs dev",
+    "docs:build": "pnpm --filter @bokebox/docs build",
+    "docs:preview": "pnpm --filter @bokebox/docs preview"
   },
   "engines": {
     "node": ">=22.5"

@@ -45,3 +45,8 @@ apps/server/storage/
 
 # 本地推广草稿（不入库）
 docs/promo/
+
+# VitePress 文档站
+docs/.vitepress/cache
+docs/.vitepress/dist
+docs/node_modules
