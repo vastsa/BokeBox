@@ -47,20 +47,28 @@ features:
 
 <div class="bokebox-gallery">
   <figure>
-    <img src="/img/home_zh.webp" alt="BokeBox 桌面" />
+    <img src="/img/home.webp" alt="BokeBox 桌面" />
     <figcaption>桌面 · 任务与进度</figcaption>
   </figure>
   <figure>
-    <img src="/img/lis_zh.webp" alt="BokeBox 播放" />
+    <img src="/img/player.webp" alt="BokeBox 播放" />
     <figcaption>播放器 · 听播体验</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-persona.webp" alt="人设设置" />
+    <img src="/img/flashcard.webp" alt="闪卡" />
+    <figcaption>播放 · 闪卡复习</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/starmap.webp" alt="星图" />
+    <figcaption>星图 · 知识关联</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/persona.webp" alt="人设设置" />
     <figcaption>设置 · 人设</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-voice.webp" alt="音色设置" />
-    <figcaption>设置 · 音色</figcaption>
+    <img src="/img/plugins.webp" alt="插件设置" />
+    <figcaption>设置 · 插件</figcaption>
   </figure>
 </div>
 

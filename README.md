@@ -139,7 +139,9 @@ Create, listen, and manage task assets in one private space.
 
 | Home | Player |
 | :---: | :---: |
-| <img src="docs/img/home_en.webp" width="100%" alt="BokeBox home" /> | <img src="docs/img/lis_en.webp" width="100%" alt="BokeBox player" /> |
+| <img src="docs/img/home.webp" width="100%" alt="BokeBox home" /> | <img src="docs/img/player.webp" width="100%" alt="BokeBox player" /> |
+| **Flashcards** | **Star Map** |
+| <img src="docs/img/flashcard.webp" width="100%" alt="BokeBox flashcards" /> | <img src="docs/img/starmap.webp" width="100%" alt="BokeBox star map" /> |
 
 You get:
 
@@ -147,20 +149,21 @@ You get:
 - **One-click create** — upload video / paste link / drop draft, set persona & voice  
 - **Task detail** — transcript, script, audio, cover, flashcards end-to-end  
 - **Immersive player** — progress memory, speed, sleep timer  
+- **Star Map** — knowledge graph across episodes  
 
 ---
 
 ## ⚙️ Settings at a glance
 
-Tune voice, persona, prompts, MCP, site info, and subscriptions from one settings center.
+Tune persona, plugins, MCP, site info, and subscriptions from one settings center.
 
-| Voice | Persona |
+| Persona | Plugins |
 | :---: | :---: |
-| <img src="docs/img/settings-voice.webp" width="100%" alt="BokeBox voice settings" /> | <img src="docs/img/settings-persona.webp" width="100%" alt="BokeBox persona settings" /> |
-| **MCP** | **Prompt templates** |
-| <img src="docs/img/settings-mcp.webp" width="100%" alt="BokeBox MCP settings" /> | <img src="docs/img/settings-prompts.webp" width="100%" alt="BokeBox prompt template settings" /> |
-| **Site** | **Subscriptions** |
-| <img src="docs/img/settings-site.webp" width="100%" alt="BokeBox site settings" /> | <img src="docs/img/settings-dingyue.webp" width="100%" alt="BokeBox subscription schedules" /> |
+| <img src="docs/img/persona.webp" width="100%" alt="BokeBox persona settings" /> | <img src="docs/img/plugins.webp" width="100%" alt="BokeBox plugins settings" /> |
+| **MCP** | **Schedules** |
+| <img src="docs/img/mcp.webp" width="100%" alt="BokeBox MCP settings" /> | <img src="docs/img/schedules.webp" width="100%" alt="BokeBox subscription schedules" /> |
+| **Site** | |
+| <img src="docs/img/site.webp" width="100%" alt="BokeBox site settings" /> | |
 
 ---
 

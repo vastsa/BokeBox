@@ -139,7 +139,9 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 | 首页 | 播放页 |
 | :---: | :---: |
-| <img src="docs/img/home_zh.webp" width="100%" alt="BokeBox 桌面" /> | <img src="docs/img/lis_zh.webp" width="100%" alt="BokeBox 播放" /> |
+| <img src="docs/img/home.webp" width="100%" alt="BokeBox 桌面" /> | <img src="docs/img/player.webp" width="100%" alt="BokeBox 播放" /> |
+| **闪卡** | **星图** |
+| <img src="docs/img/flashcard.webp" width="100%" alt="BokeBox 闪卡" /> | <img src="docs/img/starmap.webp" width="100%" alt="BokeBox 星图" /> |
 
 你将拥有：
 
@@ -147,20 +149,21 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 - **一键制作页** —— 上传视频 / 粘贴链接 / 投入文稿，顺手配好人设与音色  
 - **任务详情** —— 转写、脚本、音频、封面、闪卡全链路可回看  
 - **沉浸播放器** —— 进度记忆、倍速、睡眠定时，听感完整  
+- **星图** —— 跨节目知识关联一览  
 
 ---
 
 ## ⚙️ 设置中心
 
-音色、人设、提示词、MCP、站点与订阅，统一在一个设置中心里完成。
+人设、插件、MCP、站点与订阅，统一在一个设置中心里完成。
 
-| 音色 | 人设 |
+| 人设 | 插件 |
 | :---: | :---: |
-| <img src="docs/img/settings-voice.webp" width="100%" alt="BokeBox 音色设置" /> | <img src="docs/img/settings-persona.webp" width="100%" alt="BokeBox 人设设置" /> |
-| **MCP** | **提示词模板** |
-| <img src="docs/img/settings-mcp.webp" width="100%" alt="BokeBox MCP 设置" /> | <img src="docs/img/settings-prompts.webp" width="100%" alt="BokeBox 提示词模板设置" /> |
-| **站点** | **订阅** |
-| <img src="docs/img/settings-site.webp" width="100%" alt="BokeBox 站点设置" /> | <img src="docs/img/settings-dingyue.webp" width="100%" alt="BokeBox 订阅设置" /> |
+| <img src="docs/img/persona.webp" width="100%" alt="BokeBox 人设设置" /> | <img src="docs/img/plugins.webp" width="100%" alt="BokeBox 插件设置" /> |
+| **MCP** | **订阅** |
+| <img src="docs/img/mcp.webp" width="100%" alt="BokeBox MCP 设置" /> | <img src="docs/img/schedules.webp" width="100%" alt="BokeBox 订阅设置" /> |
+| **站点** | |
+| <img src="docs/img/site.webp" width="100%" alt="BokeBox 站点设置" /> | |
 
 ---
 

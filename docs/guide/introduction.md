@@ -55,15 +55,19 @@ description: BokeBox 产品定位：多源内容转化为私人 AI 播客。
     <figcaption>品牌视觉</figcaption>
   </figure>
   <figure>
-    <img src="/img/home_zh.webp" alt="桌面" />
+    <img src="/img/home.webp" alt="桌面" />
     <figcaption>桌面</figcaption>
   </figure>
   <figure>
-    <img src="/img/lis_zh.webp" alt="播放" />
+    <img src="/img/player.webp" alt="播放" />
     <figcaption>播放</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-mcp.webp" alt="MCP 设置" />
+    <img src="/img/starmap.webp" alt="星图" />
+    <figcaption>星图</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/mcp.webp" alt="MCP 设置" />
     <figcaption>MCP 设置</figcaption>
   </figure>
 </div>

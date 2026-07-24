@@ -52,23 +52,23 @@ description: BokeBox 设置中心各分区说明。
 
 <div class="bokebox-gallery">
   <figure>
-    <img src="/img/settings-voice.webp" alt="音色" />
-    <figcaption>音色</figcaption>
-  </figure>
-  <figure>
-    <img src="/img/settings-persona.webp" alt="人设" />
+    <img src="/img/persona.webp" alt="人设" />
     <figcaption>人设</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-prompts.webp" alt="提示词" />
-    <figcaption>提示词</figcaption>
+    <img src="/img/plugins.webp" alt="插件" />
+    <figcaption>插件</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-mcp.webp" alt="MCP" />
+    <img src="/img/mcp.webp" alt="MCP" />
     <figcaption>MCP</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-site.webp" alt="站点" />
+    <img src="/img/schedules.webp" alt="订阅" />
+    <figcaption>订阅</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/site.webp" alt="站点" />
     <figcaption>站点</figcaption>
   </figure>
 </div>

@@ -55,15 +55,19 @@ Full list: [Features](./features.md).
     <figcaption>Brand</figcaption>
   </figure>
   <figure>
-    <img src="/img/home_en.webp" alt="Home" />
+    <img src="/img/home.webp" alt="Home" />
     <figcaption>Home</figcaption>
   </figure>
   <figure>
-    <img src="/img/lis_en.webp" alt="Player" />
+    <img src="/img/player.webp" alt="Player" />
     <figcaption>Player</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-mcp.webp" alt="MCP" />
+    <img src="/img/starmap.webp" alt="Star Map" />
+    <figcaption>Star Map</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/mcp.webp" alt="MCP" />
     <figcaption>MCP settings</figcaption>
   </figure>
 </div>

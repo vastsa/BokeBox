@@ -51,23 +51,23 @@ Many AI/deploy values also via [Configuration](./configuration.md).
 
 <div class="bokebox-gallery">
   <figure>
-    <img src="/img/settings-voice.webp" alt="Voice" />
-    <figcaption>Voice</figcaption>
-  </figure>
-  <figure>
-    <img src="/img/settings-persona.webp" alt="Persona" />
+    <img src="/img/persona.webp" alt="Persona" />
     <figcaption>Persona</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-prompts.webp" alt="Prompts" />
-    <figcaption>Prompts</figcaption>
+    <img src="/img/plugins.webp" alt="Plugins" />
+    <figcaption>Plugins</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-mcp.webp" alt="MCP" />
+    <img src="/img/mcp.webp" alt="MCP" />
     <figcaption>MCP</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-site.webp" alt="Site" />
+    <img src="/img/schedules.webp" alt="Schedules" />
+    <figcaption>Schedules</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/site.webp" alt="Site" />
     <figcaption>Site</figcaption>
   </figure>
 </div>

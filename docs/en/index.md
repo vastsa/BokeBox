@@ -47,20 +47,28 @@ features:
 
 <div class="bokebox-gallery">
   <figure>
-    <img src="/img/home_en.webp" alt="BokeBox home" />
+    <img src="/img/home.webp" alt="BokeBox home" />
     <figcaption>Home · jobs & progress</figcaption>
   </figure>
   <figure>
-    <img src="/img/lis_en.webp" alt="BokeBox player" />
+    <img src="/img/player.webp" alt="BokeBox player" />
     <figcaption>Player · listening</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-persona.webp" alt="Persona settings" />
+    <img src="/img/flashcard.webp" alt="Flashcards" />
+    <figcaption>Player · flashcards</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/starmap.webp" alt="Star Map" />
+    <figcaption>Map · knowledge graph</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/persona.webp" alt="Persona settings" />
     <figcaption>Settings · persona</figcaption>
   </figure>
   <figure>
-    <img src="/img/settings-voice.webp" alt="Voice settings" />
-    <figcaption>Settings · voice</figcaption>
+    <img src="/img/plugins.webp" alt="Plugins settings" />
+    <figcaption>Settings · plugins</figcaption>
   </figure>
 </div>
 
