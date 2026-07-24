@@ -56,6 +56,10 @@ description: BokeBox 设置中心各分区说明。
     <figcaption>人设</figcaption>
   </figure>
   <figure>
+    <img src="/img/prompts.webp" alt="提示词" />
+    <figcaption>提示词</figcaption>
+  </figure>
+  <figure>
     <img src="/img/plugins.webp" alt="插件" />
     <figcaption>插件</figcaption>
   </figure>

@@ -155,15 +155,15 @@ You get:
 
 ## ⚙️ Settings at a glance
 
-Tune persona, plugins, MCP, site info, and subscriptions from one settings center.
+Tune persona, prompts, plugins, MCP, site info, and subscriptions from one settings center.
 
-| Persona | Plugins |
+| Persona | Prompts |
 | :---: | :---: |
-| <img src="docs/img/persona.webp" width="100%" alt="BokeBox persona settings" /> | <img src="docs/img/plugins.webp" width="100%" alt="BokeBox plugins settings" /> |
-| **MCP** | **Schedules** |
-| <img src="docs/img/mcp.webp" width="100%" alt="BokeBox MCP settings" /> | <img src="docs/img/schedules.webp" width="100%" alt="BokeBox subscription schedules" /> |
-| **Site** | |
-| <img src="docs/img/site.webp" width="100%" alt="BokeBox site settings" /> | |
+| <img src="docs/img/persona.webp" width="100%" alt="BokeBox persona settings" /> | <img src="docs/img/prompts.webp" width="100%" alt="BokeBox prompt template settings" /> |
+| **Plugins** | **MCP** |
+| <img src="docs/img/plugins.webp" width="100%" alt="BokeBox plugins settings" /> | <img src="docs/img/mcp.webp" width="100%" alt="BokeBox MCP settings" /> |
+| **Schedules** | **Site** |
+| <img src="docs/img/schedules.webp" width="100%" alt="BokeBox subscription schedules" /> | <img src="docs/img/site.webp" width="100%" alt="BokeBox site settings" /> |
 
 ---
 

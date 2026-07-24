@@ -55,6 +55,10 @@ Many AI/deploy values also via [Configuration](./configuration.md).
     <figcaption>Persona</figcaption>
   </figure>
   <figure>
+    <img src="/img/prompts.webp" alt="Prompts" />
+    <figcaption>Prompts</figcaption>
+  </figure>
+  <figure>
     <img src="/img/plugins.webp" alt="Plugins" />
     <figcaption>Plugins</figcaption>
   </figure>

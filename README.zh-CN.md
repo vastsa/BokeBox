@@ -155,15 +155,15 @@ BokeBox 把它们改造成「耳朵时间」：通勤、家务、睡前，都能
 
 ## ⚙️ 设置中心
 
-人设、插件、MCP、站点与订阅，统一在一个设置中心里完成。
+人设、提示词、插件、MCP、站点与订阅，统一在一个设置中心里完成。
 
-| 人设 | 插件 |
+| 人设 | 提示词 |
 | :---: | :---: |
-| <img src="docs/img/persona.webp" width="100%" alt="BokeBox 人设设置" /> | <img src="docs/img/plugins.webp" width="100%" alt="BokeBox 插件设置" /> |
-| **MCP** | **订阅** |
-| <img src="docs/img/mcp.webp" width="100%" alt="BokeBox MCP 设置" /> | <img src="docs/img/schedules.webp" width="100%" alt="BokeBox 订阅设置" /> |
-| **站点** | |
-| <img src="docs/img/site.webp" width="100%" alt="BokeBox 站点设置" /> | |
+| <img src="docs/img/persona.webp" width="100%" alt="BokeBox 人设设置" /> | <img src="docs/img/prompts.webp" width="100%" alt="BokeBox 提示词模板设置" /> |
+| **插件** | **MCP** |
+| <img src="docs/img/plugins.webp" width="100%" alt="BokeBox 插件设置" /> | <img src="docs/img/mcp.webp" width="100%" alt="BokeBox MCP 设置" /> |
+| **订阅** | **站点** |
+| <img src="docs/img/schedules.webp" width="100%" alt="BokeBox 订阅设置" /> | <img src="docs/img/site.webp" width="100%" alt="BokeBox 站点设置" /> |
 
 ---
 
