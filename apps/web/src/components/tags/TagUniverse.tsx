@@ -153,7 +153,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       seed: 11,
     });
     const farMat = new THREE.PointsMaterial({
-      size: theme.mode === 'light' ? 0.06 : 0.055,
+      size: theme.mode === 'light' ? 0.07 : 0.055,
       map: dustTex,
       vertexColors: true,
       transparent: true,
@@ -175,7 +175,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       seed: 29,
     });
     const milkyMat = new THREE.PointsMaterial({
-      size: theme.mode === 'light' ? 0.075 : 0.07,
+      size: theme.mode === 'light' ? 0.09 : 0.07,
       map: dustTex,
       vertexColors: true,
       transparent: true,
@@ -197,7 +197,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       seed: 47,
     });
     const nearMat = new THREE.PointsMaterial({
-      size: theme.mode === 'light' ? 0.12 : 0.11,
+      size: theme.mode === 'light' ? 0.14 : 0.11,
       map: dustTex,
       vertexColors: true,
       transparent: true,
@@ -386,7 +386,8 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     tags.forEach((tag, i) => {
       const color = colorForTag(tag.name);
       if (theme.mode === 'light') {
-        color.offsetHSL(0, 0.08, 0.06);
+        // 亮底提高饱和与明度差，避免星点发灰
+        color.offsetHSL(0, 0.14, -0.04);
       }
       const weight = tag.count / maxCount;
       const baseScale = 0.12 + weight * 0.28 + 0.04;
@@ -401,12 +402,12 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       const core = new THREE.Mesh(
         coreGeo,
         new THREE.MeshBasicMaterial({
-          color: theme.mode === 'light' ? color.clone().lerp(WHITE, 0.35) : WHITE,
+          color: theme.mode === 'light' ? color.clone().lerp(WHITE, 0.18) : WHITE,
           transparent: true,
-          opacity: theme.mode === 'light' ? 0.95 : 0.98,
+          opacity: theme.mode === 'light' ? 1 : 0.98,
         }),
       );
-      core.scale.setScalar(baseScale * 0.52);
+      core.scale.setScalar(baseScale * (theme.mode === 'light' ? 0.58 : 0.52));
       core.matrixAutoUpdate = true;
 
       const corona = new THREE.Mesh(
@@ -415,12 +416,12 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           map: coronaTex,
           color,
           transparent: true,
-          opacity: theme.mode === 'light' ? 0.55 : 0.34,
+          opacity: theme.mode === 'light' ? 0.72 : 0.34,
           depthWrite: false,
           blending: glowBlend,
         }),
       );
-      corona.scale.setScalar(baseScale * 2.7);
+      corona.scale.setScalar(baseScale * (theme.mode === 'light' ? 3.0 : 2.7));
       corona.visible = richStars;
 
       const halo = new THREE.Mesh(
@@ -429,12 +430,12 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           map: glowTex,
           color,
           transparent: true,
-          opacity: theme.mode === 'light' ? 0.62 : 0.86,
+          opacity: theme.mode === 'light' ? 0.78 : 0.86,
           depthWrite: false,
           blending: glowBlend,
         }),
       );
-      halo.scale.setScalar(baseScale * 7.4);
+      halo.scale.setScalar(baseScale * (theme.mode === 'light' ? 8.0 : 7.4));
 
       const spike = new THREE.Mesh(
         planeGeo,
@@ -442,7 +443,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           map: spikeTex,
           color,
           transparent: true,
-          opacity: theme.mode === 'light' ? 0.28 + weight * 0.22 : 0.18 + weight * 0.28,
+          opacity: theme.mode === 'light' ? 0.4 + weight * 0.28 : 0.18 + weight * 0.28,
           depthWrite: false,
           blending: glowBlend,
         }),
@@ -476,7 +477,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       if (topNames.has(tag.name) || selectedRef.current === tag.name) {
         attachLabel(runtime, selectedRef.current === tag.name);
       }
-      setStarVisual(runtime, 'idle', 1);
+      setStarVisual(runtime, 'idle', 1, theme.mode);
       runtimes.push(runtime);
     });
     starsRef.current = runtimes;
@@ -789,7 +790,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
 
           const mode: 'idle' | 'hover' | 'active' = active ? 'active' : hover ? 'hover' : 'idle';
           const dim = selectedName && !active ? 0.72 : 1;
-          setStarVisual(s, mode, dim);
+          setStarVisual(s, mode, dim, theme.mode);
 
           // billboard：交互星每帧，其余重帧
           if (active || hover || heavyFrame) {

@@ -63,18 +63,19 @@ export function resolveUniverseTheme(mode: UniverseMode = detectUniverseMode()):
     return {
       mode,
       bg: BG_LIGHT,
-      fogDensity: 0.008,
-      fieldBoost: 0.92,
-      starOpacity: 0.78,
-      milkyOpacity: 0.5,
-      nearOpacity: 0.86,
-      dustOpacity: 0.28,
-      nebulaOpacity: 0.18,
-      orbitOpacity: 0.22,
-      linkOpacity: 0.2,
-      selectRing: 0x4f8ef7,
-      selectOuter: 0x3b7aef,
-      selectTick: 0x6aa8ff,
+      // 亮底更易“洗白”，雾略淡、粒子/星体略抬，保证日间可读
+      fogDensity: 0.0045,
+      fieldBoost: 1.18,
+      starOpacity: 0.92,
+      milkyOpacity: 0.62,
+      nearOpacity: 0.96,
+      dustOpacity: 0.36,
+      nebulaOpacity: 0.24,
+      orbitOpacity: 0.3,
+      linkOpacity: 0.28,
+      selectRing: 0x3b7aef,
+      selectOuter: 0x2f6ae0,
+      selectTick: 0x4f8ef7,
     };
   }
   return {
@@ -561,51 +562,132 @@ export function buildLinks(tags: TagStar[], positions: THREE.Vector3[]): {
   return { positions: outPos, colors: outCol };
 }
 
-export function setStarVisual(s: StarRuntime, mode: 'idle' | 'hover' | 'active', dim: number) {
+export function setStarVisual(
+  s: StarRuntime,
+  mode: 'idle' | 'hover' | 'active',
+  dim: number,
+  themeMode: UniverseMode = 'dark',
+) {
   if (s.visual === mode && Math.abs(s.lastDim - dim) < 0.001) return;
   s.lastDim = dim;
   const coreMat = s.core.material as THREE.MeshBasicMaterial;
   const coronaMat = s.corona.material as THREE.MeshBasicMaterial;
   const haloMat = s.halo.material as THREE.MeshBasicMaterial;
   const spikeMat = s.spike.material as THREE.MeshBasicMaterial;
+  const light = themeMode === 'light';
 
   const sc =
     s.baseScale * (mode === 'active' ? 1.24 : mode === 'hover' ? 1.13 : 1);
 
-  s.core.scale.setScalar(sc * (mode === 'active' ? 0.58 : 0.52));
-  s.corona.scale.setScalar(sc * (mode === 'active' ? 3.4 : mode === 'hover' ? 3.0 : 2.7));
-  s.halo.scale.setScalar(sc * (mode === 'active' ? 9.2 : mode === 'hover' ? 8.2 : 7.4));
-  s.spike.scale.setScalar(sc * (mode === 'active' ? 14.5 : mode === 'hover' ? 12.8 : 11.2));
+  // 亮底星体略放大，避免被天穹吞掉
+  const coreMul = light
+    ? mode === 'active'
+      ? 0.64
+      : 0.58
+    : mode === 'active'
+      ? 0.58
+      : 0.52;
+  const coronaMul = light
+    ? mode === 'active'
+      ? 3.7
+      : mode === 'hover'
+        ? 3.3
+        : 3.0
+    : mode === 'active'
+      ? 3.4
+      : mode === 'hover'
+        ? 3.0
+        : 2.7;
+  const haloMul = light
+    ? mode === 'active'
+      ? 9.8
+      : mode === 'hover'
+        ? 8.8
+        : 8.0
+    : mode === 'active'
+      ? 9.2
+      : mode === 'hover'
+        ? 8.2
+        : 7.4;
+  const spikeMul = light
+    ? mode === 'active'
+      ? 15.2
+      : mode === 'hover'
+        ? 13.4
+        : 11.8
+    : mode === 'active'
+      ? 14.5
+      : mode === 'hover'
+        ? 12.8
+        : 11.2;
+
+  s.core.scale.setScalar(sc * coreMul);
+  s.corona.scale.setScalar(sc * coronaMul);
+  s.halo.scale.setScalar(sc * haloMul);
+  s.spike.scale.setScalar(sc * spikeMul);
 
   if (mode === 'active') {
-    coreMat.color.copy(WHITE);
-    coronaMat.color.copy(s.color).lerp(WHITE, 0.35);
-    haloMat.color.copy(s.color).lerp(WHITE, 0.14);
-    spikeMat.color.copy(s.color).lerp(WHITE, 0.08);
-    coreMat.opacity = 1;
-    coronaMat.opacity = 0.55;
-    haloMat.opacity = 0.92;
-    spikeMat.opacity = 0.5;
+    if (light) {
+      coreMat.color.copy(s.color).lerp(WHITE, 0.45);
+      coronaMat.color.copy(s.color).lerp(WHITE, 0.12);
+      haloMat.color.copy(s.color);
+      spikeMat.color.copy(s.color);
+      coreMat.opacity = 1;
+      coronaMat.opacity = 0.82;
+      haloMat.opacity = 0.95;
+      spikeMat.opacity = 0.62;
+    } else {
+      coreMat.color.copy(WHITE);
+      coronaMat.color.copy(s.color).lerp(WHITE, 0.35);
+      haloMat.color.copy(s.color).lerp(WHITE, 0.14);
+      spikeMat.color.copy(s.color).lerp(WHITE, 0.08);
+      coreMat.opacity = 1;
+      coronaMat.opacity = 0.55;
+      haloMat.opacity = 0.92;
+      spikeMat.opacity = 0.5;
+    }
     s.spike.visible = true;
   } else if (mode === 'hover') {
-    coreMat.color.copy(WHITE);
-    coronaMat.color.copy(s.color).lerp(WHITE, 0.2);
-    haloMat.color.copy(s.color);
-    spikeMat.color.copy(s.color);
-    coreMat.opacity = 1;
-    coronaMat.opacity = 0.42;
-    haloMat.opacity = 0.9;
-    spikeMat.opacity = 0.36;
+    if (light) {
+      coreMat.color.copy(s.color).lerp(WHITE, 0.35);
+      coronaMat.color.copy(s.color);
+      haloMat.color.copy(s.color);
+      spikeMat.color.copy(s.color);
+      coreMat.opacity = 1;
+      coronaMat.opacity = 0.74;
+      haloMat.opacity = 0.9;
+      spikeMat.opacity = 0.5;
+    } else {
+      coreMat.color.copy(WHITE);
+      coronaMat.color.copy(s.color).lerp(WHITE, 0.2);
+      haloMat.color.copy(s.color);
+      spikeMat.color.copy(s.color);
+      coreMat.opacity = 1;
+      coronaMat.opacity = 0.42;
+      haloMat.opacity = 0.9;
+      spikeMat.opacity = 0.36;
+    }
     s.spike.visible = true;
   } else {
-    coreMat.color.copy(WHITE);
-    coronaMat.color.copy(s.color);
-    haloMat.color.copy(s.color);
-    spikeMat.color.copy(s.color);
-    coreMat.opacity = 0.68 + 0.32 * dim;
-    coronaMat.opacity = 0.28 * dim;
-    haloMat.opacity = 0.74 * dim;
-    spikeMat.opacity = (0.12 + (s.count > 1 ? 0.1 : 0)) * dim;
+    if (light) {
+      coreMat.color.copy(s.color).lerp(WHITE, 0.22);
+      coronaMat.color.copy(s.color);
+      haloMat.color.copy(s.color);
+      spikeMat.color.copy(s.color);
+      coreMat.opacity = 0.88 + 0.12 * dim;
+      coronaMat.opacity = 0.58 * dim;
+      haloMat.opacity = 0.8 * dim;
+      spikeMat.opacity = (0.28 + (s.count > 1 ? 0.14 : 0)) * dim;
+    } else {
+      coreMat.color.copy(WHITE);
+      coronaMat.color.copy(s.color);
+      haloMat.color.copy(s.color);
+      spikeMat.color.copy(s.color);
+      coreMat.opacity = 0.68 + 0.32 * dim;
+      coronaMat.opacity = 0.28 * dim;
+      haloMat.opacity = 0.74 * dim;
+      spikeMat.opacity = (0.12 + (s.count > 1 ? 0.1 : 0)) * dim;
+    }
     // 低占用：非强调星隐藏十字炫光 draw call
     s.spike.visible = dim > 0.85 && s.count > 1;
   }

@@ -25,7 +25,8 @@
 
 4. **固定暗底场景用 On-ink**（星图已支持亮色：`html[data-route="tags"][data-theme="light"]` 使用 `--tc-*` 日间令牌；暗色仍用 on-ink）  
    标签宇宙、深色 HUD 等 **不随主题反转的暗底 UI**，使用 `--text-on-ink*` / `--brand-on-ink*`，  
-   不要误用 `--text`（亮色主题下是深色字）。
+   不要误用 `--text`（亮色主题下是深色字）。  
+   亮色星图 HUD 芯片（如右下角「点亮一颗星」`.tc-meta`、操作提示 `.tc-hint`）走 `--tc-chip-*` / `--tc-ink*`，**禁止**沿用暗底半透明 `rgba(8,12,22,*)`。
 
 5. **单源真源**  
    只在 `index.css` 的 `:root` 增删 token。页面 / 组件禁止私自 `const color = '#xxx'` 当样式源。

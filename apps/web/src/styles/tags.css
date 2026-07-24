@@ -64,6 +64,12 @@ html[data-route="tags"][data-theme="light"] #root {
   --tc-chrome: color-mix(in srgb, var(--tc-sky) 55%, rgba(255, 255, 255, 0.88));
   --tc-chrome-border: color-mix(in srgb, var(--separator) 80%, transparent);
   --tc-player-bg: color-mix(in srgb, #ffffff 88%, var(--tc-sky));
+  /* HUD 胶囊 / 芯片：亮底上用实玻璃，避免暗色半透明洗白 */
+  --tc-chip-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--tc-sky) 28%, #ffffff));
+  --tc-chip-border: color-mix(in srgb, var(--separator) 72%, rgba(79, 142, 247, 0.22));
+  --tc-chip-shadow: 0 8px 20px rgba(49, 79, 128, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+  --tc-chip-ink: #142033;
+  --tc-chip-ink-soft: #2a3a55;
 }
 
 html[data-route="tags"] .page-shell,
@@ -491,12 +497,29 @@ html[data-theme="light"] .tu-scan {
 
 .tu-stage.is-light .tu-label,
 html[data-theme="light"][data-route="tags"] .tu-label {
+  border-color: color-mix(in srgb, var(--star) 42%, rgba(20, 32, 51, 0.18));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--tc-sky, #f3f7fc) 28%, #ffffff)),
+    linear-gradient(90deg, color-mix(in srgb, var(--star) 18%, transparent), transparent 48%);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.65) inset,
-    0 8px 18px rgba(49, 79, 128, 0.12),
-    0 0 16px color-mix(in srgb, var(--star) 18%, transparent);
-  color: color-mix(in srgb, var(--star) 42%, #142033);
-  opacity: 0.72;
+    0 0 0 1px rgba(255, 255, 255, 0.82) inset,
+    0 10px 22px rgba(49, 79, 128, 0.14),
+    0 0 18px color-mix(in srgb, var(--star) 22%, transparent);
+  color: color-mix(in srgb, var(--star) 28%, #0c1728);
+  opacity: 0.9;
+  font-weight: var(--fw-bold);
+}
+.tu-stage.is-light .tu-label-count,
+html[data-theme="light"][data-route="tags"] .tu-label-count {
+  background: color-mix(in srgb, var(--star) 18%, rgba(20, 32, 51, 0.06));
+  color: color-mix(in srgb, var(--star) 34%, #0f1b2e);
+}
+.tu-stage.is-light .tu-label-dot,
+html[data-theme="light"][data-route="tags"] .tu-label-dot {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.75),
+    0 0 10px color-mix(in srgb, var(--star) 70%, transparent),
+    0 0 18px color-mix(in srgb, var(--star) 45%, transparent);
 }
 
 .tu-label-dot {
@@ -601,10 +624,10 @@ html[data-theme="light"][data-route="tags"] .tu-label.is-focus {
 }
 
 html[data-theme="light"][data-route="tags"] .tc-title-block {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), color-mix(in srgb, var(--tc-sky) 55%, transparent));
-  border-color: color-mix(in srgb, var(--separator) 70%, transparent);
-  box-shadow: 0 8px 22px rgba(20, 26, 36, 0.06);
-  backdrop-filter: blur(10px) saturate(1.05);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--tc-sky) 42%, #ffffff));
+  border-color: color-mix(in srgb, var(--separator) 78%, rgba(79, 142, 247, 0.16));
+  box-shadow: 0 10px 26px rgba(49, 79, 128, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.75) inset;
+  backdrop-filter: blur(12px) saturate(1.08);
 }
 
 .tc-title {
@@ -618,7 +641,17 @@ html[data-theme="light"][data-route="tags"] .tc-title-block {
 }
 
 html[data-theme="light"][data-route="tags"] .tc-title {
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 18px rgba(79, 142, 247, 0.18);
+  color: var(--tc-ink-title, #0f1b2e);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85), 0 0 18px rgba(79, 142, 247, 0.16);
+}
+
+html[data-theme="light"][data-route="tags"] .tc-title-en {
+  color: var(--tc-ink-4, #5d7190);
+}
+
+html[data-theme="light"][data-route="tags"] .tc-sub {
+  color: var(--tc-ink-2, #2a3a55);
+  opacity: 1;
 }
 
 .tc-title-en {
@@ -645,9 +678,12 @@ html[data-theme="light"][data-route="tags"] .tc-title {
 }
 
 html[data-theme="light"][data-route="tags"] .tc-hint {
-  border-color: rgba(79, 142, 247, 0.12);
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--tc-ink-3, #4a5d7a);
+  border-color: var(--tc-chip-border, color-mix(in srgb, var(--separator) 72%, rgba(79, 142, 247, 0.22)));
+  background: var(--tc-chip-bg, linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--tc-sky) 28%, #ffffff)));
+  color: var(--tc-chip-ink-soft, #2a3a55);
+  box-shadow: var(--tc-chip-shadow, 0 8px 20px rgba(49, 79, 128, 0.1));
+  backdrop-filter: blur(12px) saturate(1.08);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
 }
 
 .tc-hint b {
@@ -667,6 +703,27 @@ html[data-theme="light"][data-route="tags"] .tc-hint b {
   border: var(--bw-1) solid rgba(255, 255, 255, 0.05);
   background: rgba(8, 12, 22, 0.35);
   backdrop-filter: blur(10px);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-caps);
+  line-height: var(--lh-compact);
+  white-space: nowrap;
+}
+
+/* 右下角「点亮一颗星」等状态芯片：亮色实玻璃，避免暗底半透明看不清 */
+html[data-theme="light"][data-route="tags"] .tc-meta {
+  color: var(--tc-chip-ink, #142033);
+  border-color: var(--tc-chip-border, color-mix(in srgb, var(--separator) 72%, rgba(79, 142, 247, 0.22)));
+  background: var(--tc-chip-bg, linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--tc-sky) 22%, #ffffff)));
+  box-shadow: var(--tc-chip-shadow, 0 8px 20px rgba(49, 79, 128, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.7) inset);
+  backdrop-filter: blur(12px) saturate(1.08);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+  text-shadow: none;
+}
+
+html[data-theme="light"][data-route="tags"] .tc-hud-bottom {
+  color: var(--tc-ink-3, #4a5d7a);
+  /* 底部微渐变托住 HUD，避免芯片直接贴在亮天穹上发灰 */
+  background: linear-gradient(0deg, color-mix(in srgb, var(--tc-sky) 78%, #ffffff) 0%, transparent 72%);
 }
 
 .tc-error {
@@ -1248,6 +1305,7 @@ html[data-theme="light"] .tc-loader-core {
   }
   .tc-title-block,
   .tc-hint,
+  .tc-meta,
   .tc-panel {
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
