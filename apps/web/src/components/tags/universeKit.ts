@@ -26,7 +26,7 @@ export type StarRuntime = {
 };
 
 export const BG_DARK = 0x02030a;
-export const BG_LIGHT = 0xf3f7fc;
+export const BG_LIGHT = 0xf5f8fc;
 /** @deprecated 使用 resolveUniverseTheme().bg */
 export const BG = BG_DARK;
 export const ZERO = new THREE.Vector3(0, 0, 0);
@@ -286,9 +286,9 @@ export function makeSpaceBgTexture(mode: UniverseMode = 'dark'): THREE.CanvasTex
       size * 0.78,
     );
     g.addColorStop(0, '#fbfcfe');
-    g.addColorStop(0.28, '#f3f7fc');
-    g.addColorStop(0.62, '#e8f0f8');
-    g.addColorStop(1, '#dce7f2');
+    g.addColorStop(0.28, '#f5f8fc');
+    g.addColorStop(0.62, '#eef3f9');
+    g.addColorStop(1, '#e4ecf5');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
 

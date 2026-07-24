@@ -6,6 +6,7 @@ html[data-route="tags"] body,
 html[data-route="tags"] #root {
   --tc-sky: #03040c;
   --tc-sky-deep: #02030a;
+  --tc-sky-top: #040612;
   --tc-ink: var(--text-on-ink);
   --tc-ink-2: var(--text-on-ink-2);
   --tc-ink-3: var(--text-on-ink-3);
@@ -39,9 +40,10 @@ html[data-route="tags"] #root {
 html[data-route="tags"][data-theme="light"],
 html[data-route="tags"][data-theme="light"] body,
 html[data-route="tags"][data-theme="light"] #root {
-  /* 与站点亮色 --bg(#f6f8fc) 同系，避免顶栏与场景色温打架 */
-  --tc-sky: #f3f7fc;
-  --tc-sky-deep: #e8f0f8;
+  /* 与站点亮色 --bg 同系；天穹略抬亮，顶栏可无缝叠在同一色带上 */
+  --tc-sky: #f5f8fc;
+  --tc-sky-deep: #eef3f9;
+  --tc-sky-top: #f7f9fd;
   --tc-ink: #142033;
   --tc-ink-2: #2a3a55;
   --tc-ink-3: #4a5d7a;
@@ -312,6 +314,27 @@ html:has(.tc-page) .page-shell > .topbar {
 .page-shell:has(.tc-page) {
   background: var(--tc-sky, #03040c);
 }
+/* 顶栏占位带与场景同一色带，避免 sticky 顶栏背后露出不同底色 */
+html[data-route="tags"] .page-shell,
+html:has(.tc-page) .page-shell {
+  background:
+    linear-gradient(
+      180deg,
+      var(--tc-sky-top, var(--tc-sky, #03040c)) 0,
+      var(--tc-sky, #03040c) min(120px, 18vh),
+      var(--tc-sky, #03040c) 100%
+    );
+}
+html[data-route="tags"][data-theme="light"] .page-shell,
+html[data-theme="light"]:has(.tc-page) .page-shell {
+  background:
+    linear-gradient(
+      180deg,
+      var(--tc-sky-top, #f7f9fd) 0,
+      var(--tc-sky, #f5f8fc) 96px,
+      var(--tc-sky-deep, #eef3f9) 100%
+    );
+}
 
 .tc-page {
   position: relative;
@@ -341,7 +364,7 @@ html:has(.tc-page) .page-shell > .topbar {
   background: var(--tc-sky-deep, #02030a);
 }
 .tu-stage.is-light {
-  background: var(--tc-sky-deep, #d7e6fb);
+  background: var(--tc-sky-deep, #eef3f9);
 }
 
 .tu-canvas {
@@ -378,9 +401,10 @@ html:has(.tc-page) .page-shell > .topbar {
 .tu-stage.is-light .tu-vignette,
 html[data-theme="light"] .tu-vignette {
   background:
-    radial-gradient(62% 54% at 50% 44%, transparent 40%, rgba(170, 186, 206, 0.12) 74%, rgba(150, 168, 190, 0.24) 100%),
-    linear-gradient(180deg, color-mix(in srgb, var(--tc-sky, #f3f7fc) 55%, transparent), transparent 18%, transparent 78%, color-mix(in srgb, var(--tc-sky, #f3f7fc) 42%, transparent)),
-    linear-gradient(90deg, rgba(160, 176, 196, 0.1), transparent 18%, transparent 82%, rgba(160, 176, 196, 0.1));
+    radial-gradient(62% 54% at 50% 44%, transparent 42%, rgba(170, 186, 206, 0.08) 78%, rgba(150, 168, 190, 0.16) 100%),
+    /* 顶部几乎无压暗，让顶栏与画布直接溶合 */
+    linear-gradient(180deg, color-mix(in srgb, var(--tc-sky-top, var(--tc-sky, #f5f8fc)) 28%, transparent) 0%, transparent 22%, transparent 78%, color-mix(in srgb, var(--tc-sky-deep, #eef3f9) 36%, transparent)),
+    linear-gradient(90deg, rgba(160, 176, 196, 0.06), transparent 20%, transparent 80%, rgba(160, 176, 196, 0.06));
 }
 
 .tu-aurora {
@@ -603,6 +627,19 @@ html[data-theme="light"][data-route="tags"] .tu-label.is-focus {
 
 .tc-hud-top {
   top: 0;
+  /* 与顶栏溶合：顶部 HUD 自带极轻天穹渐隐，避免第二道硬边 */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tc-sky-top, var(--tc-sky, #03040c)) 42%, transparent) 0%,
+    transparent 78%
+  );
+}
+html[data-theme="light"][data-route="tags"] .tc-hud-top {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tc-sky-top, var(--tc-sky, #f5f8fc)) 55%, transparent) 0%,
+    transparent 82%
+  );
 }
 
 .tc-hud-bottom {
@@ -980,49 +1017,111 @@ html[data-theme="light"][data-route="tags"] .tc-panel-close:hover {
   transform: scale(1.05);
 }
 
-/* 星图页导航：默认沿用暗色沉浸；亮色主题走日间玻璃 chrome */
+/* 星图页导航：顶栏与天穹同色带溶合，弱化毛玻璃色偏（断裂感） */
+html[data-theme="dark"]:has(.tc-page) .topbar,
+html[data-theme="dark"][data-route="tags"] .topbar,
+html[data-theme="light"]:has(.tc-page) .topbar,
+html[data-theme="light"][data-route="tags"] .topbar {
+  position: sticky;
+  overflow: visible;
+  border-bottom: 0 !important;
+  border-bottom-color: transparent !important;
+  box-shadow: none !important;
+  /* 轻过渡，滚动态不跳色 */
+  transition:
+    background 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    -webkit-backdrop-filter 280ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
 html[data-theme="dark"]:has(.tc-page) .topbar,
 html[data-theme="dark"][data-route="tags"] .topbar {
+  /* 几乎透明叠层 + 极轻 blur，颜色完全吃 --tc-sky */
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--tc-sky, #03040c) 82%, transparent) 0%,
-      color-mix(in srgb, var(--tc-sky, #03040c) 38%, transparent) 72%,
+      color-mix(in srgb, var(--tc-sky-top, var(--tc-sky, #03040c)) 72%, transparent) 0%,
+      color-mix(in srgb, var(--tc-sky, #03040c) 28%, transparent) 58%,
       transparent 100%
     ) !important;
-  border-bottom-color: transparent !important;
-  backdrop-filter: blur(16px) saturate(1.1);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
-  box-shadow: none !important;
+  backdrop-filter: blur(10px) saturate(1) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1) !important;
+}
+
+html[data-theme="dark"]:has(.tc-page) .topbar.is-scrolled,
+html[data-theme="dark"][data-route="tags"] .topbar.is-scrolled {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tc-sky, #03040c) 86%, transparent) 0%,
+      color-mix(in srgb, var(--tc-sky, #03040c) 42%, transparent) 70%,
+      transparent 100%
+    ) !important;
+  backdrop-filter: blur(14px) saturate(1.02) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.02) !important;
 }
 
 html[data-theme="light"]:has(.tc-page) .topbar,
 html[data-theme="light"][data-route="tags"] .topbar {
-  /* 顶栏直接吃星图天穹色，取消偏蓝滤镜与强饱和，避免和场景脱节 */
+  /* 日间：顶栏洗色 = 天穹顶色，saturate 锁 1 去掉蓝偏滤镜 */
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--tc-sky) 88%, transparent) 0%,
-      color-mix(in srgb, var(--tc-sky) 42%, transparent) 70%,
+      color-mix(in srgb, var(--tc-sky-top, var(--tc-sky, #f5f8fc)) 78%, transparent) 0%,
+      color-mix(in srgb, var(--tc-sky, #f5f8fc) 34%, transparent) 62%,
       transparent 100%
     ) !important;
-  border-bottom-color: transparent !important;
-  backdrop-filter: blur(14px) saturate(1.05);
-  -webkit-backdrop-filter: blur(14px) saturate(1.05);
-  box-shadow: none !important;
+  backdrop-filter: blur(8px) saturate(1) brightness(1) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1) brightness(1) !important;
 }
 
 html[data-theme="light"]:has(.tc-page) .topbar.is-scrolled,
-html[data-theme="light"][data-route="tags"] .topbar.is-scrolled {
+html[data-theme="light"][data-route="tags"] .topbar.is-scrolled,
+html[data-theme="light"]:has(.tc-page) .topbar.is-solid,
+html[data-theme="light"][data-route="tags"] .topbar.is-solid,
+html[data-theme="light"]:has(.tc-page) .topbar:hover,
+html[data-theme="light"][data-route="tags"] .topbar:hover {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--tc-sky) 94%, transparent) 0%,
-      color-mix(in srgb, var(--tc-sky) 58%, transparent) 74%,
-      color-mix(in srgb, var(--tc-sky) 8%, transparent) 100%
+      color-mix(in srgb, var(--tc-sky-top, var(--tc-sky, #f5f8fc)) 90%, transparent) 0%,
+      color-mix(in srgb, var(--tc-sky, #f5f8fc) 48%, transparent) 68%,
+      transparent 100%
     ) !important;
-  backdrop-filter: blur(18px) saturate(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  backdrop-filter: blur(12px) saturate(1) brightness(1) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1) brightness(1) !important;
+}
+
+/* 顶栏下方溶合羽化：把菜单与画布接缝抹平 */
+html:has(.tc-page) .topbar::after,
+html[data-route="tags"] .topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -28px;
+  height: 28px;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tc-sky-top, var(--tc-sky, #03040c)) 22%, transparent) 0%,
+    transparent 100%
+  );
+  opacity: 0.9;
+}
+html[data-theme="light"]:has(.tc-page) .topbar::after,
+html[data-theme="light"][data-route="tags"] .topbar::after {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tc-sky-top, var(--tc-sky, #f5f8fc)) 38%, transparent) 0%,
+    transparent 100%
+  );
+}
+html:has(.tc-page) .topbar-inner,
+html[data-route="tags"] .topbar-inner {
+  position: relative;
+  z-index: 1;
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-brand-copy .app-brand-title,
@@ -1050,10 +1149,12 @@ html[data-theme="dark"][data-route="tags"] .topbar-brand-mark {
 }
 html[data-theme="light"]:has(.tc-page) .topbar-brand-mark,
 html[data-theme="light"][data-route="tags"] .topbar-brand-mark {
-  background: rgba(255, 255, 255, 0.82) !important;
+  background: color-mix(in srgb, #ffffff 62%, transparent) !important;
   box-shadow:
-    inset 0 0 0 1px rgba(79, 142, 247, 0.12),
-    0 1px 2px rgba(49, 79, 128, 0.08) !important;
+    inset 0 0 0 1px rgba(79, 142, 247, 0.1),
+    0 1px 2px rgba(49, 79, 128, 0.05) !important;
+  backdrop-filter: blur(8px) saturate(1);
+  -webkit-backdrop-filter: blur(8px) saturate(1);
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-nav-track,
@@ -1066,11 +1167,18 @@ html[data-theme="dark"][data-route="tags"] .topbar-nav-track {
 }
 html[data-theme="light"]:has(.tc-page) .topbar-nav-track,
 html[data-theme="light"][data-route="tags"] .topbar-nav-track {
-  background: color-mix(in srgb, #ffffff 70%, var(--tc-sky)) !important;
-  border-color: color-mix(in srgb, var(--separator) 80%, transparent) !important;
+  background: color-mix(in srgb, #ffffff 42%, transparent) !important;
+  border-color: color-mix(in srgb, var(--separator) 48%, transparent) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.75),
-    0 1px 2px rgba(20, 26, 36, 0.04) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 8px 20px rgba(49, 79, 128, 0.04) !important;
+  backdrop-filter: blur(12px) saturate(1.02);
+  -webkit-backdrop-filter: blur(12px) saturate(1.02);
+}
+html[data-theme="light"]:has(.tc-page) .topbar.is-scrolled .topbar-nav-track,
+html[data-theme="light"][data-route="tags"] .topbar.is-scrolled .topbar-nav-track {
+  background: color-mix(in srgb, #ffffff 58%, var(--tc-sky)) !important;
+  border-color: color-mix(in srgb, var(--separator) 62%, transparent) !important;
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-nav-item,
@@ -1119,8 +1227,10 @@ html[data-theme="dark"][data-route="tags"] .topbar-action-btn {
 html[data-theme="light"]:has(.tc-page) .topbar-action-btn,
 html[data-theme="light"][data-route="tags"] .topbar-action-btn {
   color: var(--tc-ink-2, #2a3a55) !important;
-  background: color-mix(in srgb, #ffffff 82%, var(--tc-sky)) !important;
-  border-color: color-mix(in srgb, var(--separator) 85%, transparent) !important;
+  background: color-mix(in srgb, #ffffff 55%, transparent) !important;
+  border-color: color-mix(in srgb, var(--separator) 55%, transparent) !important;
+  backdrop-filter: blur(10px) saturate(1);
+  -webkit-backdrop-filter: blur(10px) saturate(1);
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-action-btn:hover,
@@ -1147,8 +1257,10 @@ html[data-theme="dark"][data-route="tags"] .topbar-oss-link {
 html[data-theme="light"]:has(.tc-page) .topbar-oss-link,
 html[data-theme="light"][data-route="tags"] .topbar-oss-link {
   color: var(--tc-ink-3, #4a5d7a) !important;
-  background: color-mix(in srgb, #ffffff 82%, var(--tc-sky)) !important;
-  border-color: color-mix(in srgb, var(--separator) 85%, transparent) !important;
+  background: color-mix(in srgb, #ffffff 52%, transparent) !important;
+  border-color: color-mix(in srgb, var(--separator) 55%, transparent) !important;
+  backdrop-filter: blur(10px) saturate(1);
+  -webkit-backdrop-filter: blur(10px) saturate(1);
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-oss-link:hover,
