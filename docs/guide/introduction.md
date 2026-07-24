@@ -6,7 +6,10 @@ description: BokeBox 产品定位：多源内容转化为私人 AI 播客。
 
 > **BokeBox · 播匣** —— 内容进匣，AI 成播  
 > 仓库：<https://github.com/vastsa/BokeBox>  
-> 协议：LGPL-3.0-only
+> 协议：LGPL-3.0-only  
+> Product Hunt：<https://www.producthunt.com/products/bokebox>
+
+<a href="https://www.producthunt.com/products/bokebox?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bokebox" target="_blank" rel="noopener noreferrer"><img alt="BokeBox - Multi-source private podcasts with MCP + plugins | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1205113&theme=light&t=1784859421480" /></a>
 
 ## 一句话
 

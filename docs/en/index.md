@@ -18,6 +18,9 @@ hero:
     - theme: alt
       text: GitHub
       link: https://github.com/vastsa/BokeBox
+    - theme: alt
+      text: Product Hunt
+      link: https://www.producthunt.com/products/bokebox
 
 features:
   - icon: 🎧
@@ -82,9 +85,14 @@ features:
   Any link (plugin-extensible)       Cover · flashcards · progress
 ```
 
+
 ## Live links
 
+<a href="https://www.producthunt.com/products/bokebox?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bokebox" target="_blank" rel="noopener noreferrer"><img alt="BokeBox - Multi-source private podcasts with MCP + plugins | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1205113&theme=light&t=1784859421480" /></a>
+
+
 - Demo: <https://bokebox.aiuo.net/>
+- Product Hunt: <https://www.producthunt.com/products/bokebox>
 - Docs: <https://bkb-docs.aiuo.net/>
 - Source: <https://github.com/vastsa/BokeBox>
 

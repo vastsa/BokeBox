@@ -22,8 +22,15 @@
 </p>
 
 <p align="center">
+  <a href="https://www.producthunt.com/products/bokebox?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bokebox" target="_blank" rel="noopener noreferrer">
+    <img alt="BokeBox - Multi-source private podcasts with MCP + plugins | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1205113&theme=light&t=1784859421480" />
+  </a>
+</p>
+
+<p align="center">
   <a href="https://bokebox.aiuo.net/">演示站</a> ·
   <a href="https://bkb-docs.aiuo.net/">在线文档</a> ·
+  <a href="https://www.producthunt.com/products/bokebox">Product Hunt</a> ·
   <a href="#-30-秒看懂">了解产品</a> ·
   <a href="#-功能清单">功能清单</a> ·
   <a href="#-谁适合用">适合谁</a> ·

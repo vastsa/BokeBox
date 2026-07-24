@@ -1,6 +1,7 @@
 import { defineConfig, type DefaultTheme } from 'vitepress'
 
 const repo = 'https://github.com/vastsa/BokeBox'
+const productHunt = 'https://www.producthunt.com/products/bokebox'
 
 function navZh(): DefaultTheme.NavItem[] {
   return [
@@ -46,6 +47,7 @@ function navZh(): DefaultTheme.NavItem[] {
     },
     { text: '运维', link: '/ops/ci-cd' },
     { text: 'GitHub', link: repo },
+    { text: 'Product Hunt', link: productHunt },
   ]
 }
 
@@ -93,6 +95,7 @@ function navEn(): DefaultTheme.NavItem[] {
     },
     { text: 'Ops', link: '/en/ops/ci-cd' },
     { text: 'GitHub', link: repo },
+    { text: 'Product Hunt', link: productHunt },
   ]
 }
 

@@ -6,7 +6,10 @@ description: What BokeBox is — multi-source content to private AI podcasts.
 
 > **BokeBox** — content in, AI podcasts out  
 > Repo: <https://github.com/vastsa/BokeBox>  
-> License: LGPL-3.0-only
+> License: LGPL-3.0-only  
+> Product Hunt: <https://www.producthunt.com/products/bokebox>
+
+<a href="https://www.producthunt.com/products/bokebox?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bokebox" target="_blank" rel="noopener noreferrer"><img alt="BokeBox - Multi-source private podcasts with MCP + plugins | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1205113&theme=light&t=1784859421480" /></a>
 
 ## In one line
 
