@@ -119,3 +119,7 @@ features:
 - Issues: <https://github.com/vastsa/BokeBox/issues>
 
 简体中文文档：[/](/)
+
+## Disclaimer
+
+Provided **AS IS** for learning, research, and technical exchange. Operators are responsible for lawful use and compliance. See the [README disclaimer](https://github.com/vastsa/BokeBox/blob/main/README.md#disclaimer) and [LICENSE](https://github.com/vastsa/BokeBox/blob/main/LICENSE) (LGPL-3.0).

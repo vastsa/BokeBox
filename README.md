@@ -33,7 +33,8 @@
   <a href="https://www.producthunt.com/products/bokebox">Product Hunt</a> ·
   <a href="#get-started">Get started</a> ·
   <a href="#ui">UI</a> ·
-  <a href="#feature-map">Features</a>
+  <a href="#feature-map">Features</a> ·
+  <a href="#disclaimer">Disclaimer</a>
 </p>
 
 <p align="center">
@@ -309,6 +310,34 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 </details>
 
 ---
+
+---
+
+## Disclaimer
+
+**This project is provided “AS IS”, for learning, research, and technical exchange only.** The authors and contributors make **no warranties**, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, availability, or continued availability.
+
+By using, deploying, modifying, or distributing this project (including derivatives and third-party plugins), you acknowledge and agree that:
+
+1. **Compliance is your responsibility**  
+   You must comply with all applicable laws and regulations in your jurisdiction(s), including copyright and related rights, personal data / privacy, cybersecurity, generative-AI rules, trade secrets, platform terms of service, and export controls.
+
+2. **Content rights are on you**  
+   You alone must ensure that materials you ingest, scrape, transcribe, rewrite, synthesize, store, or distribute are lawfully authorized or otherwise permitted. Do not use this project for infringement, circumvention of technical protection measures, unauthorized access, fraud, harassment, or other unlawful purposes.
+
+3. **Risks stay with the operator**  
+   To the maximum extent permitted by law, the authors and contributors are **not liable** for any direct, indirect, incidental, special, punitive, or consequential damages (including data loss, downtime, account bans, third-party claims, or administrative penalties) arising from use of this project. Enabling plugins, MCP, schedules, guest access, reverse proxies, or public exposure is at your own risk.
+
+4. **Third-party services & dependencies**  
+   Model APIs, TTS/ASR providers, fetch-style plugins, container images, and other third-party components have their own terms and billing. Their availability, cost, safety policies, and compliance duties are outside this project’s responsibility.
+
+5. **Demo & docs**  
+   The demo instance and documentation examples are for illustration only and are **not** a product commitment, professional advice, or implied license. Do not put real secrets, private data, or protected content into the demo environment.
+
+6. **Open-source license**  
+   Software licensing is governed by the root [LICENSE](LICENSE) (**LGPL-3.0-only**). This disclaimer supplements risk notice and liability boundaries and **does not alter** rights or obligations under LGPL. If any part conflicts with mandatory law, that part yields to the law and the remainder continues in effect.
+
+If you do not agree, do not download, install, use, or distribute this project.
 
 <p align="center">
   <b>BokeBox</b><br/>

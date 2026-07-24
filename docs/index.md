@@ -119,3 +119,7 @@ English map: [/en/](/en/)
 - 源码：<https://github.com/vastsa/BokeBox>
 - 协议：LGPL-3.0-only
 - Issues：<https://github.com/vastsa/BokeBox/issues>
+
+## 免责声明
+
+本项目按原样提供，**仅供学习、研究与技术交流**。使用与合规责任由部署者/使用者自行承担，详见 [README 免责声明](https://github.com/vastsa/BokeBox/blob/main/README.zh-CN.md#-免责声明) 与 [LICENSE](https://github.com/vastsa/BokeBox/blob/main/LICENSE)（LGPL-3.0）。
