@@ -160,7 +160,7 @@ Create, listen, and manage assets in one private space.
 
 ### Settings center
 - **Voice / Persona / Prompts / AI service / Plugins / Schedules / MCP / Site / Account**
-- Account: UI language + theme (system / light / dark)
+- Account: UI language (system / zh / en) + theme (system / light / dark)
 
 ### Schedules
 - Schedule plugins discover candidates; Source plugins fetch/parse

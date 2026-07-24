@@ -1500,6 +1500,13 @@ html[data-theme="dark"] .settings-toast {
 @media (max-width: 720px) {
   .settings-theme-pref-grid { grid-template-columns: 1fr; }
 }
+/* 语言三选项（跟随系统 + 中/英） */
+.settings-locale-pref-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 720px) {
+  .settings-locale-pref-grid { grid-template-columns: 1fr; }
+}
 @media (max-width: 560px) {
   .theme-pref-grid { grid-template-columns: 1fr; }
 }
@@ -1771,6 +1778,17 @@ html[data-theme="dark"] .settings-subtab.is-active {
   background:
     linear-gradient(145deg, color-mix(in srgb, var(--brand-soft) 80%, white), var(--surface-2));
   border: var(--bw-1) solid var(--separator);
+}
+.theme-pref-swatch.lang-pref-swatch[data-tone="system"] {
+  background: linear-gradient(135deg, #e8eef7 0 50%, #1f2734 50% 100%);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.02em;
+}
+html[data-theme="dark"] .theme-pref-swatch.lang-pref-swatch[data-tone="system"] {
+  background: linear-gradient(135deg, #1f2734 0 50%, #e8eef7 50% 100%);
+  color: var(--text);
 }
 .theme-pref-swatch.lang-pref-swatch[data-tone="zh-CN"] {
   background: linear-gradient(145deg, #fee2e2, #fecaca);

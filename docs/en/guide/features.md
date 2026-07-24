@@ -58,7 +58,7 @@ Aligned with Settings, job detail, and the listening library.
 | **Schedules** | Timed ingest |
 | **MCP** | Token & install snippets |
 | **Site** | Name, SEO, guest access |
-| **Account** | UI language, theme (system / light / dark), password |
+| **Account** | UI language (system / zh / en), theme (system / light / dark), password |
 
 ## Schedules
 

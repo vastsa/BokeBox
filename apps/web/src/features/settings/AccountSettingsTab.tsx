@@ -1,4 +1,4 @@
-import { useI18n, type Locale } from '../../i18n';
+import { useI18n, type Locale, type LocalePreference } from '../../i18n';
 import type { ThemePreference } from '../../lib/theme';
 import { PROJECT_GITHUB_URL, PROJECT_LICENSE_SPDX } from '../../lib/project';
 import { SettingsBlock, SettingsCard, SettingsPanel } from './SettingsChrome';
@@ -6,7 +6,7 @@ import { SettingsBlock, SettingsCard, SettingsPanel } from './SettingsChrome';
 type Props = {
   active: boolean;
   username: string;
-  locale: Locale;
+  localePref: LocalePreference;
   locales: Locale[];
   meta: Record<string, { nativeLabel: string; label: string; short?: string; englishLabel?: string }>;
   themePref: ThemePreference;
@@ -14,7 +14,7 @@ type Props = {
   newPassword: string;
   confirmPassword: string;
   savingPw: boolean;
-  onLocaleChange: (code: Locale) => void;
+  onLocaleChange: (code: LocalePreference) => void;
   onThemeChange: (next: ThemePreference) => void;
   onCurrentPasswordChange: (v: string) => void;
   onNewPasswordChange: (v: string) => void;
@@ -26,7 +26,7 @@ type Props = {
 export function AccountSettingsTab({
   active,
   username,
-  locale,
+  localePref,
   locales,
   meta,
   themePref,
@@ -75,35 +75,52 @@ export function AccountSettingsTab({
                         desc={t('settings.languageDesc')}
                       >
                         <div
-                          className="theme-pref-grid"
+                          className="theme-pref-grid settings-locale-pref-grid"
                           role="radiogroup"
                           aria-label={t('settings.languageAria')}
                         >
-                          {locales.map((code) => {
-                            const item = meta[code];
-                            const active = locale === code;
+                          {(
+                            [
+                              {
+                                id: 'system' as const,
+                                short: 'Auto',
+                                label: t('settings.languageSystem'),
+                                desc: t('settings.languageSystemDesc'),
+                              },
+                              ...locales.map((code) => {
+                                const item = meta[code];
+                                return {
+                                  id: code,
+                                  short: item.short || code,
+                                  label: item.nativeLabel,
+                                  desc: item.label,
+                                };
+                              }),
+                            ] as const
+                          ).map((item) => {
+                            const selected = localePref === item.id;
                             return (
                               <button
-                                key={code}
+                                key={item.id}
                                 type="button"
                                 role="radio"
-                                aria-checked={active}
+                                aria-checked={selected}
                                 className={[
                                   'theme-pref-card',
-                                  active ? 'is-active' : '',
+                                  selected ? 'is-active' : '',
                                 ].join(' ')}
-                                onClick={() => onLocaleChange(code)}
+                                onClick={() => onLocaleChange(item.id)}
                               >
                                 <span
                                   className="theme-pref-swatch lang-pref-swatch"
-                                  data-tone={code}
+                                  data-tone={item.id}
                                   aria-hidden
                                 >
                                   {item.short}
                                 </span>
                                 <span className="theme-pref-copy">
-                                  <strong>{item.nativeLabel}</strong>
-                                  <em>{item.label}</em>
+                                  <strong>{item.label}</strong>
+                                  <em>{item.desc}</em>
                                 </span>
                               </button>
                             );

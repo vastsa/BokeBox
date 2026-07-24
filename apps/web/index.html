@@ -60,17 +60,20 @@
         try {
           var key = 'pb-locale';
           var pref = localStorage.getItem(key);
-          if (pref !== 'zh-CN' && pref !== 'en-US') {
+          if (pref !== 'zh-CN' && pref !== 'en-US' && pref !== 'system') pref = 'system';
+          var resolved = pref;
+          if (pref === 'system') {
             var nav = (navigator.language || '').toLowerCase();
             var list = navigator.languages || [];
-            pref = 'zh-CN';
+            resolved = 'zh-CN';
             var cands = [nav].concat([].slice.call(list)).map(function (x) { return String(x || '').toLowerCase(); });
             for (var i = 0; i < cands.length; i++) {
-              if (cands[i].indexOf('zh') === 0) { pref = 'zh-CN'; break; }
-              if (cands[i].indexOf('en') === 0) { pref = 'en-US'; break; }
+              if (cands[i].indexOf('zh') === 0) { resolved = 'zh-CN'; break; }
+              if (cands[i].indexOf('en') === 0) { resolved = 'en-US'; break; }
             }
           }
-          document.documentElement.lang = pref;
+          document.documentElement.setAttribute('data-locale-pref', pref);
+          document.documentElement.lang = resolved;
         } catch (e) {}
       })();
     </script>

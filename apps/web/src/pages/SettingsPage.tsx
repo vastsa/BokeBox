@@ -56,7 +56,7 @@ import { AccountSettingsTab } from '../features/settings/AccountSettingsTab';
 import { ScheduleSettingsTab } from '../features/settings/ScheduleSettingsTab';
 
 export function SettingsPage({ route }: { route: Route }) {
-  const { t, locale, setLocale, locales, meta } = useI18n();
+  const { t, localePref, setLocalePreference, locales, meta } = useI18n();
   const [tab, setTab] = useState<SettingsTab>('voice');
   const [username, setUsername] = useState('');
   const [, setAi] = useState<PublicAiConfig | null>(null);
@@ -571,7 +571,7 @@ export function SettingsPage({ route }: { route: Route }) {
                 <AccountSettingsTab
                   active={tab === 'account'}
                   username={username}
-                  locale={locale}
+                  localePref={localePref}
                   locales={locales}
                   meta={meta}
                   themePref={themePref}
@@ -579,7 +579,7 @@ export function SettingsPage({ route }: { route: Route }) {
                   newPassword={newPassword}
                   confirmPassword={confirmPassword}
                   savingPw={savingPw}
-                  onLocaleChange={setLocale}
+                  onLocaleChange={setLocalePreference}
                   onThemeChange={onThemeChange}
                   onCurrentPasswordChange={setCurrentPassword}
                   onNewPasswordChange={setNewPassword}

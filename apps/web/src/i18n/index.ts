@@ -1,6 +1,8 @@
 export {
   applyLocale,
+  applyLocalePreference,
   getLocale,
+  getLocalePreference,
   initLocale,
   LOCALES,
   LOCALE_META,
@@ -13,11 +15,15 @@ export {
   isUiLocale,
   listLocaleMeta,
   resolveContentLocale,
+  resolveLocale,
   resolveUiLocale,
   setLocale,
+  setLocalePreference,
   subscribeLocale,
+  subscribeLocalePreference,
   type Locale,
   type LocaleMeta,
+  type LocalePreference,
 } from './locale';
 export { I18nProvider, tOutside, useI18n } from './context';
 export {
