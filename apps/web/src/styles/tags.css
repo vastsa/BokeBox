@@ -357,15 +357,6 @@ html:has(.tc-page) .page-shell > .topbar {
   z-index: 4;
   pointer-events: none;
   overflow: hidden;
-  /* 扁平投影层：子按钮自行恢复 pointer-events */
-}
-.tu-labels .tu-label {
-  pointer-events: auto;
-  position: absolute;
-  top: 0;
-  left: 0;
-  /* transform 由 JS 写入：translate(-50%,-50%) translate(x,y) */
-  margin: 0;
 }
 
 .tu-vignette {

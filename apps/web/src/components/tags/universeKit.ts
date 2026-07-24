@@ -3,6 +3,7 @@
  * 与 React 组件解耦，便于拆包与单测
  */
 import * as THREE from 'three';
+import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { hashSeed } from '../../lib/format';
 import type { TagStar } from './types';
 
@@ -13,8 +14,7 @@ export type StarRuntime = {
   corona: THREE.Mesh;
   halo: THREE.Mesh;
   spike: THREE.Mesh;
-  /** 扁平 HTML 标签（非 CSS2D），由外层 overlay 投影 */
-  labelEl: HTMLButtonElement;
+  label: CSS2DObject;
   basePos: THREE.Vector3;
   baseScale: number;
   phase: number;
