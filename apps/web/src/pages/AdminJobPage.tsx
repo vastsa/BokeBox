@@ -120,8 +120,12 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
   if (error) {
     return (
       <AppShell route={route}>
-        <div className="admin-container py-16 text-center">
-          <div className="jd-empty">
+        <AdminChrome
+          route={route}
+          title={t('admin.jobDetailTitle')}
+          subtitle={t('admin.jobDetailSub')}
+        >
+          <div className="jd-empty py-16 text-center">
             <p className="text-[var(--danger)]">{error}</p>
             <button
               type="button"
@@ -131,7 +135,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
               {t('admin.backToLibrary')}
             </button>
           </div>
-        </div>
+        </AdminChrome>
       </AppShell>
     );
   }
@@ -139,14 +143,20 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
   if (!job) {
     return (
       <AppShell route={route}>
-        <div className="admin-container space-y-3 py-8 jd-page">
-          <div className="nl-shimmer h-28" />
-          <div className="nl-shimmer h-48" />
-          <div className="jd-layout">
-            <div className="nl-shimmer h-80" />
-            <div className="nl-shimmer h-56" />
+        <AdminChrome
+          route={route}
+          title={t('admin.jobDetailTitle')}
+          subtitle={t('admin.jobDetailSub')}
+        >
+          <div className="jd-page space-y-3">
+            <div className="nl-shimmer h-28" />
+            <div className="nl-shimmer h-48" />
+            <div className="jd-layout">
+              <div className="nl-shimmer h-80" />
+              <div className="nl-shimmer h-56" />
+            </div>
           </div>
-        </div>
+        </AdminChrome>
       </AppShell>
     );
   }
@@ -189,7 +199,7 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
         title={t('admin.jobDetailTitle')}
         subtitle={t('admin.jobDetailSub')}
       >
-      <div className="admin-container nl-enter jd-page">
+      <div className="jd-page">
         {/* 上：任务头图 / 状态 */}
         <JobDetailHero
           job={job}

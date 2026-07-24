@@ -648,9 +648,14 @@ html[data-theme="dark"] .settings-seo-preview-title {
   min-width: 0;
 }
 
-/* job detail inside admin console */
+/* job detail inside admin console
+ * 注意：AdminChrome 已带 page-container，jd-page 不再包 admin-container，
+ * 避免 calc(100% - 2*page-x) 二次收窄导致内容边距比其他页面更大。
+ */
 .admin-console .jd-page {
   margin-top: 0;
+  width: 100%;
+  max-width: none;
 }
 
 .admin-console .jd-hero {
