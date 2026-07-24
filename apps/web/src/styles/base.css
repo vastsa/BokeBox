@@ -557,21 +557,242 @@ select.plugin-config-control {
   white-space: nowrap;
 }
 
-/* nav */
+/* nav · 现代化顶栏 / 底栏
+ * 参考 iOS Liquid Glass + 字节式分段导航：
+ * - 顶栏毛玻璃 + 悬浮胶囊轨道
+ * - 激活项实心胶囊高亮 + 轻阴影
+ * - 底栏浮动圆角坞（floating dock）
+ */
 .topbar {
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
   padding-top: max(var(--space-1_5), var(--safe-top));
-  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg) 88%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 62%, transparent) 100%
+    );
   border-bottom: var(--space-px) solid transparent;
-  backdrop-filter: blur(var(--blur-xl)) saturate(1.2);
-  -webkit-backdrop-filter: blur(var(--blur-xl)) saturate(1.2);
+  backdrop-filter: blur(var(--blur-4xl)) saturate(1.35);
+  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.35);
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
 }
 .topbar.is-solid,
 .topbar:hover {
-  border-bottom-color: var(--separator);
+  border-bottom-color: color-mix(in srgb, var(--separator) 72%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--white) 40%, transparent);
 }
+html[data-theme="dark"] .topbar {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg) 82%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 48%, transparent) 100%
+    );
+}
+html[data-theme="dark"] .topbar.is-solid,
+html[data-theme="dark"] .topbar:hover {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--white) 6%, transparent);
+}
+
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--control-9xl);
+  padding-block: var(--space-1_5);
+}
+
+.topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-3xl);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.topbar-brand:hover {
+  opacity: 0.92;
+}
+.topbar-brand:active {
+  transform: scale(0.985);
+}
+.topbar-brand-mark {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--control-3xl);
+  height: var(--control-3xl);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--surface) 92%, transparent) 0%,
+      color-mix(in srgb, var(--brand-soft) 70%, var(--surface)) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--white) 55%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink-a08, rgba(20, 26, 36, 0.08)) 80%, transparent);
+  overflow: hidden;
+}
+html[data-theme="dark"] .topbar-brand-mark {
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--surface) 88%, transparent) 0%,
+      color-mix(in srgb, var(--brand-soft) 55%, var(--surface)) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--white) 10%, transparent),
+    0 1px 2px rgba(0, 0, 0, 0.28);
+}
+.topbar-brand-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.topbar-brand-copy .app-brand-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: var(--lh-face);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text);
+}
+.topbar-brand-copy .app-brand-tagline {
+  display: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+  color: var(--text-3);
+}
+
+/* 桌面：居中悬浮胶囊导航 */
+.topbar-nav {
+  display: none;
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+}
+.topbar-nav-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  border: var(--bw-1) solid color-mix(in srgb, var(--separator) 88%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 92%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 78%, transparent) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--white) 55%, transparent),
+    0 8px 24px color-mix(in srgb, var(--blue-ink-a08, rgba(49, 79, 128, 0.08)) 90%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink-a04, rgba(20, 26, 36, 0.04)) 100%, transparent);
+  backdrop-filter: blur(var(--blur-3xl)) saturate(1.25);
+  -webkit-backdrop-filter: blur(var(--blur-3xl)) saturate(1.25);
+}
+html[data-theme="dark"] .topbar-nav-track {
+  border-color: color-mix(in srgb, var(--separator) 80%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 78%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 62%, transparent) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--white) 8%, transparent),
+    0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.topbar-nav-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--control-3xl);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-base-plus);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-normal);
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.topbar-nav-item:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+}
+.topbar-nav-item:active {
+  transform: scale(0.975);
+}
+.topbar-nav-item.is-active {
+  color: var(--brand-2);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--white) 88%, var(--brand-soft)) 0%,
+      color-mix(in srgb, var(--brand-soft) 88%, var(--surface)) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--brand) 16%, transparent),
+    0 1px 2px color-mix(in srgb, var(--brand) 12%, transparent),
+    0 6px 14px color-mix(in srgb, var(--brand-soft) 80%, transparent);
+}
+html[data-theme="dark"] .topbar-nav-item.is-active {
+  color: var(--brand-2);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--brand-soft) 70%, var(--surface)) 0%,
+      color-mix(in srgb, var(--brand-soft) 42%, var(--surface)) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--brand) 28%, transparent),
+    0 8px 18px rgba(0, 0, 0, 0.22);
+}
+.topbar-nav-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  opacity: 0.88;
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.topbar-nav-item.is-active .topbar-nav-icon {
+  opacity: 1;
+  transform: translateY(-0.5px);
+}
+.topbar-nav-label {
+  display: inline-block;
+}
+
 /* 手机端顶栏右上角：制作 / 设置 */
 .topbar-actions {
   display: inline-flex;
@@ -586,13 +807,21 @@ select.plugin-config-control {
   gap: var(--space-1);
   min-height: var(--control-xl);
   padding: 0 var(--space-2_5);
-  border: var(--bw-1) solid var(--separator);
+  border: var(--bw-1) solid color-mix(in srgb, var(--separator) 90%, transparent);
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 94%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 82%, transparent) 100%
+    );
   color: var(--text-2);
   font-size: var(--fs-sm-plus);
   font-weight: var(--fw-semibold);
   letter-spacing: var(--tracking-normal);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--white) 50%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink-a04, rgba(20, 26, 36, 0.04)) 100%, transparent);
   backdrop-filter: blur(var(--blur-md));
   -webkit-backdrop-filter: blur(var(--blur-md));
   cursor: pointer;
@@ -600,6 +829,7 @@ select.plugin-config-control {
     background var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
     transform var(--dur-fast) var(--ease);
 }
 .topbar-action-btn:hover {
@@ -611,9 +841,21 @@ select.plugin-config-control {
   transform: scale(0.96);
 }
 .topbar-action-btn.is-active {
-  background: var(--brand-soft);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--brand-soft) 88%, var(--surface)) 0%,
+      color-mix(in srgb, var(--brand-soft) 70%, var(--surface)) 100%
+    );
   color: var(--brand-2);
   border-color: color-mix(in srgb, var(--brand) 22%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--brand) 12%, transparent),
+    0 4px 12px color-mix(in srgb, var(--brand-soft) 70%, transparent);
+}
+.topbar-action-icon {
+  display: inline-grid;
+  place-items: center;
 }
 @media (max-width: 360px) {
   .topbar-action-btn {
@@ -622,11 +864,12 @@ select.plugin-config-control {
     min-height: var(--control-2xl);
     padding: 0;
   }
-  .topbar-action-btn span {
+  .topbar-action-btn span:not(.topbar-action-icon) {
     display: none;
   }
 }
 
+/* 移动端浮动底坞 */
 .bottom-nav {
   position: fixed;
   left: 0;
@@ -634,32 +877,137 @@ select.plugin-config-control {
   bottom: 0;
   z-index: var(--z-player);
   box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
   /* 与 --bottom-nav-h 对齐，避免与迷你播放条高度估算漂移 */
   min-height: var(--bottom-nav-h);
-  padding: var(--space-1) var(--space-2_5) calc(var(--space-1) + var(--safe-bottom));
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  border-top: var(--space-px) solid var(--separator);
-  backdrop-filter: blur(var(--blur-2xl)) saturate(1.15);
-  -webkit-backdrop-filter: blur(var(--blur-2xl)) saturate(1.15);
+  padding:
+    var(--space-1_5)
+    max(var(--space-3), var(--page-x, 16px))
+    calc(var(--space-1_5) + var(--safe-bottom));
+  background: transparent;
+  border-top: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
-html[data-theme="dark"] .bottom-nav { background: var(--surface-nav-dark); }
+.bottom-nav-track {
+  pointer-events: auto;
+  display: grid;
+  width: min(100%, 420px);
+  gap: 2px;
+  align-items: stretch;
+  padding: 6px;
+  border-radius: 22px;
+  border: var(--bw-1) solid color-mix(in srgb, var(--separator) 88%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 92%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 78%, transparent) 100%
+    );
+  box-shadow:
+    0 10px 30px color-mix(in srgb, var(--blue-ink-a08, rgba(49, 79, 128, 0.08)) 100%, transparent),
+    0 2px 8px color-mix(in srgb, var(--ink-a08, rgba(20, 26, 36, 0.08)) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--white) 55%, transparent);
+  backdrop-filter: blur(var(--blur-4xl)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.3);
+}
+.bottom-nav-track.is-guest {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.bottom-nav-track.is-authed {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+html[data-theme="dark"] .bottom-nav-track {
+  border-color: color-mix(in srgb, var(--separator) 80%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 78%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 58%, transparent) 100%
+    );
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.36),
+    0 2px 8px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 color-mix(in srgb, var(--white) 8%, transparent);
+}
 html[data-theme="dark"] .topbar-action-btn {
-    background: color-mix(in srgb, var(--surface) 80%, transparent);
-  }
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 84%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 70%, transparent) 100%
+    );
+}
 
 /* 底栏导航：默认克制，避免手机端傻大粗 */
 .bottom-nav-item {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 46px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-3);
   font-size: var(--fs-xs);
   font-weight: var(--fw-medium);
   letter-spacing: var(--tracking-normal);
   line-height: var(--lh-dense);
-  color: var(--text-3);
+  transition:
+    color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.bottom-nav-item:hover {
+  color: var(--text-2);
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+.bottom-nav-item:active {
+  transform: scale(0.96);
 }
 .bottom-nav-item.is-active {
   font-weight: var(--fw-semibold);
   color: var(--brand-2);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--brand-soft) 92%, transparent) 0%,
+      color-mix(in srgb, var(--brand-soft) 68%, transparent) 100%
+    );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 12%, transparent);
 }
-.bottom-nav-item span {
+.bottom-nav-icon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 20px;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.bottom-nav-item.is-active .bottom-nav-icon {
+  transform: translateY(-0.5px);
+}
+.bottom-nav-dot {
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 3px;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  transform: translateX(-50%);
+  opacity: 0.9;
+}
+.bottom-nav-label,
+.bottom-nav-item span.bottom-nav-label {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -806,9 +1154,34 @@ html[data-theme="dark"] .topbar-action-btn {
 @media (min-width: 768px) {
   .bottom-nav { display: none; }
   .topbar-actions { display: none; }
+  .topbar-nav { display: flex; }
+  .topbar-brand-copy .app-brand-tagline { display: block; }
   .app-brand-title {
     font-size: var(--fs-lg-plus);
     font-weight: var(--fw-semibold);
+  }
+  .topbar-inner {
+    min-height: var(--control-10xl);
+    padding-block: var(--space-2);
+  }
+}
+
+@media (min-width: 1100px) {
+  .topbar-nav-item {
+    padding: 0 16px;
+    gap: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar,
+  .topbar-brand,
+  .topbar-nav-item,
+  .topbar-action-btn,
+  .bottom-nav-item,
+  .bottom-nav-icon,
+  .topbar-nav-icon {
+    transition: none !important;
   }
 }
 

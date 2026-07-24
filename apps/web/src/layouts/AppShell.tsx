@@ -36,6 +36,15 @@ function prefetchSettings() {
   void import('../pages/SettingsPage');
 }
 
+type NavItemDef = {
+  id: string;
+  active: boolean;
+  label: string;
+  onClick: () => void;
+  onIntent?: () => void;
+  icon: ReactNode;
+};
+
 export function AppShell({
   route,
   children,
@@ -66,72 +75,87 @@ export function AppShell({
     route.name === 'admin-job';
   const settingsActive = route.name === 'settings';
 
+  const primaryItems: NavItemDef[] = [
+    {
+      id: 'home',
+      active: homeActive,
+      label: t('nav.home'),
+      onClick: () => navigate({ name: 'home' }),
+      icon: <IconLibrary size={16} />,
+    },
+    {
+      id: 'tags',
+      active: tagsActive,
+      label: t('nav.tags'),
+      onClick: () => navigate({ name: 'tags' }),
+      onIntent: prefetchTagCloud,
+      icon: <IconStars size={16} />,
+    },
+    {
+      id: 'albums',
+      active: albumsActive,
+      label: t('nav.albums'),
+      onClick: () => navigate({ name: 'albums' }),
+      onIntent: prefetchAlbums,
+      icon: <IconAlbum size={16} />,
+    },
+  ];
+
+  const authItems: NavItemDef[] = !isGuest
+    ? [
+        {
+          id: 'create',
+          active: createActive,
+          label: t('nav.create'),
+          onClick: () => navigate({ name: 'admin' }),
+          onIntent: prefetchCreate,
+          icon: <IconUpload size={16} />,
+        },
+        {
+          id: 'settings',
+          active: settingsActive,
+          label: t('nav.settings'),
+          onClick: () => navigate({ name: 'settings' }),
+          onIntent: prefetchSettings,
+          icon: <IconSpark size={16} />,
+        },
+      ]
+    : [
+        {
+          id: 'login',
+          active: false,
+          label: t('auth.login'),
+          onClick: () => navigate({ name: 'login' }),
+          icon: <IconSpark size={16} />,
+        },
+      ];
+
+  const allItems = [...primaryItems, ...authItems];
+
   return (
     <div className="page-shell">
       <header className="topbar">
-        <div className="page-container flex items-center justify-between gap-3 py-1.5">
+        <div className="topbar-inner page-container">
           <button
             type="button"
             onClick={() => navigate({ name: 'home' })}
-            className="flex min-h-[36px] items-center gap-2"
+            className="topbar-brand"
           >
-            <BrandMark size={32} />
-            <span className="text-left">
-              <span className="app-brand-title block text-[var(--fs-lg)] font-medium leading-none tracking-[var(--tracking-snug)] text-[var(--text)]">
-                {siteTitle}
-              </span>
-              <span className="app-brand-tagline mt-0.5 hidden text-[var(--fs-xs)] text-[var(--text-3)] sm:block">
-                {t('app.tagline')}
-              </span>
+            <span className="topbar-brand-mark">
+              <BrandMark size={30} />
+            </span>
+            <span className="topbar-brand-copy">
+              <span className="app-brand-title">{siteTitle}</span>
+              <span className="app-brand-tagline">{t('app.tagline')}</span>
             </span>
           </button>
 
-          <nav className="topbar-nav hidden items-center gap-0.5 rounded-full border border-[var(--separator)] bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] p-0.5 backdrop-blur md:flex">
-            <TopNavItem
-              active={homeActive}
-              label={t('nav.home')}
-              onClick={() => navigate({ name: 'home' })}
-              icon={<IconLibrary size={14} />}
-            />
-            <TopNavItem
-              active={tagsActive}
-              label={t('nav.tags')}
-              onClick={() => navigate({ name: 'tags' })}
-              onIntent={prefetchTagCloud}
-              icon={<IconStars size={14} />}
-            />
-            <TopNavItem
-              active={albumsActive}
-              label={t('nav.albums')}
-              onClick={() => navigate({ name: 'albums' })}
-              onIntent={prefetchAlbums}
-              icon={<IconAlbum size={14} />}
-            />
-            {!isGuest && (
-              <TopNavItem
-                active={createActive}
-                label={t('nav.create')}
-                onClick={() => navigate({ name: 'admin' })}
-                onIntent={prefetchCreate}
-                icon={<IconUpload size={14} />}
-              />
-            )}
-            {!isGuest ? (
-              <TopNavItem
-                active={settingsActive}
-                label={t('nav.settings')}
-                onClick={() => navigate({ name: 'settings' })}
-                onIntent={prefetchSettings}
-                icon={<IconSpark size={14} />}
-              />
-            ) : (
-              <TopNavItem
-                active={false}
-                label={t('auth.login')}
-                onClick={() => navigate({ name: 'login' })}
-                icon={<IconSpark size={14} />}
-              />
-            )}
+          <nav className="topbar-nav" aria-label={t('nav.main')}>
+            <div className="topbar-nav-track" role="list">
+              {allItems.map((item) => (
+                <TopNavItem key={item.id} {...item} />
+              ))}
+            </div>
           </nav>
 
           <div className="topbar-end">
@@ -143,34 +167,19 @@ export function AppShell({
               title={t('app.openSourceHint')}
               aria-label={`${t('app.openSourceBadge')} · ${t('app.github')}`}
             >
-              <IconGitHub size={18} className="topbar-oss-icon" />
+              <IconGitHub size={17} className="topbar-oss-icon" />
             </a>
-            <div className="topbar-actions md:hidden">
-              {!isGuest && (
+            <div className="topbar-actions">
+              {authItems.map((item) => (
                 <TopActionButton
-                  active={createActive}
-                  label={t('nav.create')}
-                  onClick={() => navigate({ name: 'admin' })}
-                  onIntent={prefetchCreate}
-                  icon={<IconUpload size={15} />}
+                  key={item.id}
+                  active={item.active}
+                  label={item.label}
+                  onClick={item.onClick}
+                  onIntent={item.onIntent}
+                  icon={item.icon}
                 />
-              )}
-              {!isGuest ? (
-                <TopActionButton
-                  active={settingsActive}
-                  label={t('nav.settings')}
-                  onClick={() => navigate({ name: 'settings' })}
-                  onIntent={prefetchSettings}
-                  icon={<IconSpark size={15} />}
-                />
-              ) : (
-                <TopActionButton
-                  active={false}
-                  label={t('auth.login')}
-                  onClick={() => navigate({ name: 'login' })}
-                  icon={<IconSpark size={15} />}
-                />
-              )}
+              ))}
             </div>
           </div>
         </div>
@@ -182,59 +191,16 @@ export function AppShell({
         <nav className="bottom-nav" aria-label={t('nav.main')}>
           <div
             className={[
-              'mx-auto grid max-w-md gap-0.5',
-              isGuest ? 'grid-cols-4' : 'grid-cols-5',
+              'bottom-nav-track',
+              isGuest ? 'is-guest' : 'is-authed',
             ].join(' ')}
           >
-            <BottomNavItem
-              active={homeActive}
-              label={t('nav.home')}
-              onClick={() => navigate({ name: 'home' })}
-              icon={<IconLibrary size={16} />}
-            />
-            <BottomNavItem
-              active={tagsActive}
-              label={t('nav.tags')}
-              onClick={() => navigate({ name: 'tags' })}
-              onIntent={prefetchTagCloud}
-              icon={<IconStars size={16} />}
-            />
-            <BottomNavItem
-              active={albumsActive}
-              label={t('nav.albums')}
-              onClick={() => navigate({ name: 'albums' })}
-              onIntent={prefetchAlbums}
-              icon={<IconAlbum size={16} />}
-            />
-            {!isGuest && (
-              <BottomNavItem
-                active={createActive}
-                label={t('nav.create')}
-                onClick={() => navigate({ name: 'admin' })}
-                onIntent={prefetchCreate}
-                icon={<IconUpload size={16} />}
-              />
-            )}
-            {!isGuest ? (
-              <BottomNavItem
-                active={settingsActive}
-                label={t('nav.settings')}
-                onClick={() => navigate({ name: 'settings' })}
-                onIntent={prefetchSettings}
-                icon={<IconSpark size={16} />}
-              />
-            ) : (
-              <BottomNavItem
-                active={false}
-                label={t('auth.login')}
-                onClick={() => navigate({ name: 'login' })}
-                icon={<IconSpark size={16} />}
-              />
-            )}
+            {allItems.map((item) => (
+              <BottomNavItem key={item.id} {...item} />
+            ))}
           </div>
         </nav>
       )}
-
     </div>
   );
 }
@@ -255,19 +221,18 @@ function TopNavItem({
   return (
     <button
       type="button"
+      role="listitem"
       onClick={onClick}
       onMouseEnter={onIntent}
       onFocus={onIntent}
       onTouchStart={onIntent}
-      className={[
-        'topbar-nav-item inline-flex min-h-[30px] items-center gap-1.5 rounded-full px-3 text-[var(--fs-base)] font-medium transition',
-        active
-          ? 'is-active bg-[var(--brand-soft)] text-[var(--brand-2)]'
-          : 'text-[var(--text-2)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]',
-      ].join(' ')}
+      aria-current={active ? 'page' : undefined}
+      className={['topbar-nav-item', active ? 'is-active' : ''].join(' ')}
     >
-      {icon}
-      {label}
+      <span className="topbar-nav-icon" aria-hidden>
+        {icon}
+      </span>
+      <span className="topbar-nav-label">{label}</span>
     </button>
   );
 }
@@ -296,7 +261,9 @@ function TopActionButton({
       title={label}
       className={['topbar-action-btn', active ? 'is-active' : ''].join(' ')}
     >
-      {icon}
+      <span className="topbar-action-icon" aria-hidden>
+        {icon}
+      </span>
       <span>{label}</span>
     </button>
   );
@@ -322,13 +289,14 @@ function BottomNavItem({
       onMouseEnter={onIntent}
       onFocus={onIntent}
       onTouchStart={onIntent}
-      className={[
-        'bottom-nav-item flex min-h-[42px] flex-col items-center justify-center gap-0.5 rounded-[var(--radius-md)] text-[var(--fs-xs)] font-medium transition',
-        active ? 'is-active bg-[var(--brand-soft)] text-[var(--brand-2)]' : 'text-[var(--text-3)]',
-      ].join(' ')}
+      aria-current={active ? 'page' : undefined}
+      className={['bottom-nav-item', active ? 'is-active' : ''].join(' ')}
     >
-      {icon}
-      <span>{label}</span>
+      <span className="bottom-nav-icon" aria-hidden>
+        {icon}
+        {active ? <span className="bottom-nav-dot" /> : null}
+      </span>
+      <span className="bottom-nav-label">{label}</span>
     </button>
   );
 }

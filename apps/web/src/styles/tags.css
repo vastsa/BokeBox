@@ -785,23 +785,34 @@ html:has(.tc-page) .topbar , html[data-route="tags"] .topbar {
 }
 
 html:has(.tc-page) .topbar .text-\[var\(--text\)\], html[data-route="tags"] .topbar .text-\[var\(--text\)\],
-html:has(.tc-page) .topbar span.block , html[data-route="tags"] .topbar span.block {
+html:has(.tc-page) .topbar span.block , html[data-route="tags"] .topbar span.block,
+html:has(.tc-page) .topbar-brand-copy .app-brand-title , html[data-route="tags"] .topbar-brand-copy .app-brand-title {
   color: var(--text-on-ink) !important;
 }
 
-html:has(.tc-page) .topbar .text-\[var\(--text-3\)\] , html[data-route="tags"] .topbar .text-\[var\(--text-3\)\] {
+html:has(.tc-page) .topbar .text-\[var\(--text-3\)\] , html[data-route="tags"] .topbar .text-\[var\(--text-3\)\],
+html:has(.tc-page) .topbar-brand-copy .app-brand-tagline , html[data-route="tags"] .topbar-brand-copy .app-brand-tagline {
   color: var(--text-on-ink-5) !important;
 }
 
+html:has(.tc-page) .topbar-brand-mark , html[data-route="tags"] .topbar-brand-mark {
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
 /* 桌面顶栏胶囊菜单 */
-html:has(.tc-page) .topbar-nav , html[data-route="tags"] .topbar-nav {
+html:has(.tc-page) .topbar-nav-track , html[data-route="tags"] .topbar-nav-track {
   background: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 28px rgba(0, 0, 0, 0.28) !important;
 }
 
 html:has(.tc-page) .topbar-nav-item , html[data-route="tags"] .topbar-nav-item {
   color: var(--text-on-ink-4) !important;
   background: transparent !important;
+  box-shadow: none !important;
 }
 
 html:has(.tc-page) .topbar-nav-item:hover , html[data-route="tags"] .topbar-nav-item:hover {
@@ -812,6 +823,7 @@ html:has(.tc-page) .topbar-nav-item:hover , html[data-route="tags"] .topbar-nav-
 html:has(.tc-page) .topbar-nav-item.is-active , html[data-route="tags"] .topbar-nav-item.is-active {
   color: var(--brand-on-ink-3) !important;
   background: rgba(79, 142, 247, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(143, 184, 255, 0.22) !important;
 }
 
 /* 手机顶栏快捷按钮 */
@@ -836,10 +848,20 @@ html:has(.tc-page) .topbar-oss-link:hover , html[data-route="tags"] .topbar-oss-
   color: var(--text-on-ink) !important;
 }
 
-/* 底栏菜单 */
+/* 底栏菜单：星图沉浸态浮动坞 */
 html:has(.tc-page) .bottom-nav , html[data-route="tags"] .bottom-nav {
-  background: rgba(6, 8, 16, 0.94) !important;
-  border-top-color: rgba(255, 255, 255, 0.06) !important;
+  background: transparent !important;
+  border-top-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html:has(.tc-page) .bottom-nav-track , html[data-route="tags"] .bottom-nav-track {
+  background: rgba(8, 10, 18, 0.88) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
@@ -847,11 +869,13 @@ html:has(.tc-page) .bottom-nav , html[data-route="tags"] .bottom-nav {
 html:has(.tc-page) .bottom-nav-item , html[data-route="tags"] .bottom-nav-item {
   color: var(--text-on-ink-5) !important;
   background: transparent !important;
+  box-shadow: none !important;
 }
 
 html:has(.tc-page) .bottom-nav-item.is-active , html[data-route="tags"] .bottom-nav-item.is-active {
   color: var(--brand-on-ink-3) !important;
   background: rgba(79, 142, 247, 0.18) !important;
+  box-shadow: inset 0 0 0 1px rgba(143, 184, 255, 0.18) !important;
 }
 
 /* 迷你播放条同步深色，避免亮色块打断星图 */

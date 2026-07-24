@@ -158,29 +158,26 @@ body:has(.bottom-nav) .global-player {
   transition: width 0.2s linear;
 }
 
-/* 手机端：与底栏贴合为统一底栏 chrome，节省空间且零重叠 */
+/* 手机端：迷你播放条悬浮于浮动底坞上方 */
 @media (max-width: 767.98px) {
   body:has(.bottom-nav) .global-player {
-    left: 0;
-    right: 0;
-    bottom: var(--bottom-nav-h);
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    border-left: 0;
-    border-right: 0;
-    border-bottom: 0;
+    left: max(var(--space-3), var(--page-x, 16px));
+    right: max(var(--space-3), var(--page-x, 16px));
+    bottom: calc(var(--bottom-nav-h) + var(--space-1));
+    border-radius: var(--radius-2xl);
+    border: var(--bw-1) solid color-mix(in srgb, var(--separator) 88%, transparent);
     box-shadow:
-      0 -8px 24px color-mix(in srgb, var(--ink-a08) 70%, transparent),
-      0 -1px 0 color-mix(in srgb, var(--separator) 80%, transparent);
+      0 10px 28px color-mix(in srgb, var(--ink-a08) 80%, transparent),
+      0 1px 2px color-mix(in srgb, var(--ink-a04) 100%, transparent);
   }
 
-  /* 与播放条衔接：去掉顶部分割线，形成连续面板 */
   body:has(.global-player) .bottom-nav {
     border-top-color: transparent;
-    box-shadow: 0 -1px 0 color-mix(in srgb, var(--separator) 55%, transparent);
+    box-shadow: none;
   }
 
   body:has(.global-player) {
-    --global-player-h: 64px;
+    --global-player-h: 68px;
   }
 
   /* 窄屏压缩内边距，避免控件把高度撑破内容留白 */
