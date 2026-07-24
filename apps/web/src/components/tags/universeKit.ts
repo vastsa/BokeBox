@@ -26,7 +26,7 @@ export type StarRuntime = {
 };
 
 export const BG_DARK = 0x02030a;
-export const BG_LIGHT = 0xe8f0ff;
+export const BG_LIGHT = 0xf3f7fc;
 /** @deprecated 使用 resolveUniverseTheme().bg */
 export const BG = BG_DARK;
 export const ZERO = new THREE.Vector3(0, 0, 0);
@@ -280,10 +280,10 @@ export function makeSpaceBgTexture(mode: UniverseMode = 'dark'): THREE.CanvasTex
       size * 0.52,
       size * 0.78,
     );
-    g.addColorStop(0, '#f7fbff');
-    g.addColorStop(0.28, '#eaf3ff');
-    g.addColorStop(0.62, '#d9e8ff');
-    g.addColorStop(1, '#c7dbf8');
+    g.addColorStop(0, '#fbfcfe');
+    g.addColorStop(0.28, '#f3f7fc');
+    g.addColorStop(0.62, '#e8f0f8');
+    g.addColorStop(1, '#dce7f2');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
 
@@ -295,7 +295,7 @@ export function makeSpaceBgTexture(mode: UniverseMode = 'dark'): THREE.CanvasTex
       size * 0.7,
       size * 0.44,
     );
-    g2.addColorStop(0, 'rgba(124, 92, 255, 0.1)');
+    g2.addColorStop(0, 'rgba(124, 92, 255, 0.05)');
     g2.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g2;
     ctx.fillRect(0, 0, size, size);
@@ -308,7 +308,7 @@ export function makeSpaceBgTexture(mode: UniverseMode = 'dark'): THREE.CanvasTex
       size * 0.28,
       size * 0.4,
     );
-    g3.addColorStop(0, 'rgba(79, 142, 247, 0.14)');
+    g3.addColorStop(0, 'rgba(79, 142, 247, 0.08)');
     g3.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g3;
     ctx.fillRect(0, 0, size, size);
@@ -321,7 +321,7 @@ export function makeSpaceBgTexture(mode: UniverseMode = 'dark'): THREE.CanvasTex
       size * 0.9,
       size * 0.5,
     );
-    g4.addColorStop(0, 'rgba(47, 214, 207, 0.08)');
+    g4.addColorStop(0, 'rgba(47, 214, 207, 0.04)');
     g4.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g4;
     ctx.fillRect(0, 0, size, size);

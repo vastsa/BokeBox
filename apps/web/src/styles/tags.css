@@ -39,8 +39,9 @@ html[data-route="tags"] #root {
 html[data-route="tags"][data-theme="light"],
 html[data-route="tags"][data-theme="light"] body,
 html[data-route="tags"][data-theme="light"] #root {
-  --tc-sky: #e8f0ff;
-  --tc-sky-deep: #d7e6fb;
+  /* 与站点亮色 --bg(#f6f8fc) 同系，避免顶栏与场景色温打架 */
+  --tc-sky: #f3f7fc;
+  --tc-sky-deep: #e8f0f8;
   --tc-ink: #142033;
   --tc-ink-2: #2a3a55;
   --tc-ink-3: #4a5d7a;
@@ -49,21 +50,20 @@ html[data-route="tags"][data-theme="light"] #root {
   --tc-ink-title: #0f1b2e;
   --tc-ink-strong: #0c1728;
   --tc-panel-bg:
-    radial-gradient(120% 70% at 20% 0%, rgba(79, 142, 247, 0.12), transparent 55%),
-    radial-gradient(90% 60% at 100% 100%, rgba(124, 92, 255, 0.08), transparent 50%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 246, 255, 0.94));
-  --tc-panel-border: rgba(79, 142, 247, 0.18);
-  --tc-panel-glow: rgba(79, 142, 247, 0.1);
-  --tc-item-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 248, 255, 0.88));
-  --tc-item-border: rgba(79, 142, 247, 0.12);
-  --tc-item-hover-bg: linear-gradient(180deg, rgba(79, 142, 247, 0.1), rgba(255, 255, 255, 0.94));
-  --tc-item-hover-border: rgba(79, 142, 247, 0.28);
-  --tc-hud-bg: linear-gradient(180deg, rgba(232, 240, 255, 0.72), transparent);
-  --tc-hud-bottom-bg: linear-gradient(0deg, rgba(232, 240, 255, 0.7), transparent);
-  --tc-label-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(241, 247, 255, 0.78));
-  --tc-chrome: rgba(244, 248, 255, 0.82);
-  --tc-chrome-border: rgba(79, 142, 247, 0.12);
-  --tc-player-bg: rgba(255, 255, 255, 0.9);
+    radial-gradient(120% 70% at 20% 0%, rgba(79, 142, 247, 0.07), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--tc-sky) 55%, #ffffff));
+  --tc-panel-border: color-mix(in srgb, var(--separator) 88%, rgba(79, 142, 247, 0.2));
+  --tc-panel-glow: rgba(79, 142, 247, 0.06);
+  --tc-item-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
+  --tc-item-border: color-mix(in srgb, var(--separator) 90%, transparent);
+  --tc-item-hover-bg: linear-gradient(180deg, rgba(79, 142, 247, 0.07), rgba(255, 255, 255, 0.96));
+  --tc-item-hover-border: color-mix(in srgb, var(--brand) 18%, var(--separator));
+  --tc-hud-bg: linear-gradient(180deg, color-mix(in srgb, var(--tc-sky) 70%, transparent), transparent);
+  --tc-hud-bottom-bg: linear-gradient(0deg, color-mix(in srgb, var(--tc-sky) 68%, transparent), transparent);
+  --tc-label-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--tc-sky) 40%, #ffffff));
+  --tc-chrome: color-mix(in srgb, var(--tc-sky) 55%, rgba(255, 255, 255, 0.88));
+  --tc-chrome-border: color-mix(in srgb, var(--separator) 80%, transparent);
+  --tc-player-bg: color-mix(in srgb, #ffffff 88%, var(--tc-sky));
 }
 
 html[data-route="tags"] .page-shell,
@@ -372,9 +372,9 @@ html:has(.tc-page) .page-shell > .topbar {
 .tu-stage.is-light .tu-vignette,
 html[data-theme="light"] .tu-vignette {
   background:
-    radial-gradient(62% 54% at 50% 44%, transparent 34%, rgba(180, 205, 240, 0.22) 72%, rgba(150, 180, 220, 0.42) 100%),
-    linear-gradient(180deg, rgba(232, 240, 255, 0.55), transparent 18%, transparent 78%, rgba(200, 220, 245, 0.5)),
-    linear-gradient(90deg, rgba(200, 220, 245, 0.28), transparent 18%, transparent 82%, rgba(200, 220, 245, 0.28));
+    radial-gradient(62% 54% at 50% 44%, transparent 40%, rgba(170, 186, 206, 0.12) 74%, rgba(150, 168, 190, 0.24) 100%),
+    linear-gradient(180deg, color-mix(in srgb, var(--tc-sky, #f3f7fc) 55%, transparent), transparent 18%, transparent 78%, color-mix(in srgb, var(--tc-sky, #f3f7fc) 42%, transparent)),
+    linear-gradient(90deg, rgba(160, 176, 196, 0.1), transparent 18%, transparent 82%, rgba(160, 176, 196, 0.1));
 }
 
 .tu-aurora {
@@ -394,11 +394,11 @@ html[data-theme="light"] .tu-vignette {
 .tu-stage.is-light .tu-aurora,
 html[data-theme="light"] .tu-aurora {
   background:
-    radial-gradient(38% 30% at 18% 28%, rgba(79, 142, 247, 0.2), transparent 72%),
-    radial-gradient(32% 26% at 82% 62%, rgba(124, 92, 255, 0.14), transparent 72%),
-    radial-gradient(30% 24% at 58% 82%, rgba(47, 214, 207, 0.12), transparent 72%),
-    radial-gradient(46% 18% at 50% 52%, rgba(143, 184, 255, 0.12), transparent 75%);
-  opacity: 0.95;
+    radial-gradient(38% 30% at 18% 28%, rgba(79, 142, 247, 0.1), transparent 72%),
+    radial-gradient(32% 26% at 82% 62%, rgba(124, 92, 255, 0.07), transparent 72%),
+    radial-gradient(30% 24% at 58% 82%, rgba(47, 214, 207, 0.05), transparent 72%),
+    radial-gradient(46% 18% at 50% 52%, rgba(143, 184, 255, 0.06), transparent 75%);
+  opacity: 0.85;
 }
 
 .tu-scan {
@@ -598,9 +598,10 @@ html[data-theme="light"][data-route="tags"] .tu-label.is-focus {
 }
 
 html[data-theme="light"][data-route="tags"] .tc-title-block {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(236, 244, 255, 0.55));
-  border-color: rgba(79, 142, 247, 0.14);
-  box-shadow: 0 10px 28px rgba(49, 79, 128, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), color-mix(in srgb, var(--tc-sky) 55%, transparent));
+  border-color: color-mix(in srgb, var(--separator) 70%, transparent);
+  box-shadow: 0 8px 22px rgba(20, 26, 36, 0.06);
+  backdrop-filter: blur(10px) saturate(1.05);
 }
 
 .tc-title {
@@ -922,25 +923,46 @@ html[data-theme="light"][data-route="tags"] .tc-panel-close:hover {
 /* 星图页导航：默认沿用暗色沉浸；亮色主题走日间玻璃 chrome */
 html[data-theme="dark"]:has(.tc-page) .topbar,
 html[data-theme="dark"][data-route="tags"] .topbar {
-  background: rgba(3, 4, 12, 0.72) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
-  backdrop-filter: blur(18px) saturate(1.15);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tc-sky, #03040c) 82%, transparent) 0%,
+      color-mix(in srgb, var(--tc-sky, #03040c) 38%, transparent) 72%,
+      transparent 100%
+    ) !important;
+  border-bottom-color: transparent !important;
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  box-shadow: none !important;
 }
 
 html[data-theme="light"]:has(.tc-page) .topbar,
 html[data-theme="light"][data-route="tags"] .topbar {
+  /* 顶栏直接吃星图天穹色，取消偏蓝滤镜与强饱和，避免和场景脱节 */
   background:
     linear-gradient(
       180deg,
-      rgba(232, 240, 255, 0.86) 0%,
-      rgba(232, 240, 255, 0.48) 72%,
+      color-mix(in srgb, var(--tc-sky) 88%, transparent) 0%,
+      color-mix(in srgb, var(--tc-sky) 42%, transparent) 70%,
       transparent 100%
     ) !important;
   border-bottom-color: transparent !important;
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
   box-shadow: none !important;
+}
+
+html[data-theme="light"]:has(.tc-page) .topbar.is-scrolled,
+html[data-theme="light"][data-route="tags"] .topbar.is-scrolled {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tc-sky) 94%, transparent) 0%,
+      color-mix(in srgb, var(--tc-sky) 58%, transparent) 74%,
+      color-mix(in srgb, var(--tc-sky) 8%, transparent) 100%
+    ) !important;
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-brand-copy .app-brand-title,
@@ -984,11 +1006,11 @@ html[data-theme="dark"][data-route="tags"] .topbar-nav-track {
 }
 html[data-theme="light"]:has(.tc-page) .topbar-nav-track,
 html[data-theme="light"][data-route="tags"] .topbar-nav-track {
-  background: rgba(255, 255, 255, 0.62) !important;
-  border-color: rgba(79, 142, 247, 0.14) !important;
+  background: color-mix(in srgb, #ffffff 70%, var(--tc-sky)) !important;
+  border-color: color-mix(in srgb, var(--separator) 80%, transparent) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 1px 2px rgba(49, 79, 128, 0.06) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 1px 2px rgba(20, 26, 36, 0.04) !important;
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-nav-item,
@@ -1024,8 +1046,8 @@ html[data-theme="dark"][data-route="tags"] .topbar-nav-item.is-active {
 html[data-theme="light"]:has(.tc-page) .topbar-nav-item.is-active,
 html[data-theme="light"][data-route="tags"] .topbar-nav-item.is-active {
   color: var(--brand-2) !important;
-  background: color-mix(in srgb, var(--brand-soft) 92%, white) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 16%, transparent) !important;
+  background: color-mix(in srgb, #ffffff 78%, var(--brand-soft)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 12%, transparent) !important;
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-action-btn,
@@ -1037,8 +1059,8 @@ html[data-theme="dark"][data-route="tags"] .topbar-action-btn {
 html[data-theme="light"]:has(.tc-page) .topbar-action-btn,
 html[data-theme="light"][data-route="tags"] .topbar-action-btn {
   color: var(--tc-ink-2, #2a3a55) !important;
-  background: rgba(255, 255, 255, 0.78) !important;
-  border-color: rgba(79, 142, 247, 0.14) !important;
+  background: color-mix(in srgb, #ffffff 82%, var(--tc-sky)) !important;
+  border-color: color-mix(in srgb, var(--separator) 85%, transparent) !important;
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-action-btn:hover,
@@ -1065,8 +1087,8 @@ html[data-theme="dark"][data-route="tags"] .topbar-oss-link {
 html[data-theme="light"]:has(.tc-page) .topbar-oss-link,
 html[data-theme="light"][data-route="tags"] .topbar-oss-link {
   color: var(--tc-ink-3, #4a5d7a) !important;
-  background: rgba(255, 255, 255, 0.78) !important;
-  border-color: rgba(79, 142, 247, 0.12) !important;
+  background: color-mix(in srgb, #ffffff 82%, var(--tc-sky)) !important;
+  border-color: color-mix(in srgb, var(--separator) 85%, transparent) !important;
 }
 
 html[data-theme="dark"]:has(.tc-page) .topbar-oss-link:hover,
@@ -1089,11 +1111,11 @@ html[data-theme="dark"][data-route="tags"] .bottom-nav {
 }
 html[data-theme="light"]:has(.tc-page) .bottom-nav,
 html[data-theme="light"][data-route="tags"] .bottom-nav {
-  background: var(--tc-chrome, rgba(244, 248, 255, 0.82)) !important;
-  border-top-color: var(--tc-chrome-border, rgba(79, 142, 247, 0.12)) !important;
-  box-shadow: 0 -10px 24px rgba(49, 79, 128, 0.08) !important;
-  backdrop-filter: blur(16px) saturate(1.2) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(1.2) !important;
+  background: color-mix(in srgb, var(--tc-sky) 72%, rgba(255, 255, 255, 0.88)) !important;
+  border-top-color: color-mix(in srgb, var(--separator) 78%, transparent) !important;
+  box-shadow: 0 -8px 20px rgba(20, 26, 36, 0.05) !important;
+  backdrop-filter: blur(16px) saturate(1.06) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.06) !important;
 }
 
 html[data-theme="dark"]:has(.tc-page) .bottom-nav::before,
@@ -1102,7 +1124,7 @@ html[data-theme="dark"][data-route="tags"] .bottom-nav::before {
 }
 html[data-theme="light"]:has(.tc-page) .bottom-nav::before,
 html[data-theme="light"][data-route="tags"] .bottom-nav::before {
-  background: linear-gradient(180deg, transparent 0%, rgba(232, 240, 255, 0.55) 100%) !important;
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--tc-sky) 55%, transparent) 100%) !important;
 }
 
 html[data-theme="dark"]:has(.tc-page) .bottom-nav-item,
@@ -1152,10 +1174,10 @@ html[data-theme="dark"][data-route="tags"] .global-player {
 html[data-theme="light"]:has(.tc-page) .global-player,
 html[data-theme="light"][data-route="tags"] .global-player {
   background:
-    linear-gradient(180deg, rgba(79, 142, 247, 0.1), transparent 58%),
-    rgba(255, 255, 255, 0.9) !important;
-  border-color: rgba(79, 142, 247, 0.12) !important;
-  box-shadow: 0 -10px 24px rgba(49, 79, 128, 0.1);
+    linear-gradient(180deg, color-mix(in srgb, var(--brand-soft) 45%, transparent), transparent 58%),
+    color-mix(in srgb, #ffffff 88%, var(--tc-sky, #f3f7fc)) !important;
+  border-color: color-mix(in srgb, var(--separator) 85%, transparent) !important;
+  box-shadow: 0 -8px 20px rgba(20, 26, 36, 0.06);
 }
 
 html[data-theme="dark"]:has(.tc-page) .global-player-title,
@@ -1200,7 +1222,7 @@ html[data-theme="light"][data-route="tags"] .tc-loader,
 html[data-theme="light"] .tc-loader {
   background:
     radial-gradient(60% 50% at 50% 42%, rgba(255, 255, 255, 0.55), transparent 70%),
-    linear-gradient(180deg, #eef4ff 0%, #e0ecff 100%);
+    linear-gradient(180deg, #f7f9fc 0%, var(--tc-sky, #f3f7fc) 100%);
   color: var(--tc-ink, #142033);
 }
 html[data-theme="light"][data-route="tags"] .tc-loader-text,
