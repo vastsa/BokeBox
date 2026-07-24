@@ -118,12 +118,17 @@ export function AccountSettingsTab({
                         desc={t('settings.themeDesc')}
                       >
                         <div
-                          className="theme-pref-grid"
+                          className="theme-pref-grid settings-theme-pref-grid"
                           role="radiogroup"
                           aria-label={t('settings.themeAria')}
                         >
                           {(
                             [
+                              {
+                                id: 'system' as const,
+                                label: t('settings.themeSystem'),
+                                desc: t('settings.themeSystemDesc'),
+                              },
                               {
                                 id: 'light' as const,
                                 label: t('settings.themeLight'),

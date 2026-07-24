@@ -223,7 +223,7 @@ A product-level map of what BokeBox can do today (aligned with Settings, task de
 - **Schedules**: timed ingest with optional Source pin and run history
 - **MCP**: token, install configs, available tools
 - **Site**: site name, SEO, visitor access
-- **Account**: UI language, light/dark theme, password, open-source info
+- **Account**: UI language, theme (system / light / dark), password, open-source info
 
 
 ### Scheduled feeds

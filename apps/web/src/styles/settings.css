@@ -1493,6 +1493,13 @@ html[data-theme="dark"] .settings-toast {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2_5);
 }
+/* 主题三选项：宽屏三列，窄屏单列 */
+.settings-theme-pref-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 720px) {
+  .settings-theme-pref-grid { grid-template-columns: 1fr; }
+}
 @media (max-width: 560px) {
   .theme-pref-grid { grid-template-columns: 1fr; }
 }
@@ -1531,6 +1538,10 @@ html[data-theme="dark"] .theme-pref-card.is-active {
   border-radius: var(--radius-md-minus);
   border: var(--bw-1) solid var(--separator);
   flex-shrink: 0;
+  background:
+    linear-gradient(135deg, #f6f8fc 0 50%, #121821 50% 100%);
+}
+.theme-pref-swatch[data-tone="system"] {
   background:
     linear-gradient(135deg, #f6f8fc 0 50%, #121821 50% 100%);
 }

@@ -36,18 +36,18 @@
         try {
           var key = 'pb-theme';
           var pref = localStorage.getItem(key);
+          if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          var mode = pref;
           if (pref === 'system') {
-            pref = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            try { localStorage.setItem(key, pref); } catch (e) {}
+            mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           }
-          if (pref !== 'light' && pref !== 'dark') pref = 'light';
-          document.documentElement.setAttribute('data-theme', pref);
-          document.documentElement.style.colorScheme = pref;
-          var color = pref === 'dark' ? '#0a0d12' : '#f6f8fc';
+          document.documentElement.setAttribute('data-theme', mode);
+          document.documentElement.style.colorScheme = mode;
+          var color = mode === 'dark' ? '#0a0d12' : '#f6f8fc';
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute('content', color);
           var apple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-          if (apple) apple.setAttribute('content', pref === 'dark' ? 'black-translucent' : 'default');
+          if (apple) apple.setAttribute('content', mode === 'dark' ? 'black-translucent' : 'default');
         } catch (e) {}
       })();
     </script>

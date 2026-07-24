@@ -292,7 +292,7 @@ color: color-mix(in srgb, var(--brand) 70%, transparent);
 
 ### 5.3 主题切换
 
-- 入口：`apps/web/src/lib/theme.ts`（`light` | `dark`）
+- 入口：`apps/web/src/lib/theme.ts`（偏好 `system` | `light` | `dark`，渲染解析为 `light` | `dark`）
 - 挂载：`html[data-theme="..."]` + `color-scheme`
 - 业务侧只消费 token，不要 `if (theme === 'dark') color = '#xxx'`
 
@@ -441,7 +441,7 @@ rg -n "text-\[[0-9]" apps/web/src --glob '*.tsx'
 | 路径 | 说明 |
 |------|------|
 | `apps/web/src/styles/index.css` | Token 定义 + 全局组件样式 |
-| `apps/web/src/lib/theme.ts` | 亮/暗主题读写与 `data-theme` |
+| `apps/web/src/lib/theme.ts` | 主题偏好（含跟随系统）读写、解析与 `data-theme` |
 | `apps/web/src/layouts/AppShell.tsx` | 壳层导航字号示例 |
 | `apps/web/src/components/ui/*` | Empty / Section 等基础组件 |
 | [Docker CI/CD](../ops/ci-cd.md) | 构建与发布 |

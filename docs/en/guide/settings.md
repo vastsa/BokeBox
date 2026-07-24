@@ -18,7 +18,7 @@ After login, **Settings** centralizes defaults, plugins, MCP, and site options.
 | **Schedules** | Schedule plugin & params, cadence, Source pin, run now/force, run history |
 | **MCP** | Token & client install snippets |
 | **Site** | Site name, SEO, guest access |
-| **Account** | UI language, theme, password, open-source info |
+| **Account** | UI language, theme (system / light / dark), password, open-source info |
 
 Many AI/deploy values also via [Configuration](./configuration.md).
 
