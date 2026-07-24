@@ -267,8 +267,7 @@ export async function synthesizePodcastAudio(options: {
     const next = chunks[index + 1];
     // 源文本里两句之间隔了换行，视为段落换气
     const between = synthesisScript.slice(chunk.sourceEnd, next.sourceStart);
-    const isParagraphBreak = /
-/.test(between);
+    const isParagraphBreak = between.includes('\n');
     return resolveSentenceGapSec({
       text: chunk.text,
       durationSec: chunkDurationsSec[index] || 0,
