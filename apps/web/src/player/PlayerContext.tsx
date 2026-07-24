@@ -16,7 +16,7 @@ import {
   saveLocalProgress,
 } from './listenProgress';
 import { tOutside } from '../i18n';
-import { navigate, parseHash } from '../lib/router';
+import { navigate, parsePath } from '../lib/router';
 
 export type PlayerTrack = {
   id: string;
@@ -461,7 +461,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (idx < 0 || idx >= q.length - 1) return false;
     const next = q[idx + 1];
     playTrack(next, { autoplay: true, resume: true });
-    if (parseHash().name === 'player') {
+    if (parsePath().name === 'player') {
       navigate({ name: 'player', id: next.id });
     }
     return true;

@@ -193,7 +193,20 @@ function upsertLink(rel: string, href: string): void {
   el.href = href;
 }
 
-/** 将 SEO 写入 document head（强制出处） */
+function currentOrigin(): string {
+  if (typeof window === 'undefined') return '';
+  return window.location.origin || '';
+}
+
+function currentCanonicalUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const origin = currentOrigin();
+  const path = window.location.pathname || '/';
+  // history 模式：canonical 使用真实路径，不含 hash
+  return `${origin}${path === '/' ? '/home' : path}`;
+}
+
+/** 将 SEO 写入 document head（强制出处 + 全局 OG/Twitter/canonical） */
 export function applySeoToDocument(seo: PublicSiteSeo): void {
   if (typeof document === 'undefined') return;
   document.title = seo.title;
@@ -202,22 +215,44 @@ export function applySeoToDocument(seo: PublicSiteSeo): void {
   upsertMeta('name', 'author', PROJECT_NAME);
   upsertMeta('name', 'generator', `${PROJECT_NAME} (${PROJECT_GITHUB_URL})`);
   upsertMeta('name', 'application-name', seo.title);
+  upsertMeta('name', 'robots', 'index,follow');
   upsertMeta('property', 'og:title', seo.title);
   upsertMeta('property', 'og:description', seo.description);
   upsertMeta('property', 'og:type', 'website');
-  upsertMeta('property', 'og:site_name', seo.title);
-  upsertMeta('name', 'twitter:card', 'summary');
+  upsertMeta('property', 'og:site_name', PROJECT_NAME);
+  upsertMeta('property', 'og:locale', document.documentElement.lang || 'zh-CN');
+  const canonical = currentCanonicalUrl();
+  if (canonical) {
+    upsertMeta('property', 'og:url', canonical);
+    upsertLink('canonical', canonical);
+  }
+  const origin = currentOrigin();
+  if (origin) {
+    upsertMeta('property', 'og:image', `${origin}/logo.webp`);
+    upsertMeta('name', 'twitter:image', `${origin}/logo.webp`);
+  }
+  upsertMeta('name', 'twitter:card', origin ? 'summary_large_image' : 'summary');
   upsertMeta('name', 'twitter:title', seo.title);
   upsertMeta('name', 'twitter:description', seo.description);
   upsertLink('author', PROJECT_GITHUB_URL);
 }
 
+/** 按路由刷新 canonical / og:url（history 切换后调用） */
+export function syncRouteSeo(): void {
+  applySeoToDocument(getCachedSeo());
+}
+
 /** 启动时同步站点名变化到 SEO 标题（无自定义 title 时） */
 export function initSeoRuntime(): () => void {
   applySeoToDocument(getCachedSeo());
-  return subscribeSiteName(() => {
+  const onRoute = () => syncRouteSeo();
+  window.addEventListener('popstate', onRoute);
+  const unsubSite = subscribeSiteName(() => {
     // 站点名变更时，若缓存 SEO 仅回落标题，重新应用
-    const cached = getCachedSeo();
-    applySeoToDocument(cached);
+    applySeoToDocument(getCachedSeo());
   });
+  return () => {
+    window.removeEventListener('popstate', onRoute);
+    unsubSite();
+  };
 }

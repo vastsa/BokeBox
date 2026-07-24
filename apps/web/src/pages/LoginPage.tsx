@@ -56,7 +56,7 @@ export function LoginPage({
         password,
       });
       setAuthSession(res.token, res.username);
-      window.location.hash = '/home';
+      navigate({ name: 'home' }, { replace: true });
       window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

@@ -38,6 +38,9 @@ Aligned with Settings, job detail, and the listening library.
 
 ## Listening
 
+- History routing (no `#`) and global SEO (Settings → Site; server-injected OG / canonical)
+
+
 - Player: progress memory, speed, sleep timer (incl. “end of episode”)  
 - Albums & continuous play  
 - Star map by theme  

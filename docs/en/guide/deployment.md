@@ -79,7 +79,30 @@ server {
 PUBLIC_BASE_URL=https://podcast.example.com
 ```
 
+## Frontend routes & SPA fallback (History)
+
+The web app uses the **HTML5 History API** (no `#`): paths look like `/home`, `/play/<id>`, `/settings`.
+
+- **Single-port prod / Docker**: the Node server serves static assets; unknown frontend paths fall back to `index.html` (SPA fallback) with global SEO injection.
+- **Legacy hash links**: `/#/tags` is automatically migrated to `/tags`.
+- **Reverse proxy**: proxy the site root to the app port (Nginx sketch above). If you host `web/dist` separately, add SPA fallback yourself, e.g.:
+
+```nginx
+location / {
+  try_files $uri $uri/ /index.html;
+}
+```
+
+Missing extension assets (`.js` / `.css` / images) return 404 instead of HTML.
+
+## Global SEO
+
+- Settings → **Site**: custom title, description, keywords (description keeps `Powered by BokeBox` + repo attribution).
+- Server injects `title` / `description` / Open Graph / Twitter Card / `canonical` / `og:url` / `og:image` into `index.html`.
+- Set `PUBLIC_BASE_URL=https://your.domain` so canonical and share images use absolute URLs.
+
 ## Health
+
 
 ```bash
 curl -s http://127.0.0.1:8787/api/health

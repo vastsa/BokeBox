@@ -113,7 +113,30 @@ PUBLIC_BASE_URL=https://podcast.example.com
 
 以便 MCP 安装配置生成正确外网地址。
 
+## 前端路由与伪静态（History）
+
+Web 使用 **History 模式**（无 `#`）：路径形如 `/home`、`/play/<id>`、`/settings`。
+
+- **单端口生产 / Docker**：由 Node 服务统一托管静态资源；未知前端路径回退 `index.html`（伪静态 SPA fallback），并注入全局 SEO。
+- **旧链接兼容**：访问 `/#/tags` 等 hash 链接时，前端会自动迁移为 `/tags`。
+- **反向代理**：只要把站点根代理到应用端口（见上文 Nginx 示例）即可，**无需**再写 `try_files`；若你拆开静态托管（仅托管 `web/dist`），则需自行配置 SPA 回退，例如：
+
+```nginx
+location / {
+  try_files $uri $uri/ /index.html;
+}
+```
+
+带扩展名的静态资源（`.js` / `.css` / 图片等）缺失时返回 404，不会误回退 HTML。
+
+## 全局 SEO
+
+- 设置 → **站点**：可自定义标题、描述、关键词；描述会保留 `Powered by BokeBox` 与仓库出处。
+- 服务端在返回 `index.html` 时注入 `title` / `description` / Open Graph / Twitter Card / `canonical` / `og:url` / `og:image`。
+- 建议配置 `PUBLIC_BASE_URL=https://你的域名`，以便 canonical 与分享图使用绝对地址。
+
 ## 健康检查
+
 
 ```bash
 curl -s http://127.0.0.1:8787/api/health

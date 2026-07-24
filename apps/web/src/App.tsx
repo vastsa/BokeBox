@@ -4,7 +4,13 @@ import { fetchMe, fetchSetupStatus, logout } from './api/client';
 import { clearAuthSession, getToken } from './lib/auth';
 import { setCachedSiteName } from './lib/site';
 import { setCachedSeo } from './lib/seo';
-import { navigate, parseHash, type Route, resetWindowScroll } from './lib/router';
+import {
+  migrateLegacyHashRoute,
+  navigate,
+  parsePath,
+  type Route,
+  resetWindowScroll,
+} from './lib/router';
 import { ListenHomePage } from './pages/ListenHomePage';
 import { LoginPage } from './pages/LoginPage';
 import { SetupPage } from './pages/SetupPage';
@@ -54,16 +60,22 @@ function isGuestAllowedRoute(name: Route['name']): boolean {
 
 export default function App() {
   const { t } = useI18n();
-  const [route, setRoute] = useState<Route>(() => parseHash());
+  const [route, setRoute] = useState<Route>(() => parsePath());
   const [gate, setGate] = useState<Gate>('checking');
 
   useEffect(() => {
-    const onHash = () => setRoute(parseHash());
-    window.addEventListener('hashchange', onHash);
-    if (!window.location.hash) {
-      window.location.hash = '/home';
+    // 旧版 #/path → /path（history 模式）
+    migrateLegacyHashRoute();
+    setRoute(parsePath());
+
+    const onPop = () => setRoute(parsePath());
+    window.addEventListener('popstate', onPop);
+    // 根路径规范化为 /home，便于分享与 SEO 一致
+    const path = window.location.pathname || '/';
+    if (path === '/' || path === '') {
+      navigate({ name: 'home' }, { replace: true });
     }
-    return () => window.removeEventListener('hashchange', onHash);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   // 星图是深色全屏页：在懒加载 chunk 前就把 html/body 底色切黑，避免亮色主题闪白
@@ -109,7 +121,7 @@ export default function App() {
         const token = getToken();
         if (!token) {
           const guestOk = Boolean(status.guestHomePublic);
-          const current = parseHash();
+          const current = parsePath();
           if (guestOk) {
             // 开放游客首页：默认游客浏览；仅明确访问登录页时进入登录
             if (current.name === 'login') {
@@ -142,7 +154,7 @@ export default function App() {
           // 失效 token 时一并登出服务端 cookie 会话
           void logout();
           const guestOk = Boolean(status.guestHomePublic);
-          const current = parseHash();
+          const current = parsePath();
           if (guestOk) {
             if (current.name === 'login') {
               setGate('login');

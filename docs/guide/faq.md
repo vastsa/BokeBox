@@ -39,6 +39,16 @@ Node.js `>= 22.5`，pnpm 9.x；或 Docker。
 
 设置 `PUBLIC_BASE_URL=https://你的域名`。
 
+
+### 为什么地址栏没有 `#`？刷新深链会不会 404？
+
+前端已改为 **History 路由**（`/home`、`/play/...`）。生产单端口与 Docker 由服务端做 **伪静态回退**（未知路径返回 `index.html`）。  
+若你只托管静态文件，需自行配置 SPA fallback（见 [部署](./deployment.md)）。旧 `#/path` 链接会自动迁移。
+
+### 如何配置站点 SEO？
+
+设置 → **站点**：标题 / 描述 / 关键词。分享卡片依赖服务端注入的 Open Graph 字段；公网部署请设置 `PUBLIC_BASE_URL`。
+
 ## 模型与密钥
 
 ### 必须用 OpenAI 官方吗？

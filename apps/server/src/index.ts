@@ -160,17 +160,43 @@ async function main() {
     const { default: fastifyStatic } = await import('@fastify/static');
     const indexHtmlPath = path.join(webDist, 'index.html');
 
-    const sendSeoIndex = async (reply: import('fastify').FastifyReply) => {
+    const resolvePublicBase = (req: import('fastify').FastifyRequest): string => {
+      const envBase = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/$/, '');
+      if (envBase) return envBase;
+      const xfProto = String(req.headers['x-forwarded-proto'] || '')
+        .split(',')[0]
+        ?.trim();
+      const proto = xfProto || (req.protocol || 'http');
+      const xfHost = String(req.headers['x-forwarded-host'] || '')
+        .split(',')[0]
+        ?.trim();
+      const host = xfHost || req.headers.host || `localhost:${PORT}`;
+      return `${proto}://${host}`.replace(/\/$/, '');
+    };
+
+    const sendSeoIndex = async (
+      req: import('fastify').FastifyRequest,
+      reply: import('fastify').FastifyReply,
+    ) => {
       const raw = await fs.readFile(indexHtmlPath, 'utf8');
-      const html = injectSeoIntoHtml(raw, buildPublicSiteSeo());
+      const base = resolvePublicBase(req);
+      const pathOnly = req.url.split('?')[0] || '/';
+      // history 伪静态：canonical 使用当前 path（/ 归一为 /home）
+      const cleanPath =
+        pathOnly === '/' || pathOnly === '/index.html' ? '/home' : pathOnly;
+      const html = injectSeoIntoHtml(raw, buildPublicSiteSeo(), {
+        canonicalUrl: `${base}${cleanPath}`,
+        imageUrl: `${base}/logo.webp`,
+        locale: 'zh_CN',
+      });
       return reply.type('text/html; charset=utf-8').send(html);
     };
 
     // 根路径 / 与 /index.html 直接吐带 SEO 的 index
     // 注意：@fastify/static 在 wildcard:false 时会为每个静态文件单独注册路由，
     // 若再手动注册 /index.html 会触发 FST_ERR_DUPLICATED_ROUTE。
-    app.get('/', async (_req, reply) => sendSeoIndex(reply));
-    app.get('/index.html', async (_req, reply) => sendSeoIndex(reply));
+    app.get('/', async (req, reply) => sendSeoIndex(req, reply));
+    app.get('/index.html', async (req, reply) => sendSeoIndex(req, reply));
 
     await app.register(fastifyStatic, {
       root: webDist,
@@ -180,12 +206,22 @@ async function main() {
       // 使用通配路由托管其余静态资源，避免预注册 /index.html
       wildcard: true,
     });
+    // history 模式伪静态：未知前端路由回退 index.html（带 SEO）
     app.setNotFoundHandler(async (req, reply) => {
-      if (req.url.startsWith('/api') || req.url.split('?')[0] === '/mcp') {
+      const pathOnly = req.url.split('?')[0] || '/';
+      if (
+        pathOnly.startsWith('/api') ||
+        pathOnly === '/mcp' ||
+        pathOnly.startsWith('/mcp/')
+      ) {
         return reply.code(404).send({ error: 'Not Found' });
       }
-      // SPA fallback：同样注入 SEO
-      return sendSeoIndex(reply);
+      // 带扩展名的静态资源（js/css/图）不回退 HTML，避免掩盖真实 404
+      const last = pathOnly.split('/').pop() || '';
+      if (last.includes('.') && !last.endsWith('.html')) {
+        return reply.code(404).send({ error: 'Not Found' });
+      }
+      return sendSeoIndex(req, reply);
     });
   }
 

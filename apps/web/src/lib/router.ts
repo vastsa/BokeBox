@@ -9,15 +9,48 @@ export type Route =
   | { name: 'settings' }
   | { name: 'setup' }
   | { name: 'login' }
-  // 兼容旧 hash（内部会重定向）
+  // 兼容旧路径名（内部会重定向）
   | { name: 'listen' }
   | { name: 'admin' }
   | { name: 'admin-upload' }
   | { name: 'admin-job'; id: string };
 
-export function parseHash(): Route {
-  const raw = window.location.hash.replace(/^#/, '') || '/';
-  const path = raw.startsWith('/') ? raw : `/${raw}`;
+/** 规范化路径：去 query/hash，保证前导 /，去掉尾部 /（根路径除外） */
+function normalizePathname(input: string): string {
+  let path = input || '/';
+  // 去掉可能误带的 query / fragment
+  path = path.split('?')[0]?.split('#')[0] || '/';
+  if (!path.startsWith('/')) path = `/${path}`;
+  if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
+  return path || '/';
+}
+
+/** 将旧 hash 路由（#/tags）迁移为 history 路径（/tags） */
+export function migrateLegacyHashRoute(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hash = window.location.hash || '';
+  if (!hash || hash === '#' || hash === '#/') return false;
+  // 仅迁移看起来像 path 的 hash：#/xxx 或 #xxx
+  const raw = hash.replace(/^#/, '');
+  if (!raw) return false;
+  // 忽略纯锚点（不含 / 且不像已知路由）
+  const path = normalizePathname(raw.startsWith('/') ? raw : `/${raw}`);
+  const search = window.location.search || '';
+  const nextUrl = `${path}${search}`;
+  // 若当前 pathname 已是目标且只是残留 hash，直接清掉 hash
+  if (normalizePathname(window.location.pathname) === path) {
+    window.history.replaceState(null, '', nextUrl);
+    return true;
+  }
+  // pathname 仍是 /（或任意）时，以 hash 内容为准
+  window.history.replaceState(null, '', nextUrl);
+  return true;
+}
+
+export function parsePath(pathname?: string): Route {
+  const path = normalizePathname(
+    pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/'),
+  );
 
   if (path === '/setup') return { name: 'setup' };
   if (path === '/login') return { name: 'login' };
@@ -68,34 +101,44 @@ export function parseHash(): Route {
   return { name: 'home' };
 }
 
-export function toHash(route: Route): string {
+/** @deprecated 使用 parsePath；保留别名避免遗漏引用 */
+export function parseHash(): Route {
+  return parsePath();
+}
+
+export function toPath(route: Route): string {
   switch (route.name) {
     case 'home':
     case 'listen':
-      return '#/home';
+      return '/home';
     case 'admin':
-      return '#/studio';
+      return '/studio';
     case 'tags':
-      return '#/tags';
+      return '/tags';
     case 'albums':
-      return '#/albums';
+      return '/albums';
     case 'album':
-      return `#/albums/${route.id}`;
+      return `/albums/${route.id}`;
     case 'player':
-      return `#/play/${route.id}`;
+      return `/play/${route.id}`;
     case 'create':
     case 'admin-upload':
-      return '#/create';
+      return '/create';
     case 'job':
     case 'admin-job':
-      return `#/jobs/${'id' in route ? route.id : ''}`;
+      return `/jobs/${'id' in route ? route.id : ''}`;
     case 'settings':
-      return '#/settings';
+      return '/settings';
     case 'setup':
-      return '#/setup';
+      return '/setup';
     case 'login':
-      return '#/login';
+      return '/login';
   }
+}
+
+/** @deprecated 使用 toPath；返回不带 # 的路径 */
+export function toHash(route: Route): string {
+  return toPath(route);
 }
 
 /** 路由切换时重置窗口滚动，避免长页滚到底后进入全屏页（星图/播放器）卡在半空 */
@@ -110,14 +153,25 @@ export function resetWindowScroll() {
   if (document.body.scrollTop) document.body.scrollTop = 0;
 }
 
-export function navigate(route: Route) {
-  const next = toHash(route); // like #/tags
-  const cur = window.location.hash || '#/';
-  // 先复位，再改 hash，避免全屏 overflow:hidden 时仍保留旧 scrollY
+export function navigate(route: Route, options?: { replace?: boolean }) {
+  const next = toPath(route);
+  const cur = normalizePathname(window.location.pathname);
+  const search = window.location.search || '';
+  // 先复位，再改 history，避免全屏 overflow:hidden 时仍保留旧 scrollY
   resetWindowScroll();
   if (cur === next) {
-    // 同路由再次点击：仍确保回到顶部
+    // 同路由再次点击：仍确保回到顶部；顺手清掉残留 hash
+    if (window.location.hash) {
+      window.history.replaceState(null, '', `${next}${search}`);
+    }
     return;
   }
-  window.location.hash = next.slice(1);
+  const url = `${next}${search}`;
+  if (options?.replace) {
+    window.history.replaceState(null, '', url);
+  } else {
+    window.history.pushState(null, '', url);
+  }
+  // 通知同页订阅者（App 监听 popstate 不够覆盖 pushState）
+  window.dispatchEvent(new PopStateEvent('popstate'));
 }

@@ -39,6 +39,16 @@ Node `>= 22.5`, pnpm 9.x — or Docker.
 
 Set `PUBLIC_BASE_URL=https://your.domain`.
 
+
+### Why is there no `#` in the URL? Will deep links 404 on refresh?
+
+The web app uses **History routing** (`/home`, `/play/...`). Single-port prod and Docker provide **SPA fallback** (unknown paths return `index.html`).  
+If you host static files alone, configure SPA fallback yourself (see [Deployment](./deployment.md)). Legacy `/#/path` links migrate automatically.
+
+### How do I configure site SEO?
+
+Settings → **Site**: title / description / keywords. Share cards use server-injected Open Graph tags; set `PUBLIC_BASE_URL` for public deployments.
+
 ## Models
 
 ### Must I use OpenAI official?

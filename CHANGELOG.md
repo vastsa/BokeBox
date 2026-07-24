@@ -2,6 +2,19 @@
 
 本项目版本遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Web
+
+- 前端路由改为 **History 模式**，去掉 URL 中的 `#`；兼容旧 hash 链接自动迁移
+- 全局 SEO 增强：canonical / Open Graph / Twitter Card / robots；路由切换同步 `og:url`
+- 服务端 SPA 伪静态回退收紧：带扩展名的静态资源 404 不再误回退 HTML
+
+### 文档
+
+- 部署 / FAQ / 功能清单同步 History 路由与 SEO 说明
+
+
 ## [1.1.0] - 2026-07-23
 
 ### 定时订阅（Schedule）

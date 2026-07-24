@@ -517,7 +517,7 @@ export function SetupPage() {
         ttsPluginConfig: ttsCfg,
       });
       setAuthSession(res.token, res.username);
-      window.location.hash = '/home';
+      navigate({ name: 'home' }, { replace: true });
       window.location.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
