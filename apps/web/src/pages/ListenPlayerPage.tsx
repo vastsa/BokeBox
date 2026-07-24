@@ -26,6 +26,7 @@ import { CoverArt } from '../components/ui/CoverArt';
 import { coverGradientFor, formatDuration } from '../lib/format';
 import { getToken } from '../lib/auth';
 import { navigate, type Route } from '../lib/router';
+import { applyRouteSeo, contentSeoFromJob } from '../lib/pageSeo';
 import { usePlayer } from '../player/PlayerContext';
 import type { LibraryItem } from '../types/job';
 import { useI18n } from '../i18n';
@@ -56,6 +57,14 @@ export function ListenPlayerPage({ id, route: _route }: { id: string; route: Rou
   const sleepMenuRef = useRef<HTMLDivElement>(null);
   const boundId = useRef<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!item || item.job.id !== id) {
+      applyRouteSeo({ name: 'player', id });
+      return;
+    }
+    applyRouteSeo({ name: 'player', id }, contentSeoFromJob(item.job));
+  }, [id, item]);
 
   useEffect(() => {
     let currentRequest = true;

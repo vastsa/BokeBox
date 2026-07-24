@@ -4,6 +4,7 @@ import { fetchMe, fetchSetupStatus, logout } from './api/client';
 import { clearAuthSession, getToken } from './lib/auth';
 import { setCachedSiteName } from './lib/site';
 import { setCachedSeo } from './lib/seo';
+import { applyRouteSeo } from './lib/pageSeo';
 import {
   migrateLegacyHashRoute,
   navigate,
@@ -98,6 +99,14 @@ export default function App() {
     // 下一帧再清一次，兜住布局锁 overflow 前后的残留
     const id = window.requestAnimationFrame(() => resetWindowScroll());
     return () => window.cancelAnimationFrame(id);
+  }, [route]);
+
+  // 静态路由 SEO；带内容的页面（播放/专辑/任务）会在数据到达后覆盖
+  useEffect(() => {
+    applyRouteSeo(route);
+    const onLocale = () => applyRouteSeo(route);
+    window.addEventListener('pb:locale-change', onLocale);
+    return () => window.removeEventListener('pb:locale-change', onLocale);
   }, [route]);
 
   useEffect(() => {

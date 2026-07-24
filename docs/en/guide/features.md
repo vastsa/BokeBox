@@ -38,7 +38,7 @@ Aligned with Settings, job detail, and the listening library.
 
 ## Listening
 
-- History routing (no `#`) and global SEO (Settings → Site; server-injected OG / canonical)
+- History routing (no `#`); global + per-page SEO (player/album content titles & covers; admin `noindex`)
 
 
 - Player: progress memory, speed, sleep timer (incl. “end of episode”)  

@@ -135,6 +135,14 @@ location / {
 - 服务端在返回 `index.html` 时注入 `title` / `description` / Open Graph / Twitter Card / `canonical` / `og:url` / `og:image`。
 - 建议配置 `PUBLIC_BASE_URL=https://你的域名`，以便 canonical 与分享图使用绝对地址。
 
+### 页面级 SEO
+
+- 每个路由有独立 title / description / robots（管理页 `noindex`）
+- 播放页 `/play/:id`、专辑页 `/albums/:id` 使用节目标题、简介与封面
+- 服务端首屏 HTML 按 path 解析公开内容后注入，便于分享卡片与爬虫
+- 前端在数据加载后再次覆盖 document head，保证 SPA 内跳转也正确
+
+
 ## 健康检查
 
 

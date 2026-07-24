@@ -21,12 +21,6 @@ import {
   type TranslateParams,
   type Translator,
 } from './translate';
-import {
-  formatDocumentTitle,
-  getCachedSiteName,
-  subscribeSiteName,
-} from '../lib/site';
-import { getCachedSeo, subscribeSeo } from '../lib/seo';
 
 type I18nContextValue = {
   locale: Locale;
@@ -42,35 +36,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => getLocale());
 
   useEffect(() => {
-    const applyTitle = (loc: Locale, siteName = getCachedSiteName()) => {
-      const tr = createTranslator(loc);
-      const seo = getCachedSeo();
-      // 有自定义 SEO 标题时优先；否则回落站点名规则
-      if (seo?.title) {
-        document.title = seo.title;
-        return;
-      }
-      document.title = formatDocumentTitle(
-        siteName,
-        tr('app.documentTitle'),
-        tr('app.tagline'),
-      );
-    };
-    applyTitle(getLocale());
+    // 文档 title 由 pageSeo / seo 运行时统一管理；此处只同步 locale 状态
+    // 语言切换时派发事件，让路由层可按需重算页面 SEO
     const unsubLocale = subscribeLocale((next) => {
       setLocaleState(next);
-      applyTitle(next);
-    });
-    const unsubSite = subscribeSiteName((siteName) => {
-      applyTitle(getLocale(), siteName);
-    });
-    const unsubSeo = subscribeSeo(() => {
-      applyTitle(getLocale());
+      window.dispatchEvent(new CustomEvent('pb:locale-change', { detail: next }));
     });
     return () => {
       unsubLocale();
-      unsubSite();
-      unsubSeo();
     };
   }, []);
 

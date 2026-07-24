@@ -32,8 +32,8 @@ import { ensureDir, pathExists } from './utils/fs.js';
 import { hasApiKey, getBaseUrl, getChatModel } from './utils/aiConfig.js';
 import { initDatabase } from './db/sqlite.js';
 import { migrateStorageLayout } from './services/storageMigrator.js';
-import { buildPublicSiteSeo } from './services/settings/index.js';
 import { injectSeoIntoHtml } from './utils/seoHtml.js';
+import { resolvePageSeoForPath } from './utils/pageSeo.js';
 import { printOpenSourceBanner } from './utils/banner.js';
 import { fail, wrapApiPayload } from './utils/apiResponse.js';
 import { getRequestLocale, t } from './i18n/index.js';
@@ -181,13 +181,18 @@ async function main() {
       const raw = await fs.readFile(indexHtmlPath, 'utf8');
       const base = resolvePublicBase(req);
       const pathOnly = req.url.split('?')[0] || '/';
-      // history 伪静态：canonical 使用当前 path（/ 归一为 /home）
-      const cleanPath =
-        pathOnly === '/' || pathOnly === '/index.html' ? '/home' : pathOnly;
-      const html = injectSeoIntoHtml(raw, buildPublicSiteSeo(), {
-        canonicalUrl: `${base}${cleanPath}`,
-        imageUrl: `${base}/logo.webp`,
+      const page = await resolvePageSeoForPath(pathOnly);
+      const imageUrl = page.imagePath
+        ? page.imagePath.startsWith('http')
+          ? page.imagePath
+          : `${base}${page.imagePath.startsWith('/') ? '' : '/'}${page.imagePath}`
+        : `${base}/logo.webp`;
+      const html = injectSeoIntoHtml(raw, page.seo, {
+        canonicalUrl: `${base}${page.path}`,
+        imageUrl,
         locale: 'zh_CN',
+        ogType: page.ogType,
+        noIndex: page.noIndex,
       });
       return reply.type('text/html; charset=utf-8').send(html);
     };

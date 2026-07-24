@@ -19,6 +19,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { getToken } from '../lib/auth';
 import { formatDuration, listenProgressPct } from '../lib/format';
 import { navigate, type Route } from '../lib/router';
+import { applyRouteSeo, contentSeoFromAlbum } from '../lib/pageSeo';
 import { useI18n } from '../i18n';
 import { AppShell } from '../layouts/AppShell';
 import { usePlayer } from '../player/PlayerContext';
@@ -78,6 +79,14 @@ export function AlbumDetailPage({
     setLoading(true);
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!album || album.id !== id) {
+      applyRouteSeo({ name: 'album', id });
+      return;
+    }
+    applyRouteSeo({ name: 'album', id }, contentSeoFromAlbum(album));
+  }, [id, album]);
 
   const coverId =
     album?.resolvedCoverJobId || album?.coverJobId || album?.items[0]?.job.id;

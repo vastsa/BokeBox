@@ -10,6 +10,7 @@ import {
   formatTime,
 } from '../lib/format';
 import { navigate, type Route } from '../lib/router';
+import { applyRouteSeo, contentSeoFromJob } from '../lib/pageSeo';
 import type { Job, PipelineFromStep } from '../types/job';
 import {
   ACTIVE_STATUSES,
@@ -65,6 +66,14 @@ export function AdminJobPage({ id, route }: { id: string; route: Route }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!job || job.id !== id) {
+      applyRouteSeo({ name: 'job', id });
+      return;
+    }
+    applyRouteSeo({ name: 'job', id }, contentSeoFromJob(job));
+  }, [id, job]);
 
   useEffect(() => {
     if (!job) return;

@@ -39,9 +39,13 @@ export type SeoInjectOptions = {
   imageUrl?: string | null;
   /** og:locale */
   locale?: string | null;
+  /** og:type */
+  ogType?: string | null;
+  /** 是否禁止索引 */
+  noIndex?: boolean;
 };
 
-/** 将站点 SEO 注入 index.html（强制含出处 + 全局 OG/Twitter/canonical） */
+/** 将站点 / 页面 SEO 注入 index.html（强制含出处 + 全局 OG/Twitter/canonical） */
 export function injectSeoIntoHtml(
   html: string,
   seo: PublicSiteSeo,
@@ -55,10 +59,15 @@ export function injectSeoIntoHtml(
   out = upsertMeta(out, 'name', 'description', seo.description);
   out = upsertMeta(out, 'name', 'keywords', seo.keywords);
   out = upsertMeta(out, 'name', 'author', 'BokeBox');
-  out = upsertMeta(out, 'name', 'robots', 'index,follow');
+  out = upsertMeta(
+    out,
+    'name',
+    'robots',
+    options.noIndex ? 'noindex,nofollow' : 'index,follow',
+  );
   out = upsertMeta(out, 'property', 'og:title', seo.title);
   out = upsertMeta(out, 'property', 'og:description', seo.description);
-  out = upsertMeta(out, 'property', 'og:type', 'website');
+  out = upsertMeta(out, 'property', 'og:type', options.ogType || 'website');
   out = upsertMeta(out, 'property', 'og:site_name', 'BokeBox');
   out = upsertMeta(
     out,
@@ -70,7 +79,7 @@ export function injectSeoIntoHtml(
   out = upsertMeta(out, 'name', 'twitter:description', seo.description);
   // 出处链接：canonical 仍可自定义，但增加 generator / 项目出处
   out = upsertMeta(out, 'name', 'generator', `BokeBox (${seo.github})`);
-  out = upsertMeta(out, 'name', 'application-name', seo.title);
+  out = upsertMeta(out, 'name', 'application-name', 'BokeBox');
 
   if (options.canonicalUrl) {
     out = upsertMeta(out, 'property', 'og:url', options.canonicalUrl);

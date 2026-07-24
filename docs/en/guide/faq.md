@@ -45,6 +45,11 @@ Set `PUBLIC_BASE_URL=https://your.domain`.
 The web app uses **History routing** (`/home`, `/play/...`). Single-port prod and Docker provide **SPA fallback** (unknown paths return `index.html`).  
 If you host static files alone, configure SPA fallback yourself (see [Deployment](./deployment.md)). Legacy `/#/path` links migrate automatically.
 
+### Does every page share the same SEO tags?
+
+No. Routes have their own titles/descriptions; player and album pages use episode/album title, summary, and cover.  
+Admin routes (create, settings, job detail) default to `noindex`. Site-level SEO (Settings → Site) remains the global fallback and keyword base.
+
 ### How do I configure site SEO?
 
 Settings → **Site**: title / description / keywords. Share cards use server-injected Open Graph tags; set `PUBLIC_BASE_URL` for public deployments.

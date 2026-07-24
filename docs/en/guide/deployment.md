@@ -101,6 +101,14 @@ Missing extension assets (`.js` / `.css` / images) return 404 instead of HTML.
 - Server injects `title` / `description` / Open Graph / Twitter Card / `canonical` / `og:url` / `og:image` into `index.html`.
 - Set `PUBLIC_BASE_URL=https://your.domain` so canonical and share images use absolute URLs.
 
+### Per-page SEO
+
+- Each route has its own title / description / robots (admin routes `noindex`)
+- Player `/play/:id` and album `/albums/:id` use episode/album title, summary, and cover
+- Server injects path-resolved public content into the first HTML response for crawlers/share cards
+- Client re-applies head tags after data loads so in-app navigations stay correct
+
+
 ## Health
 
 

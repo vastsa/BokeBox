@@ -6,6 +6,7 @@
 
 ### Web
 
+- 页面级 SEO：路由独立 title/description；播放/专辑用内容标题与封面；管理页 noindex
 - 前端路由改为 **History 模式**，去掉 URL 中的 `#`；兼容旧 hash 链接自动迁移
 - 全局 SEO 增强：canonical / Open Graph / Twitter Card / robots；路由切换同步 `og:url`
 - 服务端 SPA 伪静态回退收紧：带扩展名的静态资源 404 不再误回退 HTML
