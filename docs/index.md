@@ -70,6 +70,14 @@ features:
     <img src="/img/plugins.webp" alt="插件设置" />
     <figcaption>设置 · 插件</figcaption>
   </figure>
+  <figure>
+    <img src="/img/mcp.webp" alt="MCP 设置" />
+    <figcaption>设置 · MCP</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/schedules.webp" alt="订阅设置" />
+    <figcaption>设置 · 订阅</figcaption>
+  </figure>
 </div>
 
 ## 文档导航

@@ -70,6 +70,14 @@ features:
     <img src="/img/plugins.webp" alt="Plugins settings" />
     <figcaption>Settings · plugins</figcaption>
   </figure>
+  <figure>
+    <img src="/img/mcp.webp" alt="MCP settings" />
+    <figcaption>Settings · MCP</figcaption>
+  </figure>
+  <figure>
+    <img src="/img/schedules.webp" alt="Schedules settings" />
+    <figcaption>Settings · schedules</figcaption>
+  </figure>
 </div>
 
 ## Doc map
