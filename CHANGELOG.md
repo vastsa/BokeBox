@@ -11,6 +11,7 @@
 - 星图页支持亮色主题：日间深空场景、HUD/面板/导航 chrome 与 three.js 背景随 `data-theme` 切换
 - 星图性能优化：降低点云/连线规模，限制 30–40fps，默认关闭自动旋转与高开销 CSS 动画
 - 星图性能：降点云/限标签/关自动旋转/限帧；回退不稳定的按需渲染与 HTML 投影改造，恢复可用的 CSS2D 路径
+- 星图性能续优：仅挂载热门 CSS2D 标签、低画质裁剪光晕、空闲停止 rAF（交互再 wake）
 - 页面级 SEO：路由独立 title/description；播放/专辑用内容标题与封面；管理页 noindex
 - 前端路由改为 **History 模式**，去掉 URL 中的 `#`；兼容旧 hash 链接自动迁移
 - 全局 SEO 增强：canonical / Open Graph / Twitter Card / robots；路由切换同步 `og:url`

@@ -14,7 +14,7 @@ export type StarRuntime = {
   corona: THREE.Mesh;
   halo: THREE.Mesh;
   spike: THREE.Mesh;
-  label: CSS2DObject;
+  label: CSS2DObject | null;
   basePos: THREE.Vector3;
   baseScale: number;
   phase: number;
@@ -154,17 +154,17 @@ export function detectQuality(): Quality {
     };
   }
   return {
-    dpr: Math.min(window.devicePixelRatio || 1, 1.35),
-    farStars: 700,
-    nearStars: 120,
-    milkyStars: 360,
-    dustPoints: 80,
-    nebulae: 3,
-    orbitRings: 2,
+    dpr: Math.min(window.devicePixelRatio || 1, 1.25),
+    farStars: 560,
+    nearStars: 96,
+    milkyStars: 280,
+    dustPoints: 56,
+    nebulae: 2,
+    orbitRings: 1,
     antialias: false,
     animateIdle: true,
-    twinkle: true,
-    labelSortEvery: 6,
+    twinkle: false,
+    labelSortEvery: 8,
   };
 }
 

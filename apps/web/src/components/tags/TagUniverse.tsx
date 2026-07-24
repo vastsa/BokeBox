@@ -76,7 +76,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     selectedRef.current = selected;
     for (const s of starsRef.current) {
       const active = Boolean(selected && s.name === selected);
-      s.label.element.classList.toggle('is-focus', active);
+      if (s.label) s.label.element.classList.toggle('is-focus', active);
     }
   }, [selected]);
 
@@ -332,11 +332,60 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     const radius = Math.max(4.6, Math.min(10.2, 3.4 + Math.sqrt(Math.max(tags.length, 1)) * 0.95));
     const positions = tags.map((_, i) => fibSphere(i, Math.max(tags.length, 1), radius));
     const runtimes: StarRuntime[] = [];
+    const maxLabels = quality.animateIdle ? 20 : 12;
+    const topNames = new Set(
+      [...tags]
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'))
+        .slice(0, maxLabels)
+        .map((t) => t.name),
+    );
+    const glowBlend =
+      theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending;
+    // 低画质隐藏 corona/spike，显著减少 draw call
+    const richStars = quality.animateIdle;
+
+    const attachLabel = (s: StarRuntime, focused = false) => {
+      if (s.label) {
+        s.label.visible = true;
+        s.label.element.style.display = '';
+        s.label.element.classList.toggle('is-focus', focused);
+        return s.label;
+      }
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'tu-label' + (focused ? ' is-focus' : '');
+      const dot = document.createElement('span');
+      dot.className = 'tu-label-dot';
+      const text = document.createElement('span');
+      text.className = 'tu-label-text';
+      text.textContent = s.name;
+      const count = document.createElement('span');
+      count.className = 'tu-label-count';
+      count.textContent = String(s.count);
+      el.append(dot, text, count);
+      el.style.setProperty('--star', `#${s.color.getHexString()}`);
+      el.dataset.tagName = s.name;
+      el.addEventListener('pointerdown', (ev) => {
+        ev.stopPropagation();
+        ignoreCanvasPickUntil = performance.now() + 500;
+      });
+      el.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        ignoreCanvasPickUntil = performance.now() + 500;
+        const next = selectedRef.current === s.name ? null : s.name;
+        onSelectRef.current(next);
+      });
+      const label = new CSS2DObject(el);
+      label.position.set(0, s.baseScale * 1.85, 0);
+      s.group.add(label);
+      s.label = label;
+      return label;
+    };
 
     tags.forEach((tag, i) => {
       const color = colorForTag(tag.name);
       if (theme.mode === 'light') {
-        // 日间提高饱和与明度，避免白底上发灰
         color.offsetHSL(0, 0.08, 0.06);
       }
       const weight = tag.count / maxCount;
@@ -345,9 +394,10 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       const group = new THREE.Group();
       group.position.copy(positions[i]);
       group.userData.name = tag.name;
+      // 静态星默认关自动矩阵，位移时再 updateMatrix
+      group.matrixAutoUpdate = false;
+      group.updateMatrix();
 
-      const glowBlend =
-        theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending;
       const core = new THREE.Mesh(
         coreGeo,
         new THREE.MeshBasicMaterial({
@@ -357,8 +407,8 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         }),
       );
       core.scale.setScalar(baseScale * 0.52);
+      core.matrixAutoUpdate = true;
 
-      // 恒星色球层：给内核一点真实色温
       const corona = new THREE.Mesh(
         planeGeo,
         new THREE.MeshBasicMaterial({
@@ -371,6 +421,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         }),
       );
       corona.scale.setScalar(baseScale * 2.7);
+      corona.visible = richStars;
 
       const halo = new THREE.Mesh(
         planeGeo,
@@ -397,42 +448,12 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         }),
       );
       spike.scale.setScalar(baseScale * 11.2);
-      spike.visible = tag.count > (quality.animateIdle ? 1 : 2);
-
-      const el = document.createElement('button');
-      el.type = 'button';
-      el.className = 'tu-label' + (selectedRef.current === tag.name ? ' is-focus' : '');
-      const dot = document.createElement('span');
-      dot.className = 'tu-label-dot';
-      const text = document.createElement('span');
-      text.className = 'tu-label-text';
-      text.textContent = tag.name;
-      const count = document.createElement('span');
-      count.className = 'tu-label-count';
-      count.textContent = String(tag.count);
-      el.append(dot, text, count);
-      el.style.setProperty('--star', `#${color.getHexString()}`);
-      el.dataset.tagName = tag.name;
-      el.addEventListener('pointerdown', (ev) => {
-        ev.stopPropagation();
-        ignoreCanvasPickUntil = performance.now() + 500;
-      });
-      el.addEventListener('click', (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        ignoreCanvasPickUntil = performance.now() + 500;
-        const next = selectedRef.current === tag.name ? null : tag.name;
-        onSelectRef.current(next);
-      });
-
-      const label = new CSS2DObject(el);
-      label.position.set(0, baseScale * 1.85, 0);
+      spike.visible = richStars && tag.count > 1;
 
       group.add(core);
       group.add(corona);
       group.add(halo);
       group.add(spike);
-      group.add(label);
       root.add(group);
 
       const runtime: StarRuntime = {
@@ -442,7 +463,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         corona,
         halo,
         spike,
-        label,
+        label: null,
         basePos: positions[i].clone(),
         baseScale,
         phase: (hashSeed(tag.name) % 360) * (Math.PI / 180),
@@ -451,29 +472,20 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         visual: 'idle',
         lastDim: 1,
       };
+      // 仅热门标签初始挂 CSS2D，避免 N 个 DOM 拖垮主线程
+      if (topNames.has(tag.name) || selectedRef.current === tag.name) {
+        attachLabel(runtime, selectedRef.current === tag.name);
+      }
       setStarVisual(runtime, 'idle', 1);
       runtimes.push(runtime);
     });
     starsRef.current = runtimes;
 
-    // 限量显示标签：只保留热度最高的一批 + 后续选中/悬停再开
-    const maxLabels = quality.animateIdle ? 24 : 14;
-    const topNames = new Set(
-      [...runtimes]
-        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-        .slice(0, maxLabels)
-        .map((s) => s.name),
-    );
-    for (const s of runtimes) {
-      s.label.visible = topNames.has(s.name);
-      s.label.element.style.display = topNames.has(s.name) ? '' : 'none';
-    }
     const ensureLabelVisible = (name: string | null) => {
       if (!name) return;
       const s = runtimes.find((x) => x.name === name);
       if (!s) return;
-      s.label.visible = true;
-      s.label.element.style.display = '';
+      attachLabel(s, selectedRef.current === name);
     };
 
 
@@ -552,6 +564,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     let pointerDown: { x: number; y: number } | null = null;
 
     let resizeRaf = 0;
+    let wakeRef: ((holdMs?: number) => void) | null = null;
     const setSize = () => {
       if (disposed) return;
       const w = wrap.clientWidth || 1;
@@ -560,6 +573,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       camera.updateProjectionMatrix();
       renderer.setSize(w, h, false);
       labelRenderer.setSize(w, h);
+      wakeRef?.(0);
     };
     setSize();
     const ro = new ResizeObserver(() => {
@@ -602,15 +616,17 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       hoverRef.current = name;
       renderer.domElement.style.cursor = name ? 'pointer' : 'grab';
       for (const s of runtimes) {
-        s.label.element.classList.toggle('is-hover', s.name === name);
+        if (s.label) s.label.element.classList.toggle('is-hover', s.name === name);
       }
       ensureLabelVisible(name);
+      wakeRef?.(200);
     };
 
     const onPointerDown = (e: PointerEvent) => {
       if (performance.now() < ignoreCanvasPickUntil) return;
       pointerDown = { x: e.clientX, y: e.clientY };
       controls.autoRotate = false;
+      wake(300);
     };
     const onPointerUp = (e: PointerEvent) => {
       if (performance.now() < ignoreCanvasPickUntil) {
@@ -649,51 +665,76 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
 
     let raf = 0;
     let frame = 0;
-    let last = performance.now();
-    let rootAngle = 0;
     let readyNotified = false;
     const clockStart = performance.now();
-    // 目标帧率：低画质 30fps，中高 40fps，显著降 CPU/GPU 占用
-    const frameInterval = quality.animateIdle ? 1000 / 40 : 1000 / 30;
+    // 目标帧率：低画质 30fps，中高 36fps
+    const frameInterval = quality.animateIdle ? 1000 / 36 : 1000 / 30;
     let lastDraw = 0;
+    let animUntil = 0;
+    let interacting = false;
+    let dirty = true;
+    let running = false;
+
+    const wake = (holdMs = 0) => {
+      dirty = true;
+      if (holdMs > 0) animUntil = Math.max(animUntil, performance.now() + holdMs);
+      if (!running && !disposed && !document.hidden) {
+        running = true;
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    wakeRef = wake;
+
+    controls.addEventListener('start', () => {
+      interacting = true;
+      wake(0);
+    });
+    controls.addEventListener('change', () => wake(0));
+    controls.addEventListener('end', () => {
+      interacting = false;
+      // 阻尼收尾
+      wake(900);
+    });
 
     const tick = (now: number) => {
-      if (disposed) return;
-      raf = requestAnimationFrame(tick);
+      if (disposed || document.hidden) {
+        running = false;
+        raf = 0;
+        return;
+      }
 
-      // 页面隐藏时停更
-      if (document.hidden) return;
+      const hasSelection = Boolean(selectedRef.current);
+      const hasHover = Boolean(hoverRef.current);
+      const keepGoing =
+        dirty || interacting || hasSelection || hasHover || now < animUntil;
 
-      // 帧率上限：跳过过密帧，仍保持 rAF 调度
-      if (now - lastDraw < frameInterval - 0.5) return;
-      // 轻微对齐，避免长时间漂移
-      lastDraw = now - ((now - lastDraw) % frameInterval);
+      if (!keepGoing) {
+        // 真正空闲：停表（官方建议，避免空转 rAF）
+        running = false;
+        raf = 0;
+        return;
+      }
 
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
+      // 帧率上限
+      if (now - lastDraw < frameInterval - 0.5) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      lastDraw = now;
+      dirty = false;
       frame += 1;
       const t = (now - clockStart) / 1000;
       const heavyFrame = frame % 3 === 0;
-      const hasSelection = Boolean(selectedRef.current);
-      const hasHover = Boolean(hoverRef.current);
 
       controls.update();
       if (quality.twinkle) {
         shaderUniforms.uTime.value = t;
       }
 
-      // 背景场旋转降频；低画质几乎静止
-      if (quality.animateIdle && heavyFrame) {
-        farPoints.rotation.y = t * 0.004;
-        milkyPoints.rotation.y = t * 0.003;
-        nearPoints.rotation.y = -t * 0.008;
-        if (dustPoints) dustPoints.rotation.y = t * 0.006;
-        if (orbitGroup.children.length) orbitGroup.rotation.y = t * 0.015;
-      }
-
-      if (!hasSelection && quality.animateIdle) {
-        rootAngle += dt * 0.06;
-        root.rotation.y = rootAngle;
+      // 仅交互时微移背景，空闲完全静止
+      if (interacting && heavyFrame) {
+        farPoints.rotation.y = t * 0.002;
+        milkyPoints.rotation.y = t * 0.0015;
       }
 
       // 星云 / 轨道：低画质静态 billboard 一次即可
@@ -729,7 +770,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           if (active) activeStar = s;
 
           // 浮动：仅中高质量，或当前交互星
-          if (quality.animateIdle || active || hover) {
+          if (active || hover) {
             const floatY = Math.sin(t * 0.9 + s.phase) * (active ? 0.06 : 0.03);
             const floatX = Math.cos(t * 0.55 + s.phase) * (active ? 0.03 : 0.015);
             s.group.position.set(
@@ -737,6 +778,13 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
               s.basePos.y + floatY,
               s.basePos.z,
             );
+            s.group.updateMatrix();
+          } else if (
+            s.group.position.x !== s.basePos.x ||
+            s.group.position.y !== s.basePos.y
+          ) {
+            s.group.position.copy(s.basePos);
+            s.group.updateMatrix();
           }
 
           const mode: 'idle' | 'hover' | 'active' = active ? 'active' : hover ? 'hover' : 'idle';
@@ -770,6 +818,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       if (frame % quality.labelSortEvery === 0) {
         root.updateMatrixWorld(true);
         for (const s of runtimes) {
+          if (!s.label || !s.label.visible) continue;
           s.group.getWorldPosition(world);
           ndc.copy(world).project(camera);
           const z = Math.round((1 - (ndc.z + 1) * 0.5) * 1000);
@@ -798,12 +847,14 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         desired.copy(tmp).add(camOffset);
         camera.position.lerp(desired, 0.03);
         controls.autoRotate = false;
+        dirty = true; // 选中镜头插值未完成
       } else if (selectGroup.visible) {
         selectGroup.visible = false;
         ringMat.opacity = 0;
         (ringOuter.material as THREE.MeshBasicMaterial).opacity = 0;
         tickMat.opacity = 0;
         controls.target.lerp(ZERO, 0.025);
+        if (controls.target.distanceToSquared(ZERO) > 1e-4) dirty = true;
       }
 
       // 连线透明度几乎静态，极低频更新
@@ -824,20 +875,36 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           if (!disposed) onReadyRef.current?.();
         });
       }
+
+      // 选中镜头 / 交互 / 残留脏标记时继续，否则下一帧由 keepGoing 停表
+      if (
+        dirty ||
+        interacting ||
+        selectedRef.current ||
+        hoverRef.current ||
+        performance.now() < animUntil
+      ) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        running = false;
+        raf = 0;
+      }
     };
 
-    raf = requestAnimationFrame(tick);
+    // 首屏绘制
+    wake(0);
 
     const onVisibility = () => {
       if (!document.hidden && !disposed) {
-        last = performance.now();
+        wake(200);
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       disposed = true;
-      cancelAnimationFrame(raf);
+      running = false;
+      if (raf) cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', onVisibility);
       ro.disconnect();
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
