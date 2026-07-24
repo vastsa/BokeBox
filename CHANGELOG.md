@@ -9,6 +9,7 @@
 - 导航栏现代化：桌面顶栏毛玻璃 + 居中胶囊轨；移动端全宽沉浸底栏，与迷你播放条连续衔接
 - 导航 chrome 随滚动切换透明度：顶部更透、滚远略实，贴合内容沉浸感
 - 星图页支持亮色主题：日间深空场景、HUD/面板/导航 chrome 与 three.js 背景随 `data-theme` 切换
+- 星图性能优化：降低点云/连线规模，限制 30–40fps，默认关闭自动旋转与高开销 CSS 动画
 - 页面级 SEO：路由独立 title/description；播放/专辑用内容标题与封面；管理页 noindex
 - 前端路由改为 **History 模式**，去掉 URL 中的 `#`；兼容旧 hash 链接自动迁移
 - 全局 SEO 增强：canonical / Open Graph / Twitter Card / robots；路由切换同步 `og:url`

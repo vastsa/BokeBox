@@ -162,7 +162,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
-    attachStarShader(farMat, shaderUniforms);
+    if (quality.twinkle) attachStarShader(farMat, shaderUniforms);
     const farPoints = new THREE.Points(farGeo, farMat);
     scene.add(farPoints);
 
@@ -184,7 +184,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
-    attachStarShader(milkyMat, shaderUniforms);
+    if (quality.twinkle) attachStarShader(milkyMat, shaderUniforms);
     const milkyPoints = new THREE.Points(milkyGeo, milkyMat);
     milkyPoints.rotation.z = 0.18;
     scene.add(milkyPoints);
@@ -206,38 +206,42 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
-    attachStarShader(nearMat, shaderUniforms);
+    if (quality.twinkle) attachStarShader(nearMat, shaderUniforms);
     const nearPoints = new THREE.Points(nearGeo, nearMat);
     scene.add(nearPoints);
 
-    // 星尘微粒（更软、更大）
-    const dustGeo = makeStarfield({
-      count: quality.dustPoints,
-      rMin: 8,
-      rMax: 30,
-      milky: true,
-      seed: 73,
-    });
-    const dustSoftTex = makeRadialTexture(
-      [
-        [0, 'rgba(200,220,255,0.55)'],
-        [0.4, 'rgba(140,170,255,0.12)'],
-        [1, 'rgba(255,255,255,0)'],
-      ],
-      64,
-    );
-    const dustMat = new THREE.PointsMaterial({
-      size: theme.mode === 'light' ? 0.48 : 0.55,
-      map: dustSoftTex,
-      vertexColors: true,
-      transparent: true,
-      opacity: theme.dustOpacity,
-      depthWrite: false,
-      blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
-      sizeAttenuation: true,
-    });
-    const dustPoints = new THREE.Points(dustGeo, dustMat);
-    scene.add(dustPoints);
+    // 星尘微粒（更软、更大）；低画质可关掉
+    let dustPoints: THREE.Points | null = null;
+    let dustSoftTex: THREE.CanvasTexture | null = null;
+    if (quality.dustPoints > 0) {
+      const dustGeo = makeStarfield({
+        count: quality.dustPoints,
+        rMin: 8,
+        rMax: 30,
+        milky: true,
+        seed: 73,
+      });
+      dustSoftTex = makeRadialTexture(
+        [
+          [0, 'rgba(200,220,255,0.55)'],
+          [0.4, 'rgba(140,170,255,0.12)'],
+          [1, 'rgba(255,255,255,0)'],
+        ],
+        64,
+      );
+      const dustMat = new THREE.PointsMaterial({
+        size: theme.mode === 'light' ? 0.48 : 0.55,
+        map: dustSoftTex,
+        vertexColors: true,
+        transparent: true,
+        opacity: theme.dustOpacity,
+        depthWrite: false,
+        blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
+        sizeAttenuation: true,
+      });
+      dustPoints = new THREE.Points(dustGeo, dustMat);
+      scene.add(dustPoints);
+    }
 
     // 星云体
     const nebulaGroup = new THREE.Group();
@@ -278,7 +282,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     for (let i = 0; i < quality.orbitRings; i += 1) {
       const r = 5.2 + i * 2.1;
       const curve = new THREE.EllipseCurve(0, 0, r, r * (0.72 + i * 0.04), 0, Math.PI * 2, false, 0);
-      const pts = curve.getPoints(96 + i * 16);
+      const pts = curve.getPoints(48 + i * 8);
       const geo = new THREE.BufferGeometry().setFromPoints(
         pts.map((p) => new THREE.Vector3(p.x, 0, p.y)),
       );
@@ -318,7 +322,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     );
     const spikeTex = makeSpikeTexture();
     // 低面数内核
-    const coreGeo = new THREE.SphereGeometry(1, 14, 14);
+    const coreGeo = new THREE.SphereGeometry(1, 10, 10);
     const planeGeo = new THREE.PlaneGeometry(1, 1);
 
     const root = new THREE.Group();
@@ -393,7 +397,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         }),
       );
       spike.scale.setScalar(baseScale * 11.2);
-      spike.visible = tag.count > 1;
+      spike.visible = tag.count > (quality.animateIdle ? 1 : 2);
 
       const el = document.createElement('button');
       el.type = 'button';
@@ -452,7 +456,9 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     });
     starsRef.current = runtimes;
 
-    const linkData = buildLinks(tags, positions);
+    const linkData = quality.animateIdle
+      ? buildLinks(tags, positions)
+      : { positions: [] as number[], colors: [] as number[] };
     let linkLines: THREE.LineSegments | null = null;
     if (linkData.positions.length) {
       const linkGeo = new THREE.BufferGeometry();
@@ -482,9 +488,9 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       depthWrite: false,
       blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
     });
-    const ringInner = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.78, 64), ringMat);
+    const ringInner = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.78, 40), ringMat);
     const ringOuter = new THREE.Mesh(
-      new THREE.RingGeometry(0.92, 0.96, 64),
+      new THREE.RingGeometry(0.92, 0.96, 40),
       new THREE.MeshBasicMaterial({
         color: theme.selectOuter,
         transparent: true,
@@ -524,6 +530,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     const camOffset = new THREE.Vector3();
     let pointerDown: { x: number; y: number } | null = null;
 
+    let resizeRaf = 0;
     const setSize = () => {
       if (disposed) return;
       const w = wrap.clientWidth || 1;
@@ -534,7 +541,13 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       labelRenderer.setSize(w, h);
     };
     setSize();
-    const ro = new ResizeObserver(setSize);
+    const ro = new ResizeObserver(() => {
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = 0;
+        setSize();
+      });
+    });
     ro.observe(wrap);
 
     const pickName = (clientX: number, clientY: number): string | null => {
@@ -617,6 +630,9 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     let rootAngle = 0;
     let readyNotified = false;
     const clockStart = performance.now();
+    // 目标帧率：低画质 30fps，中高 40fps，显著降 CPU/GPU 占用
+    const frameInterval = quality.animateIdle ? 1000 / 40 : 1000 / 30;
+    let lastDraw = 0;
 
     const tick = (now: number) => {
       if (disposed) return;
@@ -625,38 +641,51 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       // 页面隐藏时停更
       if (document.hidden) return;
 
+      // 帧率上限：跳过过密帧，仍保持 rAF 调度
+      if (now - lastDraw < frameInterval - 0.5) return;
+      // 轻微对齐，避免长时间漂移
+      lastDraw = now - ((now - lastDraw) % frameInterval);
+
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       frame += 1;
       const t = (now - clockStart) / 1000;
-      const heavyFrame = frame % 2 === 0;
+      const heavyFrame = frame % 3 === 0;
+      const hasSelection = Boolean(selectedRef.current);
+      const hasHover = Boolean(hoverRef.current);
 
       controls.update();
-      shaderUniforms.uTime.value = t;
-
-      if (heavyFrame) {
-        farPoints.rotation.y = t * 0.006;
-        milkyPoints.rotation.y = t * 0.004;
-        nearPoints.rotation.y = -t * 0.012;
-        dustPoints.rotation.y = t * 0.009;
-        orbitGroup.rotation.y = t * 0.02;
+      if (quality.twinkle) {
+        shaderUniforms.uTime.value = t;
       }
 
-      if (!selectedRef.current) {
-        rootAngle += dt * 0.1;
+      // 背景场旋转降频；低画质几乎静止
+      if (quality.animateIdle && heavyFrame) {
+        farPoints.rotation.y = t * 0.004;
+        milkyPoints.rotation.y = t * 0.003;
+        nearPoints.rotation.y = -t * 0.008;
+        if (dustPoints) dustPoints.rotation.y = t * 0.006;
+        if (orbitGroup.children.length) orbitGroup.rotation.y = t * 0.015;
+      }
+
+      if (!hasSelection && quality.animateIdle) {
+        rootAngle += dt * 0.06;
         root.rotation.y = rootAngle;
       }
 
-      if (heavyFrame) {
+      // 星云 / 轨道：低画质静态 billboard 一次即可
+      if (nebulaGroup.children.length && (quality.animateIdle ? heavyFrame : frame === 1)) {
         for (const n of nebulaGroup.children) {
           const mesh = n as THREE.Mesh;
           mesh.quaternion.copy(camera.quaternion);
-          const phase = Number(mesh.userData.phase || 0);
-          const spin = Number(mesh.userData.spin || 0.02);
-          mesh.rotation.z = phase + t * spin;
-          const mat = mesh.material as THREE.MeshBasicMaterial;
-          mat.opacity = 0.08 + (Math.sin(t * 0.32 + phase) * 0.5 + 0.5) * 0.08;
+          if (quality.animateIdle) {
+            const phase = Number(mesh.userData.phase || 0);
+            const spin = Number(mesh.userData.spin || 0.02);
+            mesh.rotation.z = phase + t * spin * 0.55;
+          }
         }
+      }
+      if (quality.animateIdle && heavyFrame) {
         for (const o of orbitGroup.children) {
           const line = o as THREE.LineLoop;
           const spin = Number(line.userData.spin || 0.02);
@@ -668,41 +697,50 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       const hoverName = hoverRef.current;
       let activeStar: StarRuntime | null = null;
 
-      for (const s of runtimes) {
-        const active = Boolean(selectedName && s.name === selectedName);
-        const hover = !active && hoverName === s.name;
-        if (active) activeStar = s;
+      // 无交互时星体视觉更新降到 1/3 帧
+      const updateStars = hasSelection || hasHover || heavyFrame || frame <= 2;
+      if (updateStars) {
+        for (const s of runtimes) {
+          const active = Boolean(selectedName && s.name === selectedName);
+          const hover = !active && hoverName === s.name;
+          if (active) activeStar = s;
 
-        // 浮动：仅中高质量，或当前交互星
-        if (quality.animateIdle || active || hover) {
-          const floatY = Math.sin(t * 1.05 + s.phase) * (active ? 0.075 : 0.045);
-          const floatX = Math.cos(t * 0.68 + s.phase) * (active ? 0.038 : 0.022);
-          s.group.position.set(
-            s.basePos.x + floatX,
-            s.basePos.y + floatY,
-            s.basePos.z,
-          );
-        }
+          // 浮动：仅中高质量，或当前交互星
+          if (quality.animateIdle || active || hover) {
+            const floatY = Math.sin(t * 0.9 + s.phase) * (active ? 0.06 : 0.03);
+            const floatX = Math.cos(t * 0.55 + s.phase) * (active ? 0.03 : 0.015);
+            s.group.position.set(
+              s.basePos.x + floatX,
+              s.basePos.y + floatY,
+              s.basePos.z,
+            );
+          }
 
-        const mode: 'idle' | 'hover' | 'active' = active ? 'active' : hover ? 'hover' : 'idle';
-        const dim = selectedName && !active ? 0.72 : 1;
-        setStarVisual(s, mode, dim);
+          const mode: 'idle' | 'hover' | 'active' = active ? 'active' : hover ? 'hover' : 'idle';
+          const dim = selectedName && !active ? 0.72 : 1;
+          setStarVisual(s, mode, dim);
 
-        // billboard：仅交互星每帧，其余半频
-        if (active || hover || heavyFrame) {
-          s.corona.quaternion.copy(camera.quaternion);
-          s.halo.quaternion.copy(camera.quaternion);
-          if (s.spike.visible) {
-            s.spike.quaternion.copy(camera.quaternion);
-            if (active) s.spike.rotation.z = t * 0.35 + s.phase;
+          // billboard：交互星每帧，其余重帧
+          if (active || hover || heavyFrame) {
+            s.corona.quaternion.copy(camera.quaternion);
+            s.halo.quaternion.copy(camera.quaternion);
+            if (s.spike.visible) {
+              s.spike.quaternion.copy(camera.quaternion);
+              if (active) s.spike.rotation.z = t * 0.28 + s.phase;
+            }
+          }
+
+          if (active) {
+            const pulse = 1 + Math.sin(t * 1.2 + s.phase) * 0.022;
+            s.halo.scale.setScalar(s.baseScale * 1.24 * 9.2 * pulse);
+            s.corona.scale.setScalar(
+              s.baseScale * 1.24 * 3.4 * (1 + Math.sin(t * 1.8 + s.phase) * 0.03),
+            );
           }
         }
-
-        if (active) {
-          const pulse = 1 + Math.sin(t * 1.35 + s.phase) * 0.028;
-          s.halo.scale.setScalar(s.baseScale * 1.24 * 9.2 * pulse);
-          s.corona.scale.setScalar(s.baseScale * 1.24 * 3.4 * (1 + Math.sin(t * 2.1 + s.phase) * 0.04));
-        }
+      } else if (selectedName) {
+        // 即便跳过全量更新，也要拿到 active 引用
+        activeStar = runtimes.find((s) => s.name === selectedName) || null;
       }
 
       // 标签深度排序降频
@@ -721,15 +759,15 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         selectGroup.visible = true;
         selectGroup.position.copy(tmp);
         selectGroup.quaternion.copy(camera.quaternion);
-        const beat = 1 + Math.sin(t * 1.55) * 0.035;
+        const beat = 1 + Math.sin(t * 1.35) * 0.028;
         const sc = Math.max(0.5, activeStar.baseScale * 3.5) * beat;
         selectGroup.scale.setScalar(sc);
         ringMat.opacity = theme.mode === 'light' ? 0.7 : 0.48;
-        (ringOuter.material as THREE.MeshBasicMaterial).opacity = theme.mode === 'light' ? 0.42 : 0.28;
+        (ringOuter.material as THREE.MeshBasicMaterial).opacity =
+          theme.mode === 'light' ? 0.42 : 0.28;
         tickMat.opacity = theme.mode === 'light' ? 0.72 : 0.55;
-        selectGroup.rotation.z = t * 0.32;
-        // 外环反向微旋：通过子 mesh 本地旋转
-        ringOuter.rotation.z = -t * 0.55;
+        selectGroup.rotation.z = t * 0.26;
+        ringOuter.rotation.z = -t * 0.42;
 
         controls.target.lerp(tmp, 0.045);
         camOffset.copy(camera.position).sub(controls.target).normalize().multiplyScalar(9.5);
@@ -744,14 +782,15 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         controls.target.lerp(ZERO, 0.025);
       }
 
-      if (linkLines && heavyFrame) {
+      // 连线透明度几乎静态，极低频更新
+      if (linkLines && frame % 12 === 0) {
         const mat = linkLines.material as THREE.LineBasicMaterial;
-        const base = theme.linkOpacity;
-        mat.opacity = base + Math.sin(t * 0.75) * (base * 0.22);
+        mat.opacity = theme.linkOpacity;
       }
 
       renderer.render(scene, camera);
-      if (activeStar || hoverName || frame % 2 === 0) {
+      // CSS2D 很贵：无交互时每 3 帧一次，有交互每帧
+      if (activeStar || hoverName || frame % 3 === 0) {
         labelRenderer.render(scene, camera);
       }
 
@@ -762,6 +801,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         });
       }
     };
+
     raf = requestAnimationFrame(tick);
 
     const onVisibility = () => {
@@ -796,7 +836,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         }
       });
       dustTex.dispose();
-      dustSoftTex.dispose();
+      dustSoftTex?.dispose();
       glowTex.dispose();
       coronaTex.dispose();
       spikeTex.dispose();

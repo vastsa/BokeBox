@@ -112,55 +112,59 @@ export type Quality = {
 export function detectQuality(): Quality {
   const cores = navigator.hardwareConcurrency || 4;
   const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory || 4;
-  const saveData = Boolean(
-    (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData,
-  );
+  const conn = (navigator as Navigator & {
+    connection?: { saveData?: boolean; effectiveType?: string };
+  }).connection;
+  const saveData = Boolean(conn?.saveData);
+  const slowNet = Boolean(conn?.effectiveType && /2g|slow-2g|3g/i.test(conn.effectiveType));
   const mobile = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
-  const low = saveData || mobile || cores <= 4 || mem <= 4;
-  const mid = !low && (cores <= 6 || mem <= 6);
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // 多数设备默认走 low/mid，避免桌面也堆 2k+ 点云
+  const low = saveData || slowNet || reducedMotion || mobile || cores <= 6 || mem <= 4;
+  const mid = !low && (cores <= 10 || mem <= 8);
 
   if (low) {
     return {
       dpr: 1,
-      farStars: 520,
-      nearStars: 90,
-      milkyStars: 280,
-      dustPoints: 60,
-      nebulae: 3,
-      orbitRings: 1,
+      farStars: 220,
+      nearStars: 48,
+      milkyStars: 120,
+      dustPoints: 24,
+      nebulae: 1,
+      orbitRings: 0,
       antialias: false,
       animateIdle: false,
       twinkle: false,
-      labelSortEvery: 10,
+      labelSortEvery: 12,
     };
   }
   if (mid) {
     return {
-      dpr: Math.min(window.devicePixelRatio || 1, 1.25),
-      farStars: 900,
-      nearStars: 150,
-      milkyStars: 480,
-      dustPoints: 110,
-      nebulae: 4,
-      orbitRings: 2,
+      dpr: Math.min(window.devicePixelRatio || 1, 1.15),
+      farStars: 420,
+      nearStars: 80,
+      milkyStars: 220,
+      dustPoints: 48,
+      nebulae: 2,
+      orbitRings: 1,
       antialias: false,
       animateIdle: true,
-      twinkle: true,
-      labelSortEvery: 6,
+      twinkle: false,
+      labelSortEvery: 8,
     };
   }
   return {
-    dpr: Math.min(window.devicePixelRatio || 1, 1.5),
-    farStars: 1400,
-    nearStars: 220,
-    milkyStars: 720,
-    dustPoints: 180,
-    nebulae: 5,
-    orbitRings: 3,
-    antialias: true,
+    dpr: Math.min(window.devicePixelRatio || 1, 1.35),
+    farStars: 700,
+    nearStars: 120,
+    milkyStars: 360,
+    dustPoints: 80,
+    nebulae: 3,
+    orbitRings: 2,
+    antialias: false,
     animateIdle: true,
     twinkle: true,
-    labelSortEvery: 5,
+    labelSortEvery: 6,
   };
 }
 
@@ -531,7 +535,11 @@ export function buildLinks(tags: TagStar[], positions: THREE.Vector3[]): {
     }
   }
   pairs.sort((a, b) => b[2] - a[2]);
-  const maxLinks = Math.min(pairs.length, Math.max(3, Math.floor(tags.length * 1.15)));
+  // 连线 O(n^2) 结果再截断，控制线段数量避免填充率爆炸
+  const maxLinks = Math.min(
+    pairs.length,
+    Math.max(2, Math.min(28, Math.floor(tags.length * 0.55))),
+  );
   const outPos: number[] = [];
   const outCol: number[] = [];
   const cA = new THREE.Color();

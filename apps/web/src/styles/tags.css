@@ -388,8 +388,9 @@ html[data-theme="light"] .tu-vignette {
     radial-gradient(30% 24% at 58% 82%, rgba(47, 214, 207, 0.1), transparent 72%),
     radial-gradient(46% 18% at 50% 52%, rgba(90, 120, 220, 0.08), transparent 75%);
   /* 去掉实时 blur，改用更软的径向渐变，显著降合成开销 */
-  animation: tu-aurora-shift 22s ease-in-out infinite alternate;
-  will-change: transform, opacity;
+  /* 默认静态星云洗光；动画仅在高刷且未开启省电时启用见下方 */
+  animation: none;
+  will-change: auto;
 }
 .tu-stage.is-light .tu-aurora,
 html[data-theme="light"] .tu-aurora {
@@ -415,8 +416,9 @@ html[data-theme="light"] .tu-aurora {
       transparent 52%
     );
   background-size: 100% 220%;
-  animation: tu-scan-drift 14s linear infinite;
+  animation: none;
   mix-blend-mode: screen;
+  opacity: 0.12;
 }
 .tu-stage.is-light .tu-scan,
 html[data-theme="light"] .tu-scan {
@@ -462,8 +464,9 @@ html[data-theme="light"] .tu-scan {
   background:
     var(--tc-label-bg, linear-gradient(180deg, rgba(14, 20, 36, 0.62), rgba(6, 10, 20, 0.48))),
     linear-gradient(90deg, color-mix(in srgb, var(--star) 12%, transparent), transparent 40%);
-  backdrop-filter: blur(12px) saturate(1.15);
-  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  /* 标签数量多时 blur 很贵，改为轻模糊 + 实色底 */
+  backdrop-filter: blur(6px) saturate(1.05);
+  -webkit-backdrop-filter: blur(6px) saturate(1.05);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.04) inset,
     0 6px 18px rgba(0, 0, 0, 0.3),
@@ -1232,4 +1235,33 @@ html[data-theme="light"] .tc-loader-text {
 html[data-theme="light"][data-route="tags"] .tc-loader-core,
 html[data-theme="light"] .tc-loader-core {
   box-shadow: 0 0 24px rgba(79, 142, 247, 0.35);
+}
+
+
+/* 性能：小屏 / 弱设备去掉扫描线与多余合成层 */
+@media (max-width: 768px), (pointer: coarse) {
+  .tu-scan { display: none !important; }
+  .tu-aurora { opacity: 0.55; }
+  .tu-label {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .tc-title-block,
+  .tc-hint,
+  .tc-panel {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tu-aurora,
+  .tu-scan,
+  .tc-loader-glow,
+  .tc-loader-orbit,
+  .tc-loader-core,
+  .tc-loader-spark,
+  .tc-loader-dots i {
+    animation: none !important;
+  }
 }
