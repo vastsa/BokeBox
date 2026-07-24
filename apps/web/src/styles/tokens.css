@@ -576,6 +576,42 @@
 }
 
 
+/* 手动亮色：显式锁回亮色 token，避免被系统暗色或残留规则压住 */
+html[data-theme="light"] {
+  color-scheme: only light;
+  --brand: #4f8ef7;
+  --brand-2: #3b7aef;
+  --brand-3: #8fb8ff;
+  --brand-soft: rgba(79, 142, 247, 0.10);
+  --brand-soft-2: rgba(79, 142, 247, 0.06);
+  --brand-ring: rgba(79, 142, 247, 0.22);
+
+  --bg: #f6f8fc;
+  --surface: #ffffff;
+  --surface-2: #f3f6fb;
+  --surface-3: #e8eef7;
+  --surface-brand: #eef4ff;
+  --surface-muted: #f7f9fd;
+
+  --text: #141a24;
+  --text-2: #5b6575;
+  --text-3: #8b95a7;
+  --muted: #8b93a7;
+
+  --separator: rgba(20, 26, 36, 0.06);
+  --separator-strong: rgba(20, 26, 36, 0.10);
+  --separator-soft: rgba(127, 140, 170, 0.18);
+  --code-bg: rgba(127, 140, 170, 0.12);
+
+  --brand-grad: linear-gradient(135deg, #7eb0ff 0%, #4f8ef7 52%, #3b7aef 100%);
+  --hero-grad: radial-gradient(90% 70% at 50% -10%, rgba(143, 184, 255, 0.34) 0%, rgba(246, 248, 252, 0.18) 42%, rgba(246, 248, 252, 0) 70%);
+  --grad-hero-surface: linear-gradient(180deg, var(--surface-brand) 0%, var(--surface-muted) 42%, var(--white) 100%);
+
+  --shadow-sm: 0 1px 2px rgba(20, 26, 36, 0.04), 0 6px 16px rgba(49, 79, 128, 0.04);
+  --shadow-md: 0 2px 4px rgba(20, 26, 36, 0.04), 0 12px 28px rgba(49, 79, 128, 0.07);
+  --shadow-fab: 0 6px 16px rgba(79, 142, 247, 0.28);
+}
+
 html[data-theme="dark"] {
     --brand: #7eb0ff;
     --brand-2: #a8c9ff;

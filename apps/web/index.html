@@ -41,8 +41,12 @@
           if (pref === 'system') {
             mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           }
+          // pref=用户偏好；mode=实际渲染亮暗（CSS 只认 light/dark）
+          document.documentElement.setAttribute('data-theme-pref', pref);
           document.documentElement.setAttribute('data-theme', mode);
-          document.documentElement.style.colorScheme = mode;
+          // 手动亮/深色加 only，避免系统暗色自动反色压过手动亮色
+          document.documentElement.style.colorScheme =
+            pref === 'light' ? 'only light' : pref === 'dark' ? 'only dark' : mode;
           var color = mode === 'dark' ? '#0a0d12' : '#f6f8fc';
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute('content', color);

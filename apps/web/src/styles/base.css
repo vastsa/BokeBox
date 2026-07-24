@@ -12,8 +12,12 @@ html {
   /* 禁止双击缩放；星图画布单独设 touch-action: none */
   touch-action: manipulation;
 }
+/* 手动亮色：only light 防止系统暗色自动反色 */
+html[data-theme="light"] {
+  color-scheme: only light;
+}
 html[data-theme="dark"] {
-  color-scheme: dark;
+  color-scheme: only dark;
 }
 body {
   margin: 0;
