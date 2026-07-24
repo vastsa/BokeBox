@@ -569,21 +569,24 @@ select.plugin-config-control {
   top: 0;
   z-index: var(--z-nav);
   padding-top: max(var(--space-1_5), var(--safe-top));
+  border-bottom: 0;
+  box-shadow: none;
+  /* 默认：顶部极透，内容直接透上来 */
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--bg) 92%, transparent) 0%,
-      color-mix(in srgb, var(--bg) 72%, transparent) 72%,
-      color-mix(in srgb, var(--bg) 28%, transparent) 100%
+      color-mix(in srgb, var(--bg) 58%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 28%, transparent) 68%,
+      transparent 100%
     );
-  border-bottom: 0;
-  box-shadow: none;
-  backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
-  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
+  backdrop-filter: blur(10px) saturate(1.12);
+  -webkit-backdrop-filter: blur(10px) saturate(1.12);
   transition:
     background var(--dur) var(--ease),
     border-color var(--dur) var(--ease),
-    box-shadow var(--dur) var(--ease);
+    box-shadow var(--dur) var(--ease),
+    backdrop-filter var(--dur) var(--ease),
+    -webkit-backdrop-filter var(--dur) var(--ease);
 }
 /* 顶栏与内容自然溶合，不再画硬分割线 */
 .topbar.is-solid,
@@ -591,18 +594,56 @@ select.plugin-config-control {
   border-bottom-color: transparent;
   box-shadow: none;
 }
+/* 滚远后略实，保证标题/胶囊可读，仍保持溶合 */
+.topbar.is-scrolled {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg) 86%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 62%, transparent) 74%,
+      color-mix(in srgb, var(--bg) 18%, transparent) 100%
+    );
+  backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
+  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
+}
 html[data-theme="dark"] .topbar {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--bg) 90%, transparent) 0%,
-      color-mix(in srgb, var(--bg) 68%, transparent) 70%,
-      color-mix(in srgb, var(--bg) 24%, transparent) 100%
+      color-mix(in srgb, var(--bg) 48%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 22%, transparent) 70%,
+      transparent 100%
+    );
+}
+html[data-theme="dark"] .topbar.is-scrolled {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg) 82%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 56%, transparent) 72%,
+      color-mix(in srgb, var(--bg) 16%, transparent) 100%
     );
 }
 html[data-theme="dark"] .topbar.is-solid,
 html[data-theme="dark"] .topbar:hover {
   box-shadow: none;
+}
+
+/* 顶部态：胶囊更轻；滚动后略实 */
+.topbar.is-at-top .topbar-nav-track {
+  border-color: color-mix(in srgb, var(--separator) 48%, transparent);
+  background: color-mix(in srgb, var(--surface) 34%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 28%, transparent);
+}
+.topbar.is-scrolled .topbar-nav-track {
+  border-color: color-mix(in srgb, var(--separator) 70%, transparent);
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+}
+html[data-theme="dark"] .topbar.is-at-top .topbar-nav-track {
+  background: color-mix(in srgb, var(--surface) 24%, transparent);
+}
+html[data-theme="dark"] .topbar.is-scrolled .topbar-nav-track {
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
 }
 
 .topbar-inner {
@@ -851,7 +892,7 @@ html[data-theme="dark"] .topbar-nav-item.is-active {
 }
 
 /* 移动端底栏 chrome · 与内容连续沉浸
- * 全宽毛玻璃面板，不再做悬浮卡片，避免与内容/播放条割裂
+ * 默认极淡毛玻璃；滚动后略实，始终全宽贴边
  */
 .bottom-nav {
   position: fixed;
@@ -867,49 +908,91 @@ html[data-theme="dark"] .topbar-nav-item.is-active {
     var(--space-1)
     max(var(--space-2), var(--page-x, 12px))
     calc(var(--space-1) + var(--safe-bottom));
-  border-top: var(--bw-1) solid color-mix(in srgb, var(--separator) 78%, transparent);
+  border-top: var(--bw-1) solid color-mix(in srgb, var(--separator) 42%, transparent);
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--surface) 78%, transparent) 0%,
-      color-mix(in srgb, var(--surface) 92%, transparent) 100%
+      color-mix(in srgb, var(--surface) 38%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 56%, transparent) 100%
+    );
+  box-shadow: none;
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    backdrop-filter var(--dur) var(--ease),
+    -webkit-backdrop-filter var(--dur) var(--ease);
+}
+.bottom-nav.is-scrolled {
+  border-top-color: color-mix(in srgb, var(--separator) 68%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 68%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 86%, transparent) 100%
     );
   box-shadow:
-    0 -12px 28px color-mix(in srgb, var(--ink-a08, rgba(20, 26, 36, 0.08)) 55%, transparent);
-  backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
-  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
+    0 -10px 24px color-mix(in srgb, var(--ink-a08, rgba(20, 26, 36, 0.08)) 42%, transparent);
+  backdrop-filter: blur(var(--blur-4xl)) saturate(1.25);
+  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.25);
 }
 html[data-theme="dark"] .bottom-nav {
-  border-top-color: color-mix(in srgb, var(--separator) 70%, transparent);
+  border-top-color: color-mix(in srgb, var(--separator) 36%, transparent);
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--surface) 72%, transparent) 0%,
-      color-mix(in srgb, var(--surface) 88%, transparent) 100%
+      color-mix(in srgb, var(--surface) 28%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 48%, transparent) 100%
     );
-  box-shadow: 0 -16px 32px rgba(0, 0, 0, 0.28);
+}
+html[data-theme="dark"] .bottom-nav.is-scrolled {
+  border-top-color: color-mix(in srgb, var(--separator) 58%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 58%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 78%, transparent) 100%
+    );
+  box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.22);
 }
 
-/* 内容滚入底栏时的柔和遮罩，强化沉浸过渡 */
+/* 内容滚入底栏时的柔和遮罩；顶部态更轻，滚动后略明显 */
 .bottom-nav::before {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   bottom: 100%;
-  height: 28px;
+  height: 36px;
   pointer-events: none;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    color-mix(in srgb, var(--bg) 42%, transparent) 100%
+    color-mix(in srgb, var(--bg) 22%, transparent) 100%
+  );
+  transition: opacity var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.bottom-nav.is-scrolled::before {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg) 40%, transparent) 100%
   );
 }
 html[data-theme="dark"] .bottom-nav::before {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    color-mix(in srgb, var(--bg) 55%, transparent) 100%
+    color-mix(in srgb, var(--bg) 28%, transparent) 100%
+  );
+}
+html[data-theme="dark"] .bottom-nav.is-scrolled::before {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg) 48%, transparent) 100%
   );
 }
 
@@ -1009,10 +1092,30 @@ html[data-theme="dark"] .topbar-action-btn {
   white-space: nowrap;
 }
 
-/* 有迷你播放条时：底栏与播放条拼成连续 chrome */
-body:has(.global-player) .bottom-nav {
+/* 有迷你播放条时：底栏与播放条拼成连续 chrome（略实，保证控件可读） */
+body:has(.global-player) .bottom-nav,
+body:has(.global-player) .bottom-nav.is-at-top,
+body:has(.global-player) .bottom-nav.is-scrolled {
   border-top-color: transparent;
   box-shadow: none;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 78%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 90%, transparent) 100%
+    );
+  backdrop-filter: blur(var(--blur-4xl)) saturate(1.22);
+  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.22);
+}
+html[data-theme="dark"] body:has(.global-player) .bottom-nav,
+html[data-theme="dark"] body:has(.global-player) .bottom-nav.is-at-top,
+html[data-theme="dark"] body:has(.global-player) .bottom-nav.is-scrolled {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 68%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 84%, transparent) 100%
+    );
 }
 body:has(.global-player) .bottom-nav::before {
   display: none;
@@ -1533,9 +1636,12 @@ html[data-theme="dark"] .topbar-action-btn {
   .topbar-brand,
   .topbar-nav-item,
   .topbar-action-btn,
+  .bottom-nav,
+  .bottom-nav::before,
   .bottom-nav-item,
   .bottom-nav-icon,
-  .topbar-nav-icon {
+  .topbar-nav-icon,
+  .topbar-nav-track {
     transition: none !important;
   }
 }

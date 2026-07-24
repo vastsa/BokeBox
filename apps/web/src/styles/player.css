@@ -170,8 +170,8 @@ body:has(.bottom-nav) .global-player {
     border-bottom: 0;
     border-top: var(--bw-1) solid color-mix(in srgb, var(--separator) 82%, transparent);
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--brand-soft) 40%, transparent), transparent 58%),
-      color-mix(in srgb, var(--surface) 94%, transparent);
+      linear-gradient(180deg, color-mix(in srgb, var(--brand-soft) 28%, transparent), transparent 58%),
+      color-mix(in srgb, var(--surface) 86%, transparent);
     box-shadow:
       0 -10px 26px color-mix(in srgb, var(--ink-a08) 58%, transparent);
     backdrop-filter: blur(var(--blur-4xl)) saturate(1.25);

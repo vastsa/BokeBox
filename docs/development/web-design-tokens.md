@@ -443,7 +443,7 @@ rg -n "text-\[[0-9]" apps/web/src --glob '*.tsx'
 |------|------|
 | `apps/web/src/styles/index.css` | Token 定义 + 全局组件样式 |
 | `apps/web/src/lib/theme.ts` | 主题偏好（含跟随系统）读写、解析与 `data-theme` |
-| `apps/web/src/layouts/AppShell.tsx` | 壳层导航：顶栏胶囊轨 + 移动端全宽沉浸底栏 |
+| `apps/web/src/layouts/AppShell.tsx` | 壳层导航：顶栏胶囊轨 + 移动端全宽沉浸底栏；滚动驱动 `is-at-top` / `is-scrolled` |
 | `apps/web/src/components/ui/*` | Empty / Section 等基础组件 |
 | [Docker CI/CD](../ops/ci-cd.md) | 构建与发布 |
 | [Source 插件开发](./source-plugin.md) | 插件开发（与 UI token 无关） |

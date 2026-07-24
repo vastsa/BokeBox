@@ -45,6 +45,9 @@ type NavItemDef = {
   icon: ReactNode;
 };
 
+/** 滚动超过该阈值后，顶/底栏进入更实一点的 condensed 态 */
+const SCROLL_CONDENSE_Y = 18;
+
 export function AppShell({
   route,
   children,
@@ -56,11 +59,37 @@ export function AppShell({
 }) {
   const isGuest = !getToken();
   const [siteName, setSiteName] = useState(() => getCachedSiteName());
+  const [scrolled, setScrolled] = useState(false);
   const siteTitle = formatSiteTitle(siteName);
 
   const { t } = useI18n();
 
   useEffect(() => subscribeSiteName(setSiteName), []);
+
+  // 滚动驱动 chrome 透明度：顶部更贴内容，滚远后略实一点保证可读
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const y =
+        window.scrollY ||
+        document.documentElement.scrollTop ||
+        document.body.scrollTop ||
+        0;
+      setScrolled(y > SCROLL_CONDENSE_Y);
+    };
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [route.name]);
+
   const homeActive =
     route.name === 'home' ||
     route.name === 'listen' ||
@@ -131,10 +160,11 @@ export function AppShell({
       ];
 
   const allItems = [...primaryItems, ...authItems];
+  const chromeClass = scrolled ? 'is-scrolled' : 'is-at-top';
 
   return (
-    <div className="page-shell">
-      <header className="topbar">
+    <div className={['page-shell', chromeClass].join(' ')}>
+      <header className={['topbar', chromeClass].join(' ')}>
         <div className="topbar-inner page-container">
           <button
             type="button"
@@ -188,7 +218,10 @@ export function AppShell({
       <main className={hideBottomNav ? 'pb-8' : 'page-bottom-pad'}>{children}</main>
 
       {!hideBottomNav && (
-        <nav className="bottom-nav" aria-label={t('nav.main')}>
+        <nav
+          className={['bottom-nav', chromeClass].join(' ')}
+          aria-label={t('nav.main')}
+        >
           <div
             className={[
               'bottom-nav-track',
