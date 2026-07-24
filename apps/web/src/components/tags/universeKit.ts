@@ -25,9 +25,75 @@ export type StarRuntime = {
   lastDim: number;
 };
 
-export const BG = 0x02030a;
+export const BG_DARK = 0x02030a;
+export const BG_LIGHT = 0xe8f0ff;
+/** @deprecated 使用 resolveUniverseTheme().bg */
+export const BG = BG_DARK;
 export const ZERO = new THREE.Vector3(0, 0, 0);
 export const WHITE = new THREE.Color(1, 1, 1);
+
+export type UniverseMode = 'dark' | 'light';
+
+export type UniverseTheme = {
+  mode: UniverseMode;
+  bg: number;
+  fogDensity: number;
+  /** 背景星 / 尘埃整体亮度倍率 */
+  fieldBoost: number;
+  starOpacity: number;
+  milkyOpacity: number;
+  nearOpacity: number;
+  dustOpacity: number;
+  nebulaOpacity: number;
+  orbitOpacity: number;
+  linkOpacity: number;
+  selectRing: number;
+  selectOuter: number;
+  selectTick: number;
+};
+
+export function detectUniverseMode(): UniverseMode {
+  if (typeof document === 'undefined') return 'dark';
+  const theme = document.documentElement.getAttribute('data-theme');
+  return theme === 'light' ? 'light' : 'dark';
+}
+
+export function resolveUniverseTheme(mode: UniverseMode = detectUniverseMode()): UniverseTheme {
+  if (mode === 'light') {
+    return {
+      mode,
+      bg: BG_LIGHT,
+      fogDensity: 0.008,
+      fieldBoost: 0.92,
+      starOpacity: 0.78,
+      milkyOpacity: 0.5,
+      nearOpacity: 0.86,
+      dustOpacity: 0.28,
+      nebulaOpacity: 0.18,
+      orbitOpacity: 0.22,
+      linkOpacity: 0.2,
+      selectRing: 0x4f8ef7,
+      selectOuter: 0x3b7aef,
+      selectTick: 0x6aa8ff,
+    };
+  }
+  return {
+    mode,
+    bg: BG_DARK,
+    fogDensity: 0.012,
+    fieldBoost: 1,
+    starOpacity: 0.9,
+    milkyOpacity: 0.55,
+    nearOpacity: 0.95,
+    dustOpacity: 0.35,
+    nebulaOpacity: 0.22,
+    orbitOpacity: 0.28,
+    linkOpacity: 0.14,
+    selectRing: 0x8fb8ff,
+    selectOuter: 0x6ec8ff,
+    selectTick: 0xb8d2ff,
+  };
+}
 
 export type Quality = {
   dpr: number;
@@ -197,32 +263,111 @@ export function makeSpikeTexture(): THREE.CanvasTexture {
 }
 
 /** 深空渐变背景（中心略亮、边缘冷暗） */
-export function makeSpaceBgTexture(): THREE.CanvasTexture {
+export function makeSpaceBgTexture(mode: UniverseMode = 'dark'): THREE.CanvasTexture {
   const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d')!;
-  const g = ctx.createRadialGradient(size * 0.48, size * 0.42, 0, size * 0.5, size * 0.5, size * 0.72);
-  g.addColorStop(0, '#0a1020');
-  g.addColorStop(0.35, '#050812');
-  g.addColorStop(0.7, '#03040c');
-  g.addColorStop(1, '#010208');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
 
-  // 极淡色偏，增强景深
-  const g2 = ctx.createRadialGradient(size * 0.72, size * 0.68, 0, size * 0.72, size * 0.68, size * 0.42);
-  g2.addColorStop(0, 'rgba(70, 40, 120, 0.12)');
-  g2.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g2;
-  ctx.fillRect(0, 0, size, size);
+  if (mode === 'light') {
+    // 日间深空：冷白到冰蓝的天穹，保留星图气质但不压黑
+    const g = ctx.createRadialGradient(
+      size * 0.5,
+      size * 0.42,
+      0,
+      size * 0.5,
+      size * 0.52,
+      size * 0.78,
+    );
+    g.addColorStop(0, '#f7fbff');
+    g.addColorStop(0.28, '#eaf3ff');
+    g.addColorStop(0.62, '#d9e8ff');
+    g.addColorStop(1, '#c7dbf8');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
 
-  const g3 = ctx.createRadialGradient(size * 0.22, size * 0.28, 0, size * 0.22, size * 0.28, size * 0.38);
-  g3.addColorStop(0, 'rgba(40, 90, 160, 0.1)');
-  g3.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g3;
-  ctx.fillRect(0, 0, size, size);
+    const g2 = ctx.createRadialGradient(
+      size * 0.74,
+      size * 0.7,
+      0,
+      size * 0.74,
+      size * 0.7,
+      size * 0.44,
+    );
+    g2.addColorStop(0, 'rgba(124, 92, 255, 0.1)');
+    g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, size, size);
+
+    const g3 = ctx.createRadialGradient(
+      size * 0.22,
+      size * 0.28,
+      0,
+      size * 0.22,
+      size * 0.28,
+      size * 0.4,
+    );
+    g3.addColorStop(0, 'rgba(79, 142, 247, 0.14)');
+    g3.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g3;
+    ctx.fillRect(0, 0, size, size);
+
+    const g4 = ctx.createRadialGradient(
+      size * 0.5,
+      size * 0.9,
+      0,
+      size * 0.5,
+      size * 0.9,
+      size * 0.5,
+    );
+    g4.addColorStop(0, 'rgba(47, 214, 207, 0.08)');
+    g4.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g4;
+    ctx.fillRect(0, 0, size, size);
+  } else {
+    const g = ctx.createRadialGradient(
+      size * 0.48,
+      size * 0.42,
+      0,
+      size * 0.5,
+      size * 0.5,
+      size * 0.72,
+    );
+    g.addColorStop(0, '#0a1020');
+    g.addColorStop(0.35, '#050812');
+    g.addColorStop(0.7, '#03040c');
+    g.addColorStop(1, '#010208');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+
+    // 极淡色偏，增强景深
+    const g2 = ctx.createRadialGradient(
+      size * 0.72,
+      size * 0.68,
+      0,
+      size * 0.72,
+      size * 0.68,
+      size * 0.42,
+    );
+    g2.addColorStop(0, 'rgba(70, 40, 120, 0.12)');
+    g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, size, size);
+
+    const g3 = ctx.createRadialGradient(
+      size * 0.22,
+      size * 0.28,
+      0,
+      size * 0.22,
+      size * 0.28,
+      size * 0.38,
+    );
+    g3.addColorStop(0, 'rgba(40, 90, 160, 0.1)');
+    g3.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g3;
+    ctx.fillRect(0, 0, size, size);
+  }
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;

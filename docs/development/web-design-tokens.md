@@ -23,7 +23,7 @@
    通用色（`--text` / `--brand` / `--surface` …）在 `html[data-theme="dark"]` 已有覆盖。  
    业务代码只引用语义 token，不要为暗色再写一套硬编码 hex。
 
-4. **固定暗底场景用 On-ink**  
+4. **固定暗底场景用 On-ink**（星图已支持亮色：`html[data-route="tags"][data-theme="light"]` 使用 `--tc-*` 日间令牌；暗色仍用 on-ink）  
    标签宇宙、深色 HUD 等 **不随主题反转的暗底 UI**，使用 `--text-on-ink*` / `--brand-on-ink*`，  
    不要误用 `--text`（亮色主题下是深色字）。
 

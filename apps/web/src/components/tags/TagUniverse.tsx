@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
@@ -6,20 +6,22 @@ import { hashSeed } from '../../lib/format';
 import type { TagStar } from './types';
 export type { TagStar } from './types';
 import {
-  BG,
   ZERO,
   WHITE,
   attachStarShader,
   buildLinks,
   colorForTag,
   detectQuality,
+  detectUniverseMode,
   fibSphere,
   makeRadialTexture,
   makeSpaceBgTexture,
   makeSpikeTexture,
   makeStarfield,
+  resolveUniverseTheme,
   setStarVisual,
   type StarRuntime,
+  type UniverseMode,
 } from './universeKit';
 
 type Props = {
@@ -38,11 +40,15 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
   const selectedRef = useRef(selected);
   const starsRef = useRef<StarRuntime[]>([]);
   const hoverRef = useRef<string | null>(null);
+  const themeModeRef = useRef<UniverseMode>(detectUniverseMode());
 
   const tagKey = useMemo(
     () => tags.map((t) => `${t.name}:${t.count}`).join('|'),
     [tags],
   );
+
+  // 跟随站点亮/暗主题重建星图（亮色日间深空 / 暗色夜空）
+  const [themeMode, setThemeMode] = useState<UniverseMode>(() => detectUniverseMode());
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -51,6 +57,20 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
   useEffect(() => {
     onReadyRef.current = onReady;
   }, [onReady]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => {
+      const next = detectUniverseMode();
+      themeModeRef.current = next;
+      setThemeMode(next);
+    };
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => mo.disconnect();
+  }, []);
+
 
   useEffect(() => {
     selectedRef.current = selected;
@@ -68,10 +88,11 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     let ignoreCanvasPickUntil = 0;
     const quality = detectQuality();
 
+    const theme = resolveUniverseTheme(themeMode);
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(BG, 0.012);
+    scene.fog = new THREE.FogExp2(theme.bg, theme.fogDensity);
 
-    const bgTex = makeSpaceBgTexture();
+    const bgTex = makeSpaceBgTexture(theme.mode);
     scene.background = bgTex;
 
     const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 180);
@@ -85,7 +106,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       depth: true,
     });
     renderer.setPixelRatio(quality.dpr);
-    renderer.setClearColor(BG, 1);
+    renderer.setClearColor(theme.bg, 1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     // 避免 ACES/Bloom 卡顿；靠贴图与叠加混合做“发光感”
     renderer.toneMapping = THREE.NoToneMapping;
@@ -132,13 +153,13 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       seed: 11,
     });
     const farMat = new THREE.PointsMaterial({
-      size: 0.055,
+      size: theme.mode === 'light' ? 0.06 : 0.055,
       map: dustTex,
       vertexColors: true,
       transparent: true,
-      opacity: 0.88,
+      opacity: theme.starOpacity,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
     attachStarShader(farMat, shaderUniforms);
@@ -154,13 +175,13 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       seed: 29,
     });
     const milkyMat = new THREE.PointsMaterial({
-      size: 0.07,
+      size: theme.mode === 'light' ? 0.075 : 0.07,
       map: dustTex,
       vertexColors: true,
       transparent: true,
-      opacity: 0.78,
+      opacity: theme.milkyOpacity,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
     attachStarShader(milkyMat, shaderUniforms);
@@ -176,13 +197,13 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       seed: 47,
     });
     const nearMat = new THREE.PointsMaterial({
-      size: 0.11,
+      size: theme.mode === 'light' ? 0.12 : 0.11,
       map: dustTex,
       vertexColors: true,
       transparent: true,
-      opacity: 0.95,
+      opacity: theme.nearOpacity,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
     attachStarShader(nearMat, shaderUniforms);
@@ -206,13 +227,13 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       64,
     );
     const dustMat = new THREE.PointsMaterial({
-      size: 0.55,
+      size: theme.mode === 'light' ? 0.48 : 0.55,
       map: dustSoftTex,
       vertexColors: true,
       transparent: true,
-      opacity: 0.22,
+      opacity: theme.dustOpacity,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
     const dustPoints = new THREE.Points(dustGeo, dustMat);
@@ -236,9 +257,9 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         map: nebulaTex,
         color: nebulaColors[i % nebulaColors.length],
         transparent: true,
-        opacity: 0.1 + (i % 3) * 0.02,
+        opacity: theme.nebulaOpacity * (0.75 + (i % 3) * 0.12),
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
       const ang = (i / Math.max(quality.nebulae, 1)) * Math.PI * 2 + 0.4;
@@ -262,10 +283,10 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         pts.map((p) => new THREE.Vector3(p.x, 0, p.y)),
       );
       const mat = new THREE.LineBasicMaterial({
-        color: i === 0 ? 0x6aa8ff : 0x5b7cff,
+        color: i === 0 ? (theme.mode === 'light' ? 0x4f8ef7 : 0x6aa8ff) : (theme.mode === 'light' ? 0x7aa2ef : 0x5b7cff),
         transparent: true,
-        opacity: 0.07 + i * 0.02,
-        blending: THREE.AdditiveBlending,
+        opacity: theme.orbitOpacity * (0.45 + i * 0.12),
+        blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
         depthWrite: false,
       });
       const line = new THREE.LineLoop(geo, mat);
@@ -310,6 +331,10 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
 
     tags.forEach((tag, i) => {
       const color = colorForTag(tag.name);
+      if (theme.mode === 'light') {
+        // 日间提高饱和与明度，避免白底上发灰
+        color.offsetHSL(0, 0.08, 0.06);
+      }
       const weight = tag.count / maxCount;
       const baseScale = 0.12 + weight * 0.28 + 0.04;
 
@@ -317,12 +342,14 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       group.position.copy(positions[i]);
       group.userData.name = tag.name;
 
+      const glowBlend =
+        theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending;
       const core = new THREE.Mesh(
         coreGeo,
         new THREE.MeshBasicMaterial({
-          color: WHITE,
+          color: theme.mode === 'light' ? color.clone().lerp(WHITE, 0.35) : WHITE,
           transparent: true,
-          opacity: 0.98,
+          opacity: theme.mode === 'light' ? 0.95 : 0.98,
         }),
       );
       core.scale.setScalar(baseScale * 0.52);
@@ -334,9 +361,9 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           map: coronaTex,
           color,
           transparent: true,
-          opacity: 0.34,
+          opacity: theme.mode === 'light' ? 0.55 : 0.34,
           depthWrite: false,
-          blending: THREE.AdditiveBlending,
+          blending: glowBlend,
         }),
       );
       corona.scale.setScalar(baseScale * 2.7);
@@ -347,9 +374,9 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           map: glowTex,
           color,
           transparent: true,
-          opacity: 0.86,
+          opacity: theme.mode === 'light' ? 0.62 : 0.86,
           depthWrite: false,
-          blending: THREE.AdditiveBlending,
+          blending: glowBlend,
         }),
       );
       halo.scale.setScalar(baseScale * 7.4);
@@ -360,9 +387,9 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           map: spikeTex,
           color,
           transparent: true,
-          opacity: 0.18 + weight * 0.28,
+          opacity: theme.mode === 'light' ? 0.28 + weight * 0.22 : 0.18 + weight * 0.28,
           depthWrite: false,
-          blending: THREE.AdditiveBlending,
+          blending: glowBlend,
         }),
       );
       spike.scale.setScalar(baseScale * 11.2);
@@ -434,8 +461,8 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       const linkMat = new THREE.LineBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: 0.2,
-        blending: THREE.AdditiveBlending,
+        opacity: theme.linkOpacity,
+        blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
         depthWrite: false,
       });
       linkLines = new THREE.LineSegments(linkGeo, linkMat);
@@ -448,23 +475,23 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     scene.add(selectGroup);
 
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0x8fb8ff,
+      color: theme.selectRing,
       transparent: true,
       opacity: 0,
       side: THREE.DoubleSide,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
     });
     const ringInner = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.78, 64), ringMat);
     const ringOuter = new THREE.Mesh(
       new THREE.RingGeometry(0.92, 0.96, 64),
       new THREE.MeshBasicMaterial({
-        color: 0x6ec8ff,
+        color: theme.selectOuter,
         transparent: true,
         opacity: 0,
         side: THREE.DoubleSide,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        blending: theme.mode === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       }),
     );
     selectGroup.add(ringInner);
@@ -473,7 +500,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     // 四向刻度
     const tickGeo = new THREE.PlaneGeometry(0.035, 0.14);
     const tickMat = new THREE.MeshBasicMaterial({
-      color: 0xb8d8ff,
+      color: theme.selectTick,
       transparent: true,
       opacity: 0,
       depthWrite: false,
@@ -697,9 +724,9 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         const beat = 1 + Math.sin(t * 1.55) * 0.035;
         const sc = Math.max(0.5, activeStar.baseScale * 3.5) * beat;
         selectGroup.scale.setScalar(sc);
-        ringMat.opacity = 0.48;
-        (ringOuter.material as THREE.MeshBasicMaterial).opacity = 0.28;
-        tickMat.opacity = 0.55;
+        ringMat.opacity = theme.mode === 'light' ? 0.7 : 0.48;
+        (ringOuter.material as THREE.MeshBasicMaterial).opacity = theme.mode === 'light' ? 0.42 : 0.28;
+        tickMat.opacity = theme.mode === 'light' ? 0.72 : 0.55;
         selectGroup.rotation.z = t * 0.32;
         // 外环反向微旋：通过子 mesh 本地旋转
         ringOuter.rotation.z = -t * 0.55;
@@ -719,7 +746,8 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
 
       if (linkLines && heavyFrame) {
         const mat = linkLines.material as THREE.LineBasicMaterial;
-        mat.opacity = 0.14 + Math.sin(t * 0.75) * 0.035;
+        const base = theme.linkOpacity;
+        mat.opacity = base + Math.sin(t * 0.75) * (base * 0.22);
       }
 
       renderer.render(scene, camera);
@@ -782,10 +810,14 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       if (labelRenderer.domElement.parentElement === wrap) wrap.removeChild(labelRenderer.domElement);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tagKey]);
+  }, [tagKey, themeMode]);
 
   return (
-    <div ref={wrapRef} className={['tu-stage', className].filter(Boolean).join(' ')}>
+    <div
+      ref={wrapRef}
+      className={['tu-stage', `is-${themeMode}`, className].filter(Boolean).join(' ')}
+      data-universe-theme={themeMode}
+    >
       <div className="tu-vignette" aria-hidden />
       <div className="tu-aurora" aria-hidden />
       <div className="tu-scan" aria-hidden />

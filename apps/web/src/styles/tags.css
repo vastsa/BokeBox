@@ -1,22 +1,75 @@
 /* 星图 TagCloud / TagUniverse */
 /* ===== Star Map · 星图 ===== */
-/* 路由级深色底：亮色主题切过来时不闪白（不依赖 :has(.tc-page)） */
+/* 路由级底色：跟随站点主题（暗=夜空 / 亮=日间深空） */
 html[data-route="tags"],
 html[data-route="tags"] body,
 html[data-route="tags"] #root {
-  background: #03040c !important;
+  --tc-sky: #03040c;
+  --tc-sky-deep: #02030a;
+  --tc-ink: var(--text-on-ink);
+  --tc-ink-2: var(--text-on-ink-2);
+  --tc-ink-3: var(--text-on-ink-3);
+  --tc-ink-4: var(--text-on-ink-4);
+  --tc-ink-5: var(--text-on-ink-5);
+  --tc-ink-title: var(--text-on-ink-title);
+  --tc-ink-strong: var(--text-on-ink-strong);
+  --tc-panel-bg: linear-gradient(180deg, rgba(14, 18, 32, 0.96), rgba(6, 8, 16, 0.96));
+  --tc-panel-border: rgba(143, 184, 255, 0.2);
+  --tc-panel-glow: rgba(79, 142, 247, 0.14);
+  --tc-item-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+  --tc-item-border: rgba(255, 255, 255, 0.06);
+  --tc-item-hover-bg: linear-gradient(180deg, rgba(79, 142, 247, 0.1), rgba(255, 255, 255, 0.03));
+  --tc-item-hover-border: rgba(143, 184, 255, 0.22);
+  --tc-hud-bg: linear-gradient(180deg, rgba(3, 4, 12, 0.55), transparent);
+  --tc-hud-bottom-bg: linear-gradient(0deg, rgba(3, 4, 12, 0.6), transparent);
+  --tc-label-bg: linear-gradient(180deg, rgba(14, 20, 36, 0.62), rgba(6, 10, 20, 0.48));
+  --tc-chrome: rgba(6, 8, 16, 0.82);
+  --tc-chrome-border: rgba(255, 255, 255, 0.06);
+  --tc-player-bg: rgba(10, 14, 24, 0.94);
+  background: var(--tc-sky) !important;
   background-image: none !important;
-  color: var(--text-on-ink);
+  color: var(--tc-ink);
   height: 100%;
   max-height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
 }
 
+/* 日间星图：冷白天穹 + 品牌青蓝辉光 */
+html[data-route="tags"][data-theme="light"],
+html[data-route="tags"][data-theme="light"] body,
+html[data-route="tags"][data-theme="light"] #root {
+  --tc-sky: #e8f0ff;
+  --tc-sky-deep: #d7e6fb;
+  --tc-ink: #142033;
+  --tc-ink-2: #2a3a55;
+  --tc-ink-3: #4a5d7a;
+  --tc-ink-4: #5d7190;
+  --tc-ink-5: #6f84a3;
+  --tc-ink-title: #0f1b2e;
+  --tc-ink-strong: #0c1728;
+  --tc-panel-bg:
+    radial-gradient(120% 70% at 20% 0%, rgba(79, 142, 247, 0.12), transparent 55%),
+    radial-gradient(90% 60% at 100% 100%, rgba(124, 92, 255, 0.08), transparent 50%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 246, 255, 0.94));
+  --tc-panel-border: rgba(79, 142, 247, 0.18);
+  --tc-panel-glow: rgba(79, 142, 247, 0.1);
+  --tc-item-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 248, 255, 0.88));
+  --tc-item-border: rgba(79, 142, 247, 0.12);
+  --tc-item-hover-bg: linear-gradient(180deg, rgba(79, 142, 247, 0.1), rgba(255, 255, 255, 0.94));
+  --tc-item-hover-border: rgba(79, 142, 247, 0.28);
+  --tc-hud-bg: linear-gradient(180deg, rgba(232, 240, 255, 0.72), transparent);
+  --tc-hud-bottom-bg: linear-gradient(0deg, rgba(232, 240, 255, 0.7), transparent);
+  --tc-label-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(241, 247, 255, 0.78));
+  --tc-chrome: rgba(244, 248, 255, 0.82);
+  --tc-chrome-border: rgba(79, 142, 247, 0.12);
+  --tc-player-bg: rgba(255, 255, 255, 0.9);
+}
+
 html[data-route="tags"] .page-shell,
 html[data-route="tags"] .page-bottom-pad,
 html[data-route="tags"] main {
-  background: #03040c;
+  background: var(--tc-sky);
 }
 
 /* 星图全屏：page-shell 占满视口，禁止页面级滚动 */
@@ -251,7 +304,7 @@ html:has(.tc-page) .page-shell > .topbar {
   padding-bottom: 0 !important;
 }
 .page-shell:has(.tc-page) {
-  background: #03040c;
+  background: var(--tc-sky, #03040c);
 }
 
 .tc-page {
@@ -260,8 +313,8 @@ html:has(.tc-page) .page-shell > .topbar {
   width: 100%;
   min-height: 0;
   height: 100%;
-  background: #03040c;
-  color: var(--text-on-ink);
+  background: var(--tc-sky, #03040c);
+  color: var(--tc-ink, var(--text-on-ink));
   overflow: hidden;
   overscroll-behavior: none;
 }
@@ -279,7 +332,10 @@ html:has(.tc-page) .page-shell > .topbar {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #02030a;
+  background: var(--tc-sky-deep, #02030a);
+}
+.tu-stage.is-light {
+  background: var(--tc-sky-deep, #d7e6fb);
 }
 
 .tu-canvas {
@@ -313,6 +369,13 @@ html:has(.tc-page) .page-shell > .topbar {
     linear-gradient(180deg, rgba(2, 3, 10, 0.62), transparent 16%, transparent 76%, rgba(1, 2, 8, 0.78)),
     linear-gradient(90deg, rgba(1, 2, 8, 0.35), transparent 18%, transparent 82%, rgba(1, 2, 8, 0.35));
 }
+.tu-stage.is-light .tu-vignette,
+html[data-theme="light"] .tu-vignette {
+  background:
+    radial-gradient(62% 54% at 50% 44%, transparent 34%, rgba(180, 205, 240, 0.22) 72%, rgba(150, 180, 220, 0.42) 100%),
+    linear-gradient(180deg, rgba(232, 240, 255, 0.55), transparent 18%, transparent 78%, rgba(200, 220, 245, 0.5)),
+    linear-gradient(90deg, rgba(200, 220, 245, 0.28), transparent 18%, transparent 82%, rgba(200, 220, 245, 0.28));
+}
 
 .tu-aurora {
   position: absolute;
@@ -327,6 +390,15 @@ html:has(.tc-page) .page-shell > .topbar {
   /* 去掉实时 blur，改用更软的径向渐变，显著降合成开销 */
   animation: tu-aurora-shift 22s ease-in-out infinite alternate;
   will-change: transform, opacity;
+}
+.tu-stage.is-light .tu-aurora,
+html[data-theme="light"] .tu-aurora {
+  background:
+    radial-gradient(38% 30% at 18% 28%, rgba(79, 142, 247, 0.2), transparent 72%),
+    radial-gradient(32% 26% at 82% 62%, rgba(124, 92, 255, 0.14), transparent 72%),
+    radial-gradient(30% 24% at 58% 82%, rgba(47, 214, 207, 0.12), transparent 72%),
+    radial-gradient(46% 18% at 50% 52%, rgba(143, 184, 255, 0.12), transparent 75%);
+  opacity: 0.95;
 }
 
 .tu-scan {
@@ -345,6 +417,19 @@ html:has(.tc-page) .page-shell > .topbar {
   background-size: 100% 220%;
   animation: tu-scan-drift 14s linear infinite;
   mix-blend-mode: screen;
+}
+.tu-stage.is-light .tu-scan,
+html[data-theme="light"] .tu-scan {
+  opacity: 0.14;
+  mix-blend-mode: multiply;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(79, 142, 247, 0.045) 48%,
+      transparent 52%
+    );
+  background-size: 100% 220%;
 }
 
 @keyframes tu-aurora-shift {
@@ -375,7 +460,7 @@ html:has(.tc-page) .page-shell > .topbar {
   border-radius: var(--radius-pill);
   border: var(--bw-1) solid color-mix(in srgb, var(--star) 34%, transparent);
   background:
-    linear-gradient(180deg, rgba(14, 20, 36, 0.62), rgba(6, 10, 20, 0.48)),
+    var(--tc-label-bg, linear-gradient(180deg, rgba(14, 20, 36, 0.62), rgba(6, 10, 20, 0.48))),
     linear-gradient(90deg, color-mix(in srgb, var(--star) 12%, transparent), transparent 40%);
   backdrop-filter: blur(12px) saturate(1.15);
   -webkit-backdrop-filter: blur(12px) saturate(1.15);
@@ -399,6 +484,16 @@ html:has(.tc-page) .page-shell > .topbar {
     border-color 0.22s var(--ease),
     box-shadow 0.22s var(--ease),
     background 0.22s var(--ease);
+}
+
+.tu-stage.is-light .tu-label,
+html[data-theme="light"][data-route="tags"] .tu-label {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.65) inset,
+    0 8px 18px rgba(49, 79, 128, 0.12),
+    0 0 16px color-mix(in srgb, var(--star) 18%, transparent);
+  color: color-mix(in srgb, var(--star) 42%, #142033);
+  opacity: 0.72;
 }
 
 .tu-label-dot {
@@ -441,6 +536,22 @@ html:has(.tc-page) .page-shell > .topbar {
     0 0 22px color-mix(in srgb, var(--star) 26%, transparent);
 }
 
+.tu-stage.is-light .tu-label:hover,
+.tu-stage.is-light .tu-label.is-hover,
+.tu-stage.is-light .tu-label.is-focus,
+html[data-theme="light"][data-route="tags"] .tu-label:hover,
+html[data-theme="light"][data-route="tags"] .tu-label.is-hover,
+html[data-theme="light"][data-route="tags"] .tu-label.is-focus {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(236, 244, 255, 0.88)),
+    linear-gradient(90deg, color-mix(in srgb, var(--star) 16%, transparent), transparent 48%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+    0 10px 22px rgba(49, 79, 128, 0.14),
+    0 0 18px color-mix(in srgb, var(--star) 22%, transparent);
+  color: color-mix(in srgb, var(--star) 36%, #0f1b2e);
+}
+
 .tu-label.is-focus {
   font-size: var(--fs-base);
   opacity: 1;
@@ -471,7 +582,7 @@ html:has(.tc-page) .page-shell > .topbar {
 .tc-hud-bottom {
   bottom: 0;
   align-items: flex-end;
-  color: var(--text-on-ink-4);
+  color: var(--tc-ink-4, var(--text-on-ink-4));
   font-size: var(--fs-base);
   padding-bottom: calc(var(--space-3_5) + env(safe-area-inset-bottom, 0px));
 }
@@ -480,33 +591,43 @@ html:has(.tc-page) .page-shell > .topbar {
   pointer-events: none;
   padding: var(--space-2_5) var(--space-3_5);
   border-radius: var(--radius-xl);
-  border: var(--bw-1) solid rgba(143, 184, 255, 0.12);
+  border: var(--bw-1) solid color-mix(in srgb, var(--tc-panel-border, rgba(143, 184, 255, 0.12)) 90%, transparent);
   background: linear-gradient(135deg, rgba(12, 18, 34, 0.55), rgba(6, 8, 18, 0.28));
   backdrop-filter: blur(8px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
 }
 
+html[data-theme="light"][data-route="tags"] .tc-title-block {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(236, 244, 255, 0.55));
+  border-color: rgba(79, 142, 247, 0.14);
+  box-shadow: 0 10px 28px rgba(49, 79, 128, 0.1);
+}
+
 .tc-title {
   margin: 0;
   letter-spacing: var(--tracking-display);
-  color: var(--text-on-ink-bright);
+  color: var(--tc-ink-title, var(--text-on-ink-bright));
   font-size: var(--fs-3xl-plus);
   font-weight: var(--fw-extrabold);
   line-height: var(--lh-compact);
   text-shadow: 0 0 24px rgba(79, 142, 247, 0.35);
 }
 
+html[data-theme="light"][data-route="tags"] .tc-title {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 18px rgba(79, 142, 247, 0.18);
+}
+
 .tc-title-en {
   margin-left: var(--space-2);
   letter-spacing: var(--tracking-hero);
-  color: var(--text-on-ink-5);
+  color: var(--tc-ink-5, var(--text-on-ink-5));
   font-size: var(--fs-xs-plus);
   font-weight: var(--fw-semibold);
 }
 
 .tc-sub {
   margin: var(--space-1_5) 0 0;
-  color: var(--text-on-ink-3);
+  color: var(--tc-ink-3, var(--text-on-ink-3));
   font-size: var(--fs-base);
   opacity: 0.92;
 }
@@ -519,13 +640,23 @@ html:has(.tc-page) .page-shell > .topbar {
   backdrop-filter: blur(10px);
 }
 
+html[data-theme="light"][data-route="tags"] .tc-hint {
+  border-color: rgba(79, 142, 247, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--tc-ink-3, #4a5d7a);
+}
+
 .tc-hint b {
   color: var(--brand-on-ink);
   font-weight: var(--fw-bold);
 }
 
+html[data-theme="light"][data-route="tags"] .tc-hint b {
+  color: var(--brand-2);
+}
+
 .tc-meta {
-  color: var(--text-on-ink-2);
+  color: var(--tc-ink-2, var(--text-on-ink-2));
   text-align: right;
   padding: var(--space-1_75) var(--space-2_75);
   border-radius: var(--radius-pill);
@@ -559,21 +690,26 @@ html:has(.tc-page) .page-shell > .topbar {
 }
 
 .tc-empty .nl-empty {
-  background: rgba(8, 12, 22, 0.78);
-  border: var(--bw-1) solid rgba(143, 184, 255, 0.18);
+  background: color-mix(in srgb, var(--tc-sky, #03040c) 28%, rgba(8, 12, 22, 0.78));
+  border: var(--bw-1) solid var(--tc-panel-border, rgba(143, 184, 255, 0.18));
   border-radius: var(--radius-2xl);
   padding: var(--space-7) var(--space-5_5);
   backdrop-filter: blur(14px);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme="light"][data-route="tags"] .tc-empty .nl-empty {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 40px rgba(49, 79, 128, 0.12);
 }
 
 .tc-empty .nl-empty h3,
 .tc-empty .nl-empty p {
-  color: var(--text-on-ink) !important;
+  color: var(--tc-ink, var(--text-on-ink)) !important;
 }
 
 .tc-empty .nl-empty p {
-  color: var(--text-on-ink-3) !important;
+  color: var(--tc-ink-3, var(--text-on-ink-3)) !important;
 }
 
 .tc-panel {
@@ -586,18 +722,16 @@ html:has(.tc-page) .page-shell > .topbar {
   max-height: min(52vh, var(--size-460));
   overflow: auto;
   border-radius: var(--radius-2xl);
-  border: var(--bw-1) solid rgba(143, 184, 255, 0.2);
-  background:
-    radial-gradient(120% 70% at 20% 0%, rgba(79, 142, 247, 0.14), transparent 55%),
-    radial-gradient(90% 60% at 100% 100%, rgba(124, 92, 255, 0.1), transparent 50%),
-    linear-gradient(180deg, rgba(14, 18, 32, 0.96), rgba(6, 8, 16, 0.96));
+  border: var(--bw-1) solid var(--tc-panel-border, rgba(143, 184, 255, 0.2));
+  background: var(--tc-panel-bg);
   box-shadow:
-    0 22px 60px rgba(0, 0, 0, 0.55),
-    inset 0 1px rgba(255, 255, 255, 0.08),
-    0 0 40px rgba(79, 142, 247, 0.08);
+    0 22px 60px rgba(0, 0, 0, 0.18),
+    inset 0 1px rgba(255, 255, 255, 0.45),
+    0 0 40px var(--tc-panel-glow, rgba(79, 142, 247, 0.08));
   backdrop-filter: blur(18px);
   padding: var(--space-4_5) var(--space-4) var(--space-3_5);
   animation: tc-rise 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+  color: var(--tc-ink, var(--text-on-ink));
 }
 
 @media (min-width: 768px) {
@@ -646,28 +780,37 @@ html:has(.tc-page) .page-shell > .topbar {
   border-radius: var(--radius-pill);
   display: grid;
   place-items: center;
-  color: var(--text-on-ink-4);
+  color: var(--tc-ink-4, var(--text-on-ink-4));
   background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 
 .tc-panel-close:hover {
-  color: var(--text-on-ink);
+  color: var(--tc-ink, var(--text-on-ink));
   background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="light"][data-route="tags"] .tc-panel-close {
+  color: var(--tc-ink-4, #5d7190);
+  background: rgba(79, 142, 247, 0.08);
+}
+html[data-theme="light"][data-route="tags"] .tc-panel-close:hover {
+  color: var(--tc-ink, #142033);
+  background: rgba(79, 142, 247, 0.14);
 }
 
 .tc-panel-kicker {
   display: block;
   letter-spacing: var(--tracking-display);
-  color: var(--text-on-ink-5);
+  color: var(--tc-ink-5, var(--text-on-ink-5));
   font-size: var(--fs-sm);
   margin-bottom: var(--space-1_5);
 }
 
 .tc-panel-title {
   margin: 0;
-  color: var(--text-on-ink-title);
+  color: var(--tc-ink-title, var(--text-on-ink-title));
   font-size: var(--fs-display);
   font-weight: var(--fw-heavy);
   letter-spacing: var(--tracking-caps);
@@ -677,7 +820,7 @@ html:has(.tc-page) .page-shell > .topbar {
 
 .tc-panel-meta {
   margin: var(--space-1_5) 0 var(--space-3_5);
-  color: var(--text-on-ink-3);
+  color: var(--tc-ink-3, var(--text-on-ink-3));
   font-size: var(--fs-base-plus);
 }
 
@@ -696,15 +839,15 @@ html:has(.tc-page) .page-shell > .topbar {
   gap: var(--space-2);
   align-items: center;
   border-radius: var(--radius-lg);
-  border: var(--bw-1) solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+  border: var(--bw-1) solid var(--tc-item-border, rgba(255, 255, 255, 0.06));
+  background: var(--tc-item-bg);
   padding: var(--space-2);
   transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
 }
 
 .tc-item:hover {
-  border-color: rgba(143, 184, 255, 0.22);
-  background: linear-gradient(180deg, rgba(79, 142, 247, 0.1), rgba(255, 255, 255, 0.03));
+  border-color: var(--tc-item-hover-border, rgba(143, 184, 255, 0.22));
+  background: var(--tc-item-hover-bg);
   transform: translateY(-1px);
 }
 
@@ -737,7 +880,7 @@ html:has(.tc-page) .page-shell > .topbar {
 }
 
 .tc-item-title {
-  color: var(--text-on-ink-strong);
+  color: var(--tc-ink-strong, var(--text-on-ink-strong));
   font-size: var(--fs-md-plus);
   font-weight: var(--fw-bold);
   line-height: var(--lh-title);
@@ -776,138 +919,295 @@ html:has(.tc-page) .page-shell > .topbar {
   transform: scale(1.05);
 }
 
-/* 星图页：导航沉浸深色（亮色主题下也不发白） */
-html:has(.tc-page) .topbar , html[data-route="tags"] .topbar {
+/* 星图页导航：默认沿用暗色沉浸；亮色主题走日间玻璃 chrome */
+html[data-theme="dark"]:has(.tc-page) .topbar,
+html[data-theme="dark"][data-route="tags"] .topbar {
   background: rgba(3, 4, 12, 0.72) !important;
   border-bottom-color: rgba(255, 255, 255, 0.06) !important;
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
 
-html:has(.tc-page) .topbar .text-\[var\(--text\)\], html[data-route="tags"] .topbar .text-\[var\(--text\)\],
-html:has(.tc-page) .topbar span.block , html[data-route="tags"] .topbar span.block,
-html:has(.tc-page) .topbar-brand-copy .app-brand-title , html[data-route="tags"] .topbar-brand-copy .app-brand-title {
+html[data-theme="light"]:has(.tc-page) .topbar,
+html[data-theme="light"][data-route="tags"] .topbar {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(232, 240, 255, 0.86) 0%,
+      rgba(232, 240, 255, 0.48) 72%,
+      transparent 100%
+    ) !important;
+  border-bottom-color: transparent !important;
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"]:has(.tc-page) .topbar-brand-copy .app-brand-title,
+html[data-theme="dark"][data-route="tags"] .topbar-brand-copy .app-brand-title {
   color: var(--text-on-ink) !important;
 }
-
-html:has(.tc-page) .topbar .text-\[var\(--text-3\)\] , html[data-route="tags"] .topbar .text-\[var\(--text-3\)\],
-html:has(.tc-page) .topbar-brand-copy .app-brand-tagline , html[data-route="tags"] .topbar-brand-copy .app-brand-tagline {
-  color: var(--text-on-ink-5) !important;
+html[data-theme="light"]:has(.tc-page) .topbar-brand-copy .app-brand-title,
+html[data-theme="light"][data-route="tags"] .topbar-brand-copy .app-brand-title {
+  color: var(--tc-ink-title, #0f1b2e) !important;
 }
 
-html:has(.tc-page) .topbar-brand-mark , html[data-route="tags"] .topbar-brand-mark {
+html[data-theme="dark"]:has(.tc-page) .topbar-brand-copy .app-brand-tagline,
+html[data-theme="dark"][data-route="tags"] .topbar-brand-copy .app-brand-tagline {
+  color: var(--text-on-ink-5) !important;
+}
+html[data-theme="light"]:has(.tc-page) .topbar-brand-copy .app-brand-tagline,
+html[data-theme="light"][data-route="tags"] .topbar-brand-copy .app-brand-tagline {
+  color: var(--tc-ink-5, #6f84a3) !important;
+}
+
+html[data-theme="dark"]:has(.tc-page) .topbar-brand-mark,
+html[data-theme="dark"][data-route="tags"] .topbar-brand-mark {
   background: rgba(255, 255, 255, 0.08) !important;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
 }
+html[data-theme="light"]:has(.tc-page) .topbar-brand-mark,
+html[data-theme="light"][data-route="tags"] .topbar-brand-mark {
+  background: rgba(255, 255, 255, 0.82) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(79, 142, 247, 0.12),
+    0 1px 2px rgba(49, 79, 128, 0.08) !important;
+}
 
-/* 桌面顶栏胶囊菜单 */
-html:has(.tc-page) .topbar-nav-track , html[data-route="tags"] .topbar-nav-track {
+html[data-theme="dark"]:has(.tc-page) .topbar-nav-track,
+html[data-theme="dark"][data-route="tags"] .topbar-nav-track {
   background: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 10px 28px rgba(0, 0, 0, 0.28) !important;
 }
+html[data-theme="light"]:has(.tc-page) .topbar-nav-track,
+html[data-theme="light"][data-route="tags"] .topbar-nav-track {
+  background: rgba(255, 255, 255, 0.62) !important;
+  border-color: rgba(79, 142, 247, 0.14) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 2px rgba(49, 79, 128, 0.06) !important;
+}
 
-html:has(.tc-page) .topbar-nav-item , html[data-route="tags"] .topbar-nav-item {
+html[data-theme="dark"]:has(.tc-page) .topbar-nav-item,
+html[data-theme="dark"][data-route="tags"] .topbar-nav-item {
   color: var(--text-on-ink-4) !important;
   background: transparent !important;
   box-shadow: none !important;
 }
+html[data-theme="light"]:has(.tc-page) .topbar-nav-item,
+html[data-theme="light"][data-route="tags"] .topbar-nav-item {
+  color: var(--tc-ink-3, #4a5d7a) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
 
-html:has(.tc-page) .topbar-nav-item:hover , html[data-route="tags"] .topbar-nav-item:hover {
+html[data-theme="dark"]:has(.tc-page) .topbar-nav-item:hover,
+html[data-theme="dark"][data-route="tags"] .topbar-nav-item:hover {
   color: var(--text-on-ink) !important;
   background: rgba(255, 255, 255, 0.08) !important;
 }
+html[data-theme="light"]:has(.tc-page) .topbar-nav-item:hover,
+html[data-theme="light"][data-route="tags"] .topbar-nav-item:hover {
+  color: var(--tc-ink, #142033) !important;
+  background: rgba(79, 142, 247, 0.08) !important;
+}
 
-html:has(.tc-page) .topbar-nav-item.is-active , html[data-route="tags"] .topbar-nav-item.is-active {
+html[data-theme="dark"]:has(.tc-page) .topbar-nav-item.is-active,
+html[data-theme="dark"][data-route="tags"] .topbar-nav-item.is-active {
   color: var(--brand-on-ink-3) !important;
   background: rgba(79, 142, 247, 0.22) !important;
   box-shadow: inset 0 0 0 1px rgba(143, 184, 255, 0.22) !important;
 }
+html[data-theme="light"]:has(.tc-page) .topbar-nav-item.is-active,
+html[data-theme="light"][data-route="tags"] .topbar-nav-item.is-active {
+  color: var(--brand-2) !important;
+  background: color-mix(in srgb, var(--brand-soft) 92%, white) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 16%, transparent) !important;
+}
 
-/* 手机顶栏快捷按钮 */
-html:has(.tc-page) .topbar-action-btn , html[data-route="tags"] .topbar-action-btn {
+html[data-theme="dark"]:has(.tc-page) .topbar-action-btn,
+html[data-theme="dark"][data-route="tags"] .topbar-action-btn {
   color: var(--text-on-ink-soft) !important;
   background: rgba(255, 255, 255, 0.06) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
+html[data-theme="light"]:has(.tc-page) .topbar-action-btn,
+html[data-theme="light"][data-route="tags"] .topbar-action-btn {
+  color: var(--tc-ink-2, #2a3a55) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(79, 142, 247, 0.14) !important;
+}
 
-html:has(.tc-page) .topbar-action-btn:hover, html[data-route="tags"] .topbar-action-btn:hover,
-html:has(.tc-page) .topbar-action-btn.is-active , html[data-route="tags"] .topbar-action-btn.is-active {
+html[data-theme="dark"]:has(.tc-page) .topbar-action-btn:hover,
+html[data-theme="dark"][data-route="tags"] .topbar-action-btn:hover,
+html[data-theme="dark"]:has(.tc-page) .topbar-action-btn.is-active,
+html[data-theme="dark"][data-route="tags"] .topbar-action-btn.is-active {
   color: var(--text-on-ink-bright) !important;
   background: rgba(79, 142, 247, 0.2) !important;
   border-color: rgba(143, 184, 255, 0.28) !important;
 }
+html[data-theme="light"]:has(.tc-page) .topbar-action-btn:hover,
+html[data-theme="light"][data-route="tags"] .topbar-action-btn:hover,
+html[data-theme="light"]:has(.tc-page) .topbar-action-btn.is-active,
+html[data-theme="light"][data-route="tags"] .topbar-action-btn.is-active {
+  color: var(--brand-2) !important;
+  background: var(--brand-soft) !important;
+  border-color: color-mix(in srgb, var(--brand) 22%, transparent) !important;
+}
 
-html:has(.tc-page) .topbar-oss-link , html[data-route="tags"] .topbar-oss-link {
+html[data-theme="dark"]:has(.tc-page) .topbar-oss-link,
+html[data-theme="dark"][data-route="tags"] .topbar-oss-link {
   color: var(--text-on-ink-4) !important;
 }
-
-html:has(.tc-page) .topbar-oss-link:hover , html[data-route="tags"] .topbar-oss-link:hover {
-  color: var(--text-on-ink) !important;
+html[data-theme="light"]:has(.tc-page) .topbar-oss-link,
+html[data-theme="light"][data-route="tags"] .topbar-oss-link {
+  color: var(--tc-ink-3, #4a5d7a) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(79, 142, 247, 0.12) !important;
 }
 
-/* 底栏菜单：星图沉浸态全宽玻璃 chrome */
-html:has(.tc-page) .bottom-nav , html[data-route="tags"] .bottom-nav {
+html[data-theme="dark"]:has(.tc-page) .topbar-oss-link:hover,
+html[data-theme="dark"][data-route="tags"] .topbar-oss-link:hover {
+  color: var(--text-on-ink) !important;
+}
+html[data-theme="light"]:has(.tc-page) .topbar-oss-link:hover,
+html[data-theme="light"][data-route="tags"] .topbar-oss-link:hover {
+  color: var(--tc-ink, #142033) !important;
+}
+
+/* 底栏 */
+html[data-theme="dark"]:has(.tc-page) .bottom-nav,
+html[data-theme="dark"][data-route="tags"] .bottom-nav {
   background: rgba(6, 8, 16, 0.82) !important;
   border-top-color: rgba(255, 255, 255, 0.06) !important;
   box-shadow: 0 -14px 28px rgba(0, 0, 0, 0.28) !important;
   backdrop-filter: blur(18px) saturate(1.15) !important;
   -webkit-backdrop-filter: blur(18px) saturate(1.15) !important;
 }
+html[data-theme="light"]:has(.tc-page) .bottom-nav,
+html[data-theme="light"][data-route="tags"] .bottom-nav {
+  background: var(--tc-chrome, rgba(244, 248, 255, 0.82)) !important;
+  border-top-color: var(--tc-chrome-border, rgba(79, 142, 247, 0.12)) !important;
+  box-shadow: 0 -10px 24px rgba(49, 79, 128, 0.08) !important;
+  backdrop-filter: blur(16px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.2) !important;
+}
 
-html:has(.tc-page) .bottom-nav::before , html[data-route="tags"] .bottom-nav::before {
+html[data-theme="dark"]:has(.tc-page) .bottom-nav::before,
+html[data-theme="dark"][data-route="tags"] .bottom-nav::before {
   background: linear-gradient(180deg, transparent 0%, rgba(3, 4, 12, 0.45) 100%) !important;
 }
-
-html:has(.tc-page) .bottom-nav-track , html[data-route="tags"] .bottom-nav-track {
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+html[data-theme="light"]:has(.tc-page) .bottom-nav::before,
+html[data-theme="light"][data-route="tags"] .bottom-nav::before {
+  background: linear-gradient(180deg, transparent 0%, rgba(232, 240, 255, 0.55) 100%) !important;
 }
 
-html:has(.tc-page) .bottom-nav-item , html[data-route="tags"] .bottom-nav-item {
+html[data-theme="dark"]:has(.tc-page) .bottom-nav-item,
+html[data-theme="dark"][data-route="tags"] .bottom-nav-item {
   color: var(--text-on-ink-5) !important;
   background: transparent !important;
   box-shadow: none !important;
 }
+html[data-theme="light"]:has(.tc-page) .bottom-nav-item,
+html[data-theme="light"][data-route="tags"] .bottom-nav-item {
+  color: var(--tc-ink-5, #6f84a3) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
 
-html:has(.tc-page) .bottom-nav-item.is-active , html[data-route="tags"] .bottom-nav-item.is-active {
+html[data-theme="dark"]:has(.tc-page) .bottom-nav-item.is-active,
+html[data-theme="dark"][data-route="tags"] .bottom-nav-item.is-active {
   color: var(--brand-on-ink-3) !important;
   background: transparent !important;
 }
+html[data-theme="light"]:has(.tc-page) .bottom-nav-item.is-active,
+html[data-theme="light"][data-route="tags"] .bottom-nav-item.is-active {
+  color: var(--brand-2) !important;
+  background: transparent !important;
+}
 
-html:has(.tc-page) .bottom-nav-item.is-active .bottom-nav-icon ,
-html[data-route="tags"] .bottom-nav-item.is-active .bottom-nav-icon {
+html[data-theme="dark"]:has(.tc-page) .bottom-nav-item.is-active .bottom-nav-icon,
+html[data-theme="dark"][data-route="tags"] .bottom-nav-item.is-active .bottom-nav-icon {
   background: rgba(79, 142, 247, 0.22) !important;
   color: var(--brand-on-ink-3) !important;
 }
+html[data-theme="light"]:has(.tc-page) .bottom-nav-item.is-active .bottom-nav-icon,
+html[data-theme="light"][data-route="tags"] .bottom-nav-item.is-active .bottom-nav-icon {
+  background: color-mix(in srgb, var(--brand-soft) 90%, white) !important;
+  color: var(--brand-2) !important;
+}
 
-/* 迷你播放条同步深色，避免亮色块打断星图 */
-html:has(.tc-page) .global-player , html[data-route="tags"] .global-player {
+/* 迷你播放条：暗色夜空 / 亮色日间玻璃 */
+html[data-theme="dark"]:has(.tc-page) .global-player,
+html[data-theme="dark"][data-route="tags"] .global-player {
   background:
     linear-gradient(180deg, rgba(79, 142, 247, 0.12), transparent 58%),
     rgba(10, 14, 24, 0.94) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.4);
 }
+html[data-theme="light"]:has(.tc-page) .global-player,
+html[data-theme="light"][data-route="tags"] .global-player {
+  background:
+    linear-gradient(180deg, rgba(79, 142, 247, 0.1), transparent 58%),
+    rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(79, 142, 247, 0.12) !important;
+  box-shadow: 0 -10px 24px rgba(49, 79, 128, 0.1);
+}
 
-html:has(.tc-page) .global-player-title , html[data-route="tags"] .global-player-title {
+html[data-theme="dark"]:has(.tc-page) .global-player-title,
+html[data-theme="dark"][data-route="tags"] .global-player-title {
   color: var(--text-on-ink) !important;
 }
-
-html:has(.tc-page) .global-player-time, html[data-route="tags"] .global-player-time,
-html:has(.tc-page) .global-player .global-rate , html[data-route="tags"] .global-player .global-rate {
-  color: var(--text-3) !important;
+html[data-theme="light"]:has(.tc-page) .global-player-title,
+html[data-theme="light"][data-route="tags"] .global-player-title {
+  color: var(--tc-ink, #142033) !important;
 }
 
-html:has(.tc-page) .global-player .global-ctrl , html[data-route="tags"] .global-player .global-ctrl {
+html[data-theme="dark"]:has(.tc-page) .global-player-time,
+html[data-theme="dark"][data-route="tags"] .global-player-time,
+html[data-theme="dark"]:has(.tc-page) .global-player .global-rate,
+html[data-theme="dark"][data-route="tags"] .global-player .global-rate {
+  color: var(--text-3) !important;
+}
+html[data-theme="light"]:has(.tc-page) .global-player-time,
+html[data-theme="light"][data-route="tags"] .global-player-time,
+html[data-theme="light"]:has(.tc-page) .global-player .global-rate,
+html[data-theme="light"][data-route="tags"] .global-player .global-rate {
+  color: var(--tc-ink-5, #6f84a3) !important;
+}
+
+html[data-theme="dark"]:has(.tc-page) .global-player .global-ctrl,
+html[data-theme="dark"][data-route="tags"] .global-player .global-ctrl {
   color: var(--text-on-ink-soft) !important;
   background: rgba(255, 255, 255, 0.06) !important;
 }
+html[data-theme="light"]:has(.tc-page) .global-player .global-ctrl,
+html[data-theme="light"][data-route="tags"] .global-player .global-ctrl {
+  color: var(--tc-ink-2, #2a3a55) !important;
+  background: rgba(79, 142, 247, 0.08) !important;
+}
 
 
 
+
+
+/* ===== 日间加载层 ===== */
+html[data-theme="light"][data-route="tags"] .tc-loader,
+html[data-theme="light"] .tc-loader {
+  background:
+    radial-gradient(60% 50% at 50% 42%, rgba(255, 255, 255, 0.55), transparent 70%),
+    linear-gradient(180deg, #eef4ff 0%, #e0ecff 100%);
+  color: var(--tc-ink, #142033);
+}
+html[data-theme="light"][data-route="tags"] .tc-loader-text,
+html[data-theme="light"] .tc-loader-text {
+  color: var(--tc-ink-2, #2a3a55);
+}
+html[data-theme="light"][data-route="tags"] .tc-loader-core,
+html[data-theme="light"] .tc-loader-core {
+  box-shadow: 0 0 24px rgba(79, 142, 247, 0.35);
+}
