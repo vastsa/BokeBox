@@ -224,7 +224,7 @@ html[data-theme="dark"] .topbar {
     background: color-mix(in srgb, var(--bg) 72%, transparent);
   }
 html[data-theme="dark"] .bottom-nav {
-    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    /* 沉浸底栏由 base.css 统一控制，避免二次覆写割裂过渡 */
   }
 html[data-theme="dark"] .pb-range::-webkit-slider-thumb {
     box-shadow: 0 0 0 3px var(--blue-glow-a18);

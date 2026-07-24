@@ -469,8 +469,8 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
   /* 底栏：内容约 54px + 底部安全区；预留 4px 防止字重差异撑破 */
-  /* 浮动底坞：内容约 58px + 上下留白 + 底部安全区 */
-  --bottom-nav-h: calc(72px + env(safe-area-inset-bottom, 0px));
+  /* 底栏 chrome：内容约 54px + 底部安全区 */
+  --bottom-nav-h: calc(58px + env(safe-area-inset-bottom, 0px));
   /* 迷你播放条默认高度；body:has(.global-player) 时覆写 */
   --global-player-h: 0px;
   --container-max: 1040px;

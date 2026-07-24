@@ -268,7 +268,8 @@ html[data-theme="dark"] ::selection {
   margin: var(--space-1_5) auto var(--space-3_5);
 }
 .page-bottom-pad {
-  padding-bottom: calc(var(--bottom-nav-h) + var(--global-player-h) + var(--space-4));
+  /* 底栏已全宽贴边，内容只需刚好让出 chrome 高度 */
+  padding-bottom: calc(var(--bottom-nav-h) + var(--global-player-h) + var(--space-3));
 }
 @media (min-width: 768px) {
   .page-sheet {
@@ -571,33 +572,37 @@ select.plugin-config-control {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--bg) 88%, transparent) 0%,
-      color-mix(in srgb, var(--bg) 62%, transparent) 100%
+      color-mix(in srgb, var(--bg) 92%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 72%, transparent) 72%,
+      color-mix(in srgb, var(--bg) 28%, transparent) 100%
     );
-  border-bottom: var(--space-px) solid transparent;
-  backdrop-filter: blur(var(--blur-4xl)) saturate(1.35);
-  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.35);
+  border-bottom: 0;
+  box-shadow: none;
+  backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
+  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
   transition:
     background var(--dur) var(--ease),
     border-color var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease);
 }
+/* 顶栏与内容自然溶合，不再画硬分割线 */
 .topbar.is-solid,
 .topbar:hover {
-  border-bottom-color: color-mix(in srgb, var(--separator) 72%, transparent);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--white) 40%, transparent);
+  border-bottom-color: transparent;
+  box-shadow: none;
 }
 html[data-theme="dark"] .topbar {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--bg) 82%, transparent) 0%,
-      color-mix(in srgb, var(--bg) 48%, transparent) 100%
+      color-mix(in srgb, var(--bg) 90%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 68%, transparent) 70%,
+      color-mix(in srgb, var(--bg) 24%, transparent) 100%
     );
 }
 html[data-theme="dark"] .topbar.is-solid,
 html[data-theme="dark"] .topbar:hover {
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--white) 6%, transparent);
+  box-shadow: none;
 }
 
 .topbar-inner {
@@ -664,6 +669,356 @@ html[data-theme="dark"] .topbar-brand-mark {
   gap: 2px;
 }
 .topbar-brand-copy .app-brand-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: var(--lh-face);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text);
+}
+.topbar-brand-copy .app-brand-tagline {
+  display: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+  color: var(--text-3);
+}
+
+/* 桌面：居中悬浮胶囊导航 */
+.topbar-nav {
+  display: none;
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+}
+.topbar-nav-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  border: var(--bw-1) solid color-mix(in srgb, var(--separator) 70%, transparent);
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--white) 42%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink-a04, rgba(20, 26, 36, 0.04)) 70%, transparent);
+  backdrop-filter: blur(var(--blur-3xl)) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--blur-3xl)) saturate(1.2);
+}
+html[data-theme="dark"] .topbar-nav-track {
+  border-color: color-mix(in srgb, var(--separator) 68%, transparent);
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--white) 7%, transparent),
+    0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.topbar-nav-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--control-3xl);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-base-plus);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-normal);
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.topbar-nav-item:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+}
+.topbar-nav-item:active {
+  transform: scale(0.975);
+}
+.topbar-nav-item.is-active {
+  color: var(--brand-2);
+  background: color-mix(in srgb, var(--brand-soft) 92%, var(--surface));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--brand) 12%, transparent),
+    0 1px 2px color-mix(in srgb, var(--brand) 8%, transparent);
+}
+html[data-theme="dark"] .topbar-nav-item.is-active {
+  color: var(--brand-2);
+  background: color-mix(in srgb, var(--brand-soft) 58%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 22%, transparent);
+}
+.topbar-nav-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  opacity: 0.88;
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.topbar-nav-item.is-active .topbar-nav-icon {
+  opacity: 1;
+  transform: translateY(-0.5px);
+}
+.topbar-nav-label {
+  display: inline-block;
+}
+
+/* 手机端顶栏右上角：制作 / 设置 */
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  flex-shrink: 0;
+}
+.topbar-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: var(--control-xl);
+  padding: 0 var(--space-2_5);
+  border: var(--bw-1) solid color-mix(in srgb, var(--separator) 90%, transparent);
+  border-radius: var(--radius-pill);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 94%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 82%, transparent) 100%
+    );
+  color: var(--text-2);
+  font-size: var(--fs-sm-plus);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-normal);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--white) 50%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ink-a04, rgba(20, 26, 36, 0.04)) 100%, transparent);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.topbar-action-btn:hover {
+  background: var(--brand-soft);
+  color: var(--brand-2);
+  border-color: color-mix(in srgb, var(--brand) 22%, transparent);
+}
+.topbar-action-btn:active {
+  transform: scale(0.96);
+}
+.topbar-action-btn.is-active {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--brand-soft) 88%, var(--surface)) 0%,
+      color-mix(in srgb, var(--brand-soft) 70%, var(--surface)) 100%
+    );
+  color: var(--brand-2);
+  border-color: color-mix(in srgb, var(--brand) 22%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--brand) 12%, transparent),
+    0 4px 12px color-mix(in srgb, var(--brand-soft) 70%, transparent);
+}
+.topbar-action-icon {
+  display: inline-grid;
+  place-items: center;
+}
+@media (max-width: 360px) {
+  .topbar-action-btn {
+    width: var(--control-2xl);
+    height: var(--control-2xl);
+    min-height: var(--control-2xl);
+    padding: 0;
+  }
+  .topbar-action-btn span:not(.topbar-action-icon) {
+    display: none;
+  }
+}
+
+/* 移动端底栏 chrome · 与内容连续沉浸
+ * 全宽毛玻璃面板，不再做悬浮卡片，避免与内容/播放条割裂
+ */
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-player);
+  box-sizing: border-box;
+  display: block;
+  pointer-events: auto;
+  min-height: var(--bottom-nav-h);
+  padding:
+    var(--space-1)
+    max(var(--space-2), var(--page-x, 12px))
+    calc(var(--space-1) + var(--safe-bottom));
+  border-top: var(--bw-1) solid color-mix(in srgb, var(--separator) 78%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 78%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 92%, transparent) 100%
+    );
+  box-shadow:
+    0 -12px 28px color-mix(in srgb, var(--ink-a08, rgba(20, 26, 36, 0.08)) 55%, transparent);
+  backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
+  -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.28);
+}
+html[data-theme="dark"] .bottom-nav {
+  border-top-color: color-mix(in srgb, var(--separator) 70%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 72%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 88%, transparent) 100%
+    );
+  box-shadow: 0 -16px 32px rgba(0, 0, 0, 0.28);
+}
+
+/* 内容滚入底栏时的柔和遮罩，强化沉浸过渡 */
+.bottom-nav::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg) 42%, transparent) 100%
+  );
+}
+html[data-theme="dark"] .bottom-nav::before {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg) 55%, transparent) 100%
+  );
+}
+
+.bottom-nav-track {
+  position: relative;
+  display: grid;
+  width: min(100%, 560px);
+  margin-inline: auto;
+  gap: 0;
+  align-items: stretch;
+  padding: 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.bottom-nav-track.is-guest {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.bottom-nav-track.is-authed {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+html[data-theme="dark"] .topbar-action-btn {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 84%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 70%, transparent) 100%
+    );
+}
+
+/* 底栏导航：克制、连续、无卡片感 */
+.bottom-nav-item {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 2px 2px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-normal);
+  line-height: var(--lh-dense);
+  transition:
+    color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.bottom-nav-item:hover {
+  color: var(--text-2);
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+.bottom-nav-item:active {
+  transform: scale(0.97);
+}
+.bottom-nav-item.is-active {
+  font-weight: var(--fw-semibold);
+  color: var(--brand-2);
+  background: transparent;
+  box-shadow: none;
+}
+.bottom-nav-icon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.bottom-nav-item.is-active .bottom-nav-icon {
+  transform: none;
+  color: var(--brand-2);
+  background: color-mix(in srgb, var(--brand-soft) 88%, transparent);
+}
+.bottom-nav-dot {
+  display: none;
+}
+.bottom-nav-label,
+.bottom-nav-item span.bottom-nav-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 有迷你播放条时：底栏与播放条拼成连续 chrome */
+body:has(.global-player) .bottom-nav {
+  border-top-color: transparent;
+  box-shadow: none;
+}
+body:has(.global-player) .bottom-nav::before {
+  display: none;
+}
+
+.app-brand-title {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;

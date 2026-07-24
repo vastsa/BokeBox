@@ -23,9 +23,9 @@
   animation: gp-rise 0.28s var(--ease) both;
 }
 
-/* 有底部导航时抬到导航上方，杜绝重叠 */
+/* 有底部导航时贴合导航上方，杜绝重叠与悬浮割裂 */
 body:has(.bottom-nav) .global-player {
-  bottom: calc(var(--bottom-nav-h) + var(--space-2));
+  bottom: var(--bottom-nav-h);
 }
 
 @keyframes gp-rise {
@@ -158,26 +158,43 @@ body:has(.bottom-nav) .global-player {
   transition: width 0.2s linear;
 }
 
-/* 手机端：迷你播放条悬浮于浮动底坞上方 */
+/* 手机端：迷你播放条与底栏拼成连续沉浸 chrome */
 @media (max-width: 767.98px) {
   body:has(.bottom-nav) .global-player {
-    left: max(var(--space-3), var(--page-x, 16px));
-    right: max(var(--space-3), var(--page-x, 16px));
-    bottom: calc(var(--bottom-nav-h) + var(--space-1));
-    border-radius: var(--radius-2xl);
-    border: var(--bw-1) solid color-mix(in srgb, var(--separator) 88%, transparent);
+    left: 0;
+    right: 0;
+    bottom: var(--bottom-nav-h);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-top: var(--bw-1) solid color-mix(in srgb, var(--separator) 82%, transparent);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--brand-soft) 40%, transparent), transparent 58%),
+      color-mix(in srgb, var(--surface) 94%, transparent);
     box-shadow:
-      0 10px 28px color-mix(in srgb, var(--ink-a08) 80%, transparent),
-      0 1px 2px color-mix(in srgb, var(--ink-a04) 100%, transparent);
+      0 -10px 26px color-mix(in srgb, var(--ink-a08) 58%, transparent);
+    backdrop-filter: blur(var(--blur-4xl)) saturate(1.25);
+    -webkit-backdrop-filter: blur(var(--blur-4xl)) saturate(1.25);
   }
 
+  /* 播放条与底栏视觉一体：同材质、无间隙、无双边框 */
   body:has(.global-player) .bottom-nav {
     border-top-color: transparent;
     box-shadow: none;
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface) 94%, transparent) 0%,
+        color-mix(in srgb, var(--surface) 96%, transparent) 100%
+      );
+  }
+  body:has(.global-player) .bottom-nav::before {
+    display: none;
   }
 
   body:has(.global-player) {
-    --global-player-h: 68px;
+    --global-player-h: 62px;
   }
 
   /* 窄屏压缩内边距，避免控件把高度撑破内容留白 */

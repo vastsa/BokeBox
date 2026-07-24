@@ -324,7 +324,7 @@ iOS 在输入框 `font-size < 16px` 时会聚焦缩放。
 | 区域 | 手机端约定 |
 |------|------------|
 | 页面标题 `.app-page-title` / `.lh-title` | `--fs-3xl` + `--fw-extrabold`（≥768px 升到 `--fs-display`） |
-| 底栏 `.bottom-nav-item` | `--fs-xs` + `--fw-medium`（激活 `--fw-semibold`）；浮动坞内图标 + 文案 |
+| 底栏 `.bottom-nav-item` | `--fs-xs` + `--fw-medium`（激活 `--fw-semibold`）；全宽沉浸底栏，激活态图标 soft 高亮 |
 | 顶栏品牌 `.app-brand-title` | `--fs-lg` + `--fw-medium`（≥768px 升 `--fs-lg-plus` / semibold） |
 | 顶栏胶囊 `.topbar-nav-item` | `--fs-base-plus` + `--fw-semibold`；激活使用 brand soft 高亮 |
 | 设置 Tab / 区块标题 | `--fs-base` ~ `--fs-base-plus` + `--fw-semibold` |
@@ -357,7 +357,7 @@ iOS 在输入框 `font-size < 16px` 时会聚焦缩放。
 | 列表次行 | `--fs-sm` ~ `--fs-base` | `--text-3` | medium |
 | 按钮 `.nl-btn` | `--fs-md` | 随 variant | semibold |
 | 顶栏导航（胶囊轨） | `--fs-base-plus` | 默认 `--text-2`，激活 `--brand-2` + soft fill | semibold |
-| 底栏导航（浮动坞） | `--fs-xs` | 默认 `--text-3`，激活 `--brand-2` + soft fill | medium / 激活 semibold |
+| 底栏导航（沉浸 chrome） | `--fs-xs` | 默认 `--text-3`，激活 `--brand-2` + soft fill | medium / 激活 semibold |
 | 表单 label | `--fs-sm-plus` ~ `--fs-base` | `--text-2` | medium/bold |
 | 错误提示 | `--fs-base` ~ `--fs-base-plus` | `--danger` | medium |
 | Empty 标题 | `--fs-xl` | `--text` | semibold |
@@ -443,7 +443,7 @@ rg -n "text-\[[0-9]" apps/web/src --glob '*.tsx'
 |------|------|
 | `apps/web/src/styles/index.css` | Token 定义 + 全局组件样式 |
 | `apps/web/src/lib/theme.ts` | 主题偏好（含跟随系统）读写、解析与 `data-theme` |
-| `apps/web/src/layouts/AppShell.tsx` | 壳层导航：顶栏胶囊轨 + 移动端浮动底坞 |
+| `apps/web/src/layouts/AppShell.tsx` | 壳层导航：顶栏胶囊轨 + 移动端全宽沉浸底栏 |
 | `apps/web/src/components/ui/*` | Empty / Section 等基础组件 |
 | [Docker CI/CD](../ops/ci-cd.md) | 构建与发布 |
 | [Source 插件开发](./source-plugin.md) | 插件开发（与 UI token 无关） |

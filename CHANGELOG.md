@@ -6,7 +6,7 @@
 
 ### Web
 
-- 导航栏现代化：桌面顶栏毛玻璃 + 居中胶囊轨，移动端改为悬浮圆角底坞（iOS / 字节风格）
+- 导航栏现代化：桌面顶栏毛玻璃 + 居中胶囊轨；移动端全宽沉浸底栏，与迷你播放条连续衔接
 - 页面级 SEO：路由独立 title/description；播放/专辑用内容标题与封面；管理页 noindex
 - 前端路由改为 **History 模式**，去掉 URL 中的 `#`；兼容旧 hash 链接自动迁移
 - 全局 SEO 增强：canonical / Open Graph / Twitter Card / robots；路由切换同步 `og:url`
