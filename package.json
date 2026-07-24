@@ -1,6 +1,6 @@
 {
   "name": "bokebox",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "BokeBox · 私人 AI 播客工作室：将视频、链接、文稿等多源内容转化为可收听的私人播客。支持自定义人设与音色，内置 MCP 与插件式内容源，本地私有部署（开源 · LGPL-3.0）",
   "scripts": {
