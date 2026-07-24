@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Content in. Private podcasts out.</b><br/>
-  <sub>Turn videos, links, articles, meetings, and courses into private podcasts you can listen to anytime — host persona, voice, and style fully customizable.</sub>
+  <sub>Turn multi-source content into private shows you can finish. Persona, voice, plugins, MCP — self-hosted.</sub>
 </p>
 
 <p align="center">
@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/vastsa/BokeBox/"><img src="https://img.shields.io/badge/Open%20Source-GitHub-181717?style=flat-square&logo=github" alt="GitHub" /></a>
   <a href="https://bokebox.aiuo.net/"><img src="https://img.shields.io/badge/Demo-Live-0EA5E9?style=flat-square" alt="Demo" /></a>
-  <a href="https://bkb-docs.aiuo.net/"><img src="https://img.shields.io/badge/Docs-Online-7C5CFF?style=flat-square" alt="Docs" /></a>
+  <a href="https://bkb-docs.aiuo.net/"><img src="https://img.shields.io/badge/Docs-Guide-7C5CFF?style=flat-square" alt="Docs" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-LGPL--3.0-22C55E?style=flat-square" alt="LGPL-3.0" /></a>
   <a href="https://github.com/vastsa/BokeBox"><img src="https://visitor-badge.laobi.icu/badge?page_id=vastsa.BokeBox&left_text=visitors&left_color=555&right_color=22C55E" alt="visitors" /></a>
 </p>
@@ -31,11 +31,9 @@
   <a href="https://bokebox.aiuo.net/">Demo</a> ·
   <a href="https://bkb-docs.aiuo.net/">Docs</a> ·
   <a href="https://www.producthunt.com/products/bokebox">Product Hunt</a> ·
-  <a href="#-30-second-pitch">Product</a> ·
-  <a href="#-feature-checklist">Features</a> ·
-  <a href="#-who-its-for">Who it's for</a> ·
-  <a href="#-ui-glimpse">UI</a> ·
-  <a href="#-get-started">Get started</a>
+  <a href="#get-started">Get started</a> ·
+  <a href="#ui">UI</a> ·
+  <a href="#feature-map">Features</a>
 </p>
 
 <p align="center">
@@ -44,98 +42,76 @@
 
 ---
 
-## 🎧 Sound familiar?
+## Bottom line first
 
-- You saved talks, courses, meeting notes, and long articles — always “later”
-- On commutes, chores, or walks, you want to digest info — but your phone only offers short-video noise
-- You want a show **just for yourself**, without recording into a mic at midnight
-- You tried AI podcast demos: fake voices, rigid personas, and you quit after two minutes
+**BokeBox turns “I’ll read/watch it later” into private episodes you can actually finish — and keep.**
 
-**BokeBox is built for those moments.**
+| You put in | You get back |
+| --- | --- |
+| Video / links / drafts / meetings & courses | Spoken episode + cover + flashcards + progress |
+| Global or per-episode persona / voice | Feels like a show made for you |
+| Plugins / MCP / schedules | Extensible inputs, AI-native control |
 
-**Not limited to long videos.** Drop a video, web link, article, meeting note, course material, or plain draft into the box (and extend more sources via Source plugins). It will:
+**One line**: a self-hosted private AI podcast studio — your data stays local, the pipeline is pluggable, listening quality beats feature bloat.
 
-1. Understand the content  
-2. Rewrite it as a spoken script  
-3. Speak it in the voice you choose  
-4. Turn it into a private podcast you can play anytime  
+**Try it now**
+
+- Demo: <https://bokebox.aiuo.net>
+- Docs: <https://bkb-docs.aiuo.net>
+- Local in three steps:
+
+```bash
+git clone https://github.com/vastsa/BokeBox.git
+cd bokebox
+cp .env.example .env   # add API keys
+./start.sh             # http://localhost:5173
+```
+
+Docker (recommended prebuilt image):
+
+```bash
+cp .env.example .env
+docker pull ghcr.io/vastsa/bokebox:latest
+./start.sh docker      # http://localhost:8787
+```
 
 ---
 
-## ⚡ 30-second pitch
+## 30-second pitch
 
 ```text
   What you put in                    What BokeBox gives back
- ─────────────────                  ──────────────────────
+  ─────────────────                  ──────────────────────
   Meetings / notes                   Rhythmic spoken episodes
-  Course replays / materials ─AI──▶  Custom host personas
-  Long-form articles / drafts        Preset / described voices
+  Long reads / talks / courses       Host persona + natural voice
   Any link (plugin-extensible)       Cover · flashcards · progress
 ```
 
-**In one line:**  
-Not another single-format “media-to-audio” converter — a **multi-source personal AI podcast studio that belongs only to you**.
+1. **Drop it in** — video, link, draft, or plugin sources  
+2. **Tune optionally** — persona, voice, prompts  
+3. **Let it run** — ASR → spoken script → TTS → cover / cards  
+4. **Listen** — player + albums + star map + review
 
 ---
 
-## ✨ Why star it
+## Why it matters
 
-| What you care about | How BokeBox does it |
+| Pain | What BokeBox does |
 | --- | --- |
-| **You can actually finish it** | Not dry subtitle reading — AI rewrites into spoken structure: open, highlights, close |
-| **Multi-source input** | Videos / links / drafts / meetings & courses — extend further with Source plugins |
-| **Sounds like a person talking** | Natural podcast voices + delivery tags (pauses, light laughs, pace shifts…) |
-| **You own the persona** | Who the host is, who they talk to, style, show name — global defaults or per-episode |
-| **AI-native control** | Built-in MCP so Cursor / Claude can create episodes and query jobs |
-| **Knowledge sticks** | Auto-extracted flashcards so key points are easy to review |
-| **Your data stays yours** | Single-user private deploy; tasks and progress stay local — no public social feed |
+| Endless “read later” | Moves content into ear time |
+| Robot read-aloud | Rewrites into spoken structure with persona |
+| Heard and forgotten | Auto flashcards for key points |
+| Locked-in inputs | Source / ASR / TTS / Schedule plugins |
+| Cloud lock-in | Single-user self-host; jobs & media stay local |
 
-If you believe:
-
-> Great content deserves a second listen — told the way *you* like.
-
-Give BokeBox a ⭐ and help more people discover private AI podcasts.
+Good fit: knowledge workers, commute listeners, private “shows for myself”, privacy-minded self-hosters.  
+Not a fit: public podcast platforms, multi-tenant SaaS, live collaborative editing.
 
 ---
 
-## 🎯 Problems it solves
+## UI
 
-### From “never finished reading/watching” to “easy to listen through”
-
-Long videos, articles, meetings, and course materials are dense, but they burn **eye time** and **uninterrupted blocks**.  
-BokeBox turns them into **ear time**: commute, chores, bedtime — still productive.
-
-### From “robot reading a script” to “a show with a persona”
-
-You can set:
-
-- How the host introduces themselves  
-- PM, teacher, or friend-chat vibe  
-- Show name, tone, opening/closing habits  
-- Which voice to use (or describe the timbre you want)
-
-**AI generates. You direct taste and style.**
-
-### From “heard and forgotten” to “take flashcards with you”
-
-Each episode ships audio plus knowledge cards and notes — one listen becomes reviewable assets.
-
----
-
-## 👤 Who it's for
-
-- **Lifelong learners**: too many courses, interviews, keynotes, and essays — want highlights in spare time  
-- **Creators / researchers**: digest multi-source material by ear before writing or editing  
-- **Solo founders / indie hackers**: fold meetings, links, notes, and essays into one personal “info radio”  
-- **Privacy-minded users**: content stays on your machine, not platform algorithms  
-
-Not a fit if you want a public podcast platform, multi-tenant SaaS, or live collaborative editing. BokeBox is intentionally small, private, and deep.
-
----
-
-## 🖼 UI glimpse
-
-Create, listen, and manage task assets in one private space.
+Create, listen, and manage assets in one private space.
 
 | Home | Player |
 | :---: | :---: |
@@ -143,19 +119,7 @@ Create, listen, and manage task assets in one private space.
 | **Flashcards** | **Star Map** |
 | <img src="docs/img/flashcard.webp" width="100%" alt="BokeBox flashcards" /> | <img src="docs/img/starmap.webp" width="100%" alt="BokeBox star map" /> |
 
-You get:
-
-- **Home library** — finished shows and in-progress jobs at a glance  
-- **One-click create** — upload video / paste link / drop draft, set persona & voice  
-- **Task detail** — transcript, script, audio, cover, flashcards end-to-end  
-- **Immersive player** — progress memory, speed, sleep timer  
-- **Star Map** — knowledge graph across episodes  
-
----
-
-## ⚙️ Settings at a glance
-
-Tune persona, prompts, plugins, MCP, site info, and subscriptions from one settings center.
+### Settings
 
 | Persona | Prompts |
 | :---: | :---: |
@@ -167,131 +131,51 @@ Tune persona, prompts, plugins, MCP, site info, and subscriptions from one setti
 
 ---
 
-## 🪄 How it feels
+## Feature map
 
-1. **Drop it in**  
-   Local video, web link, article, or existing draft / notes — plus plugin-extended sources.
-
-2. **Tune it (optional)**  
-   Keep global persona, or set this episode’s tone.
-
-3. **Go do something else**  
-   Transcribe → script → voice → cover / cards — runs in the background.
-
-4. **Put headphones on**  
-   Open the player. Feels like a show made for you.
-
----
-
-## 📋 Feature checklist
-
-A product-level map of what BokeBox can do today (aligned with Settings, task detail, and the listen library).
+<details>
+<summary><b>Expand full checklist (pipeline / listening / plugins / MCP / deploy)</b></summary>
 
 ### Multi-source input
-- Local upload: video / audio / text drafts
-- URL import: webpage body extraction, public video / audio direct links
-- Pick a Source plugin on create, or auto-match
-- Optionally assign an album, persona, and voice when creating
+- Local upload: video / audio / draft
+- URL import: article body, public media links
+- Pin a Source plugin or auto-match; assign album, persona, voice on create
 
 ### AI production pipeline
-- Extract audio → ASR transcript → spoken script → cover / notes / flashcards → TTS
-- Background jobs with progress and status on the home screen
-- Re-run from a chosen step (extract / transcribe / script / cover / flashcards / synthesize) and skip finished stages
-- Publish to the listen library, retry failed jobs, delete jobs
+- Extract → ASR → spoken script → cover / notes / flashcards → TTS
+- Async jobs with home progress; re-run from a chosen step and skip finished stages
+- Publish to library, retry failures, delete jobs
 
 ### Persona · voice · prompts
-- Global host persona, or per-episode overrides
-- Preset voices + text-described custom voice (Voice Design)
-- Prompt hub for cover / podcast script / rewrite / flashcards, with `{{placeholders}}`
-- Content language: global default or per-job override
+- Global host persona + per-episode override
+- Preset voices + text-described voice design
+- Prompt hub: cover / spoken / rewrite / flashcards with `{{placeholders}}`
+- Content language: global default or per job
 
-### Episode assets
-- Task detail keeps transcript, spoken script, show notes, flashcards, cover, and audio
-- AI cover generation (customizable cover prompt)
-- Flashcards generate / regenerate independently for active recall
-- Tags and summaries browsable from home and the tag cloud
-
-### Listening experience
-- Immersive player: progress memory, playback speed, sleep timer (including “end of episode”)
-- Albums: create / organize / continuous play inside an album
-- Tag cloud to jump back to related episodes by theme
-- Listen library and production jobs live in one private space
+### Assets & listening
+- Job detail: transcript, script, notes, flashcards, cover, audio
+- Player: progress memory, speed, sleep timer (incl. end of episode)
+- Albums for continuous play; Star Map by tags
 
 ### Settings center
-- **Voice**: default TTS for new jobs
-- **Persona**: default host and show settings for script generation
-- **Prompts**: cover / podcast / rewrite / flashcard templates
-- **AI service**: API credentials, models, providers
-- **Plugins**: Source / Schedule / ASR / TTS hub (scan, enable, upload zip, per-plugin config)
-- **Schedules**: timed ingest with optional Source pin and run history
-- **MCP**: token, install configs, available tools
-- **Site**: site name, SEO, visitor access
-- **Account**: UI language, theme (system / light / dark), password, open-source info
+- **Voice / Persona / Prompts / AI service / Plugins / Schedules / MCP / Site / Account**
+- Account: UI language + theme (system / light / dark)
 
+### Schedules
+- Schedule plugins discover candidates; Source plugins fetch/parse
+- Built-ins: RSS, URL list, GitHub Trending, Hacker News, …
+- Dedup, rate limits, run now / force, run history  
+- Guide: [docs/guide/schedule.md](./docs/guide/schedule.md)
 
-### Scheduled feeds
-- Settings → Schedules: discover URLs on a cadence and auto-create podcast jobs
-- **Two layers**: Schedule plugins only discover candidates; ingest uses Source plugins (auto-match by default, or pin per schedule)
-- Config: schedule plugin + optional params (omit when empty) + cron/timezone + album/title prefix
-- Built-ins: RSS/Atom, URL list, GitHub Trending, Hacker News; dynamic forms from `configSchema`
-- Dedupe + per-run caps; run now / force run; run history with errors, duration, and job deep-links
-- External plugins: `storage/plugins/schedule/` (zip install; see [docs/development/schedule-plugin.md](./docs/development/schedule-plugin.md))
-- MCP: `list_schedules` / `get_schedule` / `create_schedule` / `run_schedule_now` / `list_schedule_plugins` (`sourcePluginId` supported)
-- Guide: [docs/en/guide/schedule.md](./docs/en/guide/schedule.md)
-
-### Plugin system
-- **Source plugins**: extend content acquisition (built-in `direct-http`; external plugins under `storage/plugins/source/`)
-- **ASR / TTS plugins**: switch built-in or external providers with isolated config
-- Settings support rescan, zip install, and uninstall of external plugins
-- Docs & examples:
-  - [docs/plugins/source.md](./docs/plugins/source.md)
-  - [docs/development/source-plugin.md](./docs/development/source-plugin.md)
-  - [docs/plugins/asr-tts.md](./docs/plugins/asr-tts.md)
-  - [docs/development/tts-plugin.md](./docs/development/tts-plugin.md)
-  - [examples/source-plugin-echo](./examples/source-plugin-echo)
-  - [examples/tts-plugin-echo](./examples/tts-plugin-echo) · [examples/tts-plugin-fishspeech](./examples/tts-plugin-fishspeech)
-  - [docs/plugins/schedule.md](./docs/plugins/schedule.md) · [docs/development/schedule-plugin.md](./docs/development/schedule-plugin.md)
-  - [examples/schedule-plugin-echo](./examples/schedule-plugin-echo) · [examples/schedule-plugin-github-trending](./examples/schedule-plugin-github-trending)
+### Plugins
+- Shared Source / ASR / TTS / Schedule contracts; rescan / zip upload / enable in Settings  
+- Docs & examples: [docs/plugins/](./docs/plugins/) · [docs/development/](./docs/development/) · [examples/](./examples/)
 
 ### MCP (AI-native control)
-- Built-in MCP endpoint; server auto-issues a long-lived token
-- One-click install JSON for Cursor / Claude Desktop / Codex
-- Tools:
-  - `create_podcast_from_url` / `create_podcast_from_text`
-  - `list_jobs` / `get_job` / `update_job` / `retry_job` / `delete_job`
-  - `list_library` / `get_system_health`
-
-### Deploy & privacy
-- One-command local start: `./start.sh` (dev) / `./start.sh prod` (single port)
-- Docker: prebuilt image / local build / China-mirror build
-- Single-user private deploy; jobs, progress, and media stay local (SQLite + local storage)
-- License: LGPL-3.0 · Repo: https://github.com/vastsa/BokeBox
-
----
-
-## 📚 Documentation site
-
-- **Online docs**: <https://bkb-docs.aiuo.net>  (中文 / English)
-- **Live demo**: <https://bokebox.aiuo.net>  (public instance for trying; do not put real secrets)
-- Source docs: repo `docs/` (VitePress)
-
-```bash
-pnpm docs:dev      # local preview
-pnpm docs:build    # static build
-pnpm docs:preview  # preview dist
-```
-
-Sections: Getting started · First episode · Pipeline · Schedules · MCP · Deploy · Plugins · Development · Ops.  
-Legacy paths `docs/*.md` still redirect to the new pages.
-
-
-## 🔌 MCP (AI-native control)
-
-BokeBox ships with a built-in **MCP (Model Context Protocol)** endpoint. After setup, the server **auto-issues a long-lived token**.
-
-- Protocol: `POST /mcp` (Bearer token)
-- Install payload: `GET /api/mcp/install` (login required), or **Settings → MCP**
-- Tools include: `create_podcast_from_url`, `create_podcast_from_text`, `list_jobs`, `get_job`, …
+- Built-in `POST /mcp` with auto long-lived token
+- Copy Cursor / Claude / Codex install configs from Settings
+- Tools include `create_podcast_from_url` / `create_podcast_from_text` / `list_jobs` / `get_job` / schedule tools, …
+- Optional `PUBLIC_BASE_URL` for reverse-proxy install URLs
 
 Cursor example:
 
@@ -301,100 +185,87 @@ Cursor example:
     "bokebox": {
       "url": "http://localhost:8787/mcp",
       "headers": {
-        "Authorization": "Bearer <token from Settings → MCP>"
+        "Authorization": "Bearer <token from Settings>"
       }
     }
   }
 }
 ```
 
-Optional env `PUBLIC_BASE_URL` helps generate the correct install URL behind a reverse proxy.
+### Deploy & privacy
+- `./start.sh` dev · `./start.sh prod` single port · Docker prebuilt / local / China mirrors
+- Single-user self-host: SQLite + local storage
+- License: **LGPL-3.0** · repo: https://github.com/vastsa/BokeBox
 
-## 🚀 Get started
+</details>
 
-> Prefer clicking first? Live demo: <https://bokebox.aiuo.net>  
-> Deploy & config details: [online docs](https://bkb-docs.aiuo.net) or the appendix below.
+---
 
-> Three steps (local / Docker):
+## Get started
+
+> Prefer clicking first? [Demo](https://bokebox.aiuo.net) · details in [docs](https://bkb-docs.aiuo.net)
 
 ```bash
 git clone https://github.com/vastsa/BokeBox.git
 cd bokebox
 cp .env.example .env   # add your API keys
-./start.sh             # open http://localhost:5173
+./start.sh             # http://localhost:5173
 ```
 
-First launch walks you through **account setup** and model config.  
-After that, your first private episode is one piece of content away.
+First launch walks through account setup and model config.
 
-**Docker (recommended: pull prebuilt image):**
+| Mode | Command | Open |
+| --- | --- | --- |
+| Local dev | `./start.sh` | `http://localhost:5173` |
+| Single-port prod | `./start.sh prod` | see script output |
+| Docker prebuilt | `docker pull ghcr.io/vastsa/bokebox:latest && ./start.sh docker` | `http://localhost:8787` |
+| Docker local build | `./start.sh docker.local` | `http://localhost:8787` |
+| China mirrors build | `./start.sh docker.cn` | `http://localhost:8787` |
+
+---
+
+## Docs & links
+
+| Entry | URL |
+| --- | --- |
+| Online docs (EN/ZH) | <https://bkb-docs.aiuo.net> |
+| Demo | <https://bokebox.aiuo.net> |
+| In-repo docs | `docs/` (VitePress) |
+| Plugins / developer guides | [docs/plugins/](./docs/plugins/) · [docs/development/](./docs/development/) |
+| CI / images | [docs/ops/ci-cd.md](./docs/ops/ci-cd.md) |
 
 ```bash
-cp .env.example .env
-docker pull ghcr.io/vastsa/bokebox:latest
-./start.sh docker
-# open http://localhost:8787
-```
-
-**Docker (build from source locally):**
-
-```bash
-cp .env.example .env
-./start.sh docker.local
-```
-
-**Docker (China mirrors build, recommended on mainland servers):**
-
-```bash
-cp .env.example .env
-./start.sh docker.cn
-# DaoCloud Node image + Aliyun apt + npmmirror
-# Installs system ffmpeg to avoid GitHub binary download timeouts
+pnpm docs:dev
+pnpm docs:build
+pnpm docs:preview
 ```
 
 ---
 
-## 💬 One-liner (shareable)
+## Roadmap & contribute
 
-> BokeBox: turn videos, links, articles, meetings, and courses into private podcasts you can listen to anytime. Customize host persona and voice, with MCP and pluggable sources. Self-hosted — your data stays under your control.
-
-If that resonates:
-
-1. ⭐ **Star** the repo so more people see it  
-2. Open an Issue — what content do you most want “podcast-ified”?  
-3. PRs welcome — UX, copy, more voices & model adapters especially  
-
----
-
-## 🛤 Roadmap vibes
-
-- Better multi-episode / “continue listening” flows  
+- Better multi-episode / continue-listening flows  
 - Richer voices and providers  
 - Subscription export (e.g. RSS) into apps you already use  
 - Lighter one-click desktop packaging  
 
-Your stars, issues, and PRs are roadmap votes.
+If that resonates:
 
----
+1. ⭐ **Star** the repo  
+2. Open an Issue — what should be “podcast-ified”?  
+3. PRs welcome — UX, copy, voices & model adapters especially  
 
-## ❤️ Closing note
+> **Shareable one-liner**: BokeBox turns videos, links, articles, meetings, and courses into private podcasts. Customize persona and voice, with MCP and pluggable sources. Self-hosted — your data stays under your control.
 
-Most tools help you **produce content faster**.  
-BokeBox cares more about helping you **digest content better**.
-
-In an age of overload, what you can finish listening to is what truly becomes yours.
-
-**Content in. Private podcasts out.**  
-Add BokeBox to your toolkit — and drop a Star so more people find it.
+**Content in. Private podcasts out.** Most tools help you produce content faster; BokeBox helps you digest it better.
 
 ---
 
 <details>
-<summary><b>Appendix: for people who want to deploy</b></summary>
+<summary><b>Appendix: requirements · commands · config · stack</b></summary>
 
 ### Requirements
-
-- Node.js ≥ 22.5 · pnpm 9.x  
+- Node.js ≥ 22.5 · pnpm 9.x
 - OpenAI-compatible API (Chat / ASR / TTS; image model optional)
 
 ### Common commands
@@ -405,7 +276,7 @@ Add BokeBox to your toolkit — and drop a Star so more people find it.
 | `./start.sh prod` | Build and run on a single port |
 | `./start.sh docker` | Pull `ghcr.io/vastsa/bokebox:latest` and start |
 | `./start.sh docker.local` | Build from local Dockerfile and start |
-| `./start.sh docker.cn` | Build with China mirrors and start (mainland servers) |
+| `./start.sh docker.cn` | Build with China mirrors and start |
 | `./start.sh docker:down` | Stop containers |
 
 ### Config highlights (`.env`)
@@ -419,7 +290,7 @@ OPENAI_TTS_MODEL=mimo-v2.5-tts
 OPENAI_TTS_DEFAULT_VOICE=冰糖
 ```
 
-Full variables: `.env.example`. CI/CD & image publish: [`docs/ops/ci-cd.md`](docs/ops/ci-cd.md). Web font/color tokens: [`docs/development/web-design-tokens.md`](docs/development/web-design-tokens.md).
+Full variables: `.env.example`.
 
 ### Pipeline (sketch)
 
@@ -429,13 +300,11 @@ multi-source input (video / link / draft / plugins)
   → parallel: cover / flashcards / TTS → library
 ```
 
-### Stack (if you ask)
-
+### Stack
 React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
 
 ### License
-
-[LGPL-3.0](LICENSE) — open source; derivative works of the library must remain LGPL-compatible.
+[LGPL-3.0](LICENSE) — open source; derivative works of the library must remain LGPL-compatible. Repo: https://github.com/vastsa/BokeBox
 
 </details>
 
@@ -446,18 +315,3 @@ React · Vite · Fastify · SQLite · ffmpeg · pnpm monorepo
   <sub>Private AI podcast box · Open Source · LGPL-3.0</sub><br/>
   <sub><a href="https://github.com/vastsa/BokeBox/">github.com/vastsa/BokeBox</a></sub>
 </p>
-
-## Source Plugins
-
-BokeBox is **not locked to one media type**. Beyond built-in video / link / draft paths, optional external Source plugins extend content ingestion (high-risk fetchers are not bundled by default).
-
-- Drop plugins into `storage/plugins/source/`, rescan in Settings  
-- Plugins normalize inputs into the same pipeline: spoken script → voice → cover / flashcards  
-- Developer guide: [docs/development/source-plugin.md](./docs/development/source-plugin.md)
-- Architecture notes: [docs/plugins/source.md](./docs/plugins/source.md)
-- Example plugin: [examples/source-plugin-echo](./examples/source-plugin-echo)
-- ASR/TTS plugins: [docs/plugins/asr-tts.md](./docs/plugins/asr-tts.md)
-- TTS plugin developer guide: [docs/development/tts-plugin.md](./docs/development/tts-plugin.md)
-- TTS examples: [examples/tts-plugin-echo](./examples/tts-plugin-echo) · [examples/tts-plugin-fishspeech](./examples/tts-plugin-fishspeech)
-- Web design tokens (font/color): [docs/development/web-design-tokens.md](./docs/development/web-design-tokens.md)
-
