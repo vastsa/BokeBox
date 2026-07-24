@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { hashSeed } from '../../lib/format';
 import type { TagStar } from './types';
 export type { TagStar } from './types';
@@ -76,7 +75,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     selectedRef.current = selected;
     for (const s of starsRef.current) {
       const active = Boolean(selected && s.name === selected);
-      s.label.element.classList.toggle('is-focus', active);
+      s.labelEl.classList.toggle('is-focus', active);
     }
   }, [selected]);
 
@@ -113,9 +112,11 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     wrap.appendChild(renderer.domElement);
     renderer.domElement.className = 'tu-canvas';
 
-    const labelRenderer = new CSS2DRenderer();
-    labelRenderer.domElement.className = 'tu-labels';
-    wrap.appendChild(labelRenderer.domElement);
+    // 扁平 HTML 标签层：替代 CSS2DRenderer（社区共识：大量 DOM 标签会拖垮主线程）
+    const labelLayer = document.createElement('div');
+    labelLayer.className = 'tu-labels';
+    labelLayer.setAttribute('aria-hidden', 'false');
+    wrap.appendChild(labelLayer);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -399,9 +400,22 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       spike.scale.setScalar(baseScale * 11.2);
       spike.visible = tag.count > (quality.animateIdle ? 1 : 2);
 
+      // 低画质：只保留 core+halo，砍掉 corona/spike 绘制调用
+      const useRichStar = quality.animateIdle;
+      if (!useRichStar) {
+        corona.visible = false;
+        spike.visible = false;
+      }
+
       const el = document.createElement('button');
       el.type = 'button';
       el.className = 'tu-label' + (selectedRef.current === tag.name ? ' is-focus' : '');
+      el.style.position = 'absolute';
+      el.style.left = '0';
+      el.style.top = '0';
+      el.style.transform = 'translate(-50%, -50%)';
+      el.style.willChange = 'transform';
+      el.style.display = 'none';
       const dot = document.createElement('span');
       dot.className = 'tu-label-dot';
       const text = document.createElement('span');
@@ -424,15 +438,12 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         const next = selectedRef.current === tag.name ? null : tag.name;
         onSelectRef.current(next);
       });
-
-      const label = new CSS2DObject(el);
-      label.position.set(0, baseScale * 1.85, 0);
+      labelLayer.appendChild(el);
 
       group.add(core);
       group.add(corona);
       group.add(halo);
       group.add(spike);
-      group.add(label);
       root.add(group);
 
       const runtime: StarRuntime = {
@@ -442,7 +453,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         corona,
         halo,
         spike,
-        label,
+        labelEl: el,
         basePos: positions[i].clone(),
         baseScale,
         phase: (hashSeed(tag.name) % 360) * (Math.PI / 180),
@@ -531,6 +542,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     let pointerDown: { x: number; y: number } | null = null;
 
     let resizeRaf = 0;
+    let requestRenderRef: ((ms?: number) => void) | null = null;
     const setSize = () => {
       if (disposed) return;
       const w = wrap.clientWidth || 1;
@@ -538,7 +550,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h, false);
-      labelRenderer.setSize(w, h);
+      requestRenderRef?.(0);
     };
     setSize();
     const ro = new ResizeObserver(() => {
@@ -581,14 +593,16 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       hoverRef.current = name;
       renderer.domElement.style.cursor = name ? 'pointer' : 'grab';
       for (const s of runtimes) {
-        s.label.element.classList.toggle('is-hover', s.name === name);
+        s.labelEl.classList.toggle('is-hover', s.name === name);
       }
+      requestRenderRef?.(200);
     };
 
     const onPointerDown = (e: PointerEvent) => {
       if (performance.now() < ignoreCanvasPickUntil) return;
       pointerDown = { x: e.clientX, y: e.clientY };
       controls.autoRotate = false;
+      // requestRender 在下方定义后通过闭包；此处仅停旋转
     };
     const onPointerUp = (e: PointerEvent) => {
       if (performance.now() < ignoreCanvasPickUntil) {
@@ -604,9 +618,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         if (!name) onSelectRef.current(null);
         else onSelectRef.current(selectedRef.current === name ? null : name);
       }
-      window.setTimeout(() => {
-        if (!disposed && !selectedRef.current) controls.autoRotate = true;
-      }, 1800);
+      requestRender(400);
     };
     const onPointerMove = (e: PointerEvent) => {
       if (performance.now() < ignoreCanvasPickUntil) return;
@@ -624,30 +636,102 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
     renderer.domElement.addEventListener('pointermove', onPointerMove);
     renderer.domElement.addEventListener('pointerleave', onPointerLeave);
 
+
+    // ===== 按需渲染（three.js 官方建议：静态场景不要空转 rAF）=====
+    // 参考：OrbitControls change 事件触发 render；空闲 cancelAnimationFrame
     let raf = 0;
     let frame = 0;
-    let last = performance.now();
-    let rootAngle = 0;
     let readyNotified = false;
     const clockStart = performance.now();
-    // 目标帧率：低画质 30fps，中高 40fps，显著降 CPU/GPU 占用
-    const frameInterval = quality.animateIdle ? 1000 / 40 : 1000 / 30;
-    let lastDraw = 0;
+    let needsRender = true;
+    let animUntil = 0; // 交互后短时动画窗口
+    let interacting = false;
+    const maxLabelCount = quality.animateIdle ? 28 : 16;
+    // 标签可见性：优先高 count + 选中/悬停
+    const labelPriority = [...runtimes].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    const alwaysLabel = new Set(labelPriority.slice(0, maxLabelCount).map((s) => s.name));
+
+    const requestRender = (ms = 0) => {
+      needsRender = true;
+      if (ms > 0) animUntil = Math.max(animUntil, performance.now() + ms);
+      if (!raf && !document.hidden) raf = requestAnimationFrame(tick);
+    };
+    requestRenderRef = requestRender;
+
+    const kickInteract = () => {
+      interacting = true;
+      controls.autoRotate = false;
+      requestRender(1200);
+    };
+
+    controls.addEventListener('start', kickInteract);
+    controls.addEventListener('change', () => requestRender(0));
+    controls.addEventListener('end', () => {
+      interacting = false;
+      // 松开后短时阻尼收尾，然后真正停表
+      requestRender(700);
+    });
+
+    // 选中变化时强制刷新标签态
+    const syncFocusClass = () => {
+      const sel = selectedRef.current;
+      for (const s of runtimes) {
+        s.labelEl.classList.toggle('is-focus', s.name === sel);
+      }
+      requestRender(1400);
+    };
+    // 轮询 selectedRef 成本低且避免改上层 API
+    let lastSel = selectedRef.current;
+    const selWatch = window.setInterval(() => {
+      if (selectedRef.current !== lastSel) {
+        lastSel = selectedRef.current;
+        syncFocusClass();
+      }
+    }, 120);
+
+    const projectLabels = () => {
+      const w = wrap.clientWidth || 1;
+      const h = wrap.clientHeight || 1;
+      const sel = selectedRef.current;
+      const hover = hoverRef.current;
+      root.updateMatrixWorld(true);
+      for (const s of runtimes) {
+        const force = s.name === sel || s.name === hover;
+        if (!force && !alwaysLabel.has(s.name)) {
+          if (s.labelEl.style.display !== 'none') s.labelEl.style.display = 'none';
+          continue;
+        }
+        s.group.getWorldPosition(world);
+        // 标签略抬高
+        world.y += s.baseScale * 1.85;
+        ndc.copy(world).project(camera);
+        if (ndc.z < -1 || ndc.z > 1 || Math.abs(ndc.x) > 1.15 || Math.abs(ndc.y) > 1.15) {
+          s.labelEl.style.display = 'none';
+          continue;
+        }
+        const x = (ndc.x * 0.5 + 0.5) * w;
+        const y = (-ndc.y * 0.5 + 0.5) * h;
+        s.labelEl.style.display = '';
+        s.labelEl.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+        const z = Math.round((1 - (ndc.z + 1) * 0.5) * 1000);
+        s.labelEl.style.zIndex = String(100 + Math.max(0, Math.min(999, z)));
+      }
+    };
 
     const tick = (now: number) => {
-      if (disposed) return;
-      raf = requestAnimationFrame(tick);
+      raf = 0;
+      if (disposed || document.hidden) return;
 
-      // 页面隐藏时停更
-      if (document.hidden) return;
+      const animating =
+        interacting ||
+        now < animUntil ||
+        Boolean(selectedRef.current);
 
-      // 帧率上限：跳过过密帧，仍保持 rAF 调度
-      if (now - lastDraw < frameInterval - 0.5) return;
-      // 轻微对齐，避免长时间漂移
-      lastDraw = now - ((now - lastDraw) % frameInterval);
+      if (!needsRender && !animating) {
+        return; // 真正空闲：不再挂 rAF
+      }
+      needsRender = false;
 
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
       frame += 1;
       const t = (now - clockStart) / 1000;
       const heavyFrame = frame % 3 === 0;
@@ -655,41 +739,18 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       const hasHover = Boolean(hoverRef.current);
 
       controls.update();
-      if (quality.twinkle) {
-        shaderUniforms.uTime.value = t;
+      if (quality.twinkle) shaderUniforms.uTime.value = t;
+
+      // 空闲不再自动转场；仅交互窗口内做极轻背景差速
+      if (interacting && heavyFrame) {
+        farPoints.rotation.y = t * 0.002;
+        milkyPoints.rotation.y = t * 0.0015;
       }
 
-      // 背景场旋转降频；低画质几乎静止
-      if (quality.animateIdle && heavyFrame) {
-        farPoints.rotation.y = t * 0.004;
-        milkyPoints.rotation.y = t * 0.003;
-        nearPoints.rotation.y = -t * 0.008;
-        if (dustPoints) dustPoints.rotation.y = t * 0.006;
-        if (orbitGroup.children.length) orbitGroup.rotation.y = t * 0.015;
-      }
-
-      if (!hasSelection && quality.animateIdle) {
-        rootAngle += dt * 0.06;
-        root.rotation.y = rootAngle;
-      }
-
-      // 星云 / 轨道：低画质静态 billboard 一次即可
-      if (nebulaGroup.children.length && (quality.animateIdle ? heavyFrame : frame === 1)) {
+      if (nebulaGroup.children.length && (heavyFrame || frame <= 2)) {
         for (const n of nebulaGroup.children) {
           const mesh = n as THREE.Mesh;
           mesh.quaternion.copy(camera.quaternion);
-          if (quality.animateIdle) {
-            const phase = Number(mesh.userData.phase || 0);
-            const spin = Number(mesh.userData.spin || 0.02);
-            mesh.rotation.z = phase + t * spin * 0.55;
-          }
-        }
-      }
-      if (quality.animateIdle && heavyFrame) {
-        for (const o of orbitGroup.children) {
-          const line = o as THREE.LineLoop;
-          const spin = Number(line.userData.spin || 0.02);
-          line.rotation.y = t * spin;
         }
       }
 
@@ -697,33 +758,28 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       const hoverName = hoverRef.current;
       let activeStar: StarRuntime | null = null;
 
-      // 无交互时星体视觉更新降到 1/3 帧
-      const updateStars = hasSelection || hasHover || heavyFrame || frame <= 2;
+      const updateStars = hasSelection || hasHover || interacting || heavyFrame || frame <= 2;
       if (updateStars) {
         for (const s of runtimes) {
           const active = Boolean(selectedName && s.name === selectedName);
           const hover = !active && hoverName === s.name;
           if (active) activeStar = s;
 
-          // 浮动：仅中高质量，或当前交互星
-          if (quality.animateIdle || active || hover) {
-            const floatY = Math.sin(t * 0.9 + s.phase) * (active ? 0.06 : 0.03);
-            const floatX = Math.cos(t * 0.55 + s.phase) * (active ? 0.03 : 0.015);
-            s.group.position.set(
-              s.basePos.x + floatX,
-              s.basePos.y + floatY,
-              s.basePos.z,
-            );
+          if (active || hover) {
+            const floatY = Math.sin(t * 0.9 + s.phase) * (active ? 0.05 : 0.025);
+            const floatX = Math.cos(t * 0.55 + s.phase) * (active ? 0.025 : 0.012);
+            s.group.position.set(s.basePos.x + floatX, s.basePos.y + floatY, s.basePos.z);
+          } else if (s.group.position.x !== s.basePos.x || s.group.position.y !== s.basePos.y) {
+            s.group.position.copy(s.basePos);
           }
 
           const mode: 'idle' | 'hover' | 'active' = active ? 'active' : hover ? 'hover' : 'idle';
           const dim = selectedName && !active ? 0.72 : 1;
           setStarVisual(s, mode, dim);
 
-          // billboard：交互星每帧，其余重帧
           if (active || hover || heavyFrame) {
-            s.corona.quaternion.copy(camera.quaternion);
             s.halo.quaternion.copy(camera.quaternion);
+            if (s.corona.visible) s.corona.quaternion.copy(camera.quaternion);
             if (s.spike.visible) {
               s.spike.quaternion.copy(camera.quaternion);
               if (active) s.spike.rotation.z = t * 0.28 + s.phase;
@@ -731,27 +787,12 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           }
 
           if (active) {
-            const pulse = 1 + Math.sin(t * 1.2 + s.phase) * 0.022;
+            const pulse = 1 + Math.sin(t * 1.15 + s.phase) * 0.02;
             s.halo.scale.setScalar(s.baseScale * 1.24 * 9.2 * pulse);
-            s.corona.scale.setScalar(
-              s.baseScale * 1.24 * 3.4 * (1 + Math.sin(t * 1.8 + s.phase) * 0.03),
-            );
           }
         }
       } else if (selectedName) {
-        // 即便跳过全量更新，也要拿到 active 引用
         activeStar = runtimes.find((s) => s.name === selectedName) || null;
-      }
-
-      // 标签深度排序降频
-      if (frame % quality.labelSortEvery === 0) {
-        root.updateMatrixWorld(true);
-        for (const s of runtimes) {
-          s.group.getWorldPosition(world);
-          ndc.copy(world).project(camera);
-          const z = Math.round((1 - (ndc.z + 1) * 0.5) * 1000);
-          s.label.element.style.zIndex = String(100 + Math.max(0, Math.min(999, z)));
-        }
       }
 
       if (activeStar) {
@@ -759,39 +800,33 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
         selectGroup.visible = true;
         selectGroup.position.copy(tmp);
         selectGroup.quaternion.copy(camera.quaternion);
-        const beat = 1 + Math.sin(t * 1.35) * 0.028;
-        const sc = Math.max(0.5, activeStar.baseScale * 3.5) * beat;
-        selectGroup.scale.setScalar(sc);
+        const beat = 1 + Math.sin(t * 1.2) * 0.02;
+        selectGroup.scale.setScalar(Math.max(0.5, activeStar.baseScale * 3.5) * beat);
         ringMat.opacity = theme.mode === 'light' ? 0.7 : 0.48;
         (ringOuter.material as THREE.MeshBasicMaterial).opacity =
           theme.mode === 'light' ? 0.42 : 0.28;
         tickMat.opacity = theme.mode === 'light' ? 0.72 : 0.55;
-        selectGroup.rotation.z = t * 0.26;
-        ringOuter.rotation.z = -t * 0.42;
-
-        controls.target.lerp(tmp, 0.045);
+        selectGroup.rotation.z = t * 0.2;
+        ringOuter.rotation.z = -t * 0.32;
+        controls.target.lerp(tmp, 0.05);
         camOffset.copy(camera.position).sub(controls.target).normalize().multiplyScalar(9.5);
         desired.copy(tmp).add(camOffset);
-        camera.position.lerp(desired, 0.03);
+        camera.position.lerp(desired, 0.035);
         controls.autoRotate = false;
+        needsRender = true; // 选中镜头动画期间继续
       } else if (selectGroup.visible) {
         selectGroup.visible = false;
         ringMat.opacity = 0;
         (ringOuter.material as THREE.MeshBasicMaterial).opacity = 0;
         tickMat.opacity = 0;
-        controls.target.lerp(ZERO, 0.025);
-      }
-
-      // 连线透明度几乎静态，极低频更新
-      if (linkLines && frame % 12 === 0) {
-        const mat = linkLines.material as THREE.LineBasicMaterial;
-        mat.opacity = theme.linkOpacity;
+        controls.target.lerp(ZERO, 0.04);
+        if (controls.target.distanceToSquared(ZERO) > 1e-4) needsRender = true;
       }
 
       renderer.render(scene, camera);
-      // CSS2D 很贵：无交互时每 3 帧一次，有交互每帧
-      if (activeStar || hoverName || frame % 3 === 0) {
-        labelRenderer.render(scene, camera);
+      // 标签投影：交互时每帧，否则每 3 帧
+      if (interacting || hasSelection || hasHover || frame % 3 === 0) {
+        projectLabels();
       }
 
       if (!readyNotified) {
@@ -800,21 +835,30 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
           if (!disposed) onReadyRef.current?.();
         });
       }
+
+      // 若仍需动画则继续挂帧，否则真正停表
+      if (needsRender || interacting || now < animUntil || selectedRef.current) {
+        raf = requestAnimationFrame(tick);
+      }
     };
 
-    raf = requestAnimationFrame(tick);
+    // 首帧
+    requestRender(0);
 
     const onVisibility = () => {
       if (!document.hidden && !disposed) {
-        last = performance.now();
+        requestRender(300);
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       disposed = true;
-      cancelAnimationFrame(raf);
+      if (raf) cancelAnimationFrame(raf);
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
+      window.clearInterval(selWatch);
       document.removeEventListener('visibilitychange', onVisibility);
+      controls.removeEventListener('start', kickInteract);
       ro.disconnect();
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       renderer.domElement.removeEventListener('pointerup', onPointerUp);
@@ -847,7 +891,7 @@ export function TagUniverse({ tags, selected, onSelect, onReady, className }: Pr
       tickGeo.dispose();
       renderer.dispose();
       if (renderer.domElement.parentElement === wrap) wrap.removeChild(renderer.domElement);
-      if (labelRenderer.domElement.parentElement === wrap) wrap.removeChild(labelRenderer.domElement);
+      if (labelLayer.parentElement === wrap) wrap.removeChild(labelLayer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tagKey, themeMode]);
