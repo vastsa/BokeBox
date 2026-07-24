@@ -859,14 +859,23 @@ html[data-theme="dark"] .studio-job-live {
   width: 100%;
 }
 
-/* 主操作优先：上传 → 精简选项 · 宽度跟随 admin-container */
+.admin-upload-panel {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+/* 主操作优先：上传 → 精简选项
+ * 宽度跟随 AdminChrome 的 page-container，不再单独 max-width 收窄，
+ * 否则创建页左右边距会比任务库/设置页更“缩进去”。
+ */
 .upload-studio {
   display: flex;
   flex-direction: column;
   gap: var(--space-3_5);
   width: 100%;
-  max-width: var(--size-860);
-  margin-inline: auto;
+  max-width: none;
+  margin-inline: 0;
 }
 
 .upload-studio-main,

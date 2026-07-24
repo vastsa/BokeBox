@@ -646,6 +646,8 @@ html[data-theme="dark"] .settings-seo-preview-title {
 
 .admin-upload-panel {
   min-width: 0;
+  width: 100%;
+  max-width: none;
 }
 
 /* job detail inside admin console
