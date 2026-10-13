@@ -20,6 +20,7 @@ function navZh(): DefaultTheme.NavItem[] {
         { text: '配置与环境变量', link: '/guide/configuration' },
         { text: '部署', link: '/guide/deployment' },
         { text: 'MCP 接入', link: '/guide/mcp' },
+        { text: '百智研究材料成播', link: '/guide/baizhi-research-to-podcast' },
         { text: '常见问题', link: '/guide/faq' },
       ],
     },
@@ -69,6 +70,7 @@ function navEn(): DefaultTheme.NavItem[] {
         { text: 'Configuration', link: '/en/guide/configuration' },
         { text: 'Deployment', link: '/en/guide/deployment' },
         { text: 'MCP', link: '/en/guide/mcp' },
+        { text: 'Baizhi research to podcast', link: '/en/guide/baizhi-research-to-podcast' },
         { text: 'FAQ', link: '/en/guide/faq' },
       ],
     },
@@ -121,6 +123,7 @@ function sidebarZh(): DefaultTheme.Sidebar {
           { text: '制作流水线', link: '/guide/pipeline' },
           { text: '定时订阅', link: '/guide/schedule' },
           { text: 'MCP 接入', link: '/guide/mcp' },
+          { text: '百智研究材料成播', link: '/guide/baizhi-research-to-podcast' },
         ],
       },
       {
@@ -217,6 +220,7 @@ function sidebarEn(): DefaultTheme.Sidebar {
           { text: 'Pipeline', link: '/en/guide/pipeline' },
           { text: 'Schedules', link: '/en/guide/schedule' },
           { text: 'MCP', link: '/en/guide/mcp' },
+          { text: 'Baizhi research to podcast', link: '/en/guide/baizhi-research-to-podcast' },
         ],
       },
       {

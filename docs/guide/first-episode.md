@@ -61,6 +61,7 @@ description: 从零完成 BokeBox 第一期私人播客。
 
 - [定时订阅](./schedule.md)：RSS / 榜单自动进匣  
 - [MCP 接入](./mcp.md)：用 Cursor 一句话创建节目  
+- [百智研究材料成播](./baizhi-research-to-podcast.md)：核实材料、整理文本后制作私人节目
 - [插件体系](../plugins/)：扩展内容源与音色  
 
 ## 常见卡点

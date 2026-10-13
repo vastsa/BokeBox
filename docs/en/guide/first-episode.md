@@ -59,6 +59,7 @@ Details: [Pipeline](./pipeline.md).
 
 - [Schedules](./schedule.md) — RSS / charts on a timer  
 - [MCP](./mcp.md) — create shows from Cursor  
+- [Baizhi research to podcast](./baizhi-research-to-podcast.md) — review the material, prepare text, and make a private episode
 - [Plugins](../plugins/) — more sources & voices  
 
 ## Common snags
